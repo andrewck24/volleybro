@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFile as execFileCallback } from "node:child_process";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -8,6 +9,15 @@ import { promisify } from "node:util";
 const execFile = promisify(execFileCallback);
 const api = "https://api.vercel.com";
 const shaPattern = /^[0-9a-f]{40}$/;
+const digestPattern = /^sha256:([0-9a-f]{64})$/;
+const releaseStateVersion = 2;
+const productionWorkflow = ".github/workflows/production-release.yml";
+const ciWorkflow = ".github/workflows/ci.yml";
+const reviewEnvironment = "production-release-review";
+const sourceQAScopes = [
+  ["unit", "Test", "Test source"],
+  ["integration", "Integration", "Integration source"],
+];
 
 function fail(message) {
   throw new Error(message);
@@ -110,6 +120,269 @@ function exactSha(value, label) {
   const sha = String(value || "").toLowerCase();
   if (!shaPattern.test(sha)) fail(`${label} must be a full 40-character SHA`);
   return sha;
+}
+
+function positiveInteger(value, label) {
+  const result = String(value || "");
+  if (!/^[1-9]\d*$/.test(result)) fail(`${label} must be a positive integer`);
+  return result;
+}
+
+function workflowFile(run) {
+  return String(run?.path || "").split("@")[0];
+}
+
+function httpsEvidence(value, label) {
+  const raw = String(value || "");
+  if (!raw || raw.trim() !== raw || /[\r\n]/.test(raw))
+    fail(`${label} must be one HTTPS URL`);
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    fail(`${label} must be one HTTPS URL`);
+  }
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    !url.hostname
+  )
+    fail(`${label} must be one HTTPS URL`);
+  return url.href;
+}
+
+function hostname(value, label) {
+  const raw = String(value || "").toLowerCase();
+  let url;
+  try {
+    url = new URL(`https://${raw}`);
+  } catch {
+    fail(`${label} must be a hostname`);
+  }
+  if (
+    !raw ||
+    url.hostname !== raw ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash ||
+    url.port
+  )
+    fail(`${label} must be a hostname`);
+  return raw;
+}
+
+function stateReleaseRun(state) {
+  return {
+    runId: positiveInteger(state.releaseRunId, "Release state run ID"),
+    runAttempt: positiveInteger(
+      state.releaseRunAttempt,
+      "Release state run attempt",
+    ),
+  };
+}
+
+function validateStateSchema(state) {
+  if (state.stateVersion !== releaseStateVersion)
+    fail("Release state does not use the current QA receipt contract");
+  exactSha(state.sha, "Release state SHA");
+  exactSha(state.controllerSha, "Release state controller SHA");
+  positiveInteger(state.releaseRunId, "Release state run ID");
+  positiveInteger(state.releaseRunAttempt, "Release state run attempt");
+  if (!state.candidateId || !state.baseline?.deploymentId)
+    fail("Release state is missing deployment identity");
+  if (!state.projectId || !state.productionAlias)
+    fail("Release state is missing its platform binding");
+}
+
+function validateConfiguredPlatform(state) {
+  validateStateSchema(state);
+  if (
+    state.projectId !== required("VERCEL_PROJECT_ID") ||
+    state.productionAlias !==
+      hostname(required("PRODUCTION_ALIAS"), "Production alias")
+  )
+    fail("Release state platform binding does not match current configuration");
+}
+
+function validateWorkflowRun(
+  run,
+  { id, path: expectedPath, repository, event, sha, attempt } = {},
+) {
+  if (
+    (id && String(run?.id) !== String(id)) ||
+    workflowFile(run) !== expectedPath ||
+    run.repository?.full_name !== repository ||
+    run.head_repository?.full_name !== repository ||
+    (event && run.event !== event) ||
+    (sha && run.head_sha !== sha) ||
+    (attempt && String(run.run_attempt) !== String(attempt))
+  )
+    fail(`Untrusted ${expectedPath || "workflow"} run provenance`);
+  return run;
+}
+
+async function workflowRun(id) {
+  return github(`actions/runs/${positiveInteger(id, "Workflow run ID")}`);
+}
+
+async function workflowJobs(id) {
+  const response = await github(
+    `actions/runs/${positiveInteger(id, "Workflow run ID")}/jobs?filter=latest&per_page=100`,
+  );
+  if (
+    !Array.isArray(response.jobs) ||
+    response.total_count > response.jobs.length
+  )
+    fail("Workflow job inventory is incomplete");
+  return response.jobs;
+}
+
+function successfulJob(jobs, name, attempt) {
+  const matches = jobs.filter(
+    (job) =>
+      job.name === name &&
+      (!job.run_attempt || String(job.run_attempt) === String(attempt)),
+  );
+  if (
+    matches.length !== 1 ||
+    matches[0].status !== "completed" ||
+    matches[0].conclusion !== "success"
+  )
+    fail(`${name} is not a unique successful native workflow job`);
+  return matches[0];
+}
+
+function jobEvidence(job) {
+  return {
+    id: positiveInteger(job.id, `${job.name} job ID`),
+    name: job.name,
+    conclusion: job.conclusion,
+  };
+}
+
+function approvedHistory(history, environment) {
+  if (!Array.isArray(history)) fail("Workflow approval history is invalid");
+  const reviews = history
+    .filter(
+      (entry) =>
+        entry.state === "approved" &&
+        entry.environments?.some((item) => item.name === environment) &&
+        entry.user?.login &&
+        Number.isInteger(entry.user?.id),
+    )
+    .map((entry) => ({
+      state: "approved",
+      environments: entry.environments.map((item) => item.name).sort(),
+      user: { login: entry.user.login, id: entry.user.id },
+    }));
+  if (!reviews.length) fail(`${environment} has no native approval history`);
+  return reviews;
+}
+
+function sameReview(left, right) {
+  return (
+    left.state === right.state &&
+    left.user?.login === right.user?.login &&
+    left.user?.id === right.user?.id &&
+    JSON.stringify(left.environments) === JSON.stringify(right.environments)
+  );
+}
+
+async function nativeApprovalHistory(runId, environment) {
+  return approvedHistory(
+    await github(
+      `actions/runs/${positiveInteger(runId, "Workflow run ID")}/approvals`,
+    ),
+    environment,
+  );
+}
+
+function protectedJobKey(name) {
+  const key = {
+    "Accept source Preview": "source-preview-acceptance",
+    "Accept candidate evidence": "candidate-acceptance",
+    "Accept production QA": "production-acceptance",
+  }[name];
+  if (!key) fail(`Unknown protected workflow job: ${name}`);
+  return key;
+}
+
+async function protectedJobReceipt(name, environment) {
+  const repository = required("GITHUB_REPOSITORY");
+  const runId = required("GITHUB_RUN_ID");
+  const runAttempt = required("GITHUB_RUN_ATTEMPT");
+  const [run, jobs, reviews] = await Promise.all([
+    workflowRun(runId),
+    workflowJobs(runId),
+    nativeApprovalHistory(runId, environment),
+  ]);
+  validateWorkflowRun(run, {
+    id: runId,
+    path: productionWorkflow,
+    repository,
+    attempt: runAttempt,
+  });
+  const matches = jobs.filter(
+    (job) =>
+      job.name === name &&
+      (!job.run_attempt || String(job.run_attempt) === runAttempt),
+  );
+  if (
+    matches.length !== 1 ||
+    !(
+      matches[0].status === "in_progress" ||
+      (matches[0].status === "completed" && matches[0].conclusion === "success")
+    )
+  )
+    fail(`${name} is not the current protected workflow job`);
+  const expectedGithubJob = protectedJobKey(name);
+  if (required("GITHUB_JOB") !== expectedGithubJob)
+    fail(`${name} is running from an unexpected workflow job`);
+  return {
+    runId,
+    runAttempt,
+    githubJob: expectedGithubJob,
+    jobId: positiveInteger(matches[0].id, `${name} job ID`),
+    jobName: name,
+    environment,
+    reviewHistory: reviews,
+  };
+}
+
+async function verifyProtectedJobReceipt(receipt, expectedRunId, name) {
+  const expectedGithubJob = protectedJobKey(name);
+  if (
+    !receipt ||
+    receipt.runId !== String(expectedRunId) ||
+    receipt.jobName !== name ||
+    receipt.environment !== reviewEnvironment ||
+    receipt.githubJob !== expectedGithubJob ||
+    !Array.isArray(receipt.reviewHistory) ||
+    !receipt.reviewHistory.length
+  )
+    fail(`${name} receipt is not bound to the expected release run`);
+  const repository = required("GITHUB_REPOSITORY");
+  const [run, jobs, history] = await Promise.all([
+    workflowRun(receipt.runId),
+    workflowJobs(receipt.runId),
+    nativeApprovalHistory(receipt.runId, receipt.environment),
+  ]);
+  validateWorkflowRun(run, {
+    id: receipt.runId,
+    path: productionWorkflow,
+    repository,
+    attempt: receipt.runAttempt,
+  });
+  const job = successfulJob(jobs, name, receipt.runAttempt);
+  if (String(job.id) !== receipt.jobId)
+    fail(`${name} native job identity changed`);
+  if (
+    receipt.reviewHistory.some(
+      (recorded) => !history.some((actual) => sameReview(recorded, actual)),
+    )
+  )
+    fail(`${name} approval history no longer contains the recorded review`);
 }
 
 function deploymentSourceSha(value, label) {
@@ -275,18 +548,27 @@ function assertBaseline(actual, expected) {
     fail("Production baseline changed while candidate was being reviewed");
 }
 
-function assertRollbackEvidence(state) {
+async function assertRollbackEvidence(
+  state,
+  expectedRunId = state.releaseRunId,
+) {
   const binding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
   const receipt = state.compatibility;
   if (
     !receipt ||
     receipt.binding !== binding ||
-    receipt.runId !== required("GITHUB_RUN_ID") ||
-    !/^https:\/\//.test(receipt.evidence || "")
+    receipt.runId !== String(expectedRunId) ||
+    httpsEvidence(receipt.evidence, "Accepted recovery evidence") !==
+      receipt.evidence
   )
     fail(
-      "No explicit compatibility evidence bound to baseline, candidate, and release SHA; production needs human recovery",
+      "No accepted recovery evidence is bound to baseline, candidate, source, and release run",
     );
+  await verifyProtectedJobReceipt(
+    receipt.approval,
+    expectedRunId,
+    "Accept candidate evidence",
+  );
 }
 
 function assertTagSha(actual, expected, tag) {
@@ -568,7 +850,14 @@ async function authorizeRetry() {
   const parent = await command("git", ["rev-parse", `${sha}^1`]);
   await verifyMetadataOnly(parent, sha);
   validateReviewEnvironment(environment);
-  const authorization = { owner, runId, pullRequest, sha };
+  const authorization = {
+    owner,
+    runId,
+    pullRequest,
+    sha,
+    mode: "normal-retry",
+    reviewedSourceSha: exactSha(pr.head.sha, "Version PR head SHA"),
+  };
   const fs = await import("node:fs/promises");
   await fs.appendFile(
     required("GITHUB_OUTPUT"),
@@ -600,6 +889,7 @@ function validateReleaseAuthorization(authorization, sha) {
     authorization?.owner !== owner ||
     authorization.runId !== runId ||
     authorization.sha !== sha ||
+    !["normal-retry", "hotfix"].includes(authorization.mode) ||
     !/^\d+$/.test(authorization.pullRequest)
   )
     fail(
@@ -649,7 +939,7 @@ async function authorizeHotfix() {
   }
   const metadata = await verifyHotfixMetadata(baseline.sha, sha);
   await assertRemoteBaselineTag(baseline.sha, metadata.basePackage.version);
-  const authorization = { owner, runId, pullRequest, sha };
+  const authorization = { owner, runId, pullRequest, sha, mode: "hotfix" };
   if (process.env.GITHUB_OUTPUT) {
     const fs = await import("node:fs/promises");
     await fs.appendFile(
@@ -701,13 +991,39 @@ async function currentAlias() {
   )
     fail("Production alias lookup returned unexpected data");
   const source = await deployment(alias.deploymentId);
-  if (source.id !== alias.deploymentId)
-    fail("Production alias deployment identity does not match");
+  if (
+    source.id !== alias.deploymentId ||
+    source.projectId !== required("VERCEL_PROJECT_ID")
+  )
+    fail("Production alias deployment identity or project does not match");
   return {
     deploymentId: alias.deploymentId,
     updatedAt: String(alias.updatedAt),
     sha: deploymentSourceSha(source, "Production deployment"),
   };
+}
+
+async function reviewedSourceMapping(sha, authorization) {
+  if (authorization?.mode === "hotfix") return undefined;
+  const reviewed = exactSha(
+    authorization?.reviewedSourceSha ||
+      (await command("git", ["rev-parse", `${sha}^2`])),
+    "Reviewed version PR head SHA",
+  );
+  await assertAncestor(
+    reviewed,
+    sha,
+    "Reviewed version PR head is not an ancestor of the release merge",
+  );
+  const [reviewedTree, releaseTree] = await Promise.all([
+    command("git", ["rev-parse", `${reviewed}^{tree}`]),
+    command("git", ["rev-parse", `${sha}^{tree}`]),
+  ]);
+  if (reviewedTree !== releaseTree)
+    fail(
+      "Reviewed version PR head and release merge do not have the same tree",
+    );
+  return { reviewedSha: reviewed, releaseSha: sha, tree: releaseTree };
 }
 
 async function stage() {
@@ -776,12 +1092,22 @@ async function stage() {
   if (!candidate.id) fail("Staged deployment did not return an ID");
   validateCandidate(candidate, candidateId, sha, domains);
   assertBaseline(await currentAlias(), baseline);
+  const reviewedSource = await reviewedSourceMapping(sha, authorization);
   const output = {
+    stateVersion: releaseStateVersion,
     candidateId: candidate.id,
     candidateUrl: `https://${candidateUrl.replace(/^https?:\/\//, "")}`,
     sha,
     controllerSha,
+    projectId: required("VERCEL_PROJECT_ID"),
+    productionAlias: hostname(required("PRODUCTION_ALIAS"), "Production alias"),
+    releaseRunId: positiveInteger(required("GITHUB_RUN_ID"), "Release run ID"),
+    releaseRunAttempt: positiveInteger(
+      process.env.GITHUB_RUN_ATTEMPT || "1",
+      "Release run attempt",
+    ),
     baseline,
+    ...(reviewedSource && { reviewedSource }),
     ...(authorization && { authorization }),
   };
   const outputPath = required("GITHUB_OUTPUT");
@@ -797,16 +1123,438 @@ async function stage() {
   process.stdout.write(`${JSON.stringify(output)}\n`);
 }
 
-async function loadState() {
+async function writeState(file, state) {
+  const fs = await import("node:fs/promises");
+  await fs.writeFile(file, `${JSON.stringify(state, null, 2)}\n`);
+}
+
+async function appendOutputs(values) {
+  const lines = Object.entries(values).map(([key, value]) => `${key}=${value}`);
+  if (lines.some((line) => /[\r\n]/.test(line)))
+    fail("GitHub output contains an unexpected newline");
+  const fs = await import("node:fs/promises");
+  await fs.appendFile(required("GITHUB_OUTPUT"), `${lines.join("\n")}\n`);
+}
+
+async function workflowBlob(ref) {
+  const response = await github(
+    `contents/${ciWorkflow}?ref=${encodeURIComponent(exactSha(ref, "Workflow ref"))}`,
+  );
+  if (
+    response.path !== ciWorkflow ||
+    !/^[0-9a-f]{40}$/.test(response.sha || "")
+  )
+    fail("CI workflow blob identity is invalid");
+  return response.sha;
+}
+
+async function reusableSourceQA(state) {
+  const scopes = { unit: null, integration: null };
+  const repository = required("GITHUB_REPOSITORY");
+  let workflow, sourceBlob, controllerBlob, response;
+  try {
+    [workflow, sourceBlob, controllerBlob, response] = await Promise.all([
+      github("actions/workflows/ci.yml"),
+      workflowBlob(state.sha),
+      workflowBlob(state.controllerSha),
+      github(
+        `actions/workflows/ci.yml/runs?event=workflow_dispatch&head_sha=${state.sha}&per_page=100`,
+      ),
+    ]);
+  } catch {
+    return scopes;
+  }
+  if (
+    workflow.path !== ciWorkflow ||
+    !Number.isInteger(workflow.id) ||
+    sourceBlob !== controllerBlob
+  )
+    return scopes;
+  if (
+    !Array.isArray(response.workflow_runs) ||
+    response.total_count > response.workflow_runs.length
+  )
+    fail("CI workflow run inventory is incomplete");
+  for (const run of response.workflow_runs) {
+    try {
+      validateWorkflowRun(run, {
+        path: ciWorkflow,
+        repository,
+        event: "workflow_dispatch",
+        sha: state.sha,
+      });
+      if (
+        run.status !== "completed" ||
+        run.workflow_id !== workflow.id ||
+        !run.run_attempt
+      )
+        continue;
+      const jobs = await workflowJobs(run.id);
+      const shared = {
+        kind: "ci-reuse",
+        sourceSha: state.sha,
+        producerRunId: String(run.id),
+        producerRunAttempt: String(run.run_attempt),
+        workflowId: String(workflow.id),
+        workflowPath: ciWorkflow,
+        workflowBlob: sourceBlob,
+      };
+      for (const [scope, name] of sourceQAScopes) {
+        if (scopes[scope]) continue;
+        try {
+          scopes[scope] = {
+            ...shared,
+            scope,
+            job: jobEvidence(successfulJob(jobs, name, run.run_attempt)),
+          };
+        } catch {
+          continue;
+        }
+      }
+      if (scopes.unit && scopes.integration) break;
+    } catch {
+      continue;
+    }
+  }
+  return scopes;
+}
+
+async function verifyReusableSourceQA(state, receipt, expectedName) {
+  const repository = required("GITHUB_REPOSITORY");
+  const [workflow, run, jobs, sourceBlob, controllerBlob] = await Promise.all([
+    github("actions/workflows/ci.yml"),
+    workflowRun(receipt.producerRunId),
+    workflowJobs(receipt.producerRunId),
+    workflowBlob(state.sha),
+    workflowBlob(state.controllerSha),
+  ]);
+  validateWorkflowRun(run, {
+    id: receipt.producerRunId,
+    path: ciWorkflow,
+    repository,
+    event: "workflow_dispatch",
+    sha: state.sha,
+    attempt: receipt.producerRunAttempt,
+  });
+  if (
+    run.status !== "completed" ||
+    String(run.workflow_id) !== receipt.workflowId ||
+    workflow.path !== ciWorkflow ||
+    String(workflow.id) !== receipt.workflowId ||
+    sourceBlob !== controllerBlob ||
+    receipt.workflowBlob !== sourceBlob
+  )
+    fail("Reusable source QA producer is no longer trusted");
+  const actual = jobEvidence(
+    successfulJob(jobs, expectedName, receipt.producerRunAttempt),
+  );
+  if (JSON.stringify(actual) !== JSON.stringify(receipt.job))
+    fail("Reusable source QA native job receipt changed");
+}
+
+function normalizedRecoveryInput(state) {
+  const binding = process.env.RELEASE_ROLLBACK_COMPATIBILITY || "";
+  const evidence = process.env.RELEASE_ROLLBACK_EVIDENCE || "";
+  if (!binding && !evidence) return null;
+  if (!binding || !evidence)
+    fail("Required recovery evidence must include binding and HTTPS proof");
+  const exactBinding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
+  const directPrebinding = `${state.baseline.deploymentId}:${state.sha}`;
+  const reviewedPrebinding = state.reviewedSource
+    ? `${state.baseline.deploymentId}:${state.reviewedSource.reviewedSha}`
+    : "";
+  if (![exactBinding, directPrebinding, reviewedPrebinding].includes(binding))
+    fail("Required recovery evidence does not match this baseline and source");
+  return {
+    binding: exactBinding,
+    evidence: httpsEvidence(evidence, "Recovery evidence"),
+    suppliedBinding: binding,
+    ...(binding === reviewedPrebinding && {
+      sourceMapping: state.reviewedSource,
+    }),
+  };
+}
+
+async function inspectSourceQA() {
+  const state = await loadState();
+  validateConfiguredPlatform(state);
+  const sourceQAPlan = await reusableSourceQA(state);
+  const sourceQAGapInput = process.env.RELEASE_SOURCE_QA_GAP || "";
+  if (
+    sourceQAGapInput !== sourceQAGapInput.trim() ||
+    /[\r\n]/.test(sourceQAGapInput)
+  )
+    fail("Source QA gap must be one trimmed line");
+  const sourceQAGap = sourceQAGapInput;
+  state.sourceQA = null;
+  state.sourceQAPlan = sourceQAPlan;
+  state.sourceQAGap = sourceQAGap || null;
+  state.recoveryInput = normalizedRecoveryInput(state);
+  await writeState(required("RELEASE_STATE_FILE"), state);
+  await appendOutputs({
+    source_qa_needed:
+      sourceQAPlan.unit && sourceQAPlan.integration ? "false" : "true",
+    source_unit_needed: sourceQAPlan.unit ? "false" : "true",
+    source_integration_needed: sourceQAPlan.integration ? "false" : "true",
+    source_preview_needed: sourceQAGap ? "true" : "false",
+    recovery_binding: state.recoveryInput?.binding || "",
+    recovery_evidence: state.recoveryInput?.evidence || "",
+  });
+}
+
+function validatePreview(deploymentValue, id, state) {
+  if (
+    deploymentValue.id !== id ||
+    deploymentValue.readyState !== "READY" ||
+    ![null, "preview"].includes(deploymentValue.target ?? null) ||
+    deploymentValue.projectId !== state.projectId ||
+    deploymentSourceSha(deploymentValue, "Source Preview") !== state.sha
+  )
+    fail(
+      "Source Preview identity, readiness, project, target, or SHA is invalid",
+    );
+}
+
+async function aliasDeployment(alias) {
+  const result = await vercel(`/v4/aliases/${encodeURIComponent(alias)}`);
+  if (result.alias !== alias || !result.deploymentId)
+    fail("Alias lookup returned unexpected data");
+  return result.deploymentId;
+}
+
+async function setPreviewAlias(deploymentId, alias) {
+  let requestError;
+  try {
+    await vercel(
+      `/v2/deployments/${encodeURIComponent(deploymentId)}/aliases`,
+      {
+        method: "POST",
+        body: JSON.stringify({ alias }),
+      },
+    );
+  } catch (error) {
+    requestError = error;
+  }
+  const deadline = Date.now() + 120_000;
+  do {
+    if ((await aliasDeployment(alias)) === deploymentId) return;
+    if (requestError) throw requestError;
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  } while (Date.now() < deadline);
+  fail("Source Preview alias transition was not confirmed");
+}
+
+async function prepareSourcePreview() {
+  const state = await loadState();
+  validateConfiguredPlatform(state);
+  if (!state.sourceQAGap) fail("No explicit source QA gap requires a Preview");
+  if ((await command("git", ["rev-parse", "HEAD"])) !== state.sha)
+    fail("Source Preview checkout does not match the authorized release SHA");
+  const alias = hostname(required("INTEGRATION_ALIAS"), "Integration alias");
+  if (alias === state.productionAlias)
+    fail("Integration alias must not be the production alias");
+  const domains = await stagingDomains();
+  if (domains.has(alias))
+    fail("Integration alias must not be a production project domain");
+  const result = json(
+    await command(
+      "pnpm",
+      [
+        "dlx",
+        "vercel@61.1.0",
+        "deploy",
+        "--yes",
+        "--json",
+        "--token",
+        required("VERCEL_TOKEN"),
+        "--meta",
+        `releaseSha=${state.sha}`,
+        "--meta",
+        `releaseRun=${state.releaseRunId}`,
+      ],
+      {
+        env: {
+          ...process.env,
+          VERCEL_PROJECT_ID: state.projectId,
+          VERCEL_ORG_ID: required("VERCEL_ORG_ID"),
+        },
+      },
+    ),
+    "Vercel Preview deploy output",
+  );
+  const id = result.id || result.deployment?.id;
+  if (!id) fail("Vercel Preview deploy output did not include an ID");
+  validatePreview(await deployment(id), id, state);
+  await setPreviewAlias(id, alias);
+  validatePreview(await deployment(id), id, state);
+  if ((await aliasDeployment(alias)) !== id)
+    fail("Fixed integration alias does not point to the source Preview");
+  state.sourcePreview = { deploymentId: id, alias, gap: state.sourceQAGap };
+  await writeState(required("RELEASE_STATE_FILE"), state);
+  await appendOutputs({ preview_id: id, preview_url: `https://${alias}` });
+}
+
+async function completedProtectedJobReceipt(name, runId, runAttempt) {
+  const repository = required("GITHUB_REPOSITORY");
+  const [run, jobs, reviews] = await Promise.all([
+    workflowRun(runId),
+    workflowJobs(runId),
+    nativeApprovalHistory(runId, reviewEnvironment),
+  ]);
+  validateWorkflowRun(run, {
+    id: runId,
+    path: productionWorkflow,
+    repository,
+    attempt: runAttempt,
+  });
+  const job = successfulJob(jobs, name, runAttempt);
+  return {
+    runId: String(runId),
+    runAttempt: String(runAttempt),
+    githubJob: protectedJobKey(name),
+    jobId: String(job.id),
+    jobName: name,
+    environment: reviewEnvironment,
+    reviewHistory: reviews,
+  };
+}
+
+async function releaseSourceScope(state, scope, name) {
+  const { runId, runAttempt } = stateReleaseRun(state);
+  const repository = required("GITHUB_REPOSITORY");
+  const [run, jobs] = await Promise.all([
+    workflowRun(runId),
+    workflowJobs(runId),
+  ]);
+  validateWorkflowRun(run, {
+    id: runId,
+    path: productionWorkflow,
+    repository,
+    attempt: runAttempt,
+  });
+  return {
+    kind: "release-run",
+    scope,
+    sourceSha: state.sha,
+    producerRunId: runId,
+    producerRunAttempt: runAttempt,
+    workflowPath: productionWorkflow,
+    job: jobEvidence(successfulJob(jobs, name, runAttempt)),
+  };
+}
+
+function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
+  const receipt = state.sourceQA;
+  if (
+    !receipt ||
+    receipt.sourceSha !== state.sha ||
+    receipt.boundRunId !== String(expectedRunId) ||
+    receipt.boundRunAttempt !== String(state.releaseRunAttempt) ||
+    !receipt.scopes ||
+    !["unit", "integration"].every((scope) => {
+      const evidence = receipt.scopes[scope];
+      return (
+        evidence?.scope === scope &&
+        evidence.sourceSha === state.sha &&
+        ["ci-reuse", "release-run"].includes(evidence.kind) &&
+        evidence.job?.id &&
+        evidence.job?.name &&
+        evidence.job?.conclusion === "success"
+      );
+    })
+  )
+    fail("No exact-source QA receipt is bound to this release run");
+  if (
+    state.sourceQAGap &&
+    (!receipt.preview ||
+      receipt.preview.gap !== state.sourceQAGap ||
+      receipt.preview.sourceSha !== state.sha)
+  )
+    fail("Source QA gap has no accepted exact-source Preview receipt");
+}
+
+async function recordSourceQA() {
+  const state = await loadState();
+  validateConfiguredPlatform(state);
+  const scopes = {};
+  for (const [scope, reusedName, fallbackName] of sourceQAScopes) {
+    const reused = state.sourceQAPlan?.[scope];
+    if (reused) {
+      await verifyReusableSourceQA(state, reused, reusedName);
+      scopes[scope] = reused;
+    } else {
+      scopes[scope] = await releaseSourceScope(state, scope, fallbackName);
+    }
+  }
+  state.sourceQA = {
+    sourceSha: state.sha,
+    boundRunId: state.releaseRunId,
+    boundRunAttempt: state.releaseRunAttempt,
+    scopes,
+  };
+  if (state.sourceQAGap) {
+    const previewId = required("SOURCE_PREVIEW_ID");
+    validatePreview(await deployment(previewId), previewId, state);
+    const alias = hostname(required("INTEGRATION_ALIAS"), "Integration alias");
+    if (
+      alias === state.productionAlias ||
+      (await aliasDeployment(alias)) !== previewId
+    )
+      fail("Accepted source Preview is not on the fixed integration alias");
+    state.sourceQA.preview = {
+      deploymentId: previewId,
+      alias,
+      gap: state.sourceQAGap,
+      sourceSha: state.sha,
+      approval: await completedProtectedJobReceipt(
+        "Accept source Preview",
+        state.releaseRunId,
+        state.releaseRunAttempt,
+      ),
+    };
+  } else if (process.env.SOURCE_PREVIEW_ID) {
+    fail("Unexpected source Preview supplied without a recorded QA gap");
+  }
+  assertSourceQAReceipt(state);
+  delete state.sourceQAPlan;
+  await writeState(required("RELEASE_STATE_FILE"), state);
+}
+
+function validateRecoveryMarker(state) {
+  const { owner, runId } = releaseOwnerContext();
+  if (
+    !state.recovery?.verified ||
+    state.recovery.owner !== owner ||
+    state.recovery.runId !== runId ||
+    state.recovery.runAttempt !== required("GITHUB_RUN_ATTEMPT") ||
+    state.recovery.originalRunId !== String(state.releaseRunId)
+  )
+    fail("Recovery state is not verified for this owner and workflow run");
+}
+
+async function loadState({ allowRecovery = false } = {}) {
   const state = json(
     await (
       await import("node:fs/promises")
     ).readFile(required("RELEASE_STATE_FILE"), "utf8"),
     "release state",
   );
+  if (state.stateVersion === releaseStateVersion) {
+    validateStateSchema(state);
+    if (state.recovery) {
+      if (!allowRecovery) fail("Recovery state is not valid for this action");
+      validateRecoveryMarker(state);
+    } else if (
+      state.releaseRunId !== required("GITHUB_RUN_ID") ||
+      state.releaseRunAttempt !== (process.env.GITHUB_RUN_ATTEMPT || "1")
+    ) {
+      fail("Release state belongs to a different workflow run or attempt");
+    }
+  }
   if (
-    state.authorization ||
-    process.env.GITHUB_EVENT_NAME === "workflow_dispatch"
+    !state.recovery &&
+    (state.authorization ||
+      process.env.GITHUB_EVENT_NAME === "workflow_dispatch")
   )
     validateReleaseAuthorization(state.authorization, state.sha);
   return state;
@@ -814,7 +1562,10 @@ async function loadState() {
 
 async function promote() {
   const state = await loadState();
+  validateConfiguredPlatform(state);
   if (state.sha !== required("RELEASE_SHA")) fail("Release state SHA mismatch");
+  await assertRollbackEvidence(state);
+  await verifySourceQANative(state);
   assertBaseline(await currentAlias(), state.baseline);
   const candidate = await deployment(state.candidateId);
   validateCandidate(
@@ -831,14 +1582,16 @@ async function promote() {
 }
 
 async function rollbackIfCompatible() {
-  const state = await loadState();
+  const state = await loadState({ allowRecovery: true });
+  validateConfiguredPlatform(state);
+  assertSourceQAReceipt(state);
   const candidate = await currentAlias();
   if (
     candidate.deploymentId !== state.candidateId ||
     candidate.sha !== state.sha
   )
     fail("Production alias changed; refusing rollback");
-  assertRollbackEvidence(state);
+  await assertRollbackEvidence(state, state.recovery?.originalRunId);
   await moveProduction(
     `/v1/projects/${required("VERCEL_PROJECT_ID")}/rollback/${state.baseline.deploymentId}`,
     state.baseline,
@@ -852,31 +1605,90 @@ async function rollbackIfCompatible() {
 
 async function recordCompatibility() {
   const state = await loadState();
+  validateStateSchema(state);
   const binding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
-  const suppliedBinding = process.env.RELEASE_ROLLBACK_COMPATIBILITY;
-  const evidence = process.env.RELEASE_ROLLBACK_EVIDENCE;
-  const accepted =
-    suppliedBinding === binding &&
-    /^https:\/\//.test(evidence || "") &&
-    Boolean(process.env.GITHUB_RUN_ID);
-  state.compatibility = accepted
-    ? { binding, evidence, runId: required("GITHUB_RUN_ID") }
-    : null;
-  const fs = await import("node:fs/promises");
-  await fs.writeFile(
-    required("RELEASE_ACCEPTED_STATE_FILE"),
-    `${JSON.stringify(state, null, 2)}\n`,
+  if (
+    !process.env.RELEASE_ROLLBACK_EVIDENCE ||
+    !process.env.RELEASE_ROLLBACK_COMPATIBILITY
+  )
+    fail("Required recovery evidence is missing");
+  const evidence = httpsEvidence(
+    required("RELEASE_ROLLBACK_EVIDENCE"),
+    "Required recovery evidence",
   );
-  const summary = accepted
-    ? `Rollback compatibility evidence recorded for ${binding}: ${evidence}`
-    : `No rollback compatibility authority recorded for ${binding}; production recovery remains human-led.`;
+  if (
+    !state.recoveryInput ||
+    state.recoveryInput.binding !== binding ||
+    state.recoveryInput.evidence !== evidence ||
+    required("RELEASE_ROLLBACK_COMPATIBILITY") !== binding
+  )
+    fail("Required recovery evidence was not frozen for this exact release");
+  assertSourceQAReceipt(state);
+  state.compatibility = {
+    binding,
+    evidence,
+    runId: state.releaseRunId,
+    runAttempt: state.releaseRunAttempt,
+    approval: await protectedJobReceipt(
+      "Accept candidate evidence",
+      reviewEnvironment,
+    ),
+  };
+  await writeState(required("RELEASE_ACCEPTED_STATE_FILE"), state);
+  const summary = `Required recovery evidence recorded for ${binding}: ${evidence}`;
   if (process.env.GITHUB_STEP_SUMMARY)
-    await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+    await (
+      await import("node:fs/promises")
+    ).appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
   process.stdout.write(`${summary}\n`);
+}
+
+function assertProductionQAReceipt(state) {
+  const receipt = state.productionQA;
+  const binding = `${state.candidateId}:${state.sha}:${state.productionAlias}`;
+  if (
+    !receipt ||
+    receipt.binding !== binding ||
+    receipt.runId !== state.releaseRunId ||
+    receipt.runAttempt !== state.releaseRunAttempt
+  )
+    fail("No production QA receipt is bound to the promoted candidate");
+}
+
+async function recordProductionQA() {
+  const state = await loadState();
+  validateConfiguredPlatform(state);
+  assertSourceQAReceipt(state);
+  await assertRollbackEvidence(state);
+  const production = await currentAlias();
+  if (
+    production.deploymentId !== state.candidateId ||
+    production.sha !== state.sha
+  )
+    fail("Production QA does not target the promoted candidate");
+  state.productionQA = {
+    binding: `${state.candidateId}:${state.sha}:${state.productionAlias}`,
+    runId: state.releaseRunId,
+    runAttempt: state.releaseRunAttempt,
+    approval: await protectedJobReceipt(
+      "Accept production QA",
+      reviewEnvironment,
+    ),
+  };
+  await writeState(required("RELEASE_FINAL_STATE_FILE"), state);
 }
 
 async function finalize() {
   const state = await loadState();
+  validateConfiguredPlatform(state);
+  assertProductionQAReceipt(state);
+  assertSourceQAReceipt(state);
+  await assertRollbackEvidence(state);
+  await verifyProtectedJobReceipt(
+    state.productionQA.approval,
+    state.releaseRunId,
+    "Accept production QA",
+  );
   const production = await currentAlias();
   if (
     production.deploymentId !== state.candidateId ||
@@ -930,6 +1742,223 @@ async function finalize() {
       tag,
       "--generate-notes",
     ]);
+}
+
+async function verifySourceQANative(state) {
+  assertSourceQAReceipt(state, state.releaseRunId);
+  for (const [scope, reusedName, fallbackName] of sourceQAScopes) {
+    const evidence = state.sourceQA.scopes[scope];
+    if (evidence.kind === "ci-reuse") {
+      await verifyReusableSourceQA(state, evidence, reusedName);
+      continue;
+    }
+    const [run, jobs] = await Promise.all([
+      workflowRun(evidence.producerRunId),
+      workflowJobs(evidence.producerRunId),
+    ]);
+    validateWorkflowRun(run, {
+      id: state.releaseRunId,
+      path: productionWorkflow,
+      repository: required("GITHUB_REPOSITORY"),
+      attempt: state.releaseRunAttempt,
+    });
+    const actual = jobEvidence(
+      successfulJob(jobs, fallbackName, state.releaseRunAttempt),
+    );
+    if (JSON.stringify(actual) !== JSON.stringify(evidence.job))
+      fail(`${scope} source QA native job receipt changed`);
+  }
+  if (state.sourceQA.preview) {
+    const preview = state.sourceQA.preview;
+    if ((await aliasDeployment(preview.alias)) !== preview.deploymentId)
+      fail(
+        "Accepted source Preview alias changed; fresh source QA is required",
+      );
+    validatePreview(
+      await deployment(preview.deploymentId),
+      preview.deploymentId,
+      state,
+    );
+    await verifyProtectedJobReceipt(
+      preview.approval,
+      state.releaseRunId,
+      "Accept source Preview",
+    );
+  }
+}
+
+function validateOriginalAuthorization(state, run) {
+  if (state.authorization) {
+    if (
+      run.event !== "workflow_dispatch" ||
+      !["normal-retry", "hotfix"].includes(state.authorization.mode) ||
+      state.authorization.owner !== required("RELEASE_OWNER_LOGIN") ||
+      state.authorization.runId !== String(run.id) ||
+      state.authorization.sha !== state.sha ||
+      !/^[1-9]\d*$/.test(state.authorization.pullRequest || "") ||
+      run.actor?.login !== state.authorization.owner ||
+      run.triggering_actor?.login !== state.authorization.owner
+    )
+      fail("Original manual release authorization is invalid");
+  } else if (run.event !== "pull_request" || run.head_sha !== state.sha) {
+    fail("Original automatic release authorization is invalid");
+  }
+}
+
+async function downloadAcceptedState(artifact, repository) {
+  const digest = String(artifact.digest || "").match(digestPattern)?.[1];
+  const expectedUrl = `https://api.github.com/repos/${repository}/actions/artifacts/${artifact.id}/zip`;
+  if (!digest || artifact.archive_download_url !== expectedUrl)
+    fail("Accepted artifact has no trusted archive digest or URL");
+  const response = await fetch(expectedUrl, {
+    signal: AbortSignal.timeout(30_000),
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${required("GH_TOKEN")}`,
+    },
+  });
+  if (!response.ok)
+    fail(`GitHub artifact download returned HTTP ${response.status}`);
+  const archive = Buffer.from(await response.arrayBuffer());
+  if (createHash("sha256").update(archive).digest("hex") !== digest)
+    fail("Accepted artifact archive digest does not match GitHub metadata");
+  const fs = await import("node:fs/promises");
+  const directory = await fs.mkdtemp(path.join(tmpdir(), "release-recovery-"));
+  const archivePath = path.join(directory, "accepted.zip");
+  try {
+    await fs.writeFile(archivePath, archive);
+    const entries = (await command("unzip", ["-Z1", archivePath]))
+      .split("\n")
+      .filter(Boolean);
+    if (entries.length !== 1 || entries[0] !== "release-state.json")
+      fail("Accepted artifact archive has unexpected contents");
+    await command("unzip", ["-q", archivePath, "-d", directory]);
+    return json(
+      await fs.readFile(path.join(directory, "release-state.json"), "utf8"),
+      "accepted release artifact",
+    );
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function recoverVerify() {
+  const { owner, runId } = releaseOwnerContext();
+  const runAttempt = required("GITHUB_RUN_ATTEMPT");
+  const originalRunId = positiveInteger(
+    required("ORIGINAL_RELEASE_RUN_ID"),
+    "Original release run ID",
+  );
+  if (originalRunId === runId)
+    fail("Recovery must name an earlier release run");
+  const repository = required("GITHUB_REPOSITORY");
+  const [currentRun, originalRun, originalJobs, artifacts] = await Promise.all([
+    workflowRun(runId),
+    workflowRun(originalRunId),
+    workflowJobs(originalRunId),
+    github(`actions/runs/${originalRunId}/artifacts?per_page=100`),
+  ]);
+  validateWorkflowRun(currentRun, {
+    id: runId,
+    path: productionWorkflow,
+    repository,
+    event: "workflow_dispatch",
+    sha: required("GITHUB_SHA"),
+    attempt: runAttempt,
+  });
+  if (
+    currentRun.head_branch !== "main" ||
+    currentRun.actor?.login !== owner ||
+    currentRun.triggering_actor?.login !== owner ||
+    (await command("git", ["rev-parse", "HEAD"])) !== required("GITHUB_SHA")
+  )
+    fail("Recovery is not running from owner-dispatched trusted main");
+  validateWorkflowRun(originalRun, {
+    id: originalRunId,
+    path: productionWorkflow,
+    repository,
+  });
+  if (
+    originalJobs.some(
+      (job) =>
+        ["Accept production QA", "finalize-release"].includes(job.name) &&
+        (!job.run_attempt ||
+          String(job.run_attempt) === String(originalRun.run_attempt)) &&
+        job.status === "completed" &&
+        job.conclusion === "success",
+    )
+  )
+    fail("Original release already passed production QA or finalized");
+  if (
+    !Array.isArray(artifacts.artifacts) ||
+    artifacts.total_count > artifacts.artifacts.length
+  )
+    fail("Original release artifact inventory is incomplete");
+  const matches = artifacts.artifacts.filter(
+    (item) => item.name === "production-release-accepted-state",
+  );
+  if (matches.length !== 1)
+    fail("Original release has no unique accepted state artifact");
+  const artifact = matches[0];
+  const expiresAt = Date.parse(artifact.expires_at || "");
+  if (
+    artifact.expired ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= Date.now() ||
+    String(artifact.workflow_run?.id) !== originalRunId ||
+    artifact.workflow_run?.repository_id !== originalRun.repository?.id ||
+    artifact.workflow_run?.head_repository_id !==
+      originalRun.head_repository?.id ||
+    artifact.workflow_run?.head_sha !== originalRun.head_sha
+  )
+    fail("Original accepted artifact is expired or has invalid provenance");
+  const state = await downloadAcceptedState(artifact, repository);
+  validateConfiguredPlatform(state);
+  if (
+    state.releaseRunId !== originalRunId ||
+    state.releaseRunAttempt !== String(originalRun.run_attempt)
+  )
+    fail("Accepted state does not belong to the original run and attempt");
+  validateOriginalAuthorization(state, originalRun);
+  await verifySourceQANative(state);
+  await assertRollbackEvidence(state, originalRunId);
+  const [candidate, baseline, production] = await Promise.all([
+    deployment(state.candidateId),
+    deployment(state.baseline.deploymentId),
+    currentAlias(),
+  ]);
+  if (
+    candidate.id !== state.candidateId ||
+    candidate.projectId !== state.projectId ||
+    candidate.readyState !== "READY" ||
+    candidate.target !== "production" ||
+    deploymentSourceSha(candidate, "Recovery candidate") !== state.sha ||
+    baseline.id !== state.baseline.deploymentId ||
+    baseline.projectId !== state.projectId ||
+    baseline.readyState !== "READY" ||
+    baseline.target !== "production" ||
+    deploymentSourceSha(baseline, "Recovery baseline") !== state.baseline.sha ||
+    production.deploymentId !== state.candidateId ||
+    production.sha !== state.sha
+  )
+    fail(
+      "Recovery deployment, project, source, baseline, or live alias changed",
+    );
+  state.recovery = {
+    verified: true,
+    owner,
+    runId,
+    runAttempt,
+    originalRunId,
+    originalRunAttempt: state.releaseRunAttempt,
+  };
+  await writeState(required("RELEASE_RECOVERY_STATE_FILE"), state);
+  await appendOutputs({
+    sha: state.sha,
+    candidate_id: state.candidateId,
+    baseline: state.baseline.deploymentId,
+    baseline_sha: state.baseline.sha,
+  });
 }
 
 function packageWithVersion(contents, current, next) {
@@ -1202,9 +2231,14 @@ const actions = {
   "authorize-hotfix": authorizeHotfix,
   "validate-version-pr": validateOpenVersionPr,
   stage,
+  "inspect-source-qa": inspectSourceQA,
+  "prepare-source-preview": prepareSourcePreview,
+  "record-source-qa": recordSourceQA,
   promote,
   "rollback-if-compatible": rollbackIfCompatible,
   "record-compatibility": recordCompatibility,
+  "record-production-qa": recordProductionQA,
+  "recover-verify": recoverVerify,
   finalize,
   "merge-back": prepareMergeBack,
 };
