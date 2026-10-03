@@ -148,7 +148,7 @@ test("native dual-document patch assessment rejects expanded or tampered depende
     statuses: [
       {
         context: "Vercel",
-        sha,
+        url: `https://api.github.com/repos/owner/repo/statuses/${sha}`,
         state: "success",
         creator: { id: 35613825, login: "vercel[bot]", type: "Bot" },
       },

@@ -226,6 +226,7 @@ async function inspect() {
       (page) => page.check_runs || [],
     ),
     all(`commits/${sha}/statuses?per_page=100`),
+    repository,
   );
   const checks = JSON.parse(
     command("gh", [

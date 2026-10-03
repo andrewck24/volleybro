@@ -148,7 +148,7 @@ async function fixture(t) {
         {
           context: "Vercel",
           creator: { id: 35613825, login: "vercel[bot]", type: "Bot" },
-          sha: head,
+          url: `https://api.github.com/repos/owner/repo/statuses/${head}`,
           state: "success",
           updated_at: "2026-10-01T00:00:00Z",
         },
@@ -313,7 +313,7 @@ function hotfixAuthorization(f, current) {
     statuses: [
       {
         ...current.statuses[0],
-        sha: f.hotfix,
+        url: `https://api.github.com/repos/owner/repo/statuses/${f.hotfix}`,
       },
     ],
     alias: "dpl_base",
@@ -418,7 +418,12 @@ test("hotfix authorization binds owner dispatch to an exact isolated PR without 
       state: {
         pr: { ...valid.pr, head: { ...valid.pr.head, sha: f.merge } },
         checks: [{ ...valid.checks[0], head_sha: f.merge }],
-        statuses: [{ ...valid.statuses[0], sha: f.merge }],
+        statuses: [
+          {
+            ...valid.statuses[0],
+            url: `https://api.github.com/repos/owner/repo/statuses/${f.merge}`,
+          },
+        ],
       },
       reason: /unreleased integration history/,
     },
@@ -503,7 +508,12 @@ test("hotfix authorization rejects a non-patch version", async (t) => {
     head: { ...state.pr.head, ref: "hotfix/wrong-version", sha: wrong },
   };
   state.checks = [{ ...state.checks[0], head_sha: wrong }];
-  state.statuses = [{ ...state.statuses[0], sha: wrong }];
+  state.statuses = [
+    {
+      ...state.statuses[0],
+      url: `https://api.github.com/repos/owner/repo/statuses/${wrong}`,
+    },
+  ];
   await updateApi(f, state);
   const result = run(f, "authorize-hotfix", {
     HOTFIX_PR_NUMBER: "2",
@@ -540,7 +550,22 @@ test("authorize validates the real PR, exact check sources and metadata through 
       ],
     },
     { statuses: [{ ...original.statuses[0], state: "pending" }] },
-    { statuses: [{ ...original.statuses[0], sha: f.merge }] },
+    {
+      statuses: [
+        {
+          ...original.statuses[0],
+          url: `https://api.github.com/repos/owner/repo/statuses/${f.merge}`,
+        },
+      ],
+    },
+    {
+      statuses: [
+        {
+          ...original.statuses[0],
+          url: `https://api.github.com/repos/attacker/repo/statuses/${f.head}`,
+        },
+      ],
+    },
     {
       statuses: [
         ...original.statuses,

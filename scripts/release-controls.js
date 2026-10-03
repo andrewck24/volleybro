@@ -95,7 +95,7 @@ function deploymentSourceSha(value, label) {
   return candidates[0];
 }
 
-export function validateRequiredChecks(sha, checkRuns, statuses) {
+export function validateRequiredChecks(sha, checkRuns, statuses, repository) {
   const latestVerify = checkRuns
     .filter((run) => run.name === "Verify")
     .sort(
@@ -123,7 +123,8 @@ export function validateRequiredChecks(sha, checkRuns, statuses) {
     )[0];
   if (
     !latestVercel ||
-    latestVercel.sha !== sha ||
+    latestVercel.url !==
+      `https://api.github.com/repos/${repository}/statuses/${sha}` ||
     latestVercel.creator?.id !== 35613825 ||
     latestVercel.creator?.login !== "vercel[bot]" ||
     latestVercel.creator?.type !== "Bot" ||
@@ -152,7 +153,7 @@ function validateAuthorization({
   validateVersionPr(pr, expectedAuthor, repository);
   if (pr.state !== "closed" || !pr.merged || pr.merge_commit_sha !== mergeSha)
     fail("Version PR must be merged at this exact commit");
-  validateRequiredChecks(pr.head.sha, checkRuns, statuses);
+  validateRequiredChecks(pr.head.sha, checkRuns, statuses, repository);
   return mergeSha;
 }
 
@@ -170,7 +171,7 @@ function validateHotfixPr({ pr, sha, repository, checkRuns, statuses }) {
       "Hotfix PR must remain open, unmerged, and point at the exact authorized SHA",
     );
   }
-  validateRequiredChecks(sha, checkRuns, statuses);
+  validateRequiredChecks(sha, checkRuns, statuses, repository);
 }
 
 function validateVersionPr(pr, expectedAuthor, repository) {
