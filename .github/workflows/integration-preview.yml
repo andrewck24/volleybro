@@ -27,7 +27,7 @@ jobs:
       INTEGRATION_ALIAS: ${{ vars.INTEGRATION_ALIAS }}
       SOURCE_SHA: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
       - uses: pnpm/action-setup@v4
