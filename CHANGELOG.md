@@ -1,5 +1,131 @@
 # VolleyBro CHANGELOG
 
+## [0.16.0](https://github.com/andrewck24/volleybro/compare/v0.15.0...v0.16.0) 2026-10-03
+
+### Changed
+
+#### Team
+
+- The team tab, the team switcher and the new Game dialog get to your team faster when you reopen the app, and switching teams is remembered on this device
+
+- Use `fast/*` for clearly specified, bounded delivery without new product or architecture decisions, retaining verification and independent review.
+- Prepare main-based integration with a separate test URL so daily merges no longer automatically deploy production after cutover.
+- Require pnpm 12.8.1 for contributor setup and builds; existing frozen lockfiles remain supported.
+- Let Blueprint gates use an installed Cloudflare CLI, downloading the pinned fallback only when the command is unavailable.
+- Allow the configured release owner to authorize an isolated hotfix without a second human PR approval, while retaining independent Agent review and protected deployment QA.
+- Review the complete published Proposal before implementation, support shared-design Sharded Changes beyond migrations, and assess existing verification evidence before adding tests.
+
+#### Infrastructure
+
+- Decision records are defined once, by the parser the Blueprint runs: the JSON Schema file and each record's `$schema` line are gone, an unknown field is rejected, and a record that fails names the field and the rule it broke
+- The branch holding published Blueprint Change pages can no longer be deleted or force-pushed, and pulling it warns once its history passes 50 MB
+- A pull request for a Change links to the Change page on the branch's Blueprint preview
+- Installing dependencies now generates the Blueprint's content and route types, so its type check is clean in a fresh worktree before the first build
+- The Changes index shows each Change as a card with its state and date, newest first across both page formats
+- A Change's `facts.json` dates it by `startedAt` and `archivedAt`, replacing `mergedAt`
+- `pnpm blueprint:gate <slug>` runs a Blueprint gate in one step: it refuses an unpushed branch, publishes the Change page, runs the gate check and prints the branch preview to compare; `--gate G1` sets a new G1 baseline for a page that already has a Review tab
+- `check:workflow` drops its Spectra-era checks and the check on the Pre-PR section's wording
+- The 22 Changes first written in the four-page or Spectra format are now single pages with Proposal and Review tabs, converted mechanically with their original text; a draft that never passed G1 shows as a draft and keeps its proposed decisions as page text
+- When the Change page format changes, the same Change now converts every existing page instead of keeping a compatibility layer (ADR-0079)
+- A Blueprint Migration Change is one page with a Review tab per shard; shard branches end in `-s<N>` and their commits carry a `Shard` trailer instead of `Migration`, and each shard's G2 checks only the scenarios assigned to it
+- A Change page is written as one file per tab — `index.mdx` for the frontmatter, `proposal.mdx`, and `review.mdx` or `review-s<N>.mdx` — and the gate freezes each accepted file
+- A Migration's header and card show its current shard, its gate, how many shards have merged and the totals; each shard's tab shows its own figures
+- `pnpm blueprint:gate` starts a branch-preview build through the `cf` CLI after publishing, and prints the manual rebuild instruction when `cf` is not signed in
+- `pnpm blueprint:changes:pull --force` refuses to overwrite a Change page with unpublished edits unless that page is named, as `--force <slug>`
+- Republishing a Change page converted from an earlier format keeps its original facts instead of recomputing them
+- After the first Pre-PR review round, each round reviews only the commits since the last reviewed one, with how earlier findings were handled; the round after an approach switch reviews the whole diff again
+- A root cause found in two review rounds in a row switches the approach instead of patching cases
+- The Blueprint Changes sidebar and the previous/next links follow the Changes index order, newest first by `archivedAt` and then `startedAt` (ADR-0078)
+- A Blueprint Change is now one page with a Proposal tab and, from G2, a Review tab; it opens on Proposal and `#review` opens the Review tab
+- The Review tab leads with what the developer must decide or do and where to focus the review, then deviations, a result per scenario and the test plan, with verification detail and findings collapsed
+- Decision records render as collapsible cards; a superseded record links to the one that replaced it, and Feature pages anchor every record
+- Figures on a Change page come from `facts.json`, written at every publish, and the gate check fails a Review missing a scenario result or a required section, or a Proposal changed after G1
+- Changes first written as two pages are now single pages with Proposal and Review tabs
+- Republishing a merged Change measures it by the commit that landed it on `dev` and records `mergedAt`
+- Integration tests run on one in-memory MongoDB replica set per run, with a database of their own for each test file, so a transaction can be proven; a full run takes about 17 seconds instead of 85
+- Integration tests are split into `test/integration/api/`, which reaches the database only through routes, and `test/integration/persistence/`, which tests database behaviour itself
+- Every API route whose handler the repository writes has exactly one unit test file, `__tests__/route.test.ts`, which also holds its request-schema rejections; the Better Auth catch-all, whose handler a library generates, has none
+- `pnpm check:workflow` fails on a test file whose suffix does not match its tier's directory
+- `pnpm verify` no longer runs the workflow tests; `pnpm verify:all` runs them, and the integration tests, only when the diff reaches them, and no longer builds the Blueprint site
+- Jest setup files moved under `test/setup/`
+- Repository behaviour is proven against a real in-memory MongoDB in `test/integration/persistence/`, and the repositories' unit tests that only replayed a mocked model are gone
+- Backend tests no longer replace `mongoose`, `mongodb` and `bson` with global stubs; a test that needs a fake states it itself
+- Document-to-entity mapping and the player update `$set`/`$unset` split are pure functions with their own unit tests
+- Component and hook tests answer HTTP with MSW and run the real hooks, SWR, Redux store and child components; the team, game, layout, auth and hook tests no longer mock `apiClient`, `fetch`, SWR or their own code
+- A request that no MSW handler answers now fails the test, and the shared setup no longer replaces `fetch` globally
+- The testing strategy documents how a test answers HTTP, holds a request in flight and isolates the SWR cache
+- The landing, hook and auth tests run the real components, hooks, response class and DI container; no frontend test mocks `apiClient`, `fetch`, SWR or a module under `src/components` or `src/hooks` any more, except where the test file names the jsdom limitation
+- The shared frontend setup no longer stubs `motion`; the real library runs in every test
+- Linear labels now carry only the triage playbook's roles, mapped in `docs/agents/triage-labels.md`, and `agent:ready` is renamed `ready-for-agent`
+- G1 waits at Todo with `ready-for-human` and In Review means only G2; a run that needs the developer swaps its label to `ready-for-human` and keeps its status
+- An action the workflow assigns to the developer may be carried out by the agent once the developer consents, for one issue or a named batch; an unarmed issue is moved to In Progress by the agent without a second Symphony check
+- After merge, a Change that was sent back at a gate or took more than three review rounds prompts a retro
+
+#### CI
+
+- A pull request's title is checked against the same Conventional Commits header as a commit subject
+- A push to the Change-page store triggers a Blueprint production deploy
+
+### Added
+
+- Authorize isolated production hotfixes from the deployed revision and synchronize repairs without releasing unrelated integration work.
+- Add scheduled dependency maintenance, native pnpm dependency graph submissions, and narrowly gated patch auto-merge with a consolidated release activation checklist.
+- Add a guarded production release workflow that selects a fixed revision through the version PR, requires candidate QA and production smoke, and records a release only after success.
+
+#### Infrastructure
+
+- The Blueprint has a home page with entries to Features, Changes and the Design System, followed by the latest Changes
+- A Change's figures show as badges, insertions and deletions apart, on its page and its card
+
+### Fixed
+
+#### Blueprint
+
+- Search works on the deployed Blueprint, and finds decision records by number or title; Change pages are found by title and headings, not body text
+- The agent-orchestration Feature page shows its decision records
+- Change pages no longer show a table of contents that listed only the Proposal and never followed scrolling
+
+#### Landing
+
+- The call-to-action button shows the label and size its section gives it on desktop and when the app is already installed, and the button that opens the iOS install instructions shows it too, instead of always saying 開始使用
+- On Android, and other phones, the call-to-action button now links straight into the app until the browser offers an install prompt, and again after the prompt is used or fails, instead of showing no button at all
+
+#### Game
+
+- Editing an earlier entry no longer rotates the lineup after a rally where your team lost its serve
+- The new Game form shows your team's name as the home team when you open it right after loading the page, instead of leaving it blank
+- The new Game form keeps what you have typed when your team's name changes while you are filling it in, instead of clearing your input
+- A starter substituted at the first entry of a set is now recognised as replaced: the replacement can only swap back with that starter, and editing that entry lists the starter as a swap-back option
+
+#### Team
+
+- Removing a player, or a member leaving the team, no longer shifts the rest of a saved starting lineup into different court positions, and no longer leaves the player behind where they were only a lineup's substitute pairing
+- Show and check the libero replacement of the lineup being edited: with a second or later lineup selected, the setting showed the first lineup's values, and saving appeared to do nothing
+
+#### API
+
+- Return `400 VALIDATION` when a profile update sends an `activeTeamId` that is not an ObjectId, instead of failing only when the profile is written
+
+#### Infrastructure
+
+- The Blueprint Changes sidebar lists each Change as a plain page, with no empty expand chevron
+- Single-page Changes now appear in the Changes index
+- The Change page header says "1 commit" rather than "1 commits"
+- `pnpm verify` and `pnpm verify:all` no longer time out component tests on a busy machine
+- A Change with no commit yet keeps its first publish as its start on its second publish, instead of restarting it
+- The test suites, `pnpm verify`, `pnpm blueprint`, the Blueprint dev server and build, and the workflow check now run on Windows
+
+### Removed
+
+#### Infrastructure
+
+- The Blueprint compatibility layer for old-format Change pages, version 1 decision records, and the `FileTour`, `TaskProgress` and workflow-diagram components only those pages used
+- `check:workflow` no longer checks two-page Change pages, which no longer exist
+- The `/proposal` and `/review` URLs of the converted Changes
+- Repository methods no production code called: game and team `delete`, and player `findByEmail`, `countByTeamId` and `existsInvitation`
+- Frontend tests that could not fail: toast-never-called assertions on components with no toast path, SWR call-count assertions and CSS-class assertions on the game overlay and sync indicator
+- Landing tests that only read Tailwind class strings, the call shapes of a mocked scroll handler or the test ids of stubs
+
 ## [0.15.0](https://github.com/andrewck24/volleybro/compare/v0.14.4...v0.15.0) 2026-09-24
 
 ### Added
