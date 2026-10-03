@@ -46,7 +46,7 @@ jobs:
           # pull_request checks out an ephemeral merge commit; TurboSnap would
           # then diff every integration commit since the branch point.
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
