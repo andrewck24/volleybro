@@ -6,12 +6,18 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      mode:
+        description: Isolated hotfix or retry an already merged version PR
+        required: true
+        default: hotfix
+        type: choice
+        options: [hotfix, normal-retry]
       pull_request:
-        description: Reviewed same-repository hotfix pull request number
+        description: Reviewed hotfix PR or previously merged version PR number
         required: true
         type: string
       sha:
-        description: Exact reviewed hotfix commit SHA
+        description: Exact hotfix head SHA or version PR merge SHA
         required: true
         type: string
 
@@ -58,10 +64,14 @@ jobs:
         name: Copy trusted release controller before candidate checkout
         env:
           EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_MODE: ${{ inputs.mode }}
         run: |
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
             controller_sha=$(git rev-parse HEAD)
-            mode=hotfix
+            case "$DISPATCH_MODE" in
+              hotfix|normal-retry) mode="$DISPATCH_MODE" ;;
+              *) echo 'Unsupported release mode' >&2; exit 1 ;;
+            esac
           else
             controller_sha=$(git rev-parse HEAD^1)
             mode=normal
@@ -90,6 +100,8 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF: ${{ github.ref }}
           HOTFIX_PR_NUMBER: ${{ inputs.pull_request }}
+          RELEASE_PR_NUMBER: ${{ inputs.pull_request }}
+          CONTROLLER_SHA: ${{ steps.controller.outputs.controller_sha }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
@@ -97,6 +109,8 @@ jobs:
         run: |
           if [ "$MODE" = hotfix ]; then
             node "$RUNNER_TEMP/release-controls.js" authorize-hotfix
+          elif [ "$MODE" = normal-retry ]; then
+            node "$RUNNER_TEMP/release-controls.js" authorize-retry
           else
             node "$RUNNER_TEMP/release-controls.js" authorize
           fi
@@ -117,7 +131,7 @@ jobs:
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_SHA: ${{ steps.authorize.outputs.sha }}
-          HOTFIX_AUTHORIZATION: ${{ steps.authorize.outputs.hotfix_authorization }}
+          RELEASE_AUTHORIZATION: ${{ steps.authorize.outputs.release_authorization }}
           CONTROLLER_SHA: ${{ steps.controller.outputs.controller_sha }}
           EXPECTED_BASELINE_DEPLOYMENT: ${{ steps.authorize.outputs.baseline_deployment }}
           EXPECTED_BASELINE_UPDATED_AT: ${{ steps.authorize.outputs.baseline_updated_at }}

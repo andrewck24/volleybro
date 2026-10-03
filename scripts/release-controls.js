@@ -220,16 +220,50 @@ function validateVersionPr(pr, expectedAuthor, repository) {
   return true;
 }
 
-function validateCandidate(candidate, id, sha) {
+async function stagingDomains() {
+  const id = required("VERCEL_PROJECT_ID");
+  const project = await vercel(`/v9/projects/${id}`);
+  if (
+    project.id !== id ||
+    project.ssoProtection?.deploymentType !== "all_except_custom_domains"
+  )
+    fail("Production staging requires project-bound Standard Protection");
+  const result = await vercel(`/v9/projects/${id}/domains?limit=100`);
+  if (!Array.isArray(result.domains) || result.pagination?.next)
+    fail("Project domain inventory is incomplete");
+  const production = result.domains.find(
+    (domain) => domain.name === required("PRODUCTION_ALIAS"),
+  );
+  if (
+    !production ||
+    production.gitBranch ||
+    production.customEnvironmentId ||
+    production.redirect
+  )
+    fail("Production alias is not a production domain of this project");
+  return new Set(result.domains.map((domain) => domain.name));
+}
+
+function validateCandidate(candidate, id, sha, domains) {
   if (
     candidate.id !== id ||
     candidate.readyState !== "READY" ||
-    candidate.target !== "production"
+    candidate.target !== "production" ||
+    candidate.projectId !== required("VERCEL_PROJECT_ID")
   )
     fail("Candidate identity, readiness, or production target is invalid");
   if (deploymentSourceSha(candidate, "Candidate deployment") !== sha)
     fail("Candidate source SHA does not match the authorized release SHA");
-  if (candidate.alias?.length) fail("Candidate already has an alias");
+  if (
+    !Array.isArray(candidate.alias) ||
+    candidate.alias.some(
+      (alias) =>
+        domains.has(alias) ||
+        !Array.isArray(candidate.automaticAliases) ||
+        !candidate.automaticAliases.includes(alias),
+    )
+  )
+    fail("Candidate has a production or unknown alias");
 }
 
 function assertBaseline(actual, expected) {
@@ -497,7 +531,55 @@ async function authorize() {
   );
 }
 
-function hotfixOwnerContext() {
+async function authorizeRetry() {
+  const { owner, runId } = releaseOwnerContext();
+  const pullRequest = required("RELEASE_PR_NUMBER");
+  if (!/^\d+$/.test(pullRequest))
+    fail("Release PR must be a pull request number");
+  const sha = exactSha(required("RELEASE_SHA"), "Release SHA");
+  const controller = exactSha(required("CONTROLLER_SHA"), "Controller SHA");
+  if ((await command("git", ["rev-parse", "HEAD"])) !== controller)
+    fail("Retry checkout does not match the trusted controller SHA");
+  await assertAncestor(
+    sha,
+    controller,
+    "Retry controller does not contain the authorized release",
+  );
+  const pr = await github(`pulls/${pullRequest}`);
+  const [checks, statuses, environment] = await Promise.all([
+    github(`commits/${pr.head.sha}/check-runs?per_page=100`),
+    github(`commits/${pr.head.sha}/statuses?per_page=100`),
+    github("environments/production-release-review"),
+  ]);
+  validateAuthorization({
+    event: {
+      pull_request: {
+        merged: true,
+        merge_commit_sha: sha,
+        head: { sha: pr.head.sha },
+      },
+    },
+    pr,
+    expectedAuthor: required("RELEASE_BOT_LOGIN"),
+    repository: required("GITHUB_REPOSITORY"),
+    checkRuns: checks.check_runs,
+    statuses,
+  });
+  const parent = await command("git", ["rev-parse", `${sha}^1`]);
+  await verifyMetadataOnly(parent, sha);
+  validateReviewEnvironment(environment);
+  const authorization = { owner, runId, pullRequest, sha };
+  const fs = await import("node:fs/promises");
+  await fs.appendFile(
+    required("GITHUB_OUTPUT"),
+    `sha=${sha}\nrelease_authorization=${JSON.stringify(authorization)}\n`,
+  );
+  process.stdout.write(
+    `${JSON.stringify({ sha, version: json(await shaAt(sha, "package.json"), "package.json").version, authorization })}\n`,
+  );
+}
+
+function releaseOwnerContext() {
   const owner = required("RELEASE_OWNER_LOGIN");
   if (
     required("GITHUB_ACTOR") !== owner ||
@@ -505,24 +587,28 @@ function hotfixOwnerContext() {
     required("GITHUB_EVENT_NAME") !== "workflow_dispatch" ||
     required("GITHUB_REF") !== "refs/heads/main"
   ) {
-    fail("Hotfix requires release owner dispatch and rerun on trusted main");
+    fail(
+      "Manual release requires release owner dispatch and rerun on trusted main",
+    );
   }
   return { owner, runId: required("GITHUB_RUN_ID") };
 }
 
-function validateHotfixAuthorization(authorization, sha) {
-  const { owner, runId } = hotfixOwnerContext();
+function validateReleaseAuthorization(authorization, sha) {
+  const { owner, runId } = releaseOwnerContext();
   if (
     authorization?.owner !== owner ||
     authorization.runId !== runId ||
     authorization.sha !== sha ||
     !/^\d+$/.test(authorization.pullRequest)
   )
-    fail("Hotfix authorization does not match this owner, run and release SHA");
+    fail(
+      "Manual release authorization does not match this owner, run and release SHA",
+    );
 }
 
 async function authorizeHotfix() {
-  const { owner, runId } = hotfixOwnerContext();
+  const { owner, runId } = releaseOwnerContext();
   const pullRequest = required("HOTFIX_PR_NUMBER");
   if (!/^\d+$/.test(pullRequest))
     fail("HOTFIX_PR_NUMBER must be a pull request number");
@@ -568,7 +654,7 @@ async function authorizeHotfix() {
     const fs = await import("node:fs/promises");
     await fs.appendFile(
       process.env.GITHUB_OUTPUT,
-      `sha=${sha}\nbaseline_deployment=${baseline.deploymentId}\nbaseline_updated_at=${baseline.updatedAt}\nbaseline_sha=${baseline.sha}\nhotfix_authorization=${JSON.stringify(authorization)}\n`,
+      `sha=${sha}\nbaseline_deployment=${baseline.deploymentId}\nbaseline_updated_at=${baseline.updatedAt}\nbaseline_sha=${baseline.sha}\nrelease_authorization=${JSON.stringify(authorization)}\n`,
     );
   }
   process.stdout.write(
@@ -626,17 +712,18 @@ async function currentAlias() {
 
 async function stage() {
   const sha = exactSha(required("RELEASE_SHA"), "Release SHA");
-  const authorization = process.env.HOTFIX_AUTHORIZATION
-    ? json(process.env.HOTFIX_AUTHORIZATION, "hotfix authorization")
+  const authorization = process.env.RELEASE_AUTHORIZATION
+    ? json(process.env.RELEASE_AUTHORIZATION, "manual release authorization")
     : undefined;
   if (authorization || process.env.GITHUB_EVENT_NAME === "workflow_dispatch")
-    validateHotfixAuthorization(authorization, sha);
+    validateReleaseAuthorization(authorization, sha);
   const controllerSha = exactSha(
     required("CONTROLLER_SHA"),
     "Trusted controller SHA",
   );
   if ((await command("git", ["rev-parse", "HEAD"])) !== sha)
     fail("Checkout is not the exact authorized release SHA");
+  const domains = await stagingDomains();
   const baseline = await currentAlias();
   if (process.env.EXPECTED_BASELINE_SHA) {
     assertBaseline(baseline, {
@@ -687,7 +774,8 @@ async function stage() {
     fail("Vercel deploy output did not include candidate identity");
   const candidate = await deployment(candidateId);
   if (!candidate.id) fail("Staged deployment did not return an ID");
-  validateCandidate(candidate, candidateId, sha);
+  validateCandidate(candidate, candidateId, sha, domains);
+  assertBaseline(await currentAlias(), baseline);
   const output = {
     candidateId: candidate.id,
     candidateUrl: `https://${candidateUrl.replace(/^https?:\/\//, "")}`,
@@ -720,7 +808,7 @@ async function loadState() {
     state.authorization ||
     process.env.GITHUB_EVENT_NAME === "workflow_dispatch"
   )
-    validateHotfixAuthorization(state.authorization, state.sha);
+    validateReleaseAuthorization(state.authorization, state.sha);
   return state;
 }
 
@@ -729,7 +817,12 @@ async function promote() {
   if (state.sha !== required("RELEASE_SHA")) fail("Release state SHA mismatch");
   assertBaseline(await currentAlias(), state.baseline);
   const candidate = await deployment(state.candidateId);
-  validateCandidate(candidate, state.candidateId, state.sha);
+  validateCandidate(
+    candidate,
+    state.candidateId,
+    state.sha,
+    await stagingDomains(),
+  );
   await moveProduction(
     `/v10/projects/${required("VERCEL_PROJECT_ID")}/promote/${state.candidateId}`,
     { deploymentId: state.candidateId, sha: state.sha },
@@ -1105,6 +1198,7 @@ async function prepareMergeBack() {
 
 const actions = {
   authorize,
+  "authorize-retry": authorizeRetry,
   "authorize-hotfix": authorizeHotfix,
   "validate-version-pr": validateOpenVersionPr,
   stage,
