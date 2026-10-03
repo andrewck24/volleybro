@@ -191,9 +191,11 @@ globalThis.fetch=async(u,options={})=>{
   }
   if(url.pathname.includes('/v13/deployments/')){
     const id=url.pathname.split('/').at(-1);
-    if(id==='dpl_cand')return Response.json({id,readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});
+    if(id==='dpl_cand')return Response.json({id,projectId:'test',readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});
     return Response.json({id,meta:{releaseSha:(s.deploymentShas||{})[id]||s.baselineSha}});
   }
+  if(url.pathname==='/v9/projects/test')return Response.json(s.project||{id:'test',ssoProtection:{deploymentType:'all_except_custom_domains'}});
+  if(url.pathname==='/v9/projects/test/domains')return Response.json(s.domains||{domains:[{name:'app.test',gitBranch:null}]});
   return new Response('',{status:s.healthStatus||200});
 };`,
   );
@@ -267,6 +269,83 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
     const invalid = run(f, "stage");
     assert.notEqual(invalid.status, 0, JSON.stringify(candidate));
   }
+});
+
+test("stage permits protected generated aliases but rejects production or unknown aliases", async (t) => {
+  const f = await fixture(t);
+  const candidate = {
+    alias: ["project-team.vercel.app"],
+    automaticAliases: ["project-team.vercel.app"],
+  };
+  await updateApi(f, { candidate });
+  const valid = run(f, "stage");
+  assert.equal(valid.status, 0, valid.stderr);
+  for (const override of [
+    { candidate: { ...candidate, projectId: "other" } },
+    { candidate: { ...candidate, automaticAliases: [] } },
+    { candidate: { alias: ["app.test"], automaticAliases: ["app.test"] } },
+    {
+      domains: {
+        domains: [{ name: "app.test" }, { name: "project-team.vercel.app" }],
+      },
+    },
+    { project: { id: "test", ssoProtection: null } },
+    { domains: { domains: [{ name: "app.test" }], pagination: { next: 123 } } },
+  ]) {
+    await updateApi(f, {
+      candidate,
+      project: undefined,
+      domains: undefined,
+      ...override,
+    });
+    assert.notEqual(run(f, "stage").status, 0, JSON.stringify(override));
+  }
+  await updateApi(f, { candidate, project: undefined, domains: undefined });
+  assert.equal(run(f, "stage").status, 0);
+  await updateApi(f, { project: { id: "test", ssoProtection: null } });
+  const denied = run(f, "promote");
+  assert.notEqual(denied.status, 0);
+  const state = JSON.parse(await readFile(f.statePath, "utf8"));
+  assert.equal(state.alias, "dpl_base");
+});
+
+test("normal retry preserves merged version SHA and binds owner authorization through staging", async (t) => {
+  const f = await fixture(t);
+  const env = {
+    GITHUB_EVENT_NAME: "workflow_dispatch",
+    RELEASE_PR_NUMBER: "1",
+    RELEASE_SHA: f.merge,
+    CONTROLLER_SHA: f.merge,
+  };
+  const result = run(f, "authorize-retry", env);
+  assert.equal(result.status, 0, result.stderr);
+  const authorized = JSON.parse(result.stdout);
+  assert.equal(authorized.sha, f.merge);
+  assert.equal(authorized.version, "1.0.1");
+  const bound = {
+    ...env,
+    RELEASE_AUTHORIZATION: JSON.stringify(authorized.authorization),
+  };
+  assert.equal(run(f, "stage", bound).status, 0);
+  const denied = run(f, "promote", {
+    ...bound,
+    GITHUB_TRIGGERING_ACTOR: "outsider",
+  });
+  assert.notEqual(denied.status, 0);
+  for (const override of [
+    { GITHUB_ACTOR: "outsider" },
+    { GITHUB_REF: "refs/heads/other" },
+    { RELEASE_SHA: f.head },
+    { CONTROLLER_SHA: f.deployed },
+  ]) {
+    assert.notEqual(
+      run(f, "authorize-retry", { ...env, ...override }).status,
+      0,
+    );
+  }
+  const current = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, { pr: { ...current.pr, merged: false, state: "open" } });
+  assert.notEqual(run(f, "authorize-retry", env).status, 0);
 });
 
 test("rollback requires accepted run-bound evidence, not mutable environment values", async (t) => {
@@ -489,7 +568,7 @@ test("hotfix state rejects partial reruns by another actor before any release wr
   assert.deepEqual(JSON.parse(await readFile(f.statePath, "utf8")).calls, []);
   const staged = run(f, "stage", {
     ...env,
-    HOTFIX_AUTHORIZATION: JSON.stringify(authorization),
+    RELEASE_AUTHORIZATION: JSON.stringify(authorization),
   });
   assert.equal(staged.status, 0, staged.stderr);
   const state = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
