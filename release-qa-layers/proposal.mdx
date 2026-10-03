@@ -1,21 +1,22 @@
 export const scenarios = [
   { id: "S1", given: "Source QA evidence names a READY project-bound Preview deployment at the exact authorized release source", when: "The controller records reviewer-approved source QA", then: "The receipt is bound to this run; a different source, project, target, missing evidence or stale alias is rejected" },
-  { id: "S2", given: "A production-config candidate is READY and its protection, identity and formal baseline checks pass", when: "The protected candidate gate is evaluated", then: "Public/configuration checks are separate from real Google OAuth; missing accepted exact-bound recovery evidence blocks promotion" },
+  { id: "S2", given: "A production-config candidate passes Vercel API READY, protection, identity, configuration and formal baseline checks", when: "The protected candidate gate is evaluated", then: "No unauthenticated candidate HTTP or Google OAuth proof is claimed; missing accepted exact-bound recovery evidence blocks promotion" },
   { id: "S3", given: "Promotion succeeds but live authenticated production QA has not passed", when: "Finalization or recovery is requested", then: "No success tag or GitHub Release is created; explicit QA failure can restore only the accepted compatible baseline" },
   { id: "S4", given: "The baseline changes or accepted evidence belongs to another deployment, source or run", when: "Promotion or rollback is requested", then: "The operation stops without moving production or reversing data" },
   { id: "S5", given: "An existing release run was created under the former QA contract", when: "The new controller is merged", then: "The old run retains its meaning; a fresh authorized normal-retry preserves the original application source and version" },
+  { id: "S6", given: "A release was promoted and then cancelled or left waiting at human QA", when: "The configured owner dispatches recovery on trusted main naming the original run", then: "The controller verifies its accepted artifact and current alias under the production lock, restores only the bound compatible baseline and verifies health; expired, missing or mismatched evidence rejects recovery" },
 ];
 
 <TLDR>
 
-隨機 candidate 網址沒有 Google OAuth callback，現行發布前登入關卡因此無法正常完成。改為同 release SHA 的 Preview／integration 功能驗收、production candidate 設定與公開檢查、promote 後正式站登入 smoke；發布前先核准可復原證據，正式站驗收通過才標記成功。
+隨機 candidate 網址沒有 Google OAuth callback，現行發布前登入關卡因此無法正常完成。改為同 release SHA 的 Preview／integration 功能驗收、production candidate API 查證、promote 後正式站公開與登入 smoke；發布前先核准可復原證據，正式站驗收通過才標記成功。
 
 </TLDR>
 
 | 層級 | 目前 | 本次交付 |
 | --- | --- | --- |
 | 功能 QA | 隨機 candidate 要求完整登入 | 同 release SHA Preview 驗收；deployment identity 與人工 receipt 綁定，不只比版本號 |
-| Promote 前 | Candidate 登入及選填 rollback assertion | 公開頁、production 設定、protection、baseline 與必要的復原證據 |
+| Promote 前 | Candidate 登入及選填 rollback assertion | Vercel API 查 production 設定、protection、baseline 與必要的復原證據，不繞過 protection |
 | Promote 後 | 正式站 authenticated QA | 保留 Google／session／team 唯讀 smoke，不重做全部功能；未通過不 tag／Release |
 | 舊 run | 原 summary 等待核准 | 不套新語意；新 controller 用 fresh run 發布同 app SHA |
 
@@ -26,16 +27,17 @@ export const scenarios = [
 單張 PR 的後續安全契約 Change，不改寫 `release-train` 與 `release-owner-hotfix` 已接受歷史。這裡只交付 tooling；部署驗收與發布仍在合併後的 protected gates 完成。
 
 1. 更新 `WORKFLOW.md`、`docs/release-runbook.md`、delivery-workflow Feature 的分層 QA、normal／normal-retry／hotfix 共用規則。保留人類 OAuth 驗收與發布授權，不自動派 Agent 或自批 environment。
-2. 在 `production-release.yml` 與 `release-controls.js` 重用既有 state／accepted artifact。核對 Preview 的 READY／project／target／exact source，記錄驗收 deployment、證據網址與 run。固定 integration alias 移到不同部署時，原驗收不能直接放行；hotfix 也不得借用 integration tip 的結果。
+2. 在 `production-release.yml` 與 `release-controls.js` 重用既有 state／accepted artifact。先完成現有 normal／normal-retry／hotfix 授權，再以受信任 controller 在 `integration` environment 準備該 exact source 的 Preview，使用既有固定 integration hostname 的 OAuth 設定；絕不為未知 SHA 執行帶 credential 的建置。核對 READY／project／target／source，記錄驗收 deployment、證據網址與 run。Alias 操作重用 native API 與 Preview 共用鎖，拒絕正式 domain；固定 alias 移到不同部署時，原驗收不能直接放行，hotfix 不得借用 integration tip 結果。`integration-preview.yml` 納入影響清點，只調整必要的共用鎖／驗收協作，不放寬 main-only 自動部署。每次 release 可能多一次 Preview build，換取可重複的同 SHA 登入驗收。
 3. Promote 前要求本次 baseline／candidate／source 的已接受復原證據。Agent 比較 schema、index、migration、讀寫格式與 deployment 設定；必要時以隔離資料證明新寫入仍可被 baseline 使用。缺證據／不相容停止，另行決定向前修復，不以未定義的人工復原放行。
-4. 公開 smoke 或正式站 QA 明確失敗沿用相容 rollback／baseline lock。等待或取消不宣稱會自動復原；summary 與 runbook 列出 owner 復原入口。OAuth／共享設定失敗不能只憑 DB 相容就聲稱退回程式能修好。
-5. 依 test-audit 延伸既有公開 CLI／workflow contract proof：錯 SHA／環境、缺少或跨 run receipt、未驗收不得 finalize。重用 fixture，不新增 auth bypass、新 DB、OAuth proxy 或 test-only export。
+4. Candidate 保留 Standard Protection；promote 前只以 Vercel API 查 READY／identity／設定／domain baseline，不要求未登入 HTTP，也不新增 protection bypass。首次 production public HTTP smoke 在 promote 後執行；失敗或正式站 QA 明確拒絕沿用相容 rollback／baseline lock。
+5. 等待或取消不宣稱會自動復原。`production-release.yml` 新增 owner-only `recover` dispatch，輸入原 release run ID，由 trusted main controller 讀取同 repository、原 production-release workflow 的已接受 artifact；不接受任意 baseline／SHA 替代證據。核對原授權與 reviewer receipt、artifact provenance、project／baseline／candidate／source／原 run 綁定，並驗證本次 actor／rerun actor／trusted main。在共用 production lock 下重查 live alias 仍是原 candidate 才 rollback，完成公開 health check 並通知；不建立成功 tag、不重新發布。Artifact 已過期、缺失、未驗收或 alias 改動全部停止，另行決定復原方式，不降低驗證。這是 cancellation／長時間 pending 的具體人工入口，不是逾時自動化；沿用既有 artifact retention，run summary 說明其到期限制。OAuth／共享設定故障不能只憑 DB 相容就聲稱 code rollback 能修好。
+6. 依 test-audit 延伸既有公開 CLI／workflow contract proof：錯 SHA／環境、缺少或跨 run receipt、recover 非 owner／原 run provenance 錯誤／artifact 過期、未驗收不得 finalize。重用 fixture，不新增 auth bypass、新 DB、OAuth proxy 或 test-only export。
 
 不修改 app auth 或資料模型、不切 `production` DB、不 reset 共享 `test`、不處理 Dependabot／landing、不刪 dev。Controller-only 修正不新增 app Changeset。新 controller 經 G2／合併後，以 fresh run 重驗原 release SHA；不直接核准目前舊 run。
 
 ### 本次發布的 DB 證據缺口
 
-Baseline 與 release source 初查未見 schema／index 新格式，但 lineup create 與 player removal 的寫入有變動。null 與 ObjectId 格式原已支援，仍不能只凭 candidate 自己的 integration tests 認證跨版本 rollback。Apply 要檢查 baseline fixture → candidate read/write → baseline read/write；對部分失敗與既有異常資料明確區分可證明、未證明項目。部署 rollback 不會還原已刪除的 player reference。現有 migration 工具已退役，不代表共享 DB 資料已全數合規；不因此重建腳本或寫入 DB。
+Baseline 與 release source 初查未見 schema／index 新格式，但 lineup create 與 player removal 的寫入有變動。null 與 ObjectId 格式原已支援，仍不能只憑 candidate 自己的 integration tests 認證跨版本 rollback。Apply 要檢查 baseline fixture → candidate read/write → baseline read/write；對部分失敗與既有異常資料明確區分可證明、未證明項目。部署 rollback 不會還原已刪除的 player reference。現有 migration 工具已退役，不代表共享 DB 資料已全數合規；不因此重建腳本或寫入 DB。
 
 ## Flow
 
@@ -43,7 +45,7 @@ Baseline 與 release source 初查未見 schema／index 新格式，但 lineup c
   nodes={[
     { id: "source", label: "固定 release source", x: 120, y: 40, w: 215 },
     { id: "preview", label: "同 SHA Preview 功能 QA", x: 120, y: 125, w: 215 },
-    { id: "candidate", label: "Candidate 設定與公開檢查", x: 120, y: 210, w: 215 },
+    { id: "candidate", label: "Candidate API 查證", x: 120, y: 210, w: 215 },
     { id: "recovery", label: "核准本次復原證據", x: 120, y: 295, w: 215 },
     { id: "promote", label: "Promote + 正式站 smoke", x: 120, y: 380, w: 215 },
     { id: "success", label: "驗收通過才 tag / Release", x: 120, y: 465, w: 215 },
@@ -58,9 +60,9 @@ Baseline 與 release source 初查未見 schema／index 新格式，但 lineup c
   details={{
     source: { title: "版本不隨 main 漂移", body: "新 controller 不替換 app source；normal-retry 重新核對原 version PR。" },
     preview: { title: "程式功能，不是正式設定", body: "Agent 查 deployment identity；開發者驗收 Google／session／team 與改動功能。Hotfix 也需 exact source Preview。" },
-    candidate: { title: "不假裝 Google 已驗收", body: "檢查 production configuration／protection／baseline，不移動正式 alias。" },
+    candidate: { title: "不繞過 Standard Protection", body: "以 Vercel API 查 production configuration／identity／baseline，不要求 candidate 未登入 HTTP，不移動正式 alias。" },
     recovery: { title: "未知就停止", body: "Agent 分析資料與設定，owner 核准 exact-bound receipt；rollback 不倒退資料。" },
-    promote: { title: "正式 OAuth 的短驗收窗口", body: "公開 smoke 自動執行；人類做 Google／session／team。明確失敗按已接受方案復原，等待／取消另需 owner 處理。" },
+    promote: { title: "正式 OAuth 的短驗收窗口", body: "公開 smoke 自動執行；人類做 Google／session／team。明確失敗按已接受方案復原；等待／取消由 owner recover dispatch，原 artifact 過期或不符即停止。" },
     success: { title: "Promote 不等於完成", body: "正式站 QA 通過才 tag／Release；pending 或失敗不算發布成功。" },
   }}
 />
@@ -75,7 +77,7 @@ Baseline 與 release source 初查未見 schema／index 新格式，但 lineup c
   { name: "Promote 後才發現 production OAuth 故障", severity: "critical", mitigation: "接受短暫暴露窗口，但先核准復原證據，正式 QA 通過前不宣稱成功。" },
   { name: "舊 integration QA 被誤算為新版本", severity: "critical", mitigation: "READY project-bound Preview／exact source／run 綁定；alias 變更不得沿用未知結果。" },
   { name: "DB／共享設定無法隨程式 rollback", severity: "critical", mitigation: "檢查新寫入與 baseline 讀取、部署設定；未知停止，不 reset DB、不保證 code rollback 修好 OAuth。" },
-  { name: "人工 gate 等待／取消留下已 promote 狀態", severity: "warning", mitigation: "不新增不安全的逾時 rollback；清楚顯示狀態與 owner 復原步驟，未通過不 finalize。" },
+  { name: "人工 gate 等待／取消留下已 promote 狀態", severity: "warning", mitigation: "Owner recover dispatch 重新核對原 run 的已接受證據與 live alias，artifact 過期停止；不新增逾時自動 rollback，未通過不 finalize。" },
 ]}/>
 
 ## References
