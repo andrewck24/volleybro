@@ -44,5 +44,6 @@ jobs:
           test -n "$VERCEL_TEAM_SLUG"
           test -n "$INTEGRATION_ALIAS"
           URL=$(pnpm dlx vercel@61.1.0 deploy --target preview --yes --token "$VERCEL_TOKEN" --meta "githubCommitSha=$SOURCE_SHA")
-          pnpm dlx vercel@61.1.0 alias set "$URL" "$INTEGRATION_ALIAS" --scope "$VERCEL_TEAM_SLUG" --token "$VERCEL_TOKEN"
+          DEPLOYMENT_HOST="${URL#https://}"
+          pnpm dlx vercel@61.1.0 api "/v2/deployments/$DEPLOYMENT_HOST/aliases?teamId=$VERCEL_ORG_ID" --method POST --field "alias=$INTEGRATION_ALIAS" --token "$VERCEL_TOKEN"
           printf 'Integration revision `%s`: %s\n' "$SOURCE_SHA" "$URL" >> "$GITHUB_STEP_SUMMARY"
