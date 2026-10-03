@@ -79,7 +79,7 @@ jobs:
           git show "$controller_sha:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
           echo "controller_sha=$controller_sha" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}/release-controls.js
@@ -138,7 +138,7 @@ jobs:
           EXPECTED_BASELINE_SHA: ${{ steps.authorize.outputs.baseline_sha }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" stage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-release-state
           path: ${{ runner.temp }}/release-state.json
@@ -212,7 +212,7 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
         run: node "$RUNNER_TEMP/release-controls.js" record-compatibility
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}/release-state.json
