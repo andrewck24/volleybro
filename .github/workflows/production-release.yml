@@ -195,11 +195,11 @@ jobs:
       name: production-release-review
       url: ${{ needs.candidate.outputs.candidate_url }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-state
           path: ${{ runner.temp }}/staged
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
@@ -226,7 +226,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
@@ -234,7 +234,7 @@ jobs:
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
@@ -312,7 +312,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
@@ -320,7 +320,7 @@ jobs:
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
@@ -345,7 +345,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
@@ -353,7 +353,7 @@ jobs:
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
@@ -376,7 +376,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
@@ -385,7 +385,7 @@ jobs:
           ref: main
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
