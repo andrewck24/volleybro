@@ -162,7 +162,7 @@ async function fixture(t) {
   };
   await stub(
     "pnpm",
-    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);s.calls.push(a);if(a.includes('rollback'))s.alias='dpl_base';if(a.includes('promote'))s.alias='dpl_cand';fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));console.log(JSON.stringify({id:'dpl_cand',url:'candidate.test'}));",
+    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);s.calls.push(a);fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));if(a.includes('--scope')||a.includes('promote')||a.includes('rollback')){console.error('User not found. (404)');process.exit(1);}if(!process.env.VERCEL_PROJECT_ID||!process.env.VERCEL_ORG_ID){console.error('Missing linked project context');process.exit(1);}console.log(JSON.stringify({id:'dpl_cand',url:'candidate.test'}));",
   );
   await stub(
     "gh",
@@ -171,7 +171,31 @@ async function fixture(t) {
   const preload = path.join(root, "preload.mjs");
   await writeFile(
     preload,
-    "import fs from 'node:fs';globalThis.fetch=async(u)=>{const s=JSON.parse(fs.readFileSync(process.env.API_STATE)),url=String(u);if(url.includes('/v4/aliases/'))return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});if(url.includes('/v13/deployments/')){const id=url.split('/').at(-1).split('?')[0];if(id==='dpl_cand')return Response.json({id,readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});return Response.json({id,meta:{releaseSha:(s.deploymentShas||{})[id]||s.baselineSha}});}return new Response('',{status:s.healthStatus||200})};",
+    String.raw`import fs from 'node:fs';
+let elapsed=0;const now=Date.now;Date.now=()=>now()+elapsed;
+globalThis.setTimeout=(callback,ms)=>{elapsed+=ms;callback();return 0};
+globalThis.fetch=async(u,options={})=>{
+  const s=JSON.parse(fs.readFileSync(process.env.API_STATE)),url=new URL(u);
+  const save=()=>fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));
+  if(options.method==='POST'){
+    s.calls.push([url.pathname]);save();
+    const match=url.pathname.match(/^\/v(10|1)\/projects\/test\/(promote|rollback)\/(dpl_cand|dpl_base)$/);
+    if(!match)throw Error('Unexpected mutation '+url.pathname);
+    if(s.mutationStatus)return new Response('',{status:s.mutationStatus});
+    s.pendingAlias=match[3];s.remainingPolls=s.delayPolls||0;save();
+    return new Response(null,{status:202});
+  }
+  if(url.pathname.includes('/v4/aliases/')){
+    if(s.pendingAlias&&!s.neverTransition){if(s.remainingPolls>0)s.remainingPolls--;else{s.alias=s.pendingAlias;delete s.pendingAlias;}save();}
+    return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});
+  }
+  if(url.pathname.includes('/v13/deployments/')){
+    const id=url.pathname.split('/').at(-1);
+    if(id==='dpl_cand')return Response.json({id,readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});
+    return Response.json({id,meta:{releaseSha:(s.deploymentShas||{})[id]||s.baselineSha}});
+  }
+  return new Response('',{status:s.healthStatus||200});
+};`,
   );
   return {
     root,
@@ -193,6 +217,9 @@ async function fixture(t) {
       GITHUB_SHA: merge,
       VERCEL_TOKEN: "test",
       VERCEL_PROJECT: "test",
+      VERCEL_PROJECT_ID: "test",
+      VERCEL_ORG_ID: "team_test",
+      VERCEL_TEAM_SLUG: "test-team",
       PRODUCTION_ALIAS: "app.test",
       RELEASE_STATE_FILE: path.join(root, "staged.json"),
       GITHUB_OUTPUT: path.join(root, "output"),
@@ -273,7 +300,11 @@ test("rollback requires accepted run-bound evidence, not mutable environment val
   assert.equal(result.status, 0, result.stderr);
   const actual = JSON.parse(await readFile(f.statePath, "utf8"));
   assert.equal(actual.alias, "dpl_base");
-  assert.ok(actual.calls.some((args) => args.includes("rollback")));
+  assert.ok(
+    actual.calls.some((args) =>
+      args.includes("/v1/projects/test/rollback/dpl_base"),
+    ),
+  );
   await updateApi(f, { alias: "dpl_cand", healthStatus: 503 });
   result = run(f, "rollback-if-compatible", { RELEASE_STATE_FILE: accepted });
   assert.notEqual(result.status, 0);
@@ -636,13 +667,27 @@ test("promotion blocks stale baselines and pending candidates before calling Ver
   assert.notEqual(run(f, "promote").status, 0);
   let state = JSON.parse(await readFile(f.statePath, "utf8"));
   assert.equal(
-    state.calls.some((args) => args.includes("promote")),
+    state.calls.some((args) =>
+      args.includes("/v10/projects/test/promote/dpl_cand"),
+    ),
     false,
   );
   await updateApi(f, { readiness: "READY" });
   assert.equal(run(f, "promote").status, 0);
   state = JSON.parse(await readFile(f.statePath, "utf8"));
   assert.equal(state.alias, "dpl_cand");
+  for (const mutationStatus of [403, 404]) {
+    await updateApi(f, { alias: "dpl_base", mutationStatus });
+    const denied = run(f, "promote");
+    assert.notEqual(denied.status, 0);
+    assert.match(denied.stderr, /Vercel API (403|404)/);
+  }
+  await updateApi(f, { alias: "dpl_base", mutationStatus: 0, delayPolls: 2 });
+  assert.equal(run(f, "promote").status, 0);
+  await updateApi(f, { alias: "dpl_base", neverTransition: true });
+  const queued = run(f, "promote");
+  assert.notEqual(queued.status, 0);
+  assert.match(queued.stderr, /not confirmed/);
 });
 
 test("normal staging rejects a candidate that omits the deployed hotfix ancestry", async (t) => {
