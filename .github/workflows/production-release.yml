@@ -119,7 +119,7 @@ jobs:
           ref: ${{ steps.authorize.outputs.sha }}
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - id: stage
@@ -239,7 +239,7 @@ jobs:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - name: Recheck baseline and promote candidate
@@ -325,7 +325,7 @@ jobs:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - name: Roll back only with explicit compatibility evidence
