@@ -917,6 +917,45 @@ test("explicit source gap binds a fixed-alias Preview and native approval", asyn
       reviewer: "reviewer",
     },
   );
+  const accepted = path.join(f.root, "accepted-preview.json");
+  const sourceApi = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, {
+    jobs: {
+      ...sourceApi.jobs,
+      9: [
+        ...sourceApi.jobs[9],
+        workflowJob(614, "Accept candidate evidence", "in_progress", null),
+      ],
+    },
+  });
+  result = run(f, "record-compatibility", {
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+    RELEASE_ROLLBACK_COMPATIBILITY: `dpl_base:dpl_cand:${f.merge}`,
+    RELEASE_ROLLBACK_EVIDENCE: evidence,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const acceptedApi = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, {
+    integrationAlias: "dpl_other_preview",
+    jobs: {
+      ...acceptedApi.jobs,
+      9: acceptedApi.jobs[9].map((job) =>
+        job.id === 614
+          ? { ...job, status: "completed", conclusion: "success" }
+          : job,
+      ),
+    },
+  });
+  result = run(f, "promote", { RELEASE_STATE_FILE: accepted });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /source Preview alias changed/);
+  assert.equal(
+    JSON.parse(await readFile(f.statePath, "utf8")).alias,
+    "dpl_base",
+  );
+  await updateApi(f, { integrationAlias: "dpl_preview" });
+  result = run(f, "promote", { RELEASE_STATE_FILE: accepted });
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test("owner recovery accepts only the original nonexpired proven artifact", async (t) => {

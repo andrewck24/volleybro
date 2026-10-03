@@ -1565,7 +1565,7 @@ async function promote() {
   validateConfiguredPlatform(state);
   if (state.sha !== required("RELEASE_SHA")) fail("Release state SHA mismatch");
   await assertRollbackEvidence(state);
-  assertSourceQAReceipt(state);
+  await verifySourceQANative(state);
   assertBaseline(await currentAlias(), state.baseline);
   const candidate = await deployment(state.candidateId);
   validateCandidate(
@@ -1770,6 +1770,10 @@ async function verifySourceQANative(state) {
   }
   if (state.sourceQA.preview) {
     const preview = state.sourceQA.preview;
+    if ((await aliasDeployment(preview.alias)) !== preview.deploymentId)
+      fail(
+        "Accepted source Preview alias changed; fresh source QA is required",
+      );
     validatePreview(
       await deployment(preview.deploymentId),
       preview.deploymentId,
