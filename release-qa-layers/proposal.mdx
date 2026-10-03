@@ -1,21 +1,23 @@
 export const scenarios = [
-  { id: "S1", given: "Source QA evidence names a READY project-bound Preview deployment at the exact authorized release source", when: "The controller records reviewer-approved source QA", then: "The receipt is bound to this run; a different source, project, target, missing evidence or stale alias is rejected" },
+  { id: "S1", given: "A source QA gap requires a Preview deployment", when: "The controller records approved automated or manual Preview evidence", then: "The READY project-bound Preview and evidence match the exact authorized source and this run; a different source, project, target, missing evidence or stale alias is rejected" },
   { id: "S2", given: "A production-config candidate passes Vercel API READY, protection, identity, configuration and formal baseline checks", when: "The protected candidate gate is evaluated", then: "No unauthenticated candidate HTTP or Google OAuth proof is claimed; missing accepted exact-bound recovery evidence blocks promotion" },
   { id: "S3", given: "Promotion succeeds but live authenticated production QA has not passed", when: "Finalization or recovery is requested", then: "No success tag or GitHub Release is created; explicit QA failure can restore only the accepted compatible baseline" },
   { id: "S4", given: "The baseline changes or accepted evidence belongs to another deployment, source or run", when: "Promotion or rollback is requested", then: "The operation stops without moving production or reversing data" },
   { id: "S5", given: "An existing release run was created under the former QA contract", when: "The new controller is merged", then: "The old run retains its meaning; a fresh authorized normal-retry preserves the original application source and version" },
   { id: "S6", given: "A release was promoted and then cancelled or left waiting at human QA", when: "The configured owner dispatches recovery on trusted main naming the original run", then: "The controller verifies its accepted artifact and current alias under the production lock, restores only the bound compatible baseline and verifies health; expired, missing or mismatched evidence rejects recovery" },
+  { id: "S7", given: "The release has approved evidence that persisted contracts remain compatible and existing integration tests cover its writes", when: "Recovery eligibility is assembled", then: "The controller binds the existing evidence without requiring a cross-version suite or an Agent DB audit; unknown or incompatible evidence never grants rollback authority" },
+  { id: "S8", given: "Trusted passing automated functional evidence is bound to the authorized source and required scope", when: "The release assembles source QA", then: "It reuses that evidence without a duplicate Preview build or manual functional retest; missing, mismatched, failed or insufficient evidence requires the smallest uncovered check" },
 ];
 
 <TLDR>
 
-隨機 candidate 網址沒有 Google OAuth callback，現行發布前登入關卡因此無法正常完成。改為同 release SHA 的 Preview／integration 功能驗收、production candidate API 查證、promote 後正式站公開與登入 smoke；發布前先核准可復原證據，正式站驗收通過才標記成功。
+隨機 candidate 網址沒有 Google OAuth callback，現行發布前登入關卡因此無法正常完成。先重用同 release source 的自動功能證據，只在缺口需要時使用 Preview；candidate 由 API 查證，promote 後做正式站短 smoke。最佳化順序是先最小化人工，再最小化 Agent 作業；重用機械證據，不重複測功能、不為未識別風險新增測試。保留必要發布授權與安全邊界。
 
 </TLDR>
 
 | 層級 | 目前 | 本次交付 |
 | --- | --- | --- |
-| 功能 QA | 隨機 candidate 要求完整登入 | 同 release SHA Preview 驗收；deployment identity 與人工 receipt 綁定，不只比版本號 |
+| 功能 QA | 隨機 candidate 要求完整登入 | 優先重用可信、同 source 的 unit／integration／既有 E2E 證據；缺口才準備 Preview，不固定要求人工重測 |
 | Promote 前 | Candidate 登入及選填 rollback assertion | Vercel API 查 production 設定、protection、baseline 與必要的復原證據，不繞過 protection |
 | Promote 後 | 正式站 authenticated QA | 保留 Google／session／team 唯讀 smoke，不重做全部功能；未通過不 tag／Release |
 | 舊 run | 原 summary 等待核准 | 不套新語意；新 controller 用 fresh run 發布同 app SHA |
@@ -26,27 +28,35 @@ export const scenarios = [
 
 單張 PR 的後續安全契約 Change，不改寫 `release-train` 與 `release-owner-hotfix` 已接受歷史。這裡只交付 tooling；部署驗收與發布仍在合併後的 protected gates 完成。
 
-1. 更新 `WORKFLOW.md`、`docs/release-runbook.md`、delivery-workflow Feature 的分層 QA、normal／normal-retry／hotfix 共用規則。保留人類 OAuth 驗收與發布授權，不自動派 Agent 或自批 environment。
-2. 在 `production-release.yml` 與 `release-controls.js` 重用既有 state／accepted artifact。先完成現有 normal／normal-retry／hotfix 授權，再以受信任 controller 在 `integration` environment 準備該 exact source 的 Preview，使用既有固定 integration hostname 的 OAuth 設定；絕不為未知 SHA 執行帶 credential 的建置。核對 READY／project／target／source，記錄驗收 deployment、證據網址與 run。Alias 操作重用 native API 與 Preview 共用鎖，拒絕正式 domain；固定 alias 移到不同部署時，原驗收不能直接放行，hotfix 不得借用 integration tip 結果。`integration-preview.yml` 納入影響清點，只調整必要的共用鎖／驗收協作，不放寬 main-only 自動部署。每次 release 可能多一次 Preview build，換取可重複的同 SHA 登入驗收。
-3. Promote 前要求本次 baseline／candidate／source 的已接受復原證據。Agent 比較 schema、index、migration、讀寫格式與 deployment 設定；必要時以隔離資料證明新寫入仍可被 baseline 使用。缺證據／不相容停止，另行決定向前修復，不以未定義的人工復原放行。
+1. 更新 `WORKFLOW.md`、`docs/release-runbook.md`、delivery-workflow Feature 的分層 QA、normal／normal-retry／hotfix 共用規則。保留必要發布授權與目前尚無安全自動 proof 的正式 Google／session／team 短 smoke；不固定新增人工 Preview 功能 gate，不自動派 Agent 或自批 environment。已由可信自動證據涵蓋的功能不再人工驗收；完整 authenticated automation 仍由既有後續工作擁有，本次不假裝已實作。
+2. 在 `production-release.yml` 與 `release-controls.js` 重用既有 state／accepted artifact，先完成 normal／normal-retry／hotfix 授權，以 source／驗證範圍／可信 producer／成功結果核對並重用現有 CI 與驗收證據；不同 SHA 不默默算成同一結果。Source 功能證據充分時，不額外建 Preview、不派 Agent。只有具體缺口才在 `integration` environment 準備 exact source Preview，使用固定 integration hostname 的 OAuth 設定，不為未知 SHA 執行帶 credential 的建置。核對 READY／project／target／source，記錄 automated 或必要 manual receipt 與 run；alias 操作重用 native API／Preview 共用鎖、拒絕正式 domain。Alias 移動不得沿用不符部署的驗收，hotfix 不借用 integration tip。`integration-preview.yml` 只調整必要共用鎖／驗收協作，不放寬 main-only 自動部署；extra Preview build 只發生在缺口分支。
+3. Promote 前由腳本彙整並綁定已審查的復原證據到 baseline／candidate／source／run，沿用人工發布 approval，不要求開發者重讀既有測試。先重用交付時的 schema／index／migration／讀寫格式判定與 integration 結果；單靠路徑未變或測試綠燈不自動宣告相容。只有持久化 contract 改變或證據不確定時才請 Agent 分析，只有「有具體新格式風險且承諾退回該舊版」才補最小跨版本 integration cases。未知／不相容不授權 rollback，也不以未定義的人工復原放行；需另定向前修復策略。Deployment 設定與 live baseline 仍由 API read-back 機械查證，不能被本機測試替代。
 4. Candidate 保留 Standard Protection；promote 前只以 Vercel API 查 READY／identity／設定／domain baseline，不要求未登入 HTTP，也不新增 protection bypass。首次 production public HTTP smoke 在 promote 後執行；失敗或正式站 QA 明確拒絕沿用相容 rollback／baseline lock。
 5. 等待或取消不宣稱會自動復原。`production-release.yml` 新增 owner-only `recover` dispatch，輸入原 release run ID，由 trusted main controller 讀取同 repository、原 production-release workflow 的已接受 artifact；不接受任意 baseline／SHA 替代證據。核對原授權與 reviewer receipt、artifact provenance、project／baseline／candidate／source／原 run 綁定，並驗證本次 actor／rerun actor／trusted main。在共用 production lock 下重查 live alias 仍是原 candidate 才 rollback，完成公開 health check 並通知；不建立成功 tag、不重新發布。Artifact 已過期、缺失、未驗收或 alias 改動全部停止，另行決定復原方式，不降低驗證。這是 cancellation／長時間 pending 的具體人工入口，不是逾時自動化；沿用既有 artifact retention，run summary 說明其到期限制。OAuth／共享設定故障不能只憑 DB 相容就聲稱 code rollback 能修好。
-6. 依 test-audit 延伸既有公開 CLI／workflow contract proof：錯 SHA／環境、缺少或跨 run receipt、recover 非 owner／原 run provenance 錯誤／artifact 過期、未驗收不得 finalize。重用 fixture，不新增 auth bypass、新 DB、OAuth proxy 或 test-only export。
+6. 依 test-audit 先清點既有 proof，再只補真實缺口：錯 SHA／環境、缺少或跨 run receipt、recover 非 owner／原 run provenance 錯誤／artifact 過期、未驗收不得 finalize。每項新增／修改測試說明可觀察 contract、可信 regression、既有 coverage 為何不足與 owning tier；優先延伸既有 case／fixture，不重複 unit／integration／E2E 同一斷言，不加 source-string 自證或 test-only seam。跨版本測試在對應 rollback 目標退役後可移除，保留發布證據；新版讀舊格式的測試則等舊資料格式退役後再移除。G2 列出剩餘人工動作與頻率、Agent 介入條件、機械證據 owner 及每項新測試的用途，不編造節省數字。
 
 不修改 app auth 或資料模型、不切 `production` DB、不 reset 共享 `test`、不處理 Dependabot／landing、不刪 dev。Controller-only 修正不新增 app Changeset。新 controller 經 G2／合併後，以 fresh run 重驗原 release SHA；不直接核准目前舊 run。
 
-### 本次發布的 DB 證據缺口
+### 驗證 owner 與成本邊界
 
-Baseline 與 release source 初查未見 schema／index 新格式，但 lineup create 與 player removal 的寫入有變動。null 與 ObjectId 格式原已支援，仍不能只憑 candidate 自己的 integration tests 認證跨版本 rollback。Apply 要檢查 baseline fixture → candidate read/write → baseline read/write；對部分失敗與既有異常資料明確區分可證明、未證明項目。部署 rollback 不會還原已刪除的 player reference。現有 migration 工具已退役，不代表共享 DB 資料已全數合規；不因此重建腳本或寫入 DB。
+| 要證明的事 | 主要 owner | Release 不重複做的事 |
+| --- | --- | --- |
+| 計算、validation、mapping／狀態 | 現有 unit tests | 不人工重演；不搬同一斷言到其他 tier |
+| Repository／constraint／transaction／legacy data | 現有 integration tests | 不固定人工查 DB；不為每次發布建立跨版本套件 |
+| 必要的頁面串接／瀏覽器行為 | 已存在且安全的 E2E；缺口才 targeted QA | 不以預建 session 宣稱真實 Google OAuth 通過；不於本次新建完整 E2E 系統 |
+| Deployment identity／config／protection／baseline | 現有 API／controller 腳本 | 不請人或 Agent 手動逐項讀平台設定 |
+| 正式 Google／session／team 短 smoke | 尚未自動化的必要人工 fallback | 不重做全部 app 功能；有可信替代 proof 後再退役人工作業 |
+
+這次發布未見 schema／index 新格式；lineup 的 ObjectId／null 原已支援，寫入修正已有 integration coverage，沒有已識別的新格式風險要求常駐跨版本測試。保留 diff 判定與既有 proof，不固定執行 baseline → candidate → baseline。這不是全部復原條件已通過：code rollback 不還原已刪 player reference，部署設定／共享狀態仍需相符證據；不連共享 DB、不重建 migration 工具。
 
 ## Flow
 
 <InteractiveFlowchart
   nodes={[
     { id: "source", label: "固定 release source", x: 120, y: 40, w: 215 },
-    { id: "preview", label: "同 SHA Preview 功能 QA", x: 120, y: 125, w: 215 },
+    { id: "preview", label: "重用自動功能證據", x: 120, y: 125, w: 215 },
     { id: "candidate", label: "Candidate API 查證", x: 120, y: 210, w: 215 },
-    { id: "recovery", label: "核准本次復原證據", x: 120, y: 295, w: 215 },
+    { id: "recovery", label: "綁定復原證據與授權", x: 120, y: 295, w: 215 },
     { id: "promote", label: "Promote + 正式站 smoke", x: 120, y: 380, w: 215 },
     { id: "success", label: "驗收通過才 tag / Release", x: 120, y: 465, w: 215 },
   ]}
@@ -59,9 +69,9 @@ Baseline 與 release source 初查未見 schema／index 新格式，但 lineup c
   ]}
   details={{
     source: { title: "版本不隨 main 漂移", body: "新 controller 不替換 app source；normal-retry 重新核對原 version PR。" },
-    preview: { title: "程式功能，不是正式設定", body: "Agent 查 deployment identity；開發者驗收 Google／session／team 與改動功能。Hotfix 也需 exact source Preview。" },
+    preview: { title: "缺口才多做一步", body: "腳本重用可信、source 相符的 unit／integration／既有 E2E proof；不足才補最小檢查或同 source Preview，不固定請人重測或派 Agent。" },
     candidate: { title: "不繞過 Standard Protection", body: "以 Vercel API 查 production configuration／identity／baseline，不要求 candidate 未登入 HTTP，不移動正式 alias。" },
-    recovery: { title: "未知就停止", body: "Agent 分析資料與設定，owner 核准 exact-bound receipt；rollback 不倒退資料。" },
+    recovery: { title: "重用已審查判定，不重做 DB audit", body: "腳本綁定已接受測試與相容性證據；有 contract 變更或不確定才請 Agent。缺 proof 停止，owner 的發布授權保留；rollback 不倒退資料。" },
     promote: { title: "正式 OAuth 的短驗收窗口", body: "公開 smoke 自動執行；人類做 Google／session／team。明確失敗按已接受方案復原；等待／取消由 owner recover dispatch，原 artifact 過期或不符即停止。" },
     success: { title: "Promote 不等於完成", body: "正式站 QA 通過才 tag／Release；pending 或失敗不算發布成功。" },
   }}
@@ -78,6 +88,7 @@ Baseline 與 release source 初查未見 schema／index 新格式，但 lineup c
   { name: "舊 integration QA 被誤算為新版本", severity: "critical", mitigation: "READY project-bound Preview／exact source／run 綁定；alias 變更不得沿用未知結果。" },
   { name: "DB／共享設定無法隨程式 rollback", severity: "critical", mitigation: "檢查新寫入與 baseline 讀取、部署設定；未知停止，不 reset DB、不保證 code rollback 修好 OAuth。" },
   { name: "人工 gate 等待／取消留下已 promote 狀態", severity: "warning", mitigation: "Owner recover dispatch 重新核對原 run 的已接受證據與 live alias，artifact 過期停止；不新增逾時自動 rollback，未通過不 finalize。" },
+  { name: "省成本變成跳過必要 proof，或自動化反而重複測試", severity: "warning", mitigation: "保留可信來源與 exact-source 綁定；先指定單一 owning tier／重用現有證據，未知交 Agent，只有無機械 proof 的具體缺口交人。" },
 ]}/>
 
 ## References
