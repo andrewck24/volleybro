@@ -1,5 +1,11 @@
 # VolleyBro CHANGELOG
 
+## [0.16.2](https://github.com/andrewck24/volleybro/compare/v0.15.0...v0.16.2) 2026-10-03
+
+### Fixed
+
+- Restore production release operations with a project-scoped Vercel token.
+
 ## [0.16.1](https://github.com/andrewck24/volleybro/compare/v0.15.0...v0.16.1) 2026-10-03
 
 ### Fixed
