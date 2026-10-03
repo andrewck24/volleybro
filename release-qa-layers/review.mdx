@@ -1,0 +1,90 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+請驗收本次分層 QA 與 owner recovery 的 tooling。現在不需要測隨機 candidate 的 Google 登入，也不需要操作正式環境。G2 通過後才開 PR；合併後以 fresh run 重驗原 application source／version，不核准舊 run、不重新計算 app 版本。
+
+沒有改寫 adopted ADR 或 G1 Proposal。實際發布仍需要 protected environment approval 與正式站 Google／session／team 短 smoke；操作時點與分工列於下方。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `scripts/release-controls.js`：source QA 分 scope 重用，candidate／復原證據綁定 source、project、deployment 與原 run；promotion 重查 live Preview alias，finalize 另要求正式站 QA receipt。
+2. `production-release.yml`：source 機械驗證不使用 app credentials；只有具體缺口才建 Preview。Production mutation 共用鎖，人工等待不佔鎖；recover 只接受 owner 在 trusted main 指定原 run。
+3. `WORKFLOW.md` 與 runbook：功能測試、平台 API 證據與真實 OAuth smoke 各有 owner，不重複人工測功能，也不固定要求 Agent DB audit 或跨版本測試。
+
+</ReviewFocus>
+
+<Deviations>
+
+沒有改變 G1 scope／scenarios。Linear vertical slices 在部分實作之後補齊，保留原始執行順序，不假稱事前完成切片；目前依完整行為記錄完成證據，不按檔案拆分。
+
+GitHub native environment approval 沒有可用的 `submitted_at`；receipt 改綁受保護 job、run attempt 與原生 approval history，後續重新查證成功 job／history。不宣稱 timestamp 能證明某一 reviewer 核准某一分鐘的 gate。
+
+獨立審查修正了兩個證據缺口：protection 負例先取得有效 QA receipts，避免被前面的 guard 遮蔽；source Preview 驗收後 alias 被覆蓋時，promotion／recovery 都拒絕舊 receipt。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "CLI 核對 exact-source Preview 的 project／READY／target 與 native approval；驗收後 alias 移動會拒絕 promotion，production 保持原 baseline，恢復正確 alias 才通過。" },
+    { id: "S2", result: "pass", evidence: "Candidate API identity／configuration／protection checks 保留；缺少 frozen exact-bound recovery evidence 拒絕 acceptance／promotion，不要求 random URL OAuth。" },
+    { id: "S3", result: "pass", evidence: "沒有 production QA receipt 時拒絕 finalize；正式 QA 明確失敗只允許回到已驗收的相容 baseline，不建立成功 tag／Release。" },
+    { id: "S4", result: "pass", evidence: "CLI 負例拒絕 baseline／deployment／source／run 不符，未移動 production；rollback 不反向更改資料。" },
+    { id: "S5", result: "pass", evidence: "舊 state contract 不沿用新語意；fresh normal-retry 保留 application source。僅 normal path 明確接受 ancestor 且 full-tree 相同的 reviewed head／merge 映射，hotfix 不放寬。" },
+    { id: "S6", result: "pass", evidence: "Owner recover 核對 trusted main、原授權、native receipts、artifact provenance／digest／有效期限與 current alias；拒絕 outsider、缺失／過期／錯綁 artifact、已完成發布。" },
+    { id: "S7", result: "pass", evidence: "復原證據必須在本 run 凍結並綁定 baseline／candidate／source；既有證據可重用，缺失或未知不授予 rollback，不新增固定 DB audit／cross-version suite。" },
+    { id: "S8", result: "pass", evidence: "同 source、可信 ci.yml producer 的成功 scope 可重用，即使 aggregate 失敗；錯 workflow blob／SHA 或失敗 scope 補最小缺口，不重複 Preview build。" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "Repository final gate", method: "pnpm verify:all", executor: "agent", environment: "已整合最新 main 的 Change checkout", result: "pass", evidence: "static／workflow／Blueprint 適用 lanes 通過；未受影響的 app-test／integration／app-build 被 diff planner 略過，不宣稱已跑。" },
+    { id: "T2", checks: "Controller regressions", method: "node --test scripts/__tests__/release-controls.test.js", executor: "agent", environment: "真實隔離 Git history／remote，外部 GitHub／Vercel transport doubles", result: "pass", evidence: "命令顯示 tests 20、pass 20。舊 controller 的缺 recovery／production receipt 負例實際誤放行；新增 stale-alias 負例修正前同樣誤放行、修正後拒絕且 production 未動。" },
+    { id: "T3", checks: "Independent fixed point", method: "Spec／Standards 完整 review 與修正後 delta review", executor: "agent", environment: "独立 reviewer contexts", result: "pass", evidence: "兩軸最後 PASS、無 blocking finding；test-audit 使用既有公開 CLI seam／fixture，不新增 test-only export、不跨層重播相同斷言。" },
+    { id: "T4", checks: "Live release authorization and smoke", method: "Protected approval；Google 登入、session、team 唯讀", executor: "developer", environment: "本批合併後 fresh release run 的正式站", result: "pending", evidence: "本次只交付 tooling，沒有操作 production。Agent／腳本查 candidate API 與公開 health；你完成真實 OAuth 短 smoke。功能 Preview 人工驗收僅在明確缺口出現時需要。" },
+  ]}
+/>
+
+<AfterRelease>
+
+以下是本批合併後，不是現在要操作的步驟：
+
+1. Agent 確認新 controller 已在 main，再由已授權 owner 使用 fresh `normal-retry`，指定原 release PR／application SHA；不 rerun 或批准舊 controller 的 run。
+2. 腳本重用同 source 的可信功能證據。缺 scope 才補 unit／integration；只有具體 OAuth／browser 缺口才建立固定 integration Preview，並請你驗收該缺口。
+3. 腳本查 candidate READY／project／source／production 設定／protection／baseline，彙整已審查的 recovery evidence；你核准 protected candidate gate，不在 random candidate URL 登入 Google。
+4. 鎖內重查證據與 baseline 後 promote，脚本執行公開 health check。你在正式網址做 Google／session／team 短 smoke，核准 production gate；通過才 finalize exact-SHA tag／Release。
+5. 明確 QA 失敗依已接受相容證據復原；若 run 等待或取消，由 owner dispatch `recover` 指定原 run。Artifact 過期、證據不符或 alias 已改時停止，不憑空授權 rollback、不還原資料。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+### 測試 owner 與人工成本
+
+| 證據 | 執行者／觸發條件 | 不重複的工作 |
+| --- | --- | --- |
+| Unit／integration 功能 | 現有 CI；相同 source 的成功 scope 優先重用 | 不人工重演，不因 release 固定新增 DB audit |
+| Preview 特定缺口 | 機械建置與 API 查證；必要時你驗收 | 沒有缺口就不建、不重新測全部功能 |
+| Candidate identity／protection／baseline | Controller API | 不請你或 Agent 逐項讀平台設定 |
+| Recovery compatibility | 重用交付時已審查證據；不確定 contract 才請 Agent | 不把 CI 綠燈等同 DB 相容，不固定建立 cross-version suite |
+| Live Google／session／team | 每次 promote 後的人工短 smoke，直到安全 automation 可替代 | 不拿預建 session 冒充真實 Google OAuth，不重測所有功能 |
+
+新增 coverage 的用途是阻止錯 source／producer、錯或缺 receipt、過期／錯 provenance artifact 與 stale alias；primary owner 是公開 controller CLI。未增加 app 測試，不編造節省時間或 tokens 的數字。
+
+### 平台與工具限制
+
+Workflow 使用 GitHub 原生 concurrency `queue: max` 保留排隊、不取消既有 production mutation。現有 actionlint 版本尚不認識此欄位，因此完整 actionlint 有該欄位診斷，不能稱為全綠；其他診斷未見。Repository executable checks 與兩軸審查已通過。參考 [GitHub concurrency 文件](https://docs.github.com/en/actions/using-jobs/using-concurrency)。
+
+### Archive assessment
+
+已更新最窄的 delivery-workflow Feature；WORKFLOW 持有 lifecycle 契約、runbook 持有操作步驟，不另存第二份可編輯 spec。沒有穩定 domain vocabulary 改變，不改 CONTEXT。Controller-only 修正不新增 app Changeset。沒有 out-of-scope deletion、app auth／DB／landing 修改或 production activation。
+
+### 殘留工作
+
+沒有尚未修復的 blocking controller finding。安全 Agent browser session、authenticated smoke 自動化與 production recovery／observability 仍由既有 operational issues 持有；本次不假裝已自動化真實 Google 登入，不關閉 activation 尚未完成的 tracking parent。合併不是發布成功。
+
+</ReviewDetails>
