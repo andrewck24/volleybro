@@ -112,9 +112,9 @@ jobs:
         name: Stage exact SHA with production configuration
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_TEAM_ID }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
-          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_SHA: ${{ steps.authorize.outputs.sha }}
           HOTFIX_AUTHORIZATION: ${{ steps.authorize.outputs.hotfix_authorization }}
@@ -231,9 +231,8 @@ jobs:
       - name: Recheck baseline and promote candidate
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
-          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
@@ -248,9 +247,8 @@ jobs:
         if: steps.smoke.outcome == 'failure'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
-          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
           GITHUB_RUN_ID: ${{ github.run_id }}
@@ -319,8 +317,8 @@ jobs:
       - name: Roll back only with explicit compatibility evidence
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
-          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
           GITHUB_RUN_ID: ${{ github.run_id }}

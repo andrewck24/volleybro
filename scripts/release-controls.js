@@ -31,21 +31,47 @@ async function command(bin, args, options = {}) {
   }
 }
 
-async function vercel(path) {
+async function vercel(path, options = {}) {
   const team = process.env.VERCEL_TEAM_ID;
   const url = new URL(`${api}${path}`);
   if (team) url.searchParams.set("teamId", team);
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${required("VERCEL_TOKEN")}` },
+    ...options,
+    signal: AbortSignal.timeout(30_000),
+    headers: {
+      Authorization: `Bearer ${required("VERCEL_TOKEN")}`,
+      ...(options.body && { "Content-Type": "application/json" }),
+    },
   });
   if (!response.ok) fail(`Vercel API ${response.status} for ${path}`);
-  return response.json();
+  const body = await response.text();
+  return body ? json(body, "Vercel API response") : undefined;
 }
 
-function projectArgs() {
-  return process.env.VERCEL_TEAM_SLUG
-    ? ["--scope", process.env.VERCEL_TEAM_SLUG]
-    : [];
+async function moveProduction(endpoint, expected, previous) {
+  let requestError;
+  try {
+    await vercel(endpoint, { method: "POST", body: "{}" });
+  } catch (error) {
+    requestError = error;
+  }
+  const deadline = Date.now() + 120_000;
+  do {
+    const actual = await currentAlias();
+    if (
+      actual.deploymentId === expected.deploymentId &&
+      actual.sha === expected.sha
+    )
+      return;
+    if (
+      actual.deploymentId !== previous.deploymentId ||
+      actual.sha !== previous.sha
+    )
+      fail("Production alias changed to an unexpected deployment or source");
+    if (requestError) throw requestError;
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  } while (Date.now() < deadline);
+  fail("Production transition not confirmed; stop for human recovery");
 }
 
 async function github(path) {
@@ -628,24 +654,31 @@ async function stage() {
     "Authorized release SHA does not contain the deployed production source",
   );
   const result = json(
-    await command("pnpm", [
-      "dlx",
-      "vercel@61.1.0",
-      "deploy",
-      "--prod",
-      "--skip-domain",
-      "--yes",
-      "--json",
-      "--token",
-      required("VERCEL_TOKEN"),
-      "--project",
-      required("VERCEL_PROJECT"),
-      ...projectArgs(),
-      "--meta",
-      `releaseSha=${sha}`,
-      "--meta",
-      `releaseBaseline=${baseline.deploymentId}`,
-    ]),
+    await command(
+      "pnpm",
+      [
+        "dlx",
+        "vercel@61.1.0",
+        "deploy",
+        "--prod",
+        "--skip-domain",
+        "--yes",
+        "--json",
+        "--token",
+        required("VERCEL_TOKEN"),
+        "--meta",
+        `releaseSha=${sha}`,
+        "--meta",
+        `releaseBaseline=${baseline.deploymentId}`,
+      ],
+      {
+        env: {
+          ...process.env,
+          VERCEL_PROJECT_ID: required("VERCEL_PROJECT_ID"),
+          VERCEL_ORG_ID: required("VERCEL_ORG_ID"),
+        },
+      },
+    ),
     "Vercel deploy output",
   );
   const candidateId = result.id || result.deployment?.id;
@@ -697,32 +730,11 @@ async function promote() {
   assertBaseline(await currentAlias(), state.baseline);
   const candidate = await deployment(state.candidateId);
   validateCandidate(candidate, state.candidateId, state.sha);
-  let promotionError;
-  try {
-    await command("pnpm", [
-      "dlx",
-      "vercel@61.1.0",
-      "promote",
-      state.candidateId,
-      "--yes",
-      "--token",
-      required("VERCEL_TOKEN"),
-      ...projectArgs(),
-    ]);
-  } catch (error) {
-    promotionError = error;
-  }
-  const aliasNow = await currentAlias();
-  if (
-    aliasNow.deploymentId !== state.candidateId ||
-    aliasNow.sha !== state.sha
-  ) {
-    fail(
-      promotionError
-        ? `Promotion failed and production alias is unchanged or unknown: ${promotionError.message}`
-        : "Promotion result is uncertain; production alias does not point to candidate",
-    );
-  }
+  await moveProduction(
+    `/v10/projects/${required("VERCEL_PROJECT_ID")}/promote/${state.candidateId}`,
+    { deploymentId: state.candidateId, sha: state.sha },
+    state.baseline,
+  );
 }
 
 async function rollbackIfCompatible() {
@@ -734,31 +746,11 @@ async function rollbackIfCompatible() {
   )
     fail("Production alias changed; refusing rollback");
   assertRollbackEvidence(state);
-  let rollbackError;
-  try {
-    await command("pnpm", [
-      "dlx",
-      "vercel@61.1.0",
-      "rollback",
-      state.baseline.deploymentId,
-      "--yes",
-      "--token",
-      required("VERCEL_TOKEN"),
-      ...projectArgs(),
-    ]);
-  } catch (error) {
-    rollbackError = error;
-  }
-  const restored = await currentAlias();
-  if (
-    restored.deploymentId !== state.baseline.deploymentId ||
-    restored.sha !== state.baseline.sha
-  )
-    fail(
-      rollbackError
-        ? `Rollback failed and production alias is unchanged or unknown: ${rollbackError.message}`
-        : "Rollback result is uncertain; production alias does not point to the recorded baseline",
-    );
+  await moveProduction(
+    `/v1/projects/${required("VERCEL_PROJECT_ID")}/rollback/${state.baseline.deploymentId}`,
+    state.baseline,
+    { deploymentId: state.candidateId, sha: state.sha },
+  );
   const response = await fetch(`https://${required("PRODUCTION_ALIAS")}/`, {
     signal: AbortSignal.timeout(15_000),
   });
