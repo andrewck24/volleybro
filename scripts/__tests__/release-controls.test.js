@@ -357,9 +357,11 @@ test("stage permits protected generated aliases but rejects production or unknow
   }
   await updateApi(f, { candidate, project: undefined, domains: undefined });
   assert.equal(run(f, "stage").status, 0);
+  const { accepted } = await prepareAcceptedRelease(f, { staged: true });
   await updateApi(f, { project: { id: "test", ssoProtection: null } });
-  const denied = run(f, "promote");
+  const denied = run(f, "promote", { RELEASE_STATE_FILE: accepted });
   assert.notEqual(denied.status, 0);
+  assert.match(denied.stderr, /Standard Protection/);
   const state = JSON.parse(await readFile(f.statePath, "utf8"));
   assert.equal(state.alias, "dpl_base");
 });

@@ -14,6 +14,10 @@ const releaseStateVersion = 2;
 const productionWorkflow = ".github/workflows/production-release.yml";
 const ciWorkflow = ".github/workflows/ci.yml";
 const reviewEnvironment = "production-release-review";
+const sourceQAScopes = [
+  ["unit", "Test", "Test source"],
+  ["integration", "Integration", "Integration source"],
+];
 
 function fail(message) {
   throw new Error(message);
@@ -1195,10 +1199,7 @@ async function reusableSourceQA(state) {
         workflowPath: ciWorkflow,
         workflowBlob: sourceBlob,
       };
-      for (const [scope, name] of [
-        ["unit", "Test"],
-        ["integration", "Integration"],
-      ]) {
+      for (const [scope, name] of sourceQAScopes) {
         if (scopes[scope]) continue;
         try {
           scopes[scope] = {
@@ -1476,10 +1477,7 @@ async function recordSourceQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
   const scopes = {};
-  for (const [scope, reusedName, fallbackName] of [
-    ["unit", "Test", "Test source"],
-    ["integration", "Integration", "Integration source"],
-  ]) {
+  for (const [scope, reusedName, fallbackName] of sourceQAScopes) {
     const reused = state.sourceQAPlan?.[scope];
     if (reused) {
       await verifyReusableSourceQA(state, reused, reusedName);
@@ -1748,10 +1746,7 @@ async function finalize() {
 
 async function verifySourceQANative(state) {
   assertSourceQAReceipt(state, state.releaseRunId);
-  for (const [scope, reusedName, fallbackName] of [
-    ["unit", "Test", "Test source"],
-    ["integration", "Integration", "Integration source"],
-  ]) {
+  for (const [scope, reusedName, fallbackName] of sourceQAScopes) {
     const evidence = state.sourceQA.scopes[scope];
     if (evidence.kind === "ci-reuse") {
       await verifyReusableSourceQA(state, evidence, reusedName);
