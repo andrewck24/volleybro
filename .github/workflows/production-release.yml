@@ -26,6 +26,7 @@ on:
         type: string
 
 permissions: {}
+cache-mode: read
 
 env:
   RELEASE_OWNER_LOGIN: ${{ vars.RELEASE_OWNER_LOGIN }}
@@ -159,10 +160,6 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.candidate.outputs.sha }}
-          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: trusted-release-controller
@@ -192,7 +189,10 @@ jobs:
   source-unit:
     name: Test source
     needs: [candidate, source-inspection]
-    if: needs.source-inspection.outputs.source_unit_needed == 'true'
+    if: >-
+      needs.source-inspection.outputs.source_unit_needed == 'true' &&
+      (github.event_name != 'workflow_dispatch' ||
+       (github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -212,7 +212,10 @@ jobs:
   source-integration:
     name: Integration source
     needs: [candidate, source-inspection]
-    if: needs.source-inspection.outputs.source_integration_needed == 'true'
+    if: >-
+      needs.source-inspection.outputs.source_integration_needed == 'true' &&
+      (github.event_name != 'workflow_dispatch' ||
+       (github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
