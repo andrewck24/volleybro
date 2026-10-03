@@ -1,5 +1,11 @@
 # VolleyBro CHANGELOG
 
+## [0.16.1](https://github.com/andrewck24/volleybro/compare/v0.15.0...v0.16.1) 2026-10-03
+
+### Fixed
+
+- Recognize successful Vercel checks when authorizing releases, hotfixes, and eligible dependency updates.
+
 ## [0.16.0](https://github.com/andrewck24/volleybro/compare/v0.15.0...v0.16.0) 2026-10-03
 
 ### Changed
