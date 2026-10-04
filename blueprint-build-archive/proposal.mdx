@@ -32,12 +32,14 @@ export const scenarios = [
 2. 重用現有 merge／trailer landing 辨識，支援一般 merge、squash 與 Sharded Change；全部宣告 shard 落地才 archived。Converted 頁面維持原歷史；未發布 draft 不被覆寫。Overlay 綁定 store 輸入版本，不讀失敗 build 遺留的 cache。
 3. Dev／build 在 store pull 後準備 overlay；依核對的 remote default 在獨立暫存 Git repository 抓取完整 integration history，固定單一 SHA、共用掃描。使用沒有 depth 限制的 fetch，確認 `git rev-parse --is-shallow-repository` 為 false，並對固定 SHA 執行 `git rev-list --parents --missing=error`，要求整個 reachable commit ancestry 可遍歷；缺 parent、shallow boundary 或無法證明完整性皆停止，不將缺資料當作未合併。Blob filtering 可節省傳輸，但不可省略 commit ancestry。不逐頁 fetch、不需要交付分支仍存在。公開 repo 只讀抓取，不新增 credential、GitHub API 或平台服務。
 4. 更新共用 facts reader，讓 header、index、sidebar、previous／next 使用一致 lifecycle；publish 與 gate-frozen 檢查不讀 overlay。更新 WORKFLOW、Blueprint adapter 與直接相關 Feature；保留 G1／G2 publish，只移除合併後補日期的 publish。
-5. 沿用真實 Git fixtures 與現有排序測試，依 test-audit 補未覆蓋的行為，不新增無意義測試。G2 必須有實際 Cloudflare branch build 與 rendered page 證據；本機 probe 不冒充 hosted 驗證。
+5. 沿用真實 Git fixtures 與現有排序測試，依 test-audit 補未覆蓋的行為，不新增無意義測試。G2 必須有實際 Cloudflare branch build 與 rendered page 證據；本機 probe 不冒充 hosted 驗證。另以受控 hosted 重疊事件驗證新鮮度：較舊輸入的 build 延後，較新 publication／integration revision 到達後，舊輸出被阻擋或依序部署後由新輸出取代，不得倒退覆蓋已部署的新版本；記錄輸入 revisions、build／deployment identities 及最終主站內容。純 app Change merge 必須有真實 trigger 證據，不只檢查 workflow 字串；若平台不能安全延遲舊 build，使用不影響主站的隔離驗證環境測試相同協調與部署路徑，再核對主站啟用設定。
 6. 以主網址作為一般 gate／PR 的審查入口；核對該 Change 的發布內容及渲染結果，不以相同 header 或成功 hook 代替驗證。當頁面依賴 main 尚無的元件、ADR 或 Feature，使用明確的 Preview 選項並核對分支 build。更新 gate 的輸出、重建選項與 WORKFLOW／adapter 的審查連結規則；不無條件重建分支。保留按需 Preview 的平台能力，並處理原生 branch push trigger，避免只移除 gate rebuild 卻仍自動建立同樣 Preview。
 7. 保留現有不同 slug 的 fast-forward publish／有限重試；主站每次建置讀取整份 store，不只讀觸發的那張頁面。同一 slug 由一個負責者發布，不新增多人文件編輯或自動內容合併。發布與合併共用可去重的主站重建協調，記錄所需 store／integration revisions；新事件到達時確保最終網站涵蓋它們，阻止過期部署覆蓋較新成果。不能只依賴 Deploy Hook 的 queued／initializing 去重。失敗保持可見，不宣稱審查內容已更新。
 8. 補足 main 現行只監看 `blueprint/*` 的 trigger 缺口：純 app Change 落地也必須更新 lifecycle。盤點 store hook、Git push、gate request 與 merge request，避免同一更新重複觸發；依覆蓋到的事件實測。部署重用 build command 的輸出，消除 Wrangler custom build 的第二次 Next build，保留輸出與必要檢查。本次不研究 Next compiler、cache 或頁面產生速度。
 
 不包含套件升級、app／release controller、Fast Path 擴張、store 全面遷移或他人 worktree 清理。ADR-0074／0078 僅設定 successor，不改寫原始採用理由。
+
+交付邊界維持同一 Change：取消第三次 publish 必須同時補齊 merge trigger；主站 gate 與按需 Preview 又共用發布新鮮度證據與 rebuild 協調。拆成先取消操作、再補可靠觸發的不同交付，會留下無法驗收的中間狀態；G1 後用 to-tickets 拆實作 slices，不拆開這個可用性契約。
 
 ## Flow
 
