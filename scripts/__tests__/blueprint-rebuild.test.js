@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import {
+  chmod,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import {
-  coordinateRebuild,
-  createNativeBuildCoordinator,
-} from "../blueprint-rebuild.js";
+import { coordinateRebuild } from "../blueprint-rebuild.js";
 
 test("drains a cancelled predecessor and deploys the newest publication arriving during a build", async () => {
   let sourceSha = "main-a";
@@ -75,242 +84,124 @@ test("a successful platform build without the requested receipt is not accepted"
   );
 });
 
-test("native rehearsal drains only its trigger and catches up to a store merge during a build", async () => {
-  const previewTrigger = "55a112d3-d521-4e36-a798-c3cdaae410ca";
-  const productionTrigger = "39f84250-5f4f-4a01-b70d-5b6277c23510";
-  const sourceRef = "refs/heads/test/blueprint-native-rehearsal";
+const nativeHarness = String.raw`
+import { writeFileSync } from "node:fs";
+
+const triggerId = process.env.CLOUDFLARE_BLUEPRINT_PRODUCTION_TRIGGER_ID;
+const hookId = process.env.CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK.split("/").at(-1);
+const sourceRef = "refs/heads/main";
+const storeRef = "refs/heads/blueprint-changes";
+const sourceA = "a".repeat(40);
+const sourceB = "b".repeat(40);
+const storeSha = "c".repeat(40);
+let requested = 0;
+let completed = 0;
+
+globalThis.fetch = async (input, options = {}) => {
+  const url = new URL(input);
+  const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
+  if (url.hostname === "api.cloudflare.com" && options.method !== "POST" && options.headers?.Authorization !== "Bearer read-token") throw new Error("Missing Cloudflare authorization");
+  if (url.pathname.endsWith("/blueprint-build.json")) {
+    if (!completed) return new Response(null, { status: 404 });
+    const sourceSha = completed === 1 ? sourceA : sourceB;
+    return json({ sourceSha, integrationSha: sourceSha, storeSha });
+  }
+  if (url.pathname.endsWith("/deploy_hooks/" + hookId) && options.method !== "POST") {
+    return json({ success: true, result: {
+      deploy_hook_uuid: hookId,
+      external_script_id: process.env.CLOUDFLARE_BLUEPRINT_WORKER_ID,
+      branch: process.env.COORDINATOR_HOOK_BRANCH ?? "main",
+    } });
+  }
+  if (url.pathname.endsWith("/deploy_hooks/" + hookId) && options.method === "POST") {
+    return json({ success: true, result: { build_uuid: "build-" + requested++ } });
+  }
+  if (url.pathname.endsWith("/builds")) {
+    const page = url.searchParams.get("page");
+    const result = page === "1"
+      ? [{ build_uuid: "production-build", status: "building", trigger: { trigger_uuid: "different-trigger" } }]
+      : [{ build_uuid: "previous-build", status: "building", trigger: { trigger_uuid: triggerId } }];
+    return json({ success: true, result, result_info: { total_pages: 2 } });
+  }
+  const build = decodeURIComponent(url.pathname.split("/").at(-1));
+  if (build === "previous-build") return json({ success: true, result: {
+    status: "stopped", build_outcome: "cancelled", trigger: { trigger_uuid: triggerId },
+  } });
+  if (build === "build-0") {
+    completed = 1;
+    writeFileSync(process.env.COORDINATOR_REFS_FILE, sourceB + "\t" + sourceRef + "\n" + storeSha + "\t" + storeRef + "\n");
+  } else if (build === "build-1") {
+    completed = 2;
+  } else {
+    throw new Error("Unexpected build " + build);
+  }
+  return json({ success: true, result: {
+    status: "stopped", build_outcome: "success", trigger: { trigger_uuid: triggerId },
+  } });
+};
+`;
+
+async function runNativeCli({ hookBranch = "main" } = {}) {
+  const directory = await mkdtemp(join(tmpdir(), "blueprint-rebuild-"));
+  const bin = join(directory, "bin");
+  const refsFile = join(directory, "refs");
+  const sourceRef = "refs/heads/main";
   const storeRef = "refs/heads/blueprint-changes";
-  const host =
-    "https://test-blueprint-native-rehearsal-volleybro-blueprint.andrewck24.workers.dev";
-  const inputA = "a".repeat(40);
-  const inputB = "b".repeat(40);
-  const storeA = "c".repeat(40);
-  const storeB = "d".repeat(40);
-  const hookId = "66666666-6666-4666-8666-666666666666";
-  let sourceSha = inputA;
-  let storeSha = storeA;
-  let pendingObserved = false;
-  const builds = new Map();
-  const requests = [];
-  const events = [];
-  let clock = 0;
+  const sourceSha = "a".repeat(40);
+  const storeSha = "c".repeat(40);
+  await mkdir(bin);
+  await writeFile(join(directory, "preload.mjs"), nativeHarness);
+  await writeFile(
+    join(bin, "git"),
+    '#!/bin/sh\ncat "$COORDINATOR_REFS_FILE"\n',
+  );
+  await chmod(join(bin, "git"), 0o755);
+  await writeFile(
+    refsFile,
+    `${sourceSha}\t${sourceRef}\n${storeSha}\t${storeRef}\n`,
+  );
+  const script = fileURLToPath(
+    new URL("../blueprint-rebuild.js", import.meta.url),
+  );
+  try {
+    return spawnSync(
+      process.execPath,
+      ["--import", join(directory, "preload.mjs"), script],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        timeout: 10_000,
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          CLOUDFLARE_ACCOUNT_ID: "account",
+          CLOUDFLARE_BLUEPRINT_BUILD_READ_TOKEN: "read-token",
+          CLOUDFLARE_BLUEPRINT_WORKER_ID: "blueprint-worker",
+          CLOUDFLARE_BLUEPRINT_PRODUCTION_TRIGGER_ID:
+            "55a112d3-d521-4e36-a798-c3cdaae410ca",
+          CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK:
+            "https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/66666666-6666-4666-8666-666666666666",
+          COORDINATOR_HOOK_BRANCH: hookBranch,
+          COORDINATOR_REFS_FILE: refsFile,
+        },
+      },
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
 
-  const coordinator = createNativeBuildCoordinator({
-    mode: "rehearsal",
-    triggerId: "55a112d3-d521-4e36-a798-c3cdaae410ca",
-    hook: `https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/${hookId}`,
-    account: "account",
-    token: "read-token",
-    worker: "blueprint-worker",
-    fetchImpl: async (url, options = {}) => {
-      const parsed = new URL(url);
-      requests.push({ url: parsed.href, options });
-      if (parsed.origin === host) {
-        if (builds.size === 0) return new Response(null, { status: 404 });
-        const build = [...builds.values()].at(-1);
-        return new Response(
-          JSON.stringify({
-            sourceSha: build.sourceSha,
-            integrationSha: build.sourceSha,
-            storeSha: build.storeSha,
-          }),
-          { status: 200 },
-        );
-      }
-      if (
-        parsed.pathname.endsWith(`/deploy_hooks/${hookId}`) &&
-        options.method !== "POST"
-      ) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            result: {
-              deploy_hook_uuid: hookId,
-              external_script_id: "blueprint-worker",
-              branch: "test/blueprint-native-rehearsal",
-            },
-          }),
-          { status: 200 },
-        );
-      }
-      if (options.method === "POST") {
-        assert.match(parsed.href, new RegExp(`deploy_hooks/${hookId}$`));
-        const uuid = `preview-${builds.size}`;
-        builds.set(uuid, { sourceSha, storeSha });
-        return new Response(
-          JSON.stringify({ success: true, result: { build_uuid: uuid } }),
-          { status: 200 },
-        );
-      }
-      if (parsed.pathname.endsWith("/workers/blueprint-worker/builds")) {
-        assert.equal(options.headers.Authorization, "Bearer read-token");
-        return new Response(
-          JSON.stringify({
-            success: true,
-            result: [
-              {
-                build_uuid: "production-build",
-                status: "building",
-                trigger: { trigger_uuid: productionTrigger },
-              },
-              {
-                build_uuid: "previous-preview",
-                status: "building",
-                trigger: { trigger_uuid: previewTrigger },
-              },
-            ],
-            result_info: { total_pages: 1 },
-          }),
-          { status: 200 },
-        );
-      }
-      const uuid = decodeURIComponent(parsed.pathname.split("/").at(-1));
-      if (uuid === "previous-preview") {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            result: {
-              status: "stopped",
-              build_outcome: "cancelled",
-              trigger: { trigger_uuid: previewTrigger },
-            },
-          }),
-          { status: 200 },
-        );
-      }
-      if (uuid === "preview-0" && !pendingObserved) {
-        pendingObserved = true;
-        sourceSha = inputB;
-        storeSha = storeB;
-        return new Response(
-          JSON.stringify({
-            success: true,
-            result: {
-              status: "building",
-              trigger: { trigger_uuid: previewTrigger },
-            },
-          }),
-          { status: 200 },
-        );
-      }
-      assert.match(uuid, /^preview-/);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          result: {
-            status: "stopped",
-            build_outcome: "success",
-            trigger: { trigger_uuid: previewTrigger },
-          },
-        }),
-        { status: 200 },
-      );
-    },
-    git: async () => ({
-      stdout: `${sourceSha}\t${sourceRef}\n${storeSha}\t${storeRef}\n`,
-    }),
-    wait: async (ms) => {
-      clock += ms;
-    },
-    now: () => clock,
-    pollIntervalMs: 10,
-    timeoutMs: 1_000,
-    onEvent: (event) => events.push(event),
-  });
-
-  const result = await coordinator.run();
-
-  assert.deepEqual(
-    [...builds.values()],
-    [
-      { sourceSha: inputA, storeSha: storeA },
-      { sourceSha: inputB, storeSha: storeB },
-    ],
-  );
-  assert.equal(result.sourceSha, inputB);
-  assert.equal(result.integrationSha, inputB);
-  assert.equal(result.storeSha, storeB);
-  assert.equal(
-    requests.filter((request) =>
-      request.url.startsWith(`${host}/blueprint-build.json?run=`),
-    ).length,
-    4,
-  );
-  assert.equal(
-    requests.some((request) => request.url.includes("production-build")),
-    false,
-  );
-  assert.deepEqual(
-    events
-      .filter((event) => event.type === "build-requested")
-      .map((event) => event.build),
-    ["preview-0", "preview-1"],
-  );
+test("CLI drains its paginated active build and catches up to inputs published during a build", async () => {
+  const result = await runNativeCli();
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Build previous-build: cancelled/);
+  assert.match(result.stdout, /Deployed source=b{40} store=c{40}/);
+  assert.equal((result.stdout.match(/Requested build/g) ?? []).length, 2);
 });
 
-test("native coordinator rejects targets outside the fixed production and rehearsal profiles", () => {
-  const required = {
-    mode: "rehearsal",
-    triggerId: "55a112d3-d521-4e36-a798-c3cdaae410ca",
-    hook: "https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/66666666-6666-4666-8666-666666666666",
-    account: "account",
-    token: "read-token",
-    worker: "blueprint-worker",
-  };
-  assert.throws(
-    () =>
-      createNativeBuildCoordinator({
-        ...required,
-        host: "https://unrelated.example",
-      }),
-    /Invalid rehearsal Blueprint coordinator target/,
-  );
-  assert.throws(
-    () =>
-      createNativeBuildCoordinator({
-        ...required,
-        hook: "https://unrelated.example/hook",
-      }),
-    /Invalid Cloudflare deploy hook URL/,
-  );
-  assert.throws(
-    () =>
-      createNativeBuildCoordinator({
-        ...required,
-        triggerId: "not-a-trigger-id",
-      }),
-    /Invalid Cloudflare build trigger ID/,
-  );
-});
-
-test("native rehearsal refuses to POST a deploy hook bound to another branch", async () => {
-  const calls = [];
-  const coordinator = createNativeBuildCoordinator({
-    mode: "rehearsal",
-    triggerId: "55a112d3-d521-4e36-a798-c3cdaae410ca",
-    hook: "https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/66666666-6666-4666-8666-666666666666",
-    account: "account",
-    token: "read-token",
-    worker: "blueprint-worker",
-    fetchImpl: async (_url, options = {}) => {
-      calls.push(options.method ?? "GET");
-      return new Response(
-        JSON.stringify({
-          success: true,
-          result: {
-            deploy_hook_uuid: "66666666-6666-4666-8666-666666666666",
-            external_script_id: "blueprint-worker",
-            branch: "main",
-          },
-        }),
-        { status: 200 },
-      );
-    },
-  });
-
-  await assert.rejects(
-    coordinator.run(),
-    /not bound to the configured source branch/,
-  );
-  assert.deepEqual(calls, ["GET"]);
+test("CLI refuses to trigger when the configured hook targets another branch", async () => {
+  const result = await runNativeCli({ hookBranch: "feature" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /not bound to the configured source branch/);
+  assert.doesNotMatch(result.stdout, /Requested build/);
 });
