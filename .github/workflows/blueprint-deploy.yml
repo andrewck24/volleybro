@@ -5,14 +5,42 @@ on:
   push:
     branches:
       - blueprint-changes
+      - main
+  workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
+
+concurrency:
+  group: blueprint-production
+  queue: max
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
+      - uses: actions/checkout@v4
+        if: vars.BLUEPRINT_REBUILD_COORDINATOR_ENABLED == 'true'
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        if: vars.BLUEPRINT_REBUILD_COORDINATOR_ENABLED == 'true'
+        with:
+          node-version: "24"
+      - name: Coordinate the Blueprint production build
+        if: vars.BLUEPRINT_REBUILD_COORDINATOR_ENABLED == 'true'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_BLUEPRINT_WORKER_ID: ${{ vars.CLOUDFLARE_BLUEPRINT_WORKER_ID }}
+          CLOUDFLARE_BLUEPRINT_PRODUCTION_TRIGGER_ID: ${{ vars.CLOUDFLARE_BLUEPRINT_PRODUCTION_TRIGGER_ID }}
+          CLOUDFLARE_BLUEPRINT_BUILD_READ_TOKEN: ${{ secrets.CLOUDFLARE_BLUEPRINT_BUILD_READ_TOKEN }}
+          CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK }}
+        run: node scripts/blueprint-rebuild.js
       - name: Trigger the Blueprint production build
+        if: vars.BLUEPRINT_REBUILD_COORDINATOR_ENABLED != 'true' && github.ref == 'refs/heads/blueprint-changes'
         env:
           DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK }}
         run: |
