@@ -32,7 +32,9 @@ async function optional(read) {
 
 export const changeInputHash = hashDir;
 
-async function snapshotIntegration(root, temporary) {
+async function snapshotIntegration(root, temporary, selectedSha) {
+  if (selectedSha && !/^[0-9a-f]{40}$/.test(selectedSha))
+    throw new Error("Blueprint integration snapshot must be a full commit SHA");
   const remote = await git(root, ["remote", "get-url", "origin"]);
   const remoteHead = await git(root, [
     "ls-remote",
@@ -51,7 +53,7 @@ async function snapshotIntegration(root, temporary) {
     "--no-tags",
     "--filter=blob:none",
     remote,
-    `+${ref}:refs/heads/integration`,
+    `+${selectedSha ?? ref}:refs/heads/integration`,
   ]);
   const integrationSha = await git(temporary, [
     "rev-parse",
@@ -71,7 +73,10 @@ async function snapshotIntegration(root, temporary) {
   return { integrationSha, branch };
 }
 
-export async function prepareLifecycle(root) {
+export async function prepareLifecycle(
+  root,
+  { integrationSha: selectedSha = process.env.BLUEPRINT_INTEGRATION_SHA } = {},
+) {
   const changesRoot = path.join(root, "blueprint", "content", "changes");
   const overlayPath = path.join(root, "blueprint", ".change-lifecycle.json");
   const temporaryPath = `${overlayPath}.${process.pid}.tmp`;
@@ -85,6 +90,7 @@ export async function prepareLifecycle(root) {
     const { integrationSha, branch } = await snapshotIntegration(
       root,
       temporary,
+      selectedSha,
     );
     const storeSha = await git(root, [
       "rev-parse",

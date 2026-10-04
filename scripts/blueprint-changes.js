@@ -109,8 +109,13 @@ function archiveExtract(ref, slug, repoRoot, destDir) {
 // it, which marks the whole repository shallow and can make a later push to a
 // host refuse the history. The store holds pages, not a large history, so a
 // single-branch fetch is cheap enough to take whole.
-export async function fetchChanges(remote, repoRoot) {
-  await runGit(["fetch", remote, FETCH_REFSPEC], { cwd: repoRoot });
+export async function fetchChanges(remote, repoRoot, storeSha) {
+  if (storeSha && !/^[0-9a-f]{40}$/.test(storeSha))
+    throw new Error("Blueprint store snapshot must be a full commit SHA");
+  await runGit(
+    ["fetch", remote, storeSha ? `+${storeSha}:${REMOTE_REF}` : FETCH_REFSPEC],
+    { cwd: repoRoot },
+  );
 }
 
 export async function readStore(changesDir) {
@@ -210,7 +215,11 @@ export async function isConverted(slugDir) {
 // `force` is true to overwrite every page, or the slugs to overwrite.
 export async function pull(
   cwd,
-  { force = false, historyWarnBytes = HISTORY_WARN_BYTES } = {},
+  {
+    force = false,
+    historyWarnBytes = HISTORY_WARN_BYTES,
+    storeSha = process.env.BLUEPRINT_CHANGES_STORE_SHA,
+  } = {},
 ) {
   const repoRoot = await getRepoRoot(cwd);
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
@@ -219,8 +228,10 @@ export async function pull(
   await mkdir(changesDir, { recursive: true });
 
   try {
-    await fetchChanges(remote, repoRoot);
+    await fetchChanges(remote, repoRoot, storeSha);
   } catch {
+    if (storeSha)
+      throw new Error("Could not fetch the selected Blueprint store snapshot");
     const message = `blueprint-changes pull: could not fetch ${BRANCH} from ${remote}`;
     if (isRequired()) {
       console.error(message);

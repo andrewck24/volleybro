@@ -159,6 +159,28 @@ test("pull adds missing slugs", async (t) => {
   );
 });
 
+test("a pinned build pulls the selected store even after another publication", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const selected = (
+    await git(bare)(["rev-parse", "blueprint-changes"])
+  ).stdout.trim();
+  await pushRemoteUpdate(t, bare, "alpha", "# newer publication\n");
+  await withRemote(bare, () => pull(work, { storeSha: selected }));
+  assert.equal(
+    await readFile(
+      path.join(work, "blueprint/content/changes/alpha/index.mdx"),
+      "utf8",
+    ),
+    "# alpha\n",
+  );
+  assert.equal(
+    (
+      await git(work)(["rev-parse", "refs/blueprint-changes/remote"])
+    ).stdout.trim(),
+    selected,
+  );
+});
+
 test("pull warns only when the store history passes the threshold", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const warnings = t.mock.method(console, "warn", () => {});

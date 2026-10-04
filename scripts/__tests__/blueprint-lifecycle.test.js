@@ -115,6 +115,20 @@ async function published(repo, slug, { shards, converted = false } = {}) {
   await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
 }
 
+test("a pinned preview retains the selected integration snapshot after main advances", async (t) => {
+  const { repo } = await fixture(t);
+  await published(repo, "alpha");
+  const selected = await git(repo, "rev-parse", "HEAD");
+  await commit(
+    repo,
+    { "src/new.ts": "export const newer = true;\n" },
+    "new integration",
+  );
+  await git(repo, "push", "--quiet", "origin", "main");
+  const lifecycle = await prepareLifecycle(repo, { integrationSha: selected });
+  assert.equal(lifecycle.integrationSha, selected);
+});
+
 test("derives landing lifecycle from a complete isolated integration snapshot", async (t) => {
   const { root, repo, remote } = await fixture(t);
   const topic = path.join(root, "topic");
