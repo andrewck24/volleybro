@@ -1,0 +1,78 @@
+export const scenarios = [
+  { id: "S1", given: "A published Change lands and its delivery branch is deleted", when: "Blueprint prepares complete integration history", then: "Its rendered archivedAt equals the landing commit date without another publish; accepted content and gate measurements remain unchanged" },
+  { id: "S2", given: "Only some declared shards have landed", when: "Build preparation derives lifecycle state", then: "Each proven shard has its landing date; the parent remains unarchived until all declared shards land, without changing published gate or measurement fields" },
+  { id: "S3", given: "The checkout is shallow or lacks integration history", when: "Preparation fetches the verified remote default into an isolated Git repository", then: "One complete integration SHA is pinned without modifying checkout refs or shallow state; failed fetch or incomplete history stops the hosted build" },
+  { id: "S4", given: "Converted pages, unpublished local drafts, unmerged Changes or stale derived output exist", when: "Preparation and page loading run", then: "Historical facts and draft files are preserved, no unmerged archive date is invented, and mismatched or stale derived output is not reused" },
+  { id: "S5", given: "The same store input and integration snapshot contain normal, squash and shard landings", when: "Development and production builds prepare their pages", then: "Both present identical lifecycle state; publish and gate checks still read original facts, and post-merge cleanup needs no third publish" },
+];
+
+<TLDR>
+
+目前合併 Change 後仍要補一次 publish，網站才會更新合併日期。本次保留 G1／G2 的原始內容與數字，建置時從完整 integration history 推導合併狀態。刪除交付分支不會刪除已合併歷史；不再依賴 Agent 記得補發布。這只改 Blueprint，不改 app release 或 Fast Path 規則。
+
+</TLDR>
+
+| 項目 | 目前 | 本次交付 |
+| --- | --- | --- |
+| 合併狀態 | Merge 後 publish 更新日期 | Build／dev preparation 固定 integration snapshot 後推導 |
+| Gate 證據 | Publish 寫入 facts | 保留原始 snapshot；網站讀取時套用 lifecycle overlay |
+| 缺少歷史 | 可能將找不到落點當作未合併 | 隔離取得完整 history；必要證據缺失停止 build |
+| 合併後清理 | 更新 checkout、清理、pull／publish | 更新 checkout、清理；既有 integration build 更新網站 |
+
+<DecisionCards ids={["0103"]} />
+
+## Scope
+
+1. 保留 `facts.json` 作為 gate snapshot。另產生 gitignored 的 lifecycle overlay，只更新網站呈現的 `archivedAt` 與 shard merge 狀態；不回寫 gate、`publishedAt`、`startedAt`、量測、Proposal／Review 或 store hash。數字繼續代表最後 gate 量測，不擴成所有統計重算。
+2. 重用現有 merge／trailer landing 辨識，支援一般 merge、squash 與 Sharded Change；全部宣告 shard 落地才 archived。Converted 頁面維持原歷史；未發布 draft 不被覆寫。Overlay 綁定 store 輸入版本，不讀失敗 build 遺留的 cache。
+3. Dev／build 在 store pull 後準備 overlay；依核對的 remote default 在獨立暫存 Git repository 抓取完整 integration history，固定單一 SHA、共用掃描。使用沒有 depth 限制的 fetch，確認 `git rev-parse --is-shallow-repository` 為 false，並對固定 SHA 執行 `git rev-list --parents --missing=error`，要求整個 reachable commit ancestry 可遍歷；缺 parent、shallow boundary 或無法證明完整性皆停止，不將缺資料當作未合併。Blob filtering 可節省傳輸，但不可省略 commit ancestry。不逐頁 fetch、不需要交付分支仍存在。公開 repo 只讀抓取，不新增 credential、GitHub API 或平台服務。
+4. 更新共用 facts reader，讓 header、index、sidebar、previous／next 使用一致 lifecycle；publish 與 gate-frozen 檢查不讀 overlay。更新 WORKFLOW、Blueprint adapter 與直接相關 Feature；保留 G1／G2 publish，只移除合併後補日期的 publish。
+5. 沿用真實 Git fixtures 與現有排序測試，依 test-audit 補未覆蓋的行為，不新增無意義測試。G2 必須有實際 Cloudflare branch build 與 rendered page 證據；本機 probe 不冒充 hosted 驗證。
+
+不包含套件升級、app／release controller、Fast Path 擴張、store 全面遷移或他人 worktree 清理。ADR-0074／0078 僅設定 successor，不改寫原始採用理由。
+
+## Flow
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "gate", label: "G1 / G2 publish", sublabel: "accepted snapshot", x: 105, y: 40, w: 176, h: 56 },
+    { id: "merge", label: "Merge integration", sublabel: "existing build trigger", x: 105, y: 140, w: 176, h: 56 },
+    { id: "prepare", label: "Pull + history", sublabel: "pin integration SHA", x: 105, y: 240, w: 176, h: 56 },
+    { id: "overlay", label: "Derive lifecycle", sublabel: "no store write", x: 105, y: 340, w: 176, h: 56 },
+    { id: "render", label: "Render Blueprint", sublabel: "snapshot + lifecycle", x: 105, y: 440, w: 176, h: 56 },
+  ]}
+  edges={[
+    { from: "gate", to: "merge" },
+    { from: "merge", to: "prepare" },
+    { from: "prepare", to: "overlay" },
+    { from: "overlay", to: "render" },
+  ]}
+  details={{
+    gate: { title: "保留驗收歷史", body: "已接受頁面與 gate 量測不因 build 被改寫。" },
+    merge: { title: "不需第三次發布", body: "Merge 後由既有 integration build 更新網站，不補寫 store。" },
+    prepare: { title: "不假設 checkout depth", body: "在隔離 Git repository 取得完整 history，固定 SHA；失敗停止 build。" },
+    overlay: { title: "可證明的落點", body: "重用 merge／trailer 辨識，不將 partial shard 當成 parent 完成，不 push。" },
+    render: { title: "一致資料入口", body: "Header、列表、sidebar 與前後頁使用相同 lifecycle，保留 draft 與 converted 保護。" },
+  }}
+/>
+
+<Scenarios items={scenarios} />
+
+## Risks
+
+<RiskTable risks={[
+  { name: "Hosted checkout 不保證完整 history", severity: "warning", mitigation: "使用隔離完整 fetch；G2 實測 hosted build，失敗停止，不沿用舊 overlay。" },
+  { name: "衍生資料污染 accepted page 或 draft", severity: "warning", mitigation: "Overlay 與 slug directory／store 分離、綁定輸入；publish 與 gate 不讀它。" },
+  { name: "重複掃描增加 build 成本", severity: "info", mitigation: "一次抓取、固定 SHA、共用掃描；量測 fetch／derive 成本。" },
+  { name: "失敗 build 留下舊網站", severity: "info", mitigation: "成功 build 才更新；failure 明確可見，不宣稱日期已更新。" },
+]} />
+
+## References
+
+| 來源 | 支持內容與證據強度 |
+| --- | --- |
+| [Cloudflare Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) | 官方：可設定 build command、提供 branch／commit 資訊；未保證 checkout depth。 |
+| [Cloudflare Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/) | 官方：image 提供 Git，不等於本 repo remote 抓取已在 hosted 驗證。 |
+| `scripts/change-page.js` 的 `landingOf` | 現行程式可從 integration history 找到 merge／trailer landing，不需交付分支。 |
+| 本機公開 remote probe | `git clone --bare --filter=blob:none --single-branch --branch main`、`git count-objects -vH`：非 shallow、pack 約 3.18 MiB；現有 landing 辨識找到已刪分支的 `release-qa-layers` 落點。僅本機證據。 |
+| ADR-0074／0078 | 最強反方：publish 保留 gate facts 與 merge 日期。本次保留 snapshot，僅取代 lifecycle 推導時機與第三次 publish。 |
