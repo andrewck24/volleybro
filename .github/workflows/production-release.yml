@@ -245,7 +245,7 @@ jobs:
     needs:
       [candidate, source-inspection, source-preview, source-preview-acceptance]
     if: >-
-      always() && needs.candidate.result == 'success' &&
+      always() && !cancelled() && needs.candidate.result == 'success' &&
       needs.source-inspection.result == 'success' &&
       ((needs.source-inspection.outputs.source_preview_needed == 'true' && needs.source-preview-acceptance.result == 'success') ||
        (needs.source-inspection.outputs.source_preview_needed == 'false' && needs.source-preview-acceptance.result == 'skipped'))
@@ -282,6 +282,10 @@ jobs:
 
   candidate-summary:
     needs: [candidate, source-inspection, source-receipt]
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.source-inspection.result == 'success' &&
+      needs.source-receipt.result == 'success'
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -317,6 +321,11 @@ jobs:
   candidate-acceptance:
     name: Accept candidate evidence
     needs: [candidate, candidate-summary, source-inspection, source-receipt]
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.candidate-summary.result == 'success' &&
+      needs.source-inspection.result == 'success' &&
+      needs.source-receipt.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -356,6 +365,9 @@ jobs:
       cancel-in-progress: false
       queue: max
     needs: [candidate, candidate-acceptance]
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.candidate-acceptance.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -411,6 +423,9 @@ jobs:
 
   postdeploy-summary:
     needs: [candidate, promote-and-smoke]
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.promote-and-smoke.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -434,6 +449,9 @@ jobs:
   production-acceptance:
     name: Accept production QA
     needs: [candidate, postdeploy-summary]
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.postdeploy-summary.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -473,7 +491,7 @@ jobs:
       cancel-in-progress: false
       queue: max
     needs: [candidate, production-acceptance]
-    if: always() && needs.candidate.result == 'success' && needs.production-acceptance.result == 'failure'
+    if: always() && !cancelled() && needs.candidate.result == 'success' && needs.production-acceptance.result == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -513,6 +531,9 @@ jobs:
       cancel-in-progress: false
       queue: max
     needs: [candidate, production-acceptance]
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.production-acceptance.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -578,7 +599,10 @@ jobs:
 
   merge-back:
     needs: [candidate, finalize-release]
-    if: needs.candidate.outputs.mode == 'hotfix'
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.finalize-release.result == 'success' &&
+      needs.candidate.outputs.mode == 'hotfix'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
