@@ -81,7 +81,7 @@ GitHub native environment approval 沒有可用的 `submitted_at`；receipt 改�
 
 ### 平台與工具限制
 
-GitHub 原生 `cache-mode: read` 以 scoped cache token 禁止 CI test jobs 寫入 cache，不只略過 cache action。CI source 補證据沒有 app secrets 或 protected deployment environment。參考 [GitHub workflow cache-mode](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#cache-mode)。本輪 CodeQL／獨立審查與最終 gate 尚在重驗；未通過前不宣稱 merge-ready、不 dismiss alert。
+GitHub 原生 `cache-mode: read` 以 scoped cache token 禁止 CI test jobs 寫入 cache，不只略過 cache action。CI source 補證據沒有 app secrets 或 protected deployment environment。參考 [GitHub workflow cache-mode](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#cache-mode)。本輪兩軸獨立審查與最終 gate 均通過，CodeQL actions／JavaScript 分析與 security aggregate 也通過，沒有 suppress／dismiss。GitHub 實際 PR CI 已產生成功的 producer／tested tree native steps，不以本機 mock 代替平台驗證。
 
 Workflow 使用 GitHub 原生 concurrency `queue: max` 保留排隊、不取消既有 production mutation。現有 actionlint 版本尚不認識此欄位，因此完整 actionlint 有該欄位診斷，不能稱為全綠；其他診斷未見。Repository executable checks 與兩軸審查已通過。參考 [GitHub concurrency 文件](https://docs.github.com/en/actions/using-jobs/using-concurrency)。
 
