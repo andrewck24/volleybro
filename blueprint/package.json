@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node ../scripts/blueprint-changes.js pull && next dev --webpack",
-    "build": "node ../scripts/blueprint-changes.js pull && next build --webpack",
+    "dev": "node ../scripts/blueprint-changes.js pull && node ../scripts/blueprint-prepare.js && next dev --webpack",
+    "build": "node ../scripts/blueprint-changes.js pull && node ../scripts/blueprint-prepare.js && next build --webpack",
     "postinstall": "next typegen",
     "start": "next start",
     "type-check": "tsc --noEmit",
