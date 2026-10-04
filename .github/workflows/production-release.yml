@@ -119,7 +119,7 @@ jobs:
         with:
           ref: ${{ steps.authorize.outputs.sha }}
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -213,7 +213,7 @@ jobs:
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -386,7 +386,7 @@ jobs:
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -510,7 +510,7 @@ jobs:
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
