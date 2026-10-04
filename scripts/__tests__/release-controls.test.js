@@ -161,8 +161,31 @@ async function fixture(t) {
         [head]: "a".repeat(40),
         [hotfix]: "a".repeat(40),
       },
-      ciRuns: [],
+      ciRuns: [
+        {
+          id: 77,
+          path: ".github/workflows/ci.yml@refs/heads/main",
+          workflow_id: 42,
+          event: "workflow_dispatch",
+          head_sha: merge,
+          run_attempt: 1,
+          status: "completed",
+          repository: { id: 101, full_name: "owner/repo" },
+          head_repository: { id: 101, full_name: "owner/repo" },
+        },
+      ],
       runs: {
+        77: {
+          id: 77,
+          path: ".github/workflows/ci.yml@refs/heads/main",
+          workflow_id: 42,
+          event: "workflow_dispatch",
+          head_sha: merge,
+          run_attempt: 1,
+          status: "completed",
+          repository: { id: 101, full_name: "owner/repo" },
+          head_repository: { id: 101, full_name: "owner/repo" },
+        },
         9: {
           id: 9,
           path: ".github/workflows/production-release.yml@refs/heads/main",
@@ -177,7 +200,12 @@ async function fixture(t) {
           triggering_actor: { login: "release-owner", id: 201 },
         },
       },
-      jobs: { 9: [] },
+      jobs: {
+        9: [],
+        77: ["Test", "Integration"].map((name, index) =>
+          ciScopeJob(git, 601 + index, name, merge),
+        ),
+      },
       approvals: { 9: [] },
       artifacts: { 9: [] },
     }),
@@ -205,6 +233,7 @@ if(a[0]==='api'){
   else if(route.includes('/actions/workflows/ci.yml/runs?'))result={total_count:s.ciRuns.length,workflow_runs:s.ciRuns};
   else if(route.endsWith('/actions/workflows/ci.yml'))result=s.workflow;
   else if(route.includes('/contents/.github/workflows/ci.yml')){const ref=new URL('https://example.test/?'+route.split('?')[1]).searchParams.get('ref');result={path:'.github/workflows/ci.yml',sha:s.workflowBlobs[ref]};}
+  else if(route.includes('/git/commits/')){const sha=route.split('/git/commits/')[1];result={sha,tree:{sha:cp.execFileSync('git',['rev-parse',sha+'^{tree}'],{encoding:'utf8'}).trim()}};}
   else {const match=route.match(/\/actions\/runs\/(\d+)(?:\/(jobs|approvals|artifacts))?/);if(!match)throw Error('Unexpected route '+route);const id=match[1],kind=match[2];if(kind==='jobs'){const jobs=s.jobs[id]||[];result={total_count:jobs.length,jobs};}else if(kind==='approvals')result=s.approvals[id]||[];else if(kind==='artifacts'){const artifacts=s.artifacts[id]||[];result={total_count:artifacts.length,artifacts};}else result=s.runs[id];}
 }else if(a[0]==='release'&&a[1]==='view'){if(!s.existingRelease)process.exit(1);result={tagName:'v1.0.1'};
 }else if(a[0]==='release'&&a[1]==='create'){s.calls.push(a);s.existingRelease=true;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));result={};
@@ -450,6 +479,16 @@ function workflowJob(id, name, status = "completed", conclusion = "success") {
   return { id, name, status, conclusion, run_attempt: 1 };
 }
 
+function ciScopeJob(git, id, name, source) {
+  return {
+    ...workflowJob(id, name),
+    steps: [
+      `Producer workflow ${source}`,
+      `Source tree ${git(["rev-parse", `${source}^{tree}`])} at ${source}`,
+    ].map((name) => ({ name, status: "completed", conclusion: "success" })),
+  };
+}
+
 function approval(login = "reviewer") {
   return {
     state: "approved",
@@ -478,6 +517,20 @@ async function prepareAcceptedRelease(
 ) {
   if (!staged) assert.equal(run(f, "stage", env).status, 0);
   const sourceSha = env.RELEASE_SHA || f.merge;
+  if (sourceSha !== f.merge) {
+    const api = JSON.parse(await readFile(f.statePath, "utf8"));
+    const ciRun = { ...api.runs[77], head_sha: sourceSha };
+    await updateApi(f, {
+      ciRuns: [ciRun],
+      runs: { ...api.runs, 77: ciRun },
+      jobs: {
+        ...api.jobs,
+        77: ["Test", "Integration"].map((name, index) =>
+          ciScopeJob(f.git, 601 + index, name, sourceSha),
+        ),
+      },
+    });
+  }
   const evidence = "https://github.com/owner/repo/blob/main/docs/recovery.md";
   let result = run(f, "inspect-source-qa", {
     ...env,
@@ -485,16 +538,6 @@ async function prepareAcceptedRelease(
     RELEASE_ROLLBACK_EVIDENCE: evidence,
   });
   assert.equal(result.status, 0, result.stderr);
-  const api = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    jobs: {
-      ...api.jobs,
-      9: [
-        workflowJob(501, "Test source"),
-        workflowJob(502, "Integration source"),
-      ],
-    },
-  });
   result = run(f, "record-source-qa", env);
   assert.equal(result.status, 0, result.stderr);
   const accepted = path.join(f.root, "accepted.json");
@@ -502,11 +545,7 @@ async function prepareAcceptedRelease(
   await updateApi(f, {
     jobs: {
       ...withSource.jobs,
-      9: [
-        workflowJob(501, "Test source"),
-        workflowJob(502, "Integration source"),
-        workflowJob(503, "Accept candidate evidence", "in_progress", null),
-      ],
+      9: [workflowJob(503, "Accept candidate evidence", "in_progress", null)],
     },
     approvals: { ...withSource.approvals, 9: [approval()] },
   });
@@ -797,7 +836,7 @@ test("hotfix state rejects partial reruns by another actor before any release wr
   assert.equal(promoted.status, 0, promoted.stderr);
 });
 
-test("source QA reuses only each successful exact-source trusted CI scope", async (t) => {
+test("source QA reuses successful PR CI on equal full trees, not equal commit SHAs", async (t) => {
   const f = await fixture(t);
   assert.equal(run(f, "stage").status, 0);
   await writeFile(f.env.GITHUB_OUTPUT, "");
@@ -806,8 +845,8 @@ test("source QA reuses only each successful exact-source trusted CI scope", asyn
     id: 77,
     path: ".github/workflows/ci.yml@refs/heads/main",
     workflow_id: 42,
-    event: "workflow_dispatch",
-    head_sha: f.merge,
+    event: "pull_request",
+    head_sha: f.head,
     run_attempt: 1,
     status: "completed",
     conclusion: "failure",
@@ -820,8 +859,8 @@ test("source QA reuses only each successful exact-source trusted CI scope", asyn
     jobs: {
       ...api.jobs,
       77: [
-        workflowJob(601, "Test"),
-        workflowJob(602, "Integration", "completed", "failure"),
+        ciScopeJob(f.git, 601, "Test", f.head),
+        ciScopeJob(f.git, 602, "Integration", f.head),
       ],
     },
   });
@@ -831,35 +870,102 @@ test("source QA reuses only each successful exact-source trusted CI scope", asyn
     RELEASE_ROLLBACK_EVIDENCE: evidence,
   });
   assert.equal(result.status, 0, result.stderr);
-  let outputs = await githubOutputs(f);
-  assert.equal(outputs.source_unit_needed, "false");
-  assert.equal(outputs.source_integration_needed, "true");
-  const inspected = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    jobs: {
-      ...inspected.jobs,
-      9: [workflowJob(603, "Integration source")],
-    },
-  });
   result = run(f, "record-source-qa");
   assert.equal(result.status, 0, result.stderr);
   const receipt = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
   assert.equal(receipt.sourceQA.scopes.unit.kind, "ci-reuse");
-  assert.equal(receipt.sourceQA.scopes.integration.kind, "release-run");
+  assert.equal(receipt.sourceQA.scopes.integration.kind, "ci-reuse");
+
+  for (const marker of [
+    `Source tree ${f.git(["rev-parse", `${f.deployed}^{tree}`])} at ${f.deployed}`,
+    `Source tree ${f.git(["rev-parse", `${f.merge}^{tree}`])} at ${f.deployed}`,
+  ]) {
+    const current = JSON.parse(await readFile(f.statePath, "utf8"));
+    await updateApi(f, {
+      jobs: {
+        ...current.jobs,
+        77: current.jobs[77].map((job) => ({
+          ...job,
+          steps: [
+            job.steps.find((step) =>
+              step.name.startsWith("Producer workflow "),
+            ),
+            { name: marker, status: "completed", conclusion: "success" },
+          ],
+        })),
+      },
+    });
+    const denied = run(f, "inspect-source-qa");
+    assert.notEqual(denied.status, 0);
+    assert.match(denied.stderr, /trusted CI evidence/);
+  }
+  const valid = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, {
+    jobs: {
+      ...valid.jobs,
+      77: ["Test", "Integration"].map((name, index) =>
+        ciScopeJob(f.git, 601 + index, name, f.head),
+      ),
+    },
+  });
 
   const untrusted = JSON.parse(await readFile(f.statePath, "utf8"));
   await updateApi(f, {
-    workflowBlobs: { ...untrusted.workflowBlobs, [f.merge]: "b".repeat(40) },
+    workflowBlobs: { ...untrusted.workflowBlobs, [f.head]: "b".repeat(40) },
   });
   await writeFile(f.env.GITHUB_OUTPUT, "");
   result = run(f, "inspect-source-qa", {
     RELEASE_ROLLBACK_COMPATIBILITY: `dpl_base:${f.head}`,
     RELEASE_ROLLBACK_EVIDENCE: evidence,
   });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /trusted CI evidence/);
+});
+
+test("owner CI correction proves an unchanged old application tree with the trusted new workflow", async (t) => {
+  const f = await fixture(t);
+  assert.equal(run(f, "stage").status, 0);
+  const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  const ciRun = {
+    ...api.runs[77],
+    head_sha: f.deployed,
+    head_branch: "main",
+    actor: { login: "release-owner" },
+    triggering_actor: { login: "release-owner" },
+  };
+  const jobs = api.jobs[77].map((job) => ({
+    ...job,
+    steps: job.steps.map((step) =>
+      step.name.startsWith("Producer workflow ")
+        ? { ...step, name: `Producer workflow ${f.deployed}` }
+        : step,
+    ),
+  }));
+  await updateApi(f, {
+    ciRuns: [ciRun],
+    runs: { ...api.runs, 77: ciRun },
+    jobs: { ...api.jobs, 77: jobs },
+    workflowBlobs: { ...api.workflowBlobs, [f.merge]: "b".repeat(40) },
+  });
+  let result = run(f, "inspect-source-qa");
   assert.equal(result.status, 0, result.stderr);
-  outputs = await githubOutputs(f);
-  assert.equal(outputs.source_unit_needed, "true");
-  assert.equal(outputs.source_integration_needed, "true");
+  const plan = await readFile(f.env.RELEASE_STATE_FILE, "utf8");
+  result = run(f, "record-source-qa");
+  assert.equal(result.status, 0, result.stderr);
+  const state = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
+  assert.equal(state.sha, f.merge);
+  assert.equal(state.sourceQA.scopes.unit.testedSha, f.merge);
+  assert.equal(state.sourceQA.scopes.unit.producerSha, f.deployed);
+  for (const invalid of [
+    { ...ciRun, head_branch: "foreign" },
+    { ...ciRun, triggering_actor: { login: "outsider" } },
+  ]) {
+    await updateApi(f, { runs: { ...api.runs, 77: invalid } });
+    await writeFile(f.env.RELEASE_STATE_FILE, plan);
+    result = run(f, "record-source-qa");
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /owner-dispatched/);
+  }
 });
 
 test("explicit source gap binds a fixed-alias Preview and native approval", async (t) => {
@@ -886,11 +992,7 @@ test("explicit source gap binds a fixed-alias Preview and native approval", asyn
     previewTarget: "production",
     jobs: {
       ...api.jobs,
-      9: [
-        workflowJob(611, "Test source"),
-        workflowJob(612, "Integration source"),
-        workflowJob(613, "Accept source Preview"),
-      ],
+      9: [workflowJob(613, "Accept source Preview")],
     },
     approvals: { ...api.approvals, 9: [approval()] },
   });

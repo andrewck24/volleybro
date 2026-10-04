@@ -151,8 +151,6 @@ jobs:
     needs: candidate
     runs-on: ubuntu-latest
     outputs:
-      source_unit_needed: ${{ steps.inspect.outputs.source_unit_needed }}
-      source_integration_needed: ${{ steps.inspect.outputs.source_integration_needed }}
       source_preview_needed: ${{ steps.inspect.outputs.source_preview_needed }}
       recovery_binding: ${{ steps.inspect.outputs.recovery_binding }}
       recovery_evidence: ${{ steps.inspect.outputs.recovery_evidence }}
@@ -185,52 +183,6 @@ jobs:
           path: ${{ runner.temp }}/release-state.json
           if-no-files-found: error
           retention-days: 1
-
-  source-unit:
-    name: Test source
-    needs: [candidate, source-inspection]
-    if: >-
-      needs.source-inspection.outputs.source_unit_needed == 'true' &&
-      (github.event_name != 'workflow_dispatch' ||
-       (github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN))
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.candidate.outputs.sha }}
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-
-  source-integration:
-    name: Integration source
-    needs: [candidate, source-inspection]
-    if: >-
-      needs.source-inspection.outputs.source_integration_needed == 'true' &&
-      (github.event_name != 'workflow_dispatch' ||
-       (github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN))
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.candidate.outputs.sha }}
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:integration
 
   source-preview:
     name: Prepare source Preview
@@ -291,21 +243,10 @@ jobs:
   source-receipt:
     name: Record source QA
     needs:
-      [
-        candidate,
-        source-inspection,
-        source-unit,
-        source-integration,
-        source-preview,
-        source-preview-acceptance,
-      ]
+      [candidate, source-inspection, source-preview, source-preview-acceptance]
     if: >-
       always() && needs.candidate.result == 'success' &&
       needs.source-inspection.result == 'success' &&
-      ((needs.source-inspection.outputs.source_unit_needed == 'true' && needs.source-unit.result == 'success') ||
-       (needs.source-inspection.outputs.source_unit_needed == 'false' && needs.source-unit.result == 'skipped')) &&
-      ((needs.source-inspection.outputs.source_integration_needed == 'true' && needs.source-integration.result == 'success') ||
-       (needs.source-inspection.outputs.source_integration_needed == 'false' && needs.source-integration.result == 'skipped')) &&
       ((needs.source-inspection.outputs.source_preview_needed == 'true' && needs.source-preview-acceptance.result == 'success') ||
        (needs.source-inspection.outputs.source_preview_needed == 'false' && needs.source-preview-acceptance.result == 'skipped'))
     runs-on: ubuntu-latest
@@ -679,8 +620,6 @@ jobs:
       - merge-back
       - recover
       - source-inspection
-      - source-unit
-      - source-integration
       - source-preview
       - source-preview-acceptance
       - source-receipt

@@ -15,8 +15,8 @@ const productionWorkflow = ".github/workflows/production-release.yml";
 const ciWorkflow = ".github/workflows/ci.yml";
 const reviewEnvironment = "production-release-review";
 const sourceQAScopes = [
-  ["unit", "Test", "Test source"],
-  ["integration", "Integration", "Integration source"],
+  ["unit", "Test"],
+  ["integration", "Integration"],
 ];
 
 function fail(message) {
@@ -170,16 +170,6 @@ function hostname(value, label) {
   )
     fail(`${label} must be a hostname`);
   return raw;
-}
-
-function stateReleaseRun(state) {
-  return {
-    runId: positiveInteger(state.releaseRunId, "Release state run ID"),
-    runAttempt: positiveInteger(
-      state.releaseRunAttempt,
-      "Release state run attempt",
-    ),
-  };
 }
 
 function validateStateSchema(state) {
@@ -1151,37 +1141,47 @@ async function workflowBlob(ref) {
 async function reusableSourceQA(state) {
   const scopes = { unit: null, integration: null };
   const repository = required("GITHUB_REPOSITORY");
-  let workflow, sourceBlob, controllerBlob, response;
+  let workflow, responses;
   try {
-    [workflow, sourceBlob, controllerBlob, response] = await Promise.all([
+    [workflow, ...responses] = await Promise.all([
       github("actions/workflows/ci.yml"),
-      workflowBlob(state.sha),
-      workflowBlob(state.controllerSha),
-      github(
-        `actions/workflows/ci.yml/runs?event=workflow_dispatch&head_sha=${state.sha}&per_page=100`,
+      ...[
+        ...new Set(
+          [
+            state.sha,
+            state.reviewedSource?.reviewedSha,
+            state.controllerSha,
+          ].filter(Boolean),
+        ),
+      ].map((sha) =>
+        github(`actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=100`),
       ),
     ]);
   } catch {
     return scopes;
   }
-  if (
-    workflow.path !== ciWorkflow ||
-    !Number.isInteger(workflow.id) ||
-    sourceBlob !== controllerBlob
-  )
+  if (workflow.path !== ciWorkflow || !Number.isInteger(workflow.id))
     return scopes;
   if (
-    !Array.isArray(response.workflow_runs) ||
-    response.total_count > response.workflow_runs.length
+    responses.some(
+      (response) =>
+        !Array.isArray(response.workflow_runs) ||
+        response.total_count > response.workflow_runs.length,
+    )
   )
     fail("CI workflow run inventory is incomplete");
-  for (const run of response.workflow_runs) {
+  const runs = [
+    ...new Map(
+      responses
+        .flatMap((response) => response.workflow_runs)
+        .map((run) => [run.id, run]),
+    ).values(),
+  ];
+  for (const run of runs) {
     try {
       validateWorkflowRun(run, {
         path: ciWorkflow,
         repository,
-        event: "workflow_dispatch",
-        sha: state.sha,
       });
       if (
         run.status !== "completed" ||
@@ -1190,23 +1190,17 @@ async function reusableSourceQA(state) {
       )
         continue;
       const jobs = await workflowJobs(run.id);
-      const shared = {
-        kind: "ci-reuse",
-        sourceSha: state.sha,
-        producerRunId: String(run.id),
-        producerRunAttempt: String(run.run_attempt),
-        workflowId: String(workflow.id),
-        workflowPath: ciWorkflow,
-        workflowBlob: sourceBlob,
-      };
       for (const [scope, name] of sourceQAScopes) {
         if (scopes[scope]) continue;
         try {
-          scopes[scope] = {
-            ...shared,
+          scopes[scope] = await sourceScopeEvidence(
+            state,
+            run,
+            jobs,
+            workflow,
             scope,
-            job: jobEvidence(successfulJob(jobs, name, run.run_attempt)),
-          };
+            name,
+          );
         } catch {
           continue;
         }
@@ -1219,36 +1213,119 @@ async function reusableSourceQA(state) {
   return scopes;
 }
 
+async function commitTree(sha) {
+  const commit = await github(`git/commits/${exactSha(sha, "Tested commit")}`);
+  if (commit.sha !== sha) fail("GitHub commit identity changed");
+  return exactSha(commit.tree?.sha, "Tested tree");
+}
+
+async function sourceScopeEvidence(state, run, jobs, workflow, scope, name) {
+  const correction =
+    run.event === "workflow_dispatch" && run.head_sha === state.controllerSha;
+  if (
+    !["pull_request", "workflow_dispatch"].includes(run.event) ||
+    (!correction &&
+      ![state.sha, state.reviewedSource?.reviewedSha].includes(run.head_sha))
+  )
+    fail("CI run is not associated with the authorized source");
+  if (
+    correction &&
+    (run.head_branch !== "main" ||
+      run.actor?.login !== required("RELEASE_OWNER_LOGIN") ||
+      run.triggering_actor?.login !== required("RELEASE_OWNER_LOGIN"))
+  )
+    fail("CI correction must be owner-dispatched from trusted main");
+  const job = successfulJob(jobs, name, run.run_attempt);
+  const markers = (job.steps || []).filter((step) =>
+    /^Source tree /.test(step.name),
+  );
+  const marker = markers[0];
+  const identity = marker?.name.match(
+    /^Source tree ([0-9a-f]{40}) at ([0-9a-f]{40})$/,
+  );
+  if (
+    markers.length !== 1 ||
+    !identity ||
+    marker.status !== "completed" ||
+    marker.conclusion !== "success"
+  )
+    fail("CI scope has no successful native tested-tree receipt");
+  const [, tree, testedSha] = identity;
+  const producers = (job.steps || []).filter((step) =>
+    /^Producer workflow /.test(step.name),
+  );
+  const producer = producers[0];
+  const producerSha = producer?.name.match(
+    /^Producer workflow ([0-9a-f]{40})$/,
+  )?.[1];
+  if (
+    producers.length !== 1 ||
+    !producerSha ||
+    producer.status !== "completed" ||
+    producer.conclusion !== "success" ||
+    (correction &&
+      (producerSha !== state.controllerSha || testedSha !== state.sha)) ||
+    (!correction && producerSha !== testedSha)
+  )
+    fail("CI scope has no trusted native producer identity");
+  const [testedTree, sourceTree, testedBlob, controllerBlob] =
+    await Promise.all([
+      commitTree(testedSha),
+      commitTree(state.sha),
+      workflowBlob(producerSha),
+      workflowBlob(state.controllerSha),
+    ]);
+  if (
+    tree !== testedTree ||
+    tree !== sourceTree ||
+    testedBlob !== controllerBlob
+  )
+    fail("CI scope content or producer workflow is not trusted");
+  return {
+    kind: "ci-reuse",
+    scope,
+    sourceSha: state.sha,
+    testedSha,
+    testedTree: tree,
+    producerSha,
+    producerRunId: String(run.id),
+    producerRunAttempt: String(run.run_attempt),
+    workflowId: String(workflow.id),
+    workflowPath: ciWorkflow,
+    workflowBlob: testedBlob,
+    job: jobEvidence(job),
+  };
+}
+
 async function verifyReusableSourceQA(state, receipt, expectedName) {
   const repository = required("GITHUB_REPOSITORY");
-  const [workflow, run, jobs, sourceBlob, controllerBlob] = await Promise.all([
+  const [workflow, run, jobs] = await Promise.all([
     github("actions/workflows/ci.yml"),
     workflowRun(receipt.producerRunId),
     workflowJobs(receipt.producerRunId),
-    workflowBlob(state.sha),
-    workflowBlob(state.controllerSha),
   ]);
   validateWorkflowRun(run, {
     id: receipt.producerRunId,
     path: ciWorkflow,
     repository,
-    event: "workflow_dispatch",
-    sha: state.sha,
     attempt: receipt.producerRunAttempt,
   });
   if (
     run.status !== "completed" ||
     String(run.workflow_id) !== receipt.workflowId ||
     workflow.path !== ciWorkflow ||
-    String(workflow.id) !== receipt.workflowId ||
-    sourceBlob !== controllerBlob ||
-    receipt.workflowBlob !== sourceBlob
+    String(workflow.id) !== receipt.workflowId
   )
     fail("Reusable source QA producer is no longer trusted");
-  const actual = jobEvidence(
-    successfulJob(jobs, expectedName, receipt.producerRunAttempt),
+  const actual = await sourceScopeEvidence(
+    state,
+    run,
+    jobs,
+    workflow,
+    receipt.scope,
+    expectedName,
   );
-  if (JSON.stringify(actual) !== JSON.stringify(receipt.job))
+  if (JSON.stringify(actual) !== JSON.stringify(receipt))
     fail("Reusable source QA native job receipt changed");
 }
 
@@ -1279,6 +1356,10 @@ async function inspectSourceQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
   const sourceQAPlan = await reusableSourceQA(state);
+  if (!sourceQAPlan.unit || !sourceQAPlan.integration)
+    fail(
+      "Missing trusted CI evidence for this source tree; complete CI before retrying release",
+    );
   const sourceQAGapInput = process.env.RELEASE_SOURCE_QA_GAP || "";
   if (
     sourceQAGapInput !== sourceQAGapInput.trim() ||
@@ -1292,10 +1373,6 @@ async function inspectSourceQA() {
   state.recoveryInput = normalizedRecoveryInput(state);
   await writeState(required("RELEASE_STATE_FILE"), state);
   await appendOutputs({
-    source_qa_needed:
-      sourceQAPlan.unit && sourceQAPlan.integration ? "false" : "true",
-    source_unit_needed: sourceQAPlan.unit ? "false" : "true",
-    source_integration_needed: sourceQAPlan.integration ? "false" : "true",
     source_preview_needed: sourceQAGap ? "true" : "false",
     recovery_binding: state.recoveryInput?.binding || "",
     recovery_evidence: state.recoveryInput?.evidence || "",
@@ -1389,8 +1466,6 @@ async function prepareSourcePreview() {
   validatePreview(await deployment(id), id, state);
   if ((await aliasDeployment(alias)) !== id)
     fail("Fixed integration alias does not point to the source Preview");
-  state.sourcePreview = { deploymentId: id, alias, gap: state.sourceQAGap };
-  await writeState(required("RELEASE_STATE_FILE"), state);
   await appendOutputs({ preview_id: id, preview_url: `https://${alias}` });
 }
 
@@ -1419,30 +1494,6 @@ async function completedProtectedJobReceipt(name, runId, runAttempt) {
   };
 }
 
-async function releaseSourceScope(state, scope, name) {
-  const { runId, runAttempt } = stateReleaseRun(state);
-  const repository = required("GITHUB_REPOSITORY");
-  const [run, jobs] = await Promise.all([
-    workflowRun(runId),
-    workflowJobs(runId),
-  ]);
-  validateWorkflowRun(run, {
-    id: runId,
-    path: productionWorkflow,
-    repository,
-    attempt: runAttempt,
-  });
-  return {
-    kind: "release-run",
-    scope,
-    sourceSha: state.sha,
-    producerRunId: runId,
-    producerRunAttempt: runAttempt,
-    workflowPath: productionWorkflow,
-    job: jobEvidence(successfulJob(jobs, name, runAttempt)),
-  };
-}
-
 function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
   const receipt = state.sourceQA;
   if (
@@ -1456,7 +1507,7 @@ function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
       return (
         evidence?.scope === scope &&
         evidence.sourceSha === state.sha &&
-        ["ci-reuse", "release-run"].includes(evidence.kind) &&
+        evidence.kind === "ci-reuse" &&
         evidence.job?.id &&
         evidence.job?.name &&
         evidence.job?.conclusion === "success"
@@ -1477,14 +1528,12 @@ async function recordSourceQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
   const scopes = {};
-  for (const [scope, reusedName, fallbackName] of sourceQAScopes) {
+  for (const [scope, reusedName] of sourceQAScopes) {
     const reused = state.sourceQAPlan?.[scope];
-    if (reused) {
-      await verifyReusableSourceQA(state, reused, reusedName);
-      scopes[scope] = reused;
-    } else {
-      scopes[scope] = await releaseSourceScope(state, scope, fallbackName);
-    }
+    if (!reused)
+      fail("Missing trusted CI evidence; release cannot run functional tests");
+    await verifyReusableSourceQA(state, reused, reusedName);
+    scopes[scope] = reused;
   }
   state.sourceQA = {
     sourceSha: state.sha,
@@ -1746,27 +1795,9 @@ async function finalize() {
 
 async function verifySourceQANative(state) {
   assertSourceQAReceipt(state, state.releaseRunId);
-  for (const [scope, reusedName, fallbackName] of sourceQAScopes) {
+  for (const [scope, reusedName] of sourceQAScopes) {
     const evidence = state.sourceQA.scopes[scope];
-    if (evidence.kind === "ci-reuse") {
-      await verifyReusableSourceQA(state, evidence, reusedName);
-      continue;
-    }
-    const [run, jobs] = await Promise.all([
-      workflowRun(evidence.producerRunId),
-      workflowJobs(evidence.producerRunId),
-    ]);
-    validateWorkflowRun(run, {
-      id: state.releaseRunId,
-      path: productionWorkflow,
-      repository: required("GITHUB_REPOSITORY"),
-      attempt: state.releaseRunAttempt,
-    });
-    const actual = jobEvidence(
-      successfulJob(jobs, fallbackName, state.releaseRunAttempt),
-    );
-    if (JSON.stringify(actual) !== JSON.stringify(evidence.job))
-      fail(`${scope} source QA native job receipt changed`);
+    await verifyReusableSourceQA(state, evidence, reusedName);
   }
   if (state.sourceQA.preview) {
     const preview = state.sourceQA.preview;
