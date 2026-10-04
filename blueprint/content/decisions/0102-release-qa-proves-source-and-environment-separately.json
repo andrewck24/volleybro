@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "0102",
+  "title": "Release QA proves source and environment separately",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "An immutable production candidate has a generated hostname which is not a registered Google OAuth callback. Preview and production can share source code but not configuration or deployment identity. Requiring real Google login on every generated candidate hostname makes the existing gate impractical without a separate routing or OAuth mechanism.",
+  "decision": "Separate exact-source integration functional QA, production-config candidate verification and live production OAuth smoke. Preview results prove application behavior only when bound to the release source; they never certify production OAuth. Before promotion, require accepted recovery evidence bound to the baseline, candidate and release source. Publish a successful tag or Release only after live production authenticated QA passes. WORKFLOW.md owns the executable policy and current gate details.",
+  "alternatives": [
+    {
+      "option": "Register every generated candidate callback",
+      "reason": "Preserves pre-promotion Google login but adds per-deployment OAuth configuration and manual upkeep."
+    },
+    {
+      "option": "Introduce a stable candidate routing or OAuth proxy",
+      "reason": "Requires additional auth configuration, routing and security review beyond a controller-only correction."
+    }
+  ],
+  "consequences": [
+    "Production OAuth failures may first become observable after promotion; source QA does not remove this exposure window.",
+    "Missing recovery evidence blocks promotion rather than silently accepting an unspecified manual recovery.",
+    "Previously accepted gate results and running workflow artifacts retain their original meaning."
+  ],
+  "revisitTriggers": [
+    "A reviewed candidate routing or secure session strategy can prove more before promotion."
+  ],
+  "originChange": "release-qa-layers"
+}

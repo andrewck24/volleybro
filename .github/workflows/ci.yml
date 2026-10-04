@@ -4,24 +4,73 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
+    inputs:
+      source:
+        description: Optional exact application SHA for owner-dispatched CI evidence
+        type: string
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ inputs.source || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   HUSKY: 0
 
 jobs:
+  source-identity:
+    name: Source identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      inputs.source == '' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+       github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN)
+    cache-mode: none
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      tree: ${{ steps.source.outputs.tree }}
+    steps:
+      - name: Validate requested source
+        env:
+          SOURCE: ${{ inputs.source }}
+        run: |
+          if [ -n "$SOURCE" ] && ! [[ "$SOURCE" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Source must be an exact commit SHA" >&2
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source || github.sha }}
+          persist-credentials: false
+      - id: source
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+
   test:
     name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: source-identity
+    cache-mode: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source || github.sha }}
+          persist-credentials: false
+      - name: Producer workflow ${{ github.workflow_sha }}
+        run: ":"
+      - name: Source tree ${{ needs.source-identity.outputs.tree }} at ${{ needs.source-identity.outputs.sha }}
+        env:
+          TESTED_SHA: ${{ needs.source-identity.outputs.sha }}
+          TESTED_TREE: ${{ needs.source-identity.outputs.tree }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$TESTED_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$TESTED_TREE"
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -35,6 +84,7 @@ jobs:
     name: Static checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    if: inputs.source == ''
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -54,8 +104,22 @@ jobs:
     name: Integration
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: source-identity
+    cache-mode: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source || github.sha }}
+          persist-credentials: false
+      - name: Producer workflow ${{ github.workflow_sha }}
+        run: ":"
+      - name: Source tree ${{ needs.source-identity.outputs.tree }} at ${{ needs.source-identity.outputs.sha }}
+        env:
+          TESTED_SHA: ${{ needs.source-identity.outputs.sha }}
+          TESTED_TREE: ${{ needs.source-identity.outputs.tree }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$TESTED_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$TESTED_TREE"
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -77,6 +141,7 @@ jobs:
     name: Blueprint
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    if: inputs.source == ''
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -133,7 +198,7 @@ jobs:
   # parallel jobs report through.
   verify:
     name: Verify
-    needs: [test, static, integration, blueprint, commitlint]
+    needs: [source-identity, test, static, integration, blueprint, commitlint]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -145,6 +210,6 @@ jobs:
           echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           echo "commitlint=${{ needs.commitlint.result }}"
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || (github.event_name == 'pull_request' && needs.commitlint.result != 'success') }}" = "true" ]; then
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.test.result != 'success' || needs.integration.result != 'success' || (github.event_name == 'pull_request' && needs.commitlint.result != 'success') }}" = "true" ]; then
             exit 1
           fi

@@ -8,16 +8,16 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: integration-preview
-  cancel-in-progress: false
-
 jobs:
   deploy:
     if: vars.RELEASE_AUTOMATION_ENABLED == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: integration
+    concurrency:
+      group: integration-preview
+      cancel-in-progress: false
+      queue: max
     env:
       HUSKY: 0
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
