@@ -18,9 +18,15 @@ export async function prepareBlueprint(root) {
       cwd: root,
     },
   );
+  const { stdout: sourceChanges } = await execFileAsync(
+    "git",
+    ["status", "--porcelain", "--untracked-files=all"],
+    { cwd: root },
+  );
   const receipt = {
     schemaVersion: 1,
     sourceSha: stdout.trim(),
+    sourceDirty: sourceChanges.trim().length > 0,
     integrationSha: lifecycle.integrationSha,
     storeSha: lifecycle.storeSha,
     changeInputHashes: lifecycle.changeInputHashes,

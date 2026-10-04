@@ -16,7 +16,8 @@ export async function coordinateRebuild({
   wait,
   trigger,
 }) {
-  for (const build of await active()) await wait(build);
+  for (const build of await active())
+    await wait(build, { requireSuccess: false });
   for (;;) {
     const wanted = await latest();
     const deployed = await receipt();
@@ -82,15 +83,15 @@ async function run() {
       `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(account)}/builds/${suffix}`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
-  const wait = async (uuid) => {
+  const wait = async (uuid, { requireSuccess = true } = {}) => {
     for (;;) {
       if (Date.now() >= deadline)
         throw new Error(`Timed out waiting for build ${uuid}`);
       const { result } = await api(`builds/${encodeURIComponent(uuid)}`);
       if (result.status === "stopped") {
-        if (result.build_outcome !== "success")
+        if (requireSuccess && result.build_outcome !== "success")
           throw new Error(`Build ${uuid}: ${result.build_outcome}`);
-        console.log(`Build ${uuid}: success`);
+        console.log(`Build ${uuid}: ${result.build_outcome}`);
         return;
       }
       await sleep(10_000);

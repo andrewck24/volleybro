@@ -153,8 +153,14 @@ export async function waitForHostedProof({
             `${pageUrl}?run=${encodeURIComponent(String(now()))}`,
             requestOptions(),
           );
-          if (pageResponse.ok) return { pageUrl, receipt };
-          lastObservation = `Change page ${responseSummary(pageResponse)}`;
+          if (pageResponse.ok) {
+            const html = await pageResponse.text();
+            if (!html.includes('data-blueprint-render-error="true"'))
+              return { pageUrl, receipt };
+            lastObservation = "Change page contains a tab render failure";
+          } else {
+            lastObservation = `Change page ${responseSummary(pageResponse)}`;
+          }
         }
       }
     } catch (error) {

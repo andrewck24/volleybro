@@ -8,6 +8,8 @@ Every Change is one page with a Proposal tab and, from G2, a Review tab; a Shard
 
 Because those pages come from the store branch, any one of them can reference something this checkout lacks, and a Change page that cannot render must not take the build with it. The Change route calls a page body as a function and renders the thrown message in its place. A design mockup holds hooks, so it cannot be called that way; it renders in the browser behind an error boundary instead. Neither a boundary nor `error.tsx` helps during prerender — under `output: "export"` a throw there ends the build before React can catch it.
 
+Gate links default to the main Blueprint URL; use `pnpm blueprint:gate <slug> --preview` for unmerged components, decisions or Features. The gate verifies the hosted page and its complete content hash in `/blueprint-build.json`, not just the header or hook response. A failed or pending hosted check is not a completed publication handoff. `WORKFLOW.md` owns deployment coordination, cutover and lifecycle derivation; the gate does not update accepted snapshots after merge.
+
 The dependency also runs the other way: published pages use `blueprint/src` — components, and types such as `DecisionRecord` — so its exports are an API to every published page, whatever this branch's own pages use. Before changing one, run `pnpm blueprint:changes:pull`, search `blueprint/content/changes/` for it, and prove the change with `pnpm --filter blueprint build`: it type-checks each `design.tsx`, while a mismatch in props an `index.mdx` passes surfaces only when that page renders, so open the pages that use it.
 
 ## Canonical current knowledge

@@ -47,7 +47,15 @@ async function fixture(t) {
   await git(repo, "remote", "add", "origin", remote);
   await git(repo, "config", "user.name", "Fixture");
   await git(repo, "config", "user.email", "fixture@example.test");
-  await commit(repo, { "README.md": "base\n" }, "base");
+  await commit(
+    repo,
+    {
+      "README.md": "base\n",
+      ".gitignore":
+        "blueprint/content/changes/\nblueprint/out/\nblueprint/public/blueprint-build.json\nblueprint/.change-lifecycle*\n",
+    },
+    "base",
+  );
   await git(repo, "push", "--quiet", "-u", "origin", "main");
   await git(repo, "push", "--quiet", "origin", "main:blueprint-changes");
   await git(repo, "remote", "set-head", "origin", "main");
@@ -197,6 +205,15 @@ test("derives landing lifecycle from a complete isolated integration snapshot", 
   await mkdir(path.dirname(outputReceipt), { recursive: true });
   await copyFile(publicReceipt, outputReceipt);
   await checkBlueprintOutput(repo);
+  await writeFile(path.join(repo, "README.md"), "changed after export\n");
+  await assert.rejects(checkBlueprintOutput(repo), /Blueprint output is stale/);
+  await writeFile(path.join(repo, "README.md"), "base\n");
+  await writeFile(
+    path.join(repo, "blueprint/content/changes/alpha/proposal.mdx"),
+    "new page inputs\n",
+  );
+  await assert.rejects(checkBlueprintOutput(repo), /Blueprint output is stale/);
+  await rm(path.join(repo, "blueprint/content/changes/alpha/proposal.mdx"));
   await writeFile(outputReceipt, `${await readFile(outputReceipt, "utf8")}\n`);
   await assert.rejects(checkBlueprintOutput(repo), /Blueprint output is stale/);
 
@@ -208,7 +225,7 @@ test("derives landing lifecycle from a complete isolated integration snapshot", 
 });
 
 test("keeps a sharded parent open until every declared shard lands", async (t) => {
-  const { root, repo } = await fixture(t);
+  const { repo } = await fixture(t);
   await git(repo, "config", "user.name", "Fixture");
   await git(repo, "config", "user.email", "fixture@example.test");
   await git(repo, "checkout", "-b", "feat/alpha-s1");

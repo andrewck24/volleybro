@@ -30,6 +30,9 @@ function response(status, body) {
       if (body instanceof Error) throw body;
       return body;
     },
+    async text() {
+      return String(body);
+    },
   };
 }
 
@@ -185,6 +188,34 @@ test("the default gate waits for the production receipt and successfully GETs th
   assert.match(
     console.log.mock.calls.at(-1).arguments[0],
     /Production hosted proof verified: https:\/\/volleybro-blueprint\.andrewck24\.workers\.dev\/changes\/gamma/,
+  );
+});
+
+test("a render failure with matching inputs is not ready for acceptance", async (t) => {
+  const { work } = await makeGateRepository(t);
+  let clock = 0;
+  quiet(t);
+  await assert.rejects(
+    runGate(work, "gamma", {
+      runCheck: async () => true,
+      now: () => clock,
+      wait: async (ms) => {
+        clock += ms;
+      },
+      timeoutMs: 15_000,
+      fetchHosted: async (url) =>
+        url.includes("blueprint-build.json")
+          ? response(
+              200,
+              receipt(
+                await changeInputHash(
+                  path.join(work, "blueprint/content/changes/gamma"),
+                ),
+              ),
+            )
+          : response(200, '<p data-blueprint-render-error="true">無法顯示</p>'),
+    }),
+    /contains a tab render failure/,
   );
 });
 
@@ -473,7 +504,7 @@ else console.log(JSON.stringify({status:"stopped",build_outcome:"success"}));`;
         "-e",
         `
         import { rebuildPreview } from ${JSON.stringify(moduleUrl)};
-        const fetchHosted = async (url) => ({ ok: true, status: 200, json: async () => (${JSON.stringify(receipt(SHA))}) });
+        const fetchHosted = async (url) => ({ ok: true, status: 200, json: async () => (${JSON.stringify(receipt(SHA))}), text: async () => 'rendered page' });
         const proof = await rebuildPreview(${JSON.stringify(root)}, "feat/example", "gamma", ${JSON.stringify(SHA)}, { fetchHosted });
         console.log(proof.build);
       `,

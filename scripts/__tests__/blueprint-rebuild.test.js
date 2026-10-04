@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { coordinateRebuild } from "../blueprint-rebuild.js";
 
-test("drains a predecessor and deploys the newest publication arriving during a build", async () => {
+test("drains a cancelled predecessor and deploys the newest publication arriving during a build", async () => {
   let sourceSha = "main-a";
   let storeSha = "store-a";
   let deployed = null;
@@ -19,9 +19,12 @@ test("drains a predecessor and deploys the newest publication arriving during a 
       events.push(`start:${id}`);
       return id;
     },
-    wait: async (id) => {
+    wait: async (id, { requireSuccess = true } = {}) => {
       events.push(`finish:${id}`);
-      if (id === "predecessor") return;
+      if (id === "predecessor") {
+        if (requireSuccess) throw new Error("Predecessor was cancelled");
+        return;
+      }
       deployed = inputs.get(id);
       if (id === "build-0") {
         sourceSha = "main-b";
