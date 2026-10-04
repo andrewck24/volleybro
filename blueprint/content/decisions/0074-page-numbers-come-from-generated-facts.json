@@ -20,5 +20,6 @@
     "Every published version of facts.json stays in the store branch's history, so gate-by-gate figures are available for evaluation without another store.",
     "At G1 most figures are empty, and the page header shows only the figures that are present."
   ],
-  "originChange": "single-page-change"
+  "originChange": "single-page-change",
+  "supersededBy": "0103"
 }

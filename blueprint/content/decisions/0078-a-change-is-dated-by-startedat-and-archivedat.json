@@ -20,5 +20,6 @@
     "facts.json is last written at G2, before the merge, so the post-merge cleanup republishes the page to record archivedAt.",
     "A squash-merged Change keeps only its squash commit, so it starts when it landed, for the same reason its commit count is unknown."
   ],
-  "originChange": "changes-index-cards"
+  "originChange": "changes-index-cards",
+  "supersededBy": "0103"
 }
