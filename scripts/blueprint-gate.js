@@ -76,36 +76,35 @@ function responseSummary(response) {
   return `HTTP ${response.status}`;
 }
 
-export async function waitForHostedProof({
+async function waitForHostedProof({
   host,
   slug,
   inputHash,
   expectedSourceSha,
   expectedStoreSha,
   expectedIntegrationSha,
-  fetchHosted = fetch,
-  wait = sleep,
-  now = Date.now,
-  timeoutMs = PROOF_TIMEOUT_MS,
 }) {
   const pageUrl = `${host}/changes/${encodeURIComponent(slug)}`;
   const receiptUrl = `${host}/blueprint-build.json`;
-  const startedAt = now();
+  const startedAt = Date.now();
   let lastObservation = "no hosted response";
   let attempts = 0;
 
   for (;;) {
-    if (attempts > 0 && now() - startedAt >= timeoutMs) break;
+    if (attempts > 0 && Date.now() - startedAt >= PROOF_TIMEOUT_MS) break;
     attempts += 1;
     const requestOptions = () => ({
       cache: "no-store",
       signal: AbortSignal.timeout(
-        Math.max(1, Math.min(30_000, timeoutMs - (now() - startedAt))),
+        Math.max(
+          1,
+          Math.min(30_000, PROOF_TIMEOUT_MS - (Date.now() - startedAt)),
+        ),
       ),
     });
     try {
-      const receiptResponse = await fetchHosted(
-        `${receiptUrl}?run=${encodeURIComponent(String(now()))}`,
+      const receiptResponse = await fetch(
+        `${receiptUrl}?run=${encodeURIComponent(String(Date.now()))}`,
         requestOptions(),
       );
       if (!receiptResponse.ok) {
@@ -121,15 +120,28 @@ export async function waitForHostedProof({
           lastObservation =
             "build receipt does not match the published page inputs";
         } else {
-          const pageResponse = await fetchHosted(
-            `${pageUrl}?run=${encodeURIComponent(String(now()))}`,
+          const pageResponse = await fetch(
+            `${pageUrl}?run=${encodeURIComponent(String(Date.now()))}`,
             requestOptions(),
           );
           if (pageResponse.ok) {
             const html = await pageResponse.text();
-            if (!html.includes('data-blueprint-render-error="true"'))
+            const identity = [
+              receipt.sourceSha,
+              receipt.integrationSha,
+              receipt.storeSha,
+              receipt.changeInputHashes[slug],
+            ].join(":");
+            if (
+              !html.includes('data-blueprint-render-error="true"') &&
+              html.includes(`data-blueprint-build-identity="${identity}"`)
+            )
               return { pageUrl, receipt };
-            lastObservation = "Change page contains a tab render failure";
+            lastObservation = html.includes(
+              'data-blueprint-render-error="true"',
+            )
+              ? "Change page contains a tab render failure"
+              : "Change page snapshot identity does not match the build receipt";
           } else {
             lastObservation = `Change page ${responseSummary(pageResponse)}`;
           }
@@ -139,31 +151,19 @@ export async function waitForHostedProof({
       lastObservation = `hosted request failed: ${error.message}`;
     }
 
-    if (now() - startedAt >= timeoutMs) break;
-    await wait(Math.min(POLL_INTERVAL_MS, timeoutMs - (now() - startedAt)));
+    if (Date.now() - startedAt >= PROOF_TIMEOUT_MS) break;
+    await sleep(
+      Math.min(POLL_INTERVAL_MS, PROOF_TIMEOUT_MS - (Date.now() - startedAt)),
+    );
   }
 
   throw new Error(
-    `Timed out after ${timeoutMs}ms waiting for hosted Blueprint proof for ${pageUrl}: ${lastObservation}. The page is not ready for human acceptance.`,
+    `Timed out after ${PROOF_TIMEOUT_MS}ms waiting for hosted Blueprint proof for ${pageUrl}: ${lastObservation}. The page is not ready for human acceptance.`,
   );
 }
 
-export async function rebuildPreview(
-  root,
-  branch,
-  slug,
-  inputHash,
-  {
-    gh = runGh,
-    fetchHosted = fetch,
-    wait = sleep,
-    now = Date.now,
-    timeoutMs = PROOF_TIMEOUT_MS,
-    expectedSourceSha,
-  } = {},
-) {
-  const sourceSha =
-    expectedSourceSha ?? (await git(root, ["rev-parse", "HEAD^{commit}"]));
+async function rebuildPreview(root, branch, slug, inputHash) {
+  const sourceSha = await git(root, ["rev-parse", "HEAD^{commit}"]);
   const refs = await git(root, [
     "ls-remote",
     "origin",
@@ -188,7 +188,7 @@ export async function rebuildPreview(
   const requestId = randomUUID();
   const title = "Blueprint Preview " + requestId;
   try {
-    await gh(root, [
+    await runGh(root, [
       "workflow",
       "run",
       "blueprint-preview.yml",
@@ -215,10 +215,10 @@ export async function rebuildPreview(
         error.message.split("\n")[0],
     );
   }
-  const startedAt = now();
+  const startedAt = Date.now();
   let run;
-  while (now() - startedAt < timeoutMs) {
-    const runs = await gh(root, [
+  while (Date.now() - startedAt < PROOF_TIMEOUT_MS) {
+    const runs = await runGh(root, [
       "run",
       "list",
       "--workflow",
@@ -245,7 +245,9 @@ export async function rebuildPreview(
         );
       break;
     }
-    await wait(Math.min(POLL_INTERVAL_MS, timeoutMs - (now() - startedAt)));
+    await sleep(
+      Math.min(POLL_INTERVAL_MS, PROOF_TIMEOUT_MS - (Date.now() - startedAt)),
+    );
   }
   if (run?.status !== "completed")
     throw new Error("Timed out waiting for Blueprint Preview run " + requestId);
@@ -256,10 +258,6 @@ export async function rebuildPreview(
     expectedSourceSha: sourceSha,
     expectedStoreSha: storeSha,
     expectedIntegrationSha: integrationSha,
-    fetchHosted,
-    wait,
-    now,
-    timeoutMs: Math.max(1, timeoutMs - (now() - startedAt)),
   });
   return { build: run.databaseId, ...proof };
 }
@@ -271,11 +269,6 @@ export async function runGate(
     g1 = false,
     preview = false,
     runCheck = (s) => runCheckWorkflow(cwd, s),
-    gh = runGh,
-    fetchHosted = fetch,
-    wait = sleep,
-    now = Date.now,
-    timeoutMs = PROOF_TIMEOUT_MS,
   } = {},
 ) {
   const root = await git(cwd, ["rev-parse", "--show-toplevel"]);
@@ -304,26 +297,12 @@ export async function runGate(
   );
   const branch = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
   const inputHash = await changeInputHash(slugDir);
-  const expectedSourceSha = preview
-    ? await git(root, ["rev-parse", "HEAD^{commit}"])
-    : undefined;
   const proof = preview
-    ? await rebuildPreview(root, branch, slug, inputHash, {
-        gh,
-        expectedSourceSha,
-        fetchHosted,
-        wait,
-        now,
-        timeoutMs,
-      })
+    ? await rebuildPreview(root, branch, slug, inputHash)
     : await waitForHostedProof({
         host: MAIN_HOST,
         slug,
         inputHash,
-        fetchHosted,
-        wait,
-        now,
-        timeoutMs,
       });
 
   const mode = preview ? `Branch preview build ${proof.build}` : "Production";

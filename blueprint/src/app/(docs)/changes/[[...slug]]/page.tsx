@@ -26,7 +26,12 @@ import {
   Scenarios,
   TestPlan,
 } from "@/components/ScenarioCards";
-import { hasChangePage, readCapabilities, readFacts } from "@/lib/change-meta";
+import {
+  hasChangePage,
+  readCapabilities,
+  readChangeBuildIdentity,
+  readFacts,
+} from "@/lib/change-meta";
 import { changeTabFiles } from "@/lib/change-tab-files";
 import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
@@ -120,7 +125,7 @@ function ChangePage({ slug }: { slug: string }) {
         tableOfContent={{ enabled: false }}
         breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
       >
-        <DocsBody>
+        <DocsBody data-blueprint-build-identity={readChangeBuildIdentity(slug)}>
           <ChangeHeader
             title={page.data.title}
             capabilities={readCapabilities(slug)}

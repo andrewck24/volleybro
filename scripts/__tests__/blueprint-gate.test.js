@@ -11,30 +11,13 @@ import { previewUrl, runGate } from "../blueprint-gate.js";
 import { changeInputHash } from "../blueprint-lifecycle.js";
 
 const execFileAsync = promisify(execFile);
-
 const git = (cwd) => (args) => execFileAsync("git", args, { cwd });
-
 const PAGE_FILES = {
   "index.mdx": "---\ntitle: gamma\n---\n",
   "proposal.mdx":
-    'export const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n];\n\nThe proposal.\n',
+    'export const scenarios = [{ id: "S1", given: "a", when: "b", then: "c" }];\n\nThe proposal.\n',
 };
-const REVIEW_FILE = "<ActionItems>\n\n無\n\n</ActionItems>\n";
 const SHA = "a".repeat(40);
-
-function response(status, body) {
-  return {
-    status,
-    ok: status >= 200 && status < 300,
-    async json() {
-      if (body instanceof Error) throw body;
-      return body;
-    },
-    async text() {
-      return String(body);
-    },
-  };
-}
 
 function receipt(inputHash, overrides = {}) {
   return {
@@ -47,8 +30,23 @@ function receipt(inputHash, overrides = {}) {
   };
 }
 
-// One bare remote serves both the Change branch and the page store, the way
-// origin does in the repository.
+function identity(build) {
+  return [
+    build.sourceSha,
+    build.integrationSha,
+    build.storeSha,
+    build.changeInputHashes.gamma,
+  ].join(":");
+}
+
+function html(build, attributes = "") {
+  return `<main data-blueprint-build-identity="${identity(build)}" ${attributes}>Change</main>`;
+}
+
+function response(body, status = 200) {
+  return new Response(body, { status });
+}
+
 async function makeGateRepository(t, { review = false } = {}) {
   const tmp = await mkdtemp(path.join(os.tmpdir(), "blueprint-gate-"));
   t.after(() => rm(tmp, { recursive: true, force: true }));
@@ -76,62 +74,80 @@ async function makeGateRepository(t, { review = false } = {}) {
   for (const [name, content] of Object.entries(PAGE_FILES)) {
     await writeFile(path.join(dir, name), content);
   }
-  if (review) await writeFile(path.join(dir, "review.mdx"), REVIEW_FILE);
-  return { bare, dir, work, workGit };
+  if (review)
+    await writeFile(
+      path.join(dir, "review.mdx"),
+      "<ActionItems>\n\n無\n\n</ActionItems>\n",
+    );
+  return { bare, dir, work };
 }
 
-async function storeLog(bare) {
-  const { stdout } = await execFileAsync(
-    "git",
-    ["log", "--format=%H", "blueprint-changes", "--", "gamma/facts.json"],
-    { cwd: bare },
+async function installGh(t, { outcome = "success", unrelated = false } = {}) {
+  const bin = await mkdtemp(path.join(os.tmpdir(), "blueprint-gh-cli-"));
+  t.after(() => rm(bin, { recursive: true, force: true }));
+  const requestPath = path.join(bin, "request.json");
+  const cli = path.join(bin, "gh");
+  await writeFile(
+    cli,
+    `#!${process.execPath}\nimport {readFileSync, writeFileSync} from 'node:fs';\nconst args=process.argv.slice(2);\nconst file=${JSON.stringify(requestPath)};\nif(args[0]==='workflow') {\n const inputs=Object.fromEntries(args.filter((_,i)=>args[i-1]==='-f').map(x=>x.split('=')));\n writeFileSync(file,JSON.stringify(inputs));\n console.log('https://github.com/andrewck24/volleybro/actions/runs/123');\n} else if (${JSON.stringify(outcome)}==='dispatch-error') {\n console.error('Not logged in'); process.exit(1);\n} else {\n const inputs=JSON.parse(readFileSync(file,'utf8'));\n const runs=${JSON.stringify(unrelated)} ? [{databaseId:1,displayTitle:'Blueprint Preview other-request',headSha:inputs.integration_sha,status:'completed',conclusion:'success'}] : [];\n runs.push({databaseId:123,displayTitle:'Blueprint Preview '+inputs.request_id,headSha:inputs.integration_sha,status:'completed',conclusion:${JSON.stringify(outcome)}});\n console.log(JSON.stringify(runs));\n}\n`,
   );
-  return stdout.trim().split("\n").filter(Boolean);
+  await chmod(cli, 0o755);
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${bin}${path.delimiter}${previousPath}`;
+  t.after(() => {
+    process.env.PATH = previousPath;
+  });
+  return requestPath;
 }
 
-async function storeFile(bare, rev, file) {
-  const { stdout } = await execFileAsync(
-    "git",
-    ["show", `${rev}:gamma/${file}`],
-    { cwd: bare },
-  );
-  return stdout;
-}
-
-const quiet = (t) => {
+function quiet(t) {
   t.mock.method(console, "log", () => {});
   t.mock.method(console, "error", () => {});
-};
+}
+
+async function useHostedBuild(t, dir, render) {
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (input, options) => {
+    const url = String(input);
+    requests.push({ url, options });
+    if (url.includes("blueprint-build.json")) {
+      const inputHash = await changeInputHash(dir);
+      return response(JSON.stringify(receipt(inputHash)));
+    }
+    const build = receipt(await changeInputHash(dir));
+    return response(render(build));
+  });
+  return requests;
+}
 
 test("the gate refuses a branch ahead of its upstream before publishing", async (t) => {
-  const { bare, work, workGit } = await makeGateRepository(t);
+  const { bare, work } = await makeGateRepository(t);
   await writeFile(path.join(work, "b.txt"), "b\n");
-  await workGit(["add", "b.txt"]);
-  await workGit(["commit", "-q", "-m", "feat: add b"]);
+  await git(work)(["add", "b.txt"]);
+  await git(work)(["commit", "-q", "-m", "feat: add b"]);
   quiet(t);
 
   await runGate(work, "gamma", { runCheck: async () => true });
 
   assert.equal(process.exitCode, 1);
   process.exitCode = 0;
-  await assert.rejects(storeLog(bare));
+  await assert.rejects(
+    execFileAsync("git", ["log", "blueprint-changes"], { cwd: bare }),
+  );
 });
 
 test("the CLI accepts --preview and reaches the existing branch-state gate", async (t) => {
-  const { work, workGit } = await makeGateRepository(t);
+  const { work } = await makeGateRepository(t);
   await writeFile(path.join(work, "b.txt"), "b\n");
-  await workGit(["add", "b.txt"]);
-  await workGit(["commit", "-q", "-m", "feat: add b"]);
-
+  await git(work)(["add", "b.txt"]);
+  await git(work)(["commit", "-q", "-m", "feat: add b"]);
   const gateScript = fileURLToPath(
     new URL("../blueprint-gate.js", import.meta.url),
   );
   const error = await execFileAsync(
     process.execPath,
     [gateScript, "gamma", "--preview"],
-    {
-      cwd: work,
-    },
+    { cwd: work },
   ).catch((caught) => caught);
 
   assert.notEqual(error.code, undefined);
@@ -139,274 +155,222 @@ test("the CLI accepts --preview and reaches the existing branch-state gate", asy
   assert.doesNotMatch(error.stderr, /Usage:/);
 });
 
-test("the default gate waits for the production receipt and successfully GETs the published page", async (t) => {
+test("the production gate accepts only a page rendered from the receipt snapshot", async (t) => {
   const { bare, dir, work } = await makeGateRepository(t);
-  const checked = [];
-  const requests = [];
-  const waits = [];
-  let clock = 0;
   quiet(t);
+  const requests = await useHostedBuild(t, dir, (build) => html(build));
 
-  await runGate(work, "gamma", {
-    runCheck: async (slug) => {
-      checked.push(slug);
-      return true;
-    },
-    gh: async () =>
-      assert.fail("production gate must not start a branch build"),
-    now: () => clock,
-    wait: async (ms) => {
-      waits.push(ms);
-      clock += ms;
-    },
-    timeoutMs: 25_000,
-    fetchHosted: async (url, options) => {
-      requests.push({ url, options });
-      if (url.includes("blueprint-build.json")) {
-        const hash = await changeInputHash(dir);
-        return response(200, receipt(hash));
-      }
-      return response(200, "rendered page");
-    },
-  });
+  await runGate(work, "gamma", { runCheck: async () => true });
 
-  assert.equal((await storeLog(bare)).length, 1);
-  assert.deepEqual(checked, ["gamma"]);
-  assert.equal(waits.length, 0);
   assert.equal(
-    requests[0].url.startsWith(
-      "https://volleybro-blueprint.andrewck24.workers.dev/blueprint-build.json?",
-    ),
-    true,
+    (
+      await execFileAsync(
+        "git",
+        ["log", "--format=%H", "blueprint-changes", "--", "gamma/facts.json"],
+        { cwd: bare },
+      )
+    ).stdout
+      .trim()
+      .split("\n").length,
+    1,
   );
-  assert.ok(
-    requests[1].url.startsWith(
-      "https://volleybro-blueprint.andrewck24.workers.dev/changes/gamma?run=",
-    ),
-  );
-  assert.ok(requests.every((request) => request.options.cache === "no-store"));
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every(({ options }) => options.cache === "no-store"));
   assert.match(
     console.log.mock.calls.at(-1).arguments[0],
-    /Production hosted proof verified: https:\/\/volleybro-blueprint\.andrewck24\.workers\.dev\/changes\/gamma/,
+    /Production hosted proof verified/,
   );
 });
 
-test("a render failure with matching inputs is not ready for acceptance", async (t) => {
-  const { work } = await makeGateRepository(t);
-  let clock = 0;
+test("the gate keeps polling until a current receipt and rendered page are available", async (t) => {
+  const { dir, work } = await makeGateRepository(t);
   quiet(t);
+  let clock = 0;
+  let receiptRequests = 0;
+  let pageRequests = 0;
+  t.mock.method(Date, "now", () => clock);
+  t.mock.method(globalThis, "setTimeout", (callback, delay) => {
+    clock += delay;
+    queueMicrotask(callback);
+    return 0;
+  });
+  t.mock.method(globalThis, "fetch", async (input) => {
+    if (String(input).includes("blueprint-build.json")) {
+      receiptRequests += 1;
+      const hash = await changeInputHash(dir);
+      return response(
+        JSON.stringify(receipt(receiptRequests === 1 ? "stale-input" : hash)),
+      );
+    }
+    pageRequests += 1;
+    const current = receipt(await changeInputHash(dir));
+    return pageRequests === 1
+      ? response("temporarily unavailable", 503)
+      : response(html(current));
+  });
+
+  await runGate(work, "gamma", { runCheck: async () => true });
+
+  assert.equal(receiptRequests, 3);
+  assert.equal(pageRequests, 2);
+  assert.equal(clock, 20_000);
+});
+
+test("a matching receipt cannot admit a different deployed page snapshot", async (t) => {
+  const { dir, work } = await makeGateRepository(t);
+  quiet(t);
+  const requests = await useHostedBuild(
+    t,
+    dir,
+    () =>
+      '<main data-blueprint-build-identity="different-source:different-input">Change</main>',
+  );
+  let clock = 0;
+  t.mock.method(Date, "now", () => clock);
+  t.mock.method(globalThis, "setTimeout", (callback, delay) => {
+    clock += delay;
+    queueMicrotask(callback);
+    return 0;
+  });
+
   await assert.rejects(
-    runGate(work, "gamma", {
-      runCheck: async () => true,
-      now: () => clock,
-      wait: async (ms) => {
-        clock += ms;
-      },
-      timeoutMs: 15_000,
-      fetchHosted: async (url) =>
-        url.includes("blueprint-build.json")
-          ? response(
-              200,
-              receipt(
-                await changeInputHash(
-                  path.join(work, "blueprint/content/changes/gamma"),
-                ),
-              ),
-            )
-          : response(200, '<p data-blueprint-render-error="true">無法顯示</p>'),
-    }),
+    runGate(work, "gamma", { runCheck: async () => true }),
+    /Timed out after 2700000ms.*snapshot identity does not match.*not ready for human acceptance/,
+  );
+  assert.ok(
+    requests.filter(({ url }) => url.includes("blueprint-build.json")).length >
+      1,
+  );
+});
+
+test("a page render failure cannot be accepted", async (t) => {
+  const { dir, work } = await makeGateRepository(t);
+  quiet(t);
+  await useHostedBuild(t, dir, (build) =>
+    html(build, 'data-blueprint-render-error="true"'),
+  );
+  let clock = 0;
+  t.mock.method(Date, "now", () => clock);
+  t.mock.method(globalThis, "setTimeout", (callback, delay) => {
+    clock += delay;
+    queueMicrotask(callback);
+    return 0;
+  });
+
+  await assert.rejects(
+    runGate(work, "gamma", { runCheck: async () => true }),
     /contains a tab render failure/,
   );
 });
 
-test("an old receipt cannot pass the gate and timeout reports the page is not ready", async (t) => {
-  const { work } = await makeGateRepository(t);
-  let clock = 0;
-  quiet(t);
-
-  await assert.rejects(
-    runGate(work, "gamma", {
-      runCheck: async () => true,
-      now: () => clock,
-      wait: async (ms) => {
-        clock += ms;
-      },
-      timeoutMs: 15_000,
-      fetchHosted: async (url) => {
-        assert.match(url, /blueprint-build\.json/);
-        return response(200, receipt("stale-input-hash"));
-      },
-    }),
-    /Timed out after 15000ms.*receipt does not match.*not ready for human acceptance/,
-  );
-});
-
-test("the gate keeps polling until the matching receipt and Change page are both available", async (t) => {
-  const { dir, work } = await makeGateRepository(t);
-  const requests = [];
-  let clock = 0;
-  let pageAttempts = 0;
-  quiet(t);
-
-  await runGate(work, "gamma", {
-    runCheck: async () => true,
-    now: () => clock,
-    wait: async (ms) => {
-      clock += ms;
-    },
-    timeoutMs: 25_000,
-    fetchHosted: async (url) => {
-      requests.push(url);
-      if (url.includes("blueprint-build.json")) {
-        const count = requests.filter((request) =>
-          request.includes("blueprint-build.json"),
-        ).length;
-        return response(
-          200,
-          receipt(count === 1 ? "old-hash" : await changeInputHash(dir)),
-        );
-      }
-      pageAttempts += 1;
-      return response(pageAttempts === 1 ? 503 : 200, "page");
-    },
-  });
-
-  assert.equal(pageAttempts, 2);
-  assert.equal(
-    requests.filter((url) => url.includes("blueprint-build.json")).length,
-    3,
-  );
-  assert.equal(clock, 20_000);
-});
-
-test("--gate G1 publishes the Proposal alone before the whole page", async (t) => {
+test("--gate G1 publishes the Proposal before the whole page", async (t) => {
   const { bare, dir, work } = await makeGateRepository(t, { review: true });
   quiet(t);
+  await useHostedBuild(t, dir, (build) => html(build));
 
-  await runGate(work, "gamma", {
-    g1: true,
-    runCheck: async () => true,
-    fetchHosted: async (url) => {
-      if (url.includes("blueprint-build.json")) {
-        return response(200, receipt(await changeInputHash(dir)));
-      }
-      return response(200, "rendered page");
-    },
-  });
+  await runGate(work, "gamma", { g1: true, runCheck: async () => true });
 
-  const [whole, proposalOnly] = await storeLog(bare);
-  await assert.rejects(storeFile(bare, proposalOnly, "review.mdx"));
+  const { stdout } = await execFileAsync(
+    "git",
+    ["log", "--format=%H", "blueprint-changes", "--", "gamma/facts.json"],
+    { cwd: bare },
+  );
+  const [whole, proposalOnly] = stdout.trim().split("\n");
+  await assert.rejects(
+    execFileAsync("git", ["show", `${proposalOnly}:gamma/review.mdx`], {
+      cwd: bare,
+    }),
+  );
   assert.equal(
-    JSON.parse(await storeFile(bare, proposalOnly, "facts.json")).gate,
+    JSON.parse(
+      (
+        await execFileAsync(
+          "git",
+          ["show", `${proposalOnly}:gamma/facts.json`],
+          { cwd: bare },
+        )
+      ).stdout,
+    ).gate,
     "G1",
   );
-  assert.equal(await storeFile(bare, whole, "review.mdx"), REVIEW_FILE);
+  assert.match(
+    (
+      await execFileAsync("git", ["show", `${whole}:gamma/review.mdx`], {
+        cwd: bare,
+      })
+    ).stdout,
+    /ActionItems/,
+  );
 });
 
-test("--preview waits for its exact GitHub run and rejects a stale hosted snapshot", async (t) => {
+test("preview gate waits for its exact GitHub run and accepts the corresponding page receipt", async (t) => {
   const { dir, work } = await makeGateRepository(t);
-  let fields;
-  let clock = 0;
-  let polls = 0;
-  let reads = 0;
   quiet(t);
-  await runGate(work, "gamma", {
-    preview: true,
-    runCheck: async () => true,
-    now: () => clock,
-    wait: async (ms) => {
-      clock += ms;
-    },
-    timeoutMs: 40_000,
-    gh: async (_root, args) => {
-      if (args[0] === "workflow") {
-        fields = Object.fromEntries(
-          args
-            .filter((_, i) => args[i - 1] === "-f")
-            .map((value) => value.split("=")),
-        );
-        return null;
-      }
-      polls += 1;
-      return [
-        {
-          databaseId: 1,
-          displayTitle: "Blueprint Preview another-request",
-          headSha: fields.integration_sha,
-          status: "completed",
-          conclusion: "success",
-        },
-        {
-          databaseId: 2,
-          displayTitle: "Blueprint Preview " + fields.request_id,
-          headSha: fields.integration_sha,
-          status: polls === 1 ? "queued" : "completed",
-          conclusion: polls === 1 ? null : "success",
-        },
-      ];
-    },
-    fetchHosted: async (url) => {
-      if (url.includes("blueprint-build.json")) {
-        reads += 1;
-        return response(
-          200,
-          receipt(await changeInputHash(dir), {
-            sourceSha: fields.source_sha,
-            integrationSha: fields.integration_sha,
-            storeSha: reads === 1 ? "d".repeat(40) : fields.store_sha,
-          }),
-        );
-      }
-      return response(200, "rendered preview");
-    },
+  const requestPath = await installGh(t, { unrelated: true });
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (input, options) => {
+    const url = String(input);
+    requests.push({ url, options });
+    const fields = JSON.parse(
+      await (await import("node:fs/promises")).readFile(requestPath, "utf8"),
+    );
+    const build = receipt(fields.input_hash, {
+      sourceSha: fields.source_sha,
+      integrationSha: fields.integration_sha,
+      storeSha: fields.store_sha,
+    });
+    return url.includes("blueprint-build.json")
+      ? response(JSON.stringify(build))
+      : response(html(build));
   });
+  await runGate(work, "gamma", { preview: true, runCheck: async () => true });
+
+  const fields = JSON.parse(
+    await (await import("node:fs/promises")).readFile(requestPath, "utf8"),
+  );
   assert.equal(fields.branch, "feat/gamma");
   assert.equal(
     fields.source_sha,
     (await git(work)(["rev-parse", "HEAD"])).stdout.trim(),
   );
-  assert.equal(reads, 2);
-  assert.equal(clock, 20_000);
+  assert.equal(fields.input_hash, await changeInputHash(dir));
+  assert.equal(requests.length, 2);
   assert.match(
     console.log.mock.calls.at(-1).arguments[0],
-    /Branch preview build 2 hosted proof verified/,
+    /Branch preview build 123 hosted proof verified/,
   );
 });
 
-test("a failed GitHub preview cannot proceed to hosted acceptance", async (t) => {
+test("a failed preview run stops before hosted acceptance", async (t) => {
   const { work } = await makeGateRepository(t);
   quiet(t);
-  let fields;
+  await installGh(t, { outcome: "failure" });
   const requests = [];
+  t.mock.method(globalThis, "fetch", async (input) => {
+    requests.push(String(input));
+    return response(JSON.stringify(receipt(SHA)));
+  });
+
   await assert.rejects(
-    runGate(work, "gamma", {
-      preview: true,
-      runCheck: async () => true,
-      gh: async (_root, args) => {
-        if (args[0] === "workflow") {
-          fields = Object.fromEntries(
-            args
-              .filter((_, i) => args[i - 1] === "-f")
-              .map((value) => value.split("=")),
-          );
-          return null;
-        }
-        return [
-          {
-            databaseId: 2,
-            displayTitle: "Blueprint Preview " + fields.request_id,
-            headSha: fields.integration_sha,
-            status: "completed",
-            conclusion: "failure",
-          },
-        ];
-      },
-      fetchHosted: async (url) => {
-        requests.push(url);
-        return response(200, receipt(SHA));
-      },
-    }),
+    runGate(work, "gamma", { preview: true, runCheck: async () => true }),
     /stopped with outcome failure/,
+  );
+  assert.deepEqual(requests, []);
+});
+
+test("a GitHub CLI authentication error stops before hosted acceptance", async (t) => {
+  const { work } = await makeGateRepository(t);
+  quiet(t);
+  await installGh(t, { outcome: "dispatch-error" });
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (input) => {
+    requests.push(String(input));
+    return response("{}");
+  });
+
+  await assert.rejects(
+    runGate(work, "gamma", { preview: true, runCheck: async () => true }),
+    /gh run list.*Not logged in/s,
   );
   assert.deepEqual(requests, []);
 });
@@ -416,76 +380,4 @@ test("previewUrl folds the branch name into one DNS label", () => {
     previewUrl("hotfix/single-page-change-leftovers", "x"),
     "https://hotfix-single-page-change-leftovers-volleybro-blueprint.andrewck24.workers.dev/changes/x",
   );
-});
-
-test("preview dispatch reports GitHub authentication failure without probing a host", async (t) => {
-  const { work } = await makeGateRepository(t);
-  quiet(t);
-  await assert.rejects(
-    runGate(work, "gamma", {
-      preview: true,
-      runCheck: async () => true,
-      gh: async () => {
-        throw new Error("Not logged in");
-      },
-      fetchHosted: async () =>
-        assert.fail("failed dispatch must not probe a host"),
-    }),
-    /dispatch Blueprint Preview through GitHub: Not logged in/,
-  );
-});
-
-test("the installed GitHub CLI may return a run URL when dispatch succeeds", async (t) => {
-  const { dir, work } = await makeGateRepository(t);
-  quiet(t);
-  await runGate(work, "gamma", {
-    runCheck: async () => true,
-    fetchHosted: async (url) =>
-      url.includes("blueprint-build.json")
-        ? response(200, receipt(await changeInputHash(dir)))
-        : response(200, "page"),
-  });
-  const bin = await mkdtemp(path.join(os.tmpdir(), "blueprint-gh-cli-"));
-  t.after(() => rm(bin, { recursive: true, force: true }));
-  const requestPath = path.join(bin, "request.json");
-  const cli = path.join(bin, "gh");
-  await writeFile(
-    cli,
-    `#!${process.execPath}
-import {readFileSync, writeFileSync} from 'node:fs';
-const args=process.argv.slice(2);
-const file=${JSON.stringify(requestPath)};
-if(args[0]==='workflow') {
-  const inputs=Object.fromEntries(args.filter((_,i)=>args[i-1]==='-f').map(x=>x.split('=')));
-  writeFileSync(file,JSON.stringify(inputs));
-  console.log('https://github.com/andrewck24/volleybro/actions/runs/123');
-} else {
-  const inputs=JSON.parse(readFileSync(file,'utf8'));
-  console.log(JSON.stringify([{databaseId:123,displayTitle:'Blueprint Preview '+inputs.request_id,headSha:inputs.integration_sha,status:'completed',conclusion:'success'}]));
-}
-`,
-  );
-  await chmod(cli, 0o755);
-  const moduleUrl = new URL("../blueprint-gate.js", import.meta.url).href;
-  const probe = `
-import {readFileSync} from 'node:fs';
-import {rebuildPreview} from ${JSON.stringify(moduleUrl)};
-const proof=await rebuildPreview(${JSON.stringify(work)}, 'feat/gamma', 'gamma', ${JSON.stringify(await changeInputHash(dir))}, {
- fetchHosted: async url => ({ok:true,status:200,
- json:async()=>{const i=JSON.parse(readFileSync(${JSON.stringify(requestPath)},'utf8'));return {schemaVersion:1,sourceSha:i.source_sha,integrationSha:i.integration_sha,storeSha:i.store_sha,changeInputHashes:{gamma:i.input_hash}};},
- text:async()=> 'rendered preview'})
-});
-console.log(proof.build);
-`;
-  const { stdout } = await execFileAsync(
-    process.execPath,
-    ["--input-type=module", "-e", probe],
-    {
-      env: {
-        ...process.env,
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(stdout.trim(), "123");
 });

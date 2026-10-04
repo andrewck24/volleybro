@@ -43,6 +43,42 @@ export function hasChangePage(slug: string, root = CHANGES_ROOT) {
   return existsSync(path.join(root, slug, "index.mdx"));
 }
 
+export function readChangeBuildIdentity(
+  slug: string,
+  root = CHANGES_ROOT,
+): string | undefined {
+  try {
+    const receipt = JSON.parse(
+      readFileSync(
+        path.join(root, "..", "..", "public", "blueprint-build.json"),
+        "utf8",
+      ),
+    ) as {
+      sourceSha?: string;
+      integrationSha?: string;
+      storeSha?: string;
+      changeInputHashes?: Record<string, string>;
+    };
+    const sha = /^[0-9a-f]{40}$/;
+    const sourceSha = receipt.sourceSha;
+    const integrationSha = receipt.integrationSha;
+    const storeSha = receipt.storeSha;
+    const inputHash = receipt.changeInputHashes?.[slug];
+    if (
+      !sha.test(sourceSha ?? "") ||
+      !sha.test(integrationSha ?? "") ||
+      !sha.test(storeSha ?? "") ||
+      !/^[0-9a-f]{64}$/.test(inputHash ?? "") ||
+      inputHash !== changeInputHash(path.join(root, slug))
+    ) {
+      return undefined;
+    }
+    return `${sourceSha}:${integrationSha}:${storeSha}:${inputHash}`;
+  } catch {
+    return undefined;
+  }
+}
+
 // The frontmatter schema strips unknown keys, so capabilities are read from
 // the file itself rather than from the parsed page data.
 export function readCapabilities(slug: string, root = CHANGES_ROOT): string[] {

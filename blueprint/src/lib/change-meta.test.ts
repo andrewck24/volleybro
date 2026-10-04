@@ -5,7 +5,11 @@ import path from "node:path";
 
 jest.mock("server-only", () => ({}), { virtual: true });
 
-import { readCapabilities, readFacts } from "./change-meta";
+import {
+  readCapabilities,
+  readChangeBuildIdentity,
+  readFacts,
+} from "./change-meta";
 
 function changeWith(frontmatter: string) {
   const root = mkdtempSync(path.join(tmpdir(), "change-meta-"));
@@ -145,3 +149,69 @@ describe("readFacts lifecycle overlay", () => {
     });
   });
 });
+
+describe("readChangeBuildIdentity", () => {
+  it("binds the actual Change directory to a valid build receipt", () => {
+    const { parent, changes, directory } = publishedChangeFixture();
+    const identity = [
+      "a".repeat(40),
+      "b".repeat(40),
+      "c".repeat(40),
+      inputHash(directory),
+    ].join(":");
+    mkdirSync(path.join(parent, "public"));
+    writeFileSync(
+      path.join(parent, "public", "blueprint-build.json"),
+      JSON.stringify({
+        sourceSha: "a".repeat(40),
+        integrationSha: "b".repeat(40),
+        storeSha: "c".repeat(40),
+        changeInputHashes: { c: inputHash(directory) },
+      }),
+    );
+
+    expect(readChangeBuildIdentity("c", changes)).toBe(identity);
+  });
+
+  it("omits identity for a missing, malformed, or stale receipt", () => {
+    const { parent, changes, directory } = publishedChangeFixture();
+    expect(readChangeBuildIdentity("c", changes)).toBeUndefined();
+    mkdirSync(path.join(parent, "public"));
+    const receiptPath = path.join(parent, "public", "blueprint-build.json");
+    writeFileSync(receiptPath, "not json");
+    expect(readChangeBuildIdentity("c", changes)).toBeUndefined();
+    writeFileSync(
+      receiptPath,
+      JSON.stringify({
+        sourceSha: "a".repeat(40),
+        integrationSha: "b".repeat(40),
+        storeSha: "c".repeat(40),
+        changeInputHashes: { c: "d".repeat(64) },
+      }),
+    );
+    expect(readChangeBuildIdentity("c", changes)).toBeUndefined();
+    writeFileSync(path.join(directory, "proposal.mdx"), "changed input\n");
+    expect(readChangeBuildIdentity("c", changes)).toBeUndefined();
+  });
+});
+
+function publishedChangeFixture() {
+  const parent = mkdtempSync(path.join(tmpdir(), "change-identity-"));
+  const changes = path.join(parent, "content", "changes");
+  const directory = path.join(changes, "c");
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(path.join(directory, "index.mdx"), "---\ntitle: C\n---\n");
+  writeFileSync(path.join(directory, "facts.json"), '{"gate":"G2"}\n');
+  return { parent, changes, directory };
+}
+
+function inputHash(directory: string) {
+  const hash = createHash("sha256");
+  for (const name of ["facts.json", "index.mdx"]) {
+    hash
+      .update(name)
+      .update("\0")
+      .update(readFileSync(path.join(directory, name)));
+  }
+  return hash.digest("hex");
+}
