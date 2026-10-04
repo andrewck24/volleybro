@@ -4,11 +4,15 @@ export const scenarios = [
   { id: "S3", given: "The checkout is shallow or lacks integration history", when: "Preparation fetches the verified remote default into an isolated Git repository", then: "One complete integration SHA is pinned without modifying checkout refs or shallow state; failed fetch or incomplete history stops the hosted build" },
   { id: "S4", given: "Converted pages, unpublished local drafts, unmerged Changes or stale derived output exist", when: "Preparation and page loading run", then: "Historical facts and draft files are preserved, no unmerged archive date is invented, and mismatched or stale derived output is not reused" },
   { id: "S5", given: "The same store input and integration snapshot contain normal, squash and shard landings", when: "Development and production builds prepare their pages", then: "Both present identical lifecycle state; publish and gate checks still read original facts, and post-merge cleanup needs no third publish" },
+  { id: "S6", given: "Two branches publish different Change slugs concurrently", when: "Their store pushes race", then: "Both published directories survive; a rejected push reapplies only its slug to the latest store, retries within the existing bound, and reports failure without force-pushing if contention persists" },
+  { id: "S7", given: "Another publication or integration merge arrives while a main-site build is pending or running", when: "The rebuild coordinator handles the events", then: "Redundant requests are coalesced while the final successful deployment includes the newest requested store and integration revisions; obsolete builds cannot overwrite newer deployed evidence, and an app-only Change landing also refreshes lifecycle" },
+  { id: "S8", given: "A gate publishes a Change using only components and content available on main", when: "The main site successfully renders the matching published snapshot", then: "The gate reports the main URL without an unconditional branch rebuild; a Change requiring unmerged components, ADRs or Features instead requests a branch Preview and verifies it before acceptance" },
+  { id: "S9", given: "A hosted main or branch Preview build prepares Blueprint", when: "Its build and deployment commands execute", then: "Next build runs once, deployment uses that output, and hosted logs prove both successful asset deployment and the absence of a second Next build" },
 ];
 
 <TLDR>
 
-目前合併 Change 後仍要補一次 publish，網站才會更新合併日期。本次保留 G1／G2 的原始內容與數字，建置時從完整 integration history 推導合併狀態。刪除交付分支不會刪除已合併歷史；不再依賴 Agent 記得補發布。這只改 Blueprint，不改 app release 或 Fast Path 規則。
+目前合併 Change 後仍要補一次 publish，網站才會更新合併日期；每次 gate 又無條件重建分支 Preview。本次保留 G1／G2 的原始內容與數字，建置時從完整 integration history 推導合併狀態。不同 Change 可並行發布並在主網址審查；需要未合併的元件、ADR 或 Feature 時才建分支 Preview。合併後自動更新，消除同一部署重複 Next build，不再依賴 Agent 補發布。這只改 Blueprint，不改 app release 或 Fast Path 規則。
 
 </TLDR>
 
@@ -17,7 +21,8 @@ export const scenarios = [
 | 合併狀態 | Merge 後 publish 更新日期 | Build／dev preparation 固定 integration snapshot 後推導 |
 | Gate 證據 | Publish 寫入 facts | 保留原始 snapshot；網站讀取時套用 lifecycle overlay |
 | 缺少歷史 | 可能將找不到落點當作未合併 | 隔離取得完整 history；必要證據缺失停止 build |
-| 合併後清理 | 更新 checkout、清理、pull／publish | 更新 checkout、清理；既有 integration build 更新網站 |
+| 合併後清理 | 更新 checkout、清理、pull／publish | 更新 checkout、清理；可靠的 merge trigger 更新網站 |
+| 審查與建置 | Gate 固定重建分支；部署又執行 custom build | 主網址預設審查、Preview 按需；每個部署只執行一次 Next build |
 
 <DecisionCards ids={["0103"]} />
 
@@ -28,31 +33,77 @@ export const scenarios = [
 3. Dev／build 在 store pull 後準備 overlay；依核對的 remote default 在獨立暫存 Git repository 抓取完整 integration history，固定單一 SHA、共用掃描。使用沒有 depth 限制的 fetch，確認 `git rev-parse --is-shallow-repository` 為 false，並對固定 SHA 執行 `git rev-list --parents --missing=error`，要求整個 reachable commit ancestry 可遍歷；缺 parent、shallow boundary 或無法證明完整性皆停止，不將缺資料當作未合併。Blob filtering 可節省傳輸，但不可省略 commit ancestry。不逐頁 fetch、不需要交付分支仍存在。公開 repo 只讀抓取，不新增 credential、GitHub API 或平台服務。
 4. 更新共用 facts reader，讓 header、index、sidebar、previous／next 使用一致 lifecycle；publish 與 gate-frozen 檢查不讀 overlay。更新 WORKFLOW、Blueprint adapter 與直接相關 Feature；保留 G1／G2 publish，只移除合併後補日期的 publish。
 5. 沿用真實 Git fixtures 與現有排序測試，依 test-audit 補未覆蓋的行為，不新增無意義測試。G2 必須有實際 Cloudflare branch build 與 rendered page 證據；本機 probe 不冒充 hosted 驗證。
+6. 以主網址作為一般 gate／PR 的審查入口；核對該 Change 的發布內容及渲染結果，不以相同 header 或成功 hook 代替驗證。當頁面依賴 main 尚無的元件、ADR 或 Feature，使用明確的 Preview 選項並核對分支 build。更新 gate 的輸出、重建選項與 WORKFLOW／adapter 的審查連結規則；不無條件重建分支。保留按需 Preview 的平台能力，並處理原生 branch push trigger，避免只移除 gate rebuild 卻仍自動建立同樣 Preview。
+7. 保留現有不同 slug 的 fast-forward publish／有限重試；主站每次建置讀取整份 store，不只讀觸發的那張頁面。同一 slug 由一個負責者發布，不新增多人文件編輯或自動內容合併。發布與合併共用可去重的主站重建協調，記錄所需 store／integration revisions；新事件到達時確保最終網站涵蓋它們，阻止過期部署覆蓋較新成果。不能只依賴 Deploy Hook 的 queued／initializing 去重。失敗保持可見，不宣稱審查內容已更新。
+8. 補足 main 現行只監看 `blueprint/*` 的 trigger 缺口：純 app Change 落地也必須更新 lifecycle。盤點 store hook、Git push、gate request 與 merge request，避免同一更新重複觸發；依覆蓋到的事件實測。部署重用 build command 的輸出，消除 Wrangler custom build 的第二次 Next build，保留輸出與必要檢查。本次不研究 Next compiler、cache 或頁面產生速度。
 
 不包含套件升級、app／release controller、Fast Path 擴張、store 全面遷移或他人 worktree 清理。ADR-0074／0078 僅設定 successor，不改寫原始採用理由。
 
 ## Flow
 
+### Concurrent Change：共用 store 與主網址
+
+以下為目標流程，不表示目前已完成去重或按需 Preview。A／B 是不同 slug；store 留下兩份內容，不是後發布者取代整個網站。同一 slug 不支援多人同時發布。
+
 <InteractiveFlowchart
   nodes={[
-    { id: "gate", label: "G1 / G2 publish", sublabel: "accepted snapshot", x: 105, y: 40, w: 176, h: 56 },
-    { id: "merge", label: "Merge integration", sublabel: "existing build trigger", x: 105, y: 140, w: 176, h: 56 },
-    { id: "prepare", label: "Pull + history", sublabel: "pin integration SHA", x: 105, y: 240, w: 176, h: 56 },
-    { id: "overlay", label: "Derive lifecycle", sublabel: "no store write", x: 105, y: 340, w: 176, h: 56 },
-    { id: "render", label: "Render Blueprint", sublabel: "snapshot + lifecycle", x: 105, y: 440, w: 176, h: 56 },
+    { id: "a", label: "Branch A publish", sublabel: "Change A · G1 / G2", x: 88, y: 40, w: 168, h: 56 },
+    { id: "b", label: "Branch B publish", sublabel: "Change B · G1 / G2", x: 296, y: 140, w: 168, h: 56 },
+    { id: "store", label: "共用 store", sublabel: "A + B snapshots", x: 88, y: 140, w: 168, h: 56 },
+    { id: "queue", label: "主站 rebuild 協調", sublabel: "coalesce + freshness", x: 88, y: 240, w: 168, h: 56 },
+    { id: "build", label: "Build once → deploy", sublabel: "main code + full store", x: 88, y: 340, w: 168, h: 56 },
+    { id: "main", label: "主網址：A + B", sublabel: "verify each snapshot", x: 88, y: 440, w: 168, h: 56 },
+    { id: "need", label: "需要分支內容？", x: 88, y: 552, w: 168, h: 72, shape: "diamond" },
+    { id: "preview", label: "按需 branch Preview", sublabel: "verify branch output", x: 296, y: 552, w: 176, h: 56 },
+    { id: "accept", label: "主網址審查 G1 / G2", sublabel: "no branch rebuild", x: 88, y: 672, w: 168, h: 56 },
   ]}
   edges={[
-    { from: "gate", to: "merge" },
+    { from: "a", to: "store" },
+    { from: "b", to: "store" },
+    { from: "store", to: "queue" },
+    { from: "queue", to: "build" },
+    { from: "build", to: "main" },
+    { from: "main", to: "need" },
+    { from: "need", to: "preview", label: "是", dashed: true },
+    { from: "need", to: "accept", label: "否" },
+  ]}
+  details={{
+    a: { title: "獨立發布 A", body: "只套用 Change A 的目錄，保留其他已發布頁面。" },
+    b: { title: "並行發布 B", body: "若 A 先 push，B 重新 fetch 最新 store、套用自己的 slug，再有限重試；持續競爭報錯，不 force push。" },
+    store: { title: "內容集合，不是整站覆蓋", body: "不同 slug 同時存在；同一 slug 的發布由單一負責者進行。已接受頁面與 gate 量測不因 build 被改寫。" },
+    queue: { title: "去重仍需保證新鮮度", body: "協調 store publication 與 integration merge。建置中出現新輸入仍須最終部署；Deploy Hook 只保證 queued／initializing 的同 hook 去重，不保證永遠只跑最新一筆。" },
+    build: { title: "只建一次", body: "使用 main 程式與本次固定的完整 store／history inputs，部署直接使用輸出；不再執行第二次 Next build。" },
+    main: { title: "多人共用審查入口", body: "A、B 各自核對頁面發布 snapshot 與渲染內容。主站成功且包含所需 revisions 才提供驗收連結；過期 build 不得覆蓋較新成果。" },
+    need: { title: "內容與程式分開", body: "一般文字與既有元件可看主站；未合併的元件、ADR 或 Feature 不在 main 程式／內容中，必須看 Preview。" },
+    preview: { title: "例外才建立 Preview", body: "明確要求所需分支的 build，驗證未合併的程式與內容後，在 Preview 審查 G1／G2；不把主站頁面當作分支程式的驗證。" },
+    accept: { title: "驗收仍由開發者決定", body: "主網址包含目標 snapshot 且可正確渲染即可審查，不為一般文件額外建分支。網站成功不代表 G1／G2 自動通過。" },
+  }}
+/>
+
+### Merge 後自動更新 lifecycle
+
+這是獨立觸發來源，不需要先做一次新的 gate publish；純 app Change 合併也不能被 Blueprint watch paths 漏掉。它進入上圖相同的主站 rebuild 協調。
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "merge", label: "Merge integration", sublabel: "includes app-only Change", x: 88, y: 40, w: 184, h: 56 },
+    { id: "prepare", label: "Pull + history", sublabel: "pin store + integration", x: 88, y: 140, w: 184, h: 56 },
+    { id: "overlay", label: "Derive lifecycle", sublabel: "no store write", x: 88, y: 240, w: 184, h: 56 },
+    { id: "render", label: "主站 build / deploy", sublabel: "snapshot + lifecycle", x: 88, y: 340, w: 184, h: 56 },
+    { id: "failure", label: "停止並回報", sublabel: "keep prior deployment", x: 316, y: 140, w: 176, h: 56 },
+  ]}
+  edges={[
     { from: "merge", to: "prepare" },
-    { from: "prepare", to: "overlay" },
+    { from: "prepare", to: "overlay", label: "完整" },
+    { from: "prepare", to: "failure", label: "缺證據", dashed: true },
     { from: "overlay", to: "render" },
   ]}
   details={{
-    gate: { title: "保留驗收歷史", body: "已接受頁面與 gate 量測不因 build 被改寫。" },
-    merge: { title: "不需第三次發布", body: "Merge 後由既有 integration build 更新網站，不補寫 store。" },
+    merge: { title: "可靠觸發，不需第三次發布", body: "純 app Change 與 Blueprint 變更都會通知同一 rebuild 協調；去重原生 push 與 hook，不補寫 store。" },
     prepare: { title: "不假設 checkout depth", body: "在隔離 Git repository 取得完整 history，固定 SHA；失敗停止 build。" },
     overlay: { title: "可證明的落點", body: "重用 merge／trailer 辨識，不將 partial shard 當成 parent 完成，不 push。" },
-    render: { title: "一致資料入口", body: "Header、列表、sidebar 與前後頁使用相同 lifecycle，保留 draft 與 converted 保護。" },
+    render: { title: "一致且最新的資料入口", body: "Header、列表、sidebar 與前後頁使用相同 lifecycle，保留 draft 與 converted 保護。通過新鮮度檢查後部署，不覆蓋更新的主站版本。" },
+    failure: { title: "失敗不是未合併", body: "缺少必要 history 或 overlay 無法對應輸入時停止，通知失敗並保留上次成功網站，不宣稱新內容已上線。" },
   }}
 />
 
@@ -65,6 +116,8 @@ export const scenarios = [
   { name: "衍生資料污染 accepted page 或 draft", severity: "warning", mitigation: "Overlay 與 slug directory／store 分離、綁定輸入；publish 與 gate 不讀它。" },
   { name: "重複掃描增加 build 成本", severity: "info", mitigation: "一次抓取、固定 SHA、共用掃描；量測 fetch／derive 成本。" },
   { name: "失敗 build 留下舊網站", severity: "info", mitigation: "成功 build 才更新；failure 明確可見，不宣稱日期已更新。" },
+  { name: "併發事件造成內容遺漏或舊部署覆蓋", severity: "warning", mitigation: "不同 slug 保留、push 有限重試；記錄所需 revisions，驗證最終網站涵蓋新事件，阻止較舊部署覆蓋。" },
+  { name: "主站缺少分支元件或 ADR", severity: "warning", mitigation: "按需 Preview 並讀實際頁面；同一 slug 單一發布者，不新增多人編輯合併。" },
 ]} />
 
 ## References
@@ -73,6 +126,8 @@ export const scenarios = [
 | --- | --- |
 | [Cloudflare Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) | 官方：可設定 build command、提供 branch／commit 資訊；未保證 checkout depth。 |
 | [Cloudflare Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/) | 官方：image 提供 Git，不等於本 repo remote 抓取已在 hosted 驗證。 |
+| [Cloudflare Deploy Hooks](https://developers.cloudflare.com/workers/ci-cd/builds/deploy-hooks/) | 官方：同 hook 在 queued／initializing 時去重；進入 running 後仍可建立新 build，不足以單獨證明最後部署最新。 |
+| [Cloudflare Build watch paths](https://developers.cloudflare.com/workers/ci-cd/builds/build-watch-paths/) | 官方：不匹配 includes 的 push 可被略過；需覆蓋純 app Change 合併。 |
 | `scripts/change-page.js` 的 `landingOf` | 現行程式可從 integration history 找到 merge／trailer landing，不需交付分支。 |
 | 本機公開 remote probe | `git clone --bare --filter=blob:none --single-branch --branch main`、`git count-objects -vH`：非 shallow、pack 約 3.18 MiB；現有 landing 辨識找到已刪分支的 `release-qa-layers` 落點。僅本機證據。 |
 | ADR-0074／0078 | 最強反方：publish 保留 gate facts 與 merge 日期。本次保留 snapshot，僅取代 lifecycle 推導時機與第三次 publish。 |
