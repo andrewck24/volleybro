@@ -1,13 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import {
-  chmod,
-  mkdtemp,
-  mkdir,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -141,7 +134,11 @@ globalThis.fetch = async (input, options = {}) => {
 };
 `;
 
-async function runNativeCli({ hookBranch = "main" } = {}) {
+async function runNativeCli({
+  hookBranch = "main",
+  triggerId = "55a112d3-d521-4e36-a798-c3cdaae410ca",
+  hook = "https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/66666666-6666-4666-8666-666666666666",
+} = {}) {
   const directory = await mkdtemp(join(tmpdir(), "blueprint-rebuild-"));
   const bin = join(directory, "bin");
   const refsFile = join(directory, "refs");
@@ -177,10 +174,8 @@ async function runNativeCli({ hookBranch = "main" } = {}) {
           CLOUDFLARE_ACCOUNT_ID: "account",
           CLOUDFLARE_BLUEPRINT_BUILD_READ_TOKEN: "read-token",
           CLOUDFLARE_BLUEPRINT_WORKER_ID: "blueprint-worker",
-          CLOUDFLARE_BLUEPRINT_PRODUCTION_TRIGGER_ID:
-            "55a112d3-d521-4e36-a798-c3cdaae410ca",
-          CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK:
-            "https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/66666666-6666-4666-8666-666666666666",
+          CLOUDFLARE_BLUEPRINT_PRODUCTION_TRIGGER_ID: triggerId,
+          CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK: hook,
           COORDINATOR_HOOK_BRANCH: hookBranch,
           COORDINATOR_REFS_FILE: refsFile,
         },
@@ -204,4 +199,19 @@ test("CLI refuses to trigger when the configured hook targets another branch", a
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /not bound to the configured source branch/);
   assert.doesNotMatch(result.stdout, /Requested build/);
+});
+
+test("CLI rejects malformed trigger and hook configuration before making requests", async () => {
+  for (const [configuration, error] of [
+    [{ triggerId: "not-a-trigger-id" }, /Invalid Cloudflare build trigger ID/],
+    [
+      { hook: "https://unrelated.example/hook" },
+      /Invalid Cloudflare deploy hook URL/,
+    ],
+  ]) {
+    const result = await runNativeCli(configuration);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, error);
+    assert.equal(result.stdout, "");
+  }
 });
