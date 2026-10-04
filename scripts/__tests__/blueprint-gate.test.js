@@ -7,7 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { previewUrl, rebuildPreview, runGate } from "../blueprint-gate.js";
+import { previewUrl, runGate } from "../blueprint-gate.js";
 import { changeInputHash } from "../blueprint-lifecycle.js";
 
 const execFileAsync = promisify(execFile);
@@ -152,7 +152,7 @@ test("the default gate waits for the production receipt and successfully GETs th
       checked.push(slug);
       return true;
     },
-    cf: async () =>
+    gh: async () =>
       assert.fail("production gate must not start a branch build"),
     now: () => clock,
     wait: async (ms) => {
@@ -303,122 +303,104 @@ test("--gate G1 publishes the Proposal alone before the whole page", async (t) =
   assert.equal(await storeFile(bare, whole, "review.mdx"), REVIEW_FILE);
 });
 
-test("--preview rebuilds the branch, waits for success, then verifies its receipt and page", async (t) => {
+test("--preview waits for its exact GitHub run and rejects a stale hosted snapshot", async (t) => {
   const { dir, work } = await makeGateRepository(t);
-  await mkdir(path.join(work, "blueprint"), { recursive: true });
-  await writeFile(
-    path.join(work, "blueprint", "wrangler.toml"),
-    'name = "docs-site"\n',
-  );
-  const calls = [];
-  const requests = [];
-  const waits = [];
-  const pageHashes = [];
-  const receiptSourceShas = ["d".repeat(40)];
-  const sourceSha = (
-    await execFileAsync("git", ["rev-parse", "HEAD^{commit}"], { cwd: work })
-  ).stdout.trim();
-  receiptSourceShas.push(sourceSha);
+  let fields;
   let clock = 0;
-  let receiptReads = 0;
+  let polls = 0;
+  let reads = 0;
   quiet(t);
-
   await runGate(work, "gamma", {
     preview: true,
     runCheck: async () => true,
     now: () => clock,
     wait: async (ms) => {
-      waits.push(ms);
       clock += ms;
     },
-    timeoutMs: 25_000,
-    cf: async (_root, args) => {
-      calls.push(args.join(" "));
-      if (args[0] === "workers") {
-        return [
-          { id: "other", script_name: "docs-site-old" },
-          { id: "tag1", script_name: "docs-site" },
-        ];
+    timeoutMs: 40_000,
+    gh: async (_root, args) => {
+      if (args[0] === "workflow") {
+        fields = Object.fromEntries(
+          args
+            .filter((_, i) => args[i - 1] === "-f")
+            .map((value) => value.split("=")),
+        );
+        return null;
       }
-      if (args[1] === "triggers") {
-        return [
-          { trigger_uuid: "prod", branch_includes: ["main"] },
-          { trigger_uuid: "preview", branch_includes: ["*"] },
-        ];
-      }
-      if (args[1] === "create") return { build_uuid: "b1" };
-      const buildReads = calls.filter(
-        (call) => call === "builds get b1",
-      ).length;
-      return buildReads === 1
-        ? { status: "queued" }
-        : { status: "stopped", build_outcome: "success" };
+      polls += 1;
+      return [
+        {
+          databaseId: 1,
+          displayTitle: "Blueprint Preview another-request",
+          headSha: fields.integration_sha,
+          status: "completed",
+          conclusion: "success",
+        },
+        {
+          databaseId: 2,
+          displayTitle: "Blueprint Preview " + fields.request_id,
+          headSha: fields.integration_sha,
+          status: polls === 1 ? "queued" : "completed",
+          conclusion: polls === 1 ? null : "success",
+        },
+      ];
     },
     fetchHosted: async (url) => {
-      requests.push(url);
       if (url.includes("blueprint-build.json")) {
-        const inputHash = await changeInputHash(dir);
-        pageHashes.push(inputHash);
-        const receiptIndex = receiptReads++;
+        reads += 1;
         return response(
           200,
-          receipt(inputHash, {
-            sourceSha: receiptSourceShas[receiptIndex],
+          receipt(await changeInputHash(dir), {
+            sourceSha: fields.source_sha,
+            integrationSha: fields.integration_sha,
+            storeSha: reads === 1 ? "d".repeat(40) : fields.store_sha,
           }),
         );
       }
       return response(200, "rendered preview");
     },
   });
-
-  assert.deepEqual(calls, [
-    "workers scripts search --name docs-site",
-    "builds triggers list --external-script-id tag1",
-    'builds create preview --body {"branch":"feat/gamma"}',
-    "builds get b1",
-    "builds get b1",
-  ]);
-  assert.deepEqual(waits, [10_000, 10_000]);
-  assert.equal(receiptReads, 2);
-  assert.equal(new Set(pageHashes).size, 1);
+  assert.equal(fields.branch, "feat/gamma");
   assert.equal(
-    requests.filter((url) => url.includes("/changes/gamma")).length,
-    1,
+    fields.source_sha,
+    (await git(work)(["rev-parse", "HEAD"])).stdout.trim(),
   );
+  assert.equal(reads, 2);
+  assert.equal(clock, 20_000);
   assert.match(
-    requests[0],
-    /^https:\/\/feat-gamma-volleybro-blueprint\.andrewck24\.workers\.dev\/blueprint-build\.json/,
-  );
-  assert.equal(
-    requests.some(
-      (url) =>
-        url.includes("volleybro-blueprint.andrewck24.workers.dev") &&
-        !url.includes("feat-gamma-"),
-    ),
-    false,
+    console.log.mock.calls.at(-1).arguments[0],
+    /Branch preview build 2 hosted proof verified/,
   );
 });
 
-test("a failed branch build cannot proceed to hosted acceptance", async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "rebuild-"));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, "blueprint"));
-  await writeFile(
-    path.join(root, "blueprint", "wrangler.toml"),
-    'name = "docs-site"\n',
-  );
+test("a failed GitHub preview cannot proceed to hosted acceptance", async (t) => {
+  const { work } = await makeGateRepository(t);
+  quiet(t);
+  let fields;
   const requests = [];
-  const cf = async (_root, args) => {
-    if (args[0] === "workers") return [{ id: "id", script_name: "docs-site" }];
-    if (args[1] === "triggers")
-      return [{ trigger_uuid: "preview", branch_includes: ["*"] }];
-    if (args[1] === "create") return { build_uuid: "build" };
-    return { status: "stopped", build_outcome: "failure" };
-  };
-
   await assert.rejects(
-    rebuildPreview(root, "feat/gamma", "gamma", SHA, {
-      cf,
+    runGate(work, "gamma", {
+      preview: true,
+      runCheck: async () => true,
+      gh: async (_root, args) => {
+        if (args[0] === "workflow") {
+          fields = Object.fromEntries(
+            args
+              .filter((_, i) => args[i - 1] === "-f")
+              .map((value) => value.split("=")),
+          );
+          return null;
+        }
+        return [
+          {
+            databaseId: 2,
+            displayTitle: "Blueprint Preview " + fields.request_id,
+            headSha: fields.integration_sha,
+            status: "completed",
+            conclusion: "failure",
+          },
+        ];
+      },
       fetchHosted: async (url) => {
         requests.push(url);
         return response(200, receipt(SHA));
@@ -436,94 +418,74 @@ test("previewUrl folds the branch name into one DNS label", () => {
   );
 });
 
-test("preview rebuild explains Cloudflare authentication failures", async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "rebuild-"));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, "blueprint"));
-  await writeFile(
-    path.join(root, "blueprint", "wrangler.toml"),
-    'name = "docs-site"\n',
-  );
-
+test("preview dispatch reports GitHub authentication failure without probing a host", async (t) => {
+  const { work } = await makeGateRepository(t);
+  quiet(t);
   await assert.rejects(
-    rebuildPreview(root, "feat/gamma", "gamma", SHA, {
-      cf: async () => {
+    runGate(work, "gamma", {
+      preview: true,
+      runCheck: async () => true,
+      gh: async () => {
         throw new Error("Not logged in");
       },
+      fetchHosted: async () =>
+        assert.fail("failed dispatch must not probe a host"),
     }),
-    /through cf: .*auth login.*Cloudflare dashboard/,
+    /dispatch Blueprint Preview through GitHub: Not logged in/,
   );
 });
 
-test("preview CLI prefers installed cf and falls back only when absent", async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "preview-cli-"));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, "blueprint"));
+test("the installed GitHub CLI may return a run URL when dispatch succeeds", async (t) => {
+  const { dir, work } = await makeGateRepository(t);
+  quiet(t);
+  await runGate(work, "gamma", {
+    runCheck: async () => true,
+    fetchHosted: async (url) =>
+      url.includes("blueprint-build.json")
+        ? response(200, receipt(await changeInputHash(dir)))
+        : response(200, "page"),
+  });
+  const bin = await mkdtemp(path.join(os.tmpdir(), "blueprint-gh-cli-"));
+  t.after(() => rm(bin, { recursive: true, force: true }));
+  const requestPath = path.join(bin, "request.json");
+  const cli = path.join(bin, "gh");
   await writeFile(
-    path.join(root, "blueprint", "wrangler.toml"),
-    'name = "docs-site"\n',
+    cli,
+    `#!${process.execPath}
+import {readFileSync, writeFileSync} from 'node:fs';
+const args=process.argv.slice(2);
+const file=${JSON.stringify(requestPath)};
+if(args[0]==='workflow') {
+  const inputs=Object.fromEntries(args.filter((_,i)=>args[i-1]==='-f').map(x=>x.split('=')));
+  writeFileSync(file,JSON.stringify(inputs));
+  console.log('https://github.com/andrewck24/volleybro/actions/runs/123');
+} else {
+  const inputs=JSON.parse(readFileSync(file,'utf8'));
+  console.log(JSON.stringify([{databaseId:123,displayTitle:'Blueprint Preview '+inputs.request_id,headSha:inputs.integration_sha,status:'completed',conclusion:'success'}]));
+}
+`,
   );
+  await chmod(cli, 0o755);
   const moduleUrl = new URL("../blueprint-gate.js", import.meta.url).href;
-  const output = `if (process.argv.includes("search")) console.log(JSON.stringify([{id:"id",script_name:"docs-site"}]));
-else if (process.argv.includes("triggers")) console.log(JSON.stringify([{trigger_uuid:"trigger",branch_includes:["*"]}]));
-else if (process.argv.includes("create")) console.log(JSON.stringify({build_uuid:"build"}));
-else console.log(JSON.stringify({status:"stopped",build_outcome:"success"}));`;
-  for (const [name, globalCf, launcher, success] of [
-    ["installed", output, "missing", true],
-    [
-      "auth failure",
-      'console.error("Not logged in"); process.exit(1);',
-      "native",
-      false,
-    ],
-    ["invalid JSON", 'console.log("invalid JSON");', "native", false],
-    ["native fallback", null, "native", true],
-    ["JS fallback", null, "JS", true],
-  ]) {
-    await t.test(name, async () => {
-      const bin = path.join(root, name.replaceAll(" ", "-"));
-      await mkdir(bin);
-      const executable = async (file, source) => {
-        await writeFile(file, `#!${process.execPath}\n${source}\n`);
-        await chmod(file, 0o755);
-      };
-      if (globalCf !== null) await executable(path.join(bin, "cf"), globalCf);
-      const pnpm = path.join(bin, launcher === "JS" ? "pnpm.cjs" : "pnpm");
-      if (launcher !== "missing") {
-        await executable(path.join(bin, "pnpm.cjs"), output);
-        if (launcher === "native") {
-          await writeFile(
-            pnpm,
-            `#!/bin/sh\nexec '${process.execPath}' '${path.join(bin, "pnpm.cjs")}' "$@"\n`,
-          );
-          await chmod(pnpm, 0o755);
-        }
-      }
-      const args = [
-        "--input-type=module",
-        "-e",
-        `
-        import { rebuildPreview } from ${JSON.stringify(moduleUrl)};
-        const fetchHosted = async (url) => ({ ok: true, status: 200, json: async () => (${JSON.stringify(receipt(SHA))}), text: async () => 'rendered page' });
-        const proof = await rebuildPreview(${JSON.stringify(root)}, "feat/example", "gamma", ${JSON.stringify(SHA)}, { fetchHosted });
-        console.log(proof.build);
-      `,
-      ];
-      const options = {
-        env: { ...process.env, PATH: bin, npm_execpath: pnpm },
-      };
-      if (success) {
-        const { stdout } = await execFileAsync(process.execPath, args, options);
-        assert.match(stdout, /build/);
-      } else {
-        const error = await execFileAsync(
-          process.execPath,
-          args,
-          options,
-        ).catch((caught) => caught);
-        assert.notEqual(error.code, undefined);
-        assert.match(error.stderr, /Could not start/);
-      }
-    });
-  }
+  const probe = `
+import {readFileSync} from 'node:fs';
+import {rebuildPreview} from ${JSON.stringify(moduleUrl)};
+const proof=await rebuildPreview(${JSON.stringify(work)}, 'feat/gamma', 'gamma', ${JSON.stringify(await changeInputHash(dir))}, {
+ fetchHosted: async url => ({ok:true,status:200,
+ json:async()=>{const i=JSON.parse(readFileSync(${JSON.stringify(requestPath)},'utf8'));return {schemaVersion:1,sourceSha:i.source_sha,integrationSha:i.integration_sha,storeSha:i.store_sha,changeInputHashes:{gamma:i.input_hash}};},
+ text:async()=> 'rendered preview'})
+});
+console.log(proof.build);
+`;
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    ["--input-type=module", "-e", probe],
+    {
+      env: {
+        ...process.env,
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(stdout.trim(), "123");
 });

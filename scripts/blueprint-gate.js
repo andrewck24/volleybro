@@ -6,6 +6,7 @@
  *   node scripts/blueprint-gate.js <slug> [--gate G1] [--preview]
  */
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +14,7 @@ import { promisify } from "node:util";
 
 import { publish } from "./blueprint-changes.js";
 import { changeInputHash } from "./blueprint-lifecycle.js";
+import { previewAlias } from "./blueprint-preview.js";
 import { checkGateBranchState } from "./check-workflow.js";
 import { git, readChangeDir } from "./change-page.js";
 
@@ -28,10 +30,7 @@ const CHECK_WORKFLOW = fileURLToPath(
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function previewUrl(branch, slug) {
-  const label = branch
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  const label = previewAlias(branch);
   return `https://${label}-${PREVIEW_HOST}/changes/${slug}`;
 }
 
@@ -52,47 +51,13 @@ async function runCheckWorkflow(root, slug) {
   }
 }
 
-// Fetched on demand rather than installed: cf pulls in the workerd runtime,
-// which every CI job and deploy would otherwise download (ADR-0097).
-const CF = "cf@^1.0.0-beta.5";
-
-async function runCf(root, args) {
-  const options = { cwd: path.join(root, "blueprint"), timeout: 120_000 };
-  let result;
-  try {
-    result = await execFileAsync("cf", args, options);
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
-    const pnpm = process.env.npm_execpath;
-    if (!pnpm) throw new Error("run the gate through pnpm blueprint:gate");
-    const isScript = /\.[cm]?js$/i.test(pnpm);
-    result = await execFileAsync(
-      isScript ? process.execPath : pnpm,
-      [...(isScript ? [pnpm] : []), "dlx", CF, ...args],
-      options,
-    );
-  }
-  const { stdout } = result;
-  return JSON.parse(stdout.slice(stdout.search(/[[{]/)));
-}
-
-const listOf = (value) =>
-  Array.isArray(value) ? value : (value?.result ?? []);
-
-async function workerName(root) {
-  const config = await readFile(
-    path.join(root, "blueprint", "wrangler.toml"),
-    "utf8",
-  );
-  const name = config.match(/^name\s*=\s*"([^"]+)"/m)?.[1];
-  if (!name) throw new Error("blueprint/wrangler.toml names no Worker");
-  return name;
-}
-
-function previewTrigger(triggers) {
-  return listOf(triggers).find((trigger) =>
-    (trigger.branch_includes ?? []).includes("*"),
-  );
+async function runGh(root, args) {
+  const { stdout } = await execFileAsync("gh", args, {
+    cwd: root,
+    timeout: 120_000,
+  });
+  if (args[0] === "workflow") return stdout.trim();
+  return stdout.trim() ? JSON.parse(stdout) : null;
 }
 
 function validReceipt(receipt, slug, inputHash, expectedSourceSha) {
@@ -116,6 +81,8 @@ export async function waitForHostedProof({
   slug,
   inputHash,
   expectedSourceSha,
+  expectedStoreSha,
+  expectedIntegrationSha,
   fetchHosted = fetch,
   wait = sleep,
   now = Date.now,
@@ -145,7 +112,12 @@ export async function waitForHostedProof({
         lastObservation = `build receipt ${responseSummary(receiptResponse)}`;
       } else {
         const receipt = await receiptResponse.json();
-        if (!validReceipt(receipt, slug, inputHash, expectedSourceSha)) {
+        if (
+          !validReceipt(receipt, slug, inputHash, expectedSourceSha) ||
+          (expectedStoreSha && receipt.storeSha !== expectedStoreSha) ||
+          (expectedIntegrationSha &&
+            receipt.integrationSha !== expectedIntegrationSha)
+        ) {
           lastObservation =
             "build receipt does not match the published page inputs";
         } else {
@@ -176,37 +148,13 @@ export async function waitForHostedProof({
   );
 }
 
-async function waitForPreviewBuild(root, uuid, { cf, wait, now, timeoutMs }) {
-  const startedAt = now();
-  let lastStatus = "unknown";
-  for (;;) {
-    if (now() - startedAt >= timeoutMs) {
-      throw new Error(
-        `Timed out after ${timeoutMs}ms waiting for branch preview build ${uuid} (last status: ${lastStatus})`,
-      );
-    }
-    const build = await cf(root, ["builds", "get", uuid]);
-    const result = build.result ?? build;
-    lastStatus = result.status ?? "unknown";
-    if (lastStatus === "stopped") {
-      if (result.build_outcome !== "success") {
-        throw new Error(
-          `Branch preview build ${uuid} stopped with outcome ${result.build_outcome ?? "unknown"}`,
-        );
-      }
-      return;
-    }
-    await wait(Math.min(POLL_INTERVAL_MS, timeoutMs - (now() - startedAt)));
-  }
-}
-
 export async function rebuildPreview(
   root,
   branch,
   slug,
   inputHash,
   {
-    cf = runCf,
+    gh = runGh,
     fetchHosted = fetch,
     wait = sleep,
     now = Date.now,
@@ -214,51 +162,106 @@ export async function rebuildPreview(
     expectedSourceSha,
   } = {},
 ) {
-  let uuid;
-  try {
-    const name = await workerName(root);
-    const worker = listOf(
-      await cf(root, ["workers", "scripts", "search", "--name", name]),
-    ).find((script) => script.script_name === name);
-    if (!worker) throw new Error(`no Worker named ${name}`);
-    const trigger = previewTrigger(
-      await cf(root, [
-        "builds",
-        "triggers",
-        "list",
-        "--external-script-id",
-        worker.id,
-      ]),
+  const sourceSha =
+    expectedSourceSha ?? (await git(root, ["rev-parse", "HEAD^{commit}"]));
+  const refs = await git(root, [
+    "ls-remote",
+    "origin",
+    "refs/heads/main",
+    "refs/heads/blueprint-changes",
+  ]);
+  const shaFor = (name) =>
+    refs
+      .split("\n")
+      .find((line) => line.endsWith("\trefs/heads/" + name))
+      ?.split("\t")[0];
+  const integrationSha = shaFor("main");
+  const storeSha = shaFor("blueprint-changes");
+  if (
+    ![sourceSha, integrationSha, storeSha].every((sha) =>
+      /^[0-9a-f]{40}$/.test(sha ?? ""),
+    )
+  )
+    throw new Error(
+      "Cannot resolve the exact source, integration and store snapshots",
     );
-    if (!trigger) throw new Error("no branch-preview trigger found");
-    const started = await cf(root, [
-      "builds",
-      "create",
-      trigger.trigger_uuid,
-      "--body",
-      JSON.stringify({ branch }),
+  const requestId = randomUUID();
+  const title = "Blueprint Preview " + requestId;
+  try {
+    await gh(root, [
+      "workflow",
+      "run",
+      "blueprint-preview.yml",
+      "--ref",
+      "main",
+      "-f",
+      "source_sha=" + sourceSha,
+      "-f",
+      "store_sha=" + storeSha,
+      "-f",
+      "integration_sha=" + integrationSha,
+      "-f",
+      "branch=" + branch,
+      "-f",
+      "slug=" + slug,
+      "-f",
+      "input_hash=" + inputHash,
+      "-f",
+      "request_id=" + requestId,
     ]);
-    uuid = started.build_uuid ?? started.result?.build_uuid;
-    if (!uuid) throw new Error("Cloudflare returned no build UUID");
   } catch (error) {
     throw new Error(
-      `Could not start a branch preview build through cf: ${error.message.split("\n")[0]}. If cf is not signed in, run \`pnpm dlx ${CF} auth login\`; otherwise rerun the branch build from the Cloudflare dashboard.`,
+      "Could not dispatch Blueprint Preview through GitHub: " +
+        error.message.split("\n")[0],
     );
   }
-
-  await waitForPreviewBuild(root, uuid, { cf, wait, now, timeoutMs });
-  const host = new URL(previewUrl(branch, slug)).origin;
+  const startedAt = now();
+  let run;
+  while (now() - startedAt < timeoutMs) {
+    const runs = await gh(root, [
+      "run",
+      "list",
+      "--workflow",
+      "blueprint-preview.yml",
+      "--event",
+      "workflow_dispatch",
+      "--limit",
+      "100",
+      "--json",
+      "databaseId,displayTitle,status,conclusion,headSha",
+    ]);
+    run = runs.find((candidate) => candidate.displayTitle === title);
+    if (run && run.headSha !== integrationSha)
+      throw new Error(
+        "Preview controller changed during dispatch; retry with current main",
+      );
+    if (run?.status === "completed") {
+      if (run.conclusion !== "success")
+        throw new Error(
+          "Branch preview run " +
+            run.databaseId +
+            " stopped with outcome " +
+            run.conclusion,
+        );
+      break;
+    }
+    await wait(Math.min(POLL_INTERVAL_MS, timeoutMs - (now() - startedAt)));
+  }
+  if (run?.status !== "completed")
+    throw new Error("Timed out waiting for Blueprint Preview run " + requestId);
   const proof = await waitForHostedProof({
-    host,
+    host: new URL(previewUrl(branch, slug)).origin,
     slug,
     inputHash,
-    expectedSourceSha,
+    expectedSourceSha: sourceSha,
+    expectedStoreSha: storeSha,
+    expectedIntegrationSha: integrationSha,
     fetchHosted,
     wait,
     now,
-    timeoutMs,
+    timeoutMs: Math.max(1, timeoutMs - (now() - startedAt)),
   });
-  return { build: uuid, ...proof };
+  return { build: run.databaseId, ...proof };
 }
 
 export async function runGate(
@@ -268,7 +271,7 @@ export async function runGate(
     g1 = false,
     preview = false,
     runCheck = (s) => runCheckWorkflow(cwd, s),
-    cf = runCf,
+    gh = runGh,
     fetchHosted = fetch,
     wait = sleep,
     now = Date.now,
@@ -306,7 +309,7 @@ export async function runGate(
     : undefined;
   const proof = preview
     ? await rebuildPreview(root, branch, slug, inputHash, {
-        cf,
+        gh,
         expectedSourceSha,
         fetchHosted,
         wait,
