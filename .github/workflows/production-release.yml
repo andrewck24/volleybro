@@ -57,7 +57,7 @@ jobs:
       controller_sha: ${{ steps.controller.outputs.controller_sha }}
       mode: ${{ steps.controller.outputs.mode }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.workflow_sha || github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
@@ -80,7 +80,7 @@ jobs:
           git show "$controller_sha:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
           echo "controller_sha=$controller_sha" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}/release-controls.js
@@ -115,12 +115,12 @@ jobs:
           else
             node "$RUNNER_TEMP/release-controls.js" authorize
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.authorize.outputs.sha }}
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - id: stage
@@ -139,7 +139,7 @@ jobs:
           EXPECTED_BASELINE_SHA: ${{ steps.authorize.outputs.baseline_sha }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" stage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-release-state
           path: ${{ runner.temp }}/release-state.json
@@ -158,11 +158,11 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-state
           path: ${{ runner.temp }}
@@ -177,7 +177,7 @@ jobs:
           RELEASE_ROLLBACK_COMPATIBILITY: ${{ vars.RELEASE_ROLLBACK_COMPATIBILITY }}
           RELEASE_ROLLBACK_EVIDENCE: ${{ vars.RELEASE_ROLLBACK_EVIDENCE }}
         run: node "$RUNNER_TEMP/release-controls.js" inspect-source-qa
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-release-source-plan
           path: ${{ runner.temp }}/release-state.json
@@ -201,20 +201,20 @@ jobs:
       preview_id: ${{ steps.preview.outputs.preview_id }}
       preview_url: ${{ steps.preview.outputs.preview_url }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-source-plan
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - name: Prepare only the uncovered browser flow
@@ -254,11 +254,11 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-source-plan
           path: ${{ runner.temp }}
@@ -273,7 +273,7 @@ jobs:
           INTEGRATION_ALIAS: ${{ vars.INTEGRATION_ALIAS }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
         run: node "$RUNNER_TEMP/release-controls.js" record-source-qa
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-release-source-state
           path: ${{ runner.temp }}/release-state.json
@@ -334,11 +334,11 @@ jobs:
       name: production-release-review
       url: ${{ needs.candidate.outputs.candidate_url }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-source-state
           path: ${{ runner.temp }}/staged
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
@@ -352,7 +352,7 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
         run: node "$RUNNER_TEMP/release-controls.js" record-compatibility
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}/release-state.json
@@ -374,20 +374,20 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - name: Recheck baseline and promote candidate
@@ -460,11 +460,11 @@ jobs:
       name: production-release-review
       url: https://${{ vars.PRODUCTION_ALIAS }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
@@ -478,7 +478,7 @@ jobs:
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
         run: node "$RUNNER_TEMP/release-controls.js" record-production-qa
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-release-final-state
           path: ${{ runner.temp }}/release-final-state.json
@@ -498,20 +498,20 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - name: Roll back only with explicit compatibility evidence
@@ -540,15 +540,15 @@ jobs:
       contents: write
       actions: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-final-state
           path: ${{ runner.temp }}
@@ -578,7 +578,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.workflow_sha }}
           fetch-depth: 0
@@ -609,16 +609,16 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}

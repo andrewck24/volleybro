@@ -28,13 +28,13 @@ jobs:
       # version PR is authored by a real identity — that is what lets its
       # `Verify` checks trigger and pass, which the default
       # GITHUB_TOKEN cannot do (GitHub suppresses workflows on bot-authored PRs).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: "pnpm"
