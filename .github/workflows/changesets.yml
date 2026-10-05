@@ -28,7 +28,7 @@ jobs:
       # version PR is authored by a real identity — that is what lets its
       # `Verify` checks trigger and pass, which the default
       # GITHUB_TOKEN cannot do (GitHub suppresses workflows on bot-authored PRs).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
 
