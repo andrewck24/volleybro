@@ -4,9 +4,21 @@ import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
 import { Highlights } from "@/components/landing/highlights";
+import {
+  LandingVariant,
+  isLandingVariant,
+  type LandingParams,
+} from "@/components/landing/prototype-visual";
 import "@/styles/landing.css";
 
-const LandingPage = () => {
+const LandingPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<LandingParams>;
+}) => {
+  const params = await searchParams;
+  if (isLandingVariant(params.variant)) return <LandingVariant {...params} />;
+
   return (
     <main className="min-h-full w-full bg-background select-text">
       <Header />
