@@ -16,7 +16,10 @@ import { EntryProgressBar } from "@/components/game/panel/progress-bar";
 import { SENT_RALLY } from "@/components/landing/record-demo/demo-data";
 import { demoGame } from "@/components/landing/record-demo/demo-game";
 import { StatsSection } from "@/components/landing/record-demo/stats-section";
-import { StepsSection } from "@/components/landing/record-demo/steps-section";
+import {
+  StepsSection,
+  type SnapMode,
+} from "@/components/landing/record-demo/steps-section";
 import { useCounter } from "@/components/landing/record-demo/use-counter";
 import { EntryType, deriveSetStats } from "@/entities/game";
 import type {
@@ -168,7 +171,7 @@ const Frame = ({ step }: { step: number }) => {
   );
 };
 
-export const VariantB = () => {
+export const VariantB = ({ snap }: { snap: SnapMode }) => {
   const [step, setStep] = useState(0);
   const [sent, setSent] = useState(false);
   useCounter("root");
@@ -176,6 +179,7 @@ export const VariantB = () => {
   return (
     <>
       <StepsSection
+        snap={snap}
         onStep={(n) => {
           setStep(n);
           setSent(false);

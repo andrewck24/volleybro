@@ -16,11 +16,27 @@ export const STEPS = [
 const vars = (vals: number[]) =>
   Object.fromEntries(vals.map((v, i) => [`--v${i}`, v])) as CSSProperties;
 
+export type SnapMode = "mandatory" | "none" | "proximity" | "wheelstep";
+
+// proximity uses shorter step tracks so its pull zone is reachable by a wheel
+const TRACK: Record<SnapMode, string> = {
+  mandatory: "100svh",
+  none: "100svh",
+  proximity: "60svh",
+  wheelstep: "100svh",
+};
+const WHEEL_THRESHOLD = 30;
+const MOUSE_NOTCH = 80;
+const GESTURE_GAP_MS = 150;
+const SCROLL_TIMEOUT_MS = 1000;
+
 export const StepsSection = ({
   onStep,
+  snap = "mandatory",
   children,
 }: {
   onStep: (step: number) => void;
+  snap?: SnapMode;
   children: ReactNode;
 }) => {
   const box = useRef<HTMLElement>(null);
@@ -48,27 +64,106 @@ export const StepsSection = ({
     );
     section.querySelectorAll("[data-i]").forEach((n) => stepIO.observe(n));
 
-    // mandatory snap only while the section is on screen
-    const snapIO = new IntersectionObserver(([e]) => {
-      root.style.scrollSnapType = e!.isIntersecting ? "y mandatory" : "";
+    // wheelstep: one wheel gesture = one native smooth scroll to the next step
+    // top. The non-passive listener exists only while the section is on screen.
+    let acc = 0;
+    let locked = false;
+    let busy = false;
+    let lastFire = 0;
+    let gapTimer: ReturnType<typeof setTimeout> | undefined;
+    let busyTimer: ReturnType<typeof setTimeout> | undefined;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const done = () => {
+      busy = false;
+      clearTimeout(busyTimer);
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.deltaY === 0) return;
+      const dir = e.deltaY > 0 ? 1 : -1;
+      const track =
+        section.querySelector<HTMLElement>("[data-i]")!.offsetHeight;
+      const top = section.getBoundingClientRect().top + window.scrollY;
+      const step = Number(section.dataset.step);
+      // off the step top (entering, or after touch/keyboard): settle on the
+      // current step in the wheel's direction before moving on
+      const off = window.scrollY - (top + step * track);
+      const next =
+        dir > 0 ? (off < -2 ? step : step + 1) : off > 2 ? step : step - 1;
+      // first/last step: let the gesture through so the page scrolls out
+      if (next < 0 || next >= STEPS.length) return;
+      e.preventDefault();
+      clearTimeout(gapTimer);
+      gapTimer = setTimeout(() => {
+        locked = false;
+        acc = 0;
+      }, GESTURE_GAP_MS);
+      // a trackpad's inertial tail is many small deltas; a mouse notch is one big
+      // delta, so a settled big notch may start the next step without a pause
+      const mouseNotch =
+        !busy &&
+        Math.abs(e.deltaY) >= MOUSE_NOTCH &&
+        e.timeStamp - lastFire > 250;
+      if ((locked && !mouseNotch) || busy) return;
+      acc += e.deltaY;
+      if (Math.abs(acc) < WHEEL_THRESHOLD) return;
+      locked = true;
+      busy = true;
+      lastFire = e.timeStamp;
+      acc = 0;
+      window.scrollTo({
+        top: top + next * track,
+        behavior: reduced.matches ? "auto" : "smooth",
+      });
+      busyTimer = setTimeout(done, SCROLL_TIMEOUT_MS);
+    };
+
+    // scroll-snap / wheel handling only while the section is on screen
+    const modeIO = new IntersectionObserver(([e]) => {
+      const on = e!.isIntersecting;
+      if (snap === "mandatory" || snap === "proximity")
+        root.style.scrollSnapType = on ? `y ${snap}` : "";
+      if (snap === "wheelstep") {
+        if (on) window.addEventListener("wheel", onWheel, { passive: false });
+        else window.removeEventListener("wheel", onWheel);
+      }
     });
-    snapIO.observe(section);
+    modeIO.observe(section);
+    window.addEventListener("scrollend", done);
 
     return () => {
       stepIO.disconnect();
-      snapIO.disconnect();
+      modeIO.disconnect();
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("scrollend", done);
+      clearTimeout(gapTimer);
+      clearTimeout(busyTimer);
       root.style.scrollSnapType = "";
     };
-  }, []);
+  }, [snap]);
 
   return (
-    <section ref={box} data-step="0" className={styles.section}>
+    <section
+      ref={box}
+      data-step="0"
+      data-snap={snap}
+      className={styles.section}
+      style={{ "--track": TRACK[snap] } as CSSProperties}
+    >
       <div aria-hidden className={styles.snapBefore} />
       <div className={styles.stage}>
-        <div className={`${styles.frame} overflow-hidden rounded-xl`}>
+        {/* watch-only: inert drops pointer, focus and the a11y tree; the
+            sr-only list below carries the content for screen readers */}
+        <div inert className={`${styles.frame} overflow-hidden rounded-xl`}>
           {children}
         </div>
-        <div className={styles.captions}>
+        <ol className="sr-only">
+          {STEPS.map((s) => (
+            <li key={s.title}>
+              {s.title}：{s.body}
+            </li>
+          ))}
+        </ol>
+        <div aria-hidden className={styles.captions}>
           {STEPS.map((s, i) => (
             <div
               key={s.title}

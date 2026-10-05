@@ -15,7 +15,10 @@ import { SENT_RALLY } from "@/components/landing/record-demo/demo-data";
 import { DEMO_GAME_ID } from "@/components/landing/record-demo/demo-data";
 import { demoGame } from "@/components/landing/record-demo/demo-game";
 import { StatsSection } from "@/components/landing/record-demo/stats-section";
-import { StepsSection } from "@/components/landing/record-demo/steps-section";
+import {
+  StepsSection,
+  type SnapMode,
+} from "@/components/landing/record-demo/steps-section";
 import { useCounter } from "@/components/landing/record-demo/use-counter";
 import { useGame } from "@/hooks/use-data";
 import {
@@ -112,7 +115,7 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
   return null;
 };
 
-const Frame = ({ onSend }: { onSend: () => void }) => {
+const Frame = () => {
   useCounter("frame");
   return (
     <div className="flex size-full flex-col gap-1 bg-background">
@@ -124,7 +127,7 @@ const Frame = ({ onSend }: { onSend: () => void }) => {
         mode="general"
         className="min-h-0 flex-1"
       />
-      <GamePreview gameId={DEMO_GAME_ID} mode="general" onSubmit={onSend} />
+      <GamePreview gameId={DEMO_GAME_ID} mode="general" />
     </div>
   );
 };
@@ -135,15 +138,13 @@ const Stats = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
   return <StatsSection game={game!} onEnter={() => ctrlRef.current?.send()} />;
 };
 
-const Sections = () => {
+const Sections = ({ snap }: { snap: SnapMode }) => {
   const ctrlRef = useRef<Ctrl | null>(null);
-  const [frame] = useState(() => (
-    <Frame onSend={() => ctrlRef.current?.send()} />
-  ));
+  const [frame] = useState(() => <Frame />);
   return (
     <>
       <Driver ctrlRef={ctrlRef} />
-      <StepsSection onStep={(n) => ctrlRef.current?.step(n)}>
+      <StepsSection snap={snap} onStep={(n) => ctrlRef.current?.step(n)}>
         {frame}
       </StepsSection>
       <Stats ctrlRef={ctrlRef} />
@@ -151,7 +152,7 @@ const Sections = () => {
   );
 };
 
-export const VariantA = () => {
+export const VariantA = ({ snap }: { snap: SnapMode }) => {
   const [store] = useState(() => {
     const s = makeStore(noStorage);
     s.dispatch(gameActions.initialize({ game: demoGame, setIndex: 0 }));
@@ -173,7 +174,7 @@ export const VariantA = () => {
         }}
       >
         <PendingWritesContext.Provider value={stubQueue}>
-          <Sections />
+          <Sections snap={snap} />
         </PendingWritesContext.Provider>
       </SWRConfig>
     </Provider>

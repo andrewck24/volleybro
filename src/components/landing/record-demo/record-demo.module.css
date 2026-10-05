@@ -5,7 +5,7 @@
    timeline: it changes at step boundaries from IntersectionObserver. */
 .section {
   position: relative;
-  height: 400svh;
+  height: calc(100svh + 3 * var(--track, 100svh));
   view-timeline: --steps block;
 }
 
@@ -37,7 +37,7 @@
 }
 
 .rail {
-  height: 100svh;
+  height: var(--track, 100svh);
   scroll-snap-align: start;
 }
 

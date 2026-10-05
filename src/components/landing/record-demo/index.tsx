@@ -6,9 +6,13 @@
 // Sections 3-4 sit behind next/dynamic and only load once the placeholder is
 // within one viewport of the screen, so `/` ships none of their code up front.
 import { HeroClock } from "@/components/landing/record-demo/hero-clock";
+import type { SnapMode } from "@/components/landing/record-demo/steps-section";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+
+// kept here (not imported from steps-section) so the gate stays out of the lazy chunk graph
+const SNAP_MODES: SnapMode[] = ["mandatory", "none", "proximity", "wheelstep"];
 
 const VariantA = dynamic(
   () =>
@@ -49,13 +53,15 @@ const LazyWhenNear = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const RecordDemoGate = () => {
-  const variant = useSearchParams().get("variant");
+  const params = useSearchParams();
+  const variant = params.get("variant");
+  const snap = SNAP_MODES.find((m) => m === params.get("snap")) ?? "mandatory";
   if (variant !== "a" && variant !== "b") return null;
   return (
     <>
       <HeroClock variant={variant} />
       <LazyWhenNear>
-        {variant === "a" ? <VariantA /> : <VariantB />}
+        {variant === "a" ? <VariantA snap={snap} /> : <VariantB snap={snap} />}
       </LazyWhenNear>
     </>
   );

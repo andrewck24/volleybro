@@ -61,7 +61,10 @@ export const StatsSection = ({
 
   return (
     <section ref={box} className={styles.stats}>
-      <div className="w-full max-w-sm">
+      <p className="sr-only">
+        團隊數據統計：這一球記錄完成後，對應的得分項目與總得分各加一。
+      </p>
+      <div inert className="w-full max-w-sm">
         <Points stats={revealed ? stats : empty} />
       </div>
     </section>
