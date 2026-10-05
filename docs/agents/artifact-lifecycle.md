@@ -18,9 +18,11 @@ Archive runs automatically after Pre-PR code review reaches its fixed point and 
 4. export the Review summary for the pull-request body, as `WORKFLOW.md`'s Archive section defines it;
 5. exclude tracker IDs, claim state, retries, workspace paths, temporary research, and transcript text from durable Blueprint content;
 6. generate the Review tab following `docs/agents/blueprint.md`, read it rendered in a browser, run `pnpm blueprint:gate <slug>`, then notify the developer and stop for acceptance (G2);
-7. once accepted, verify tracker neutrality, workflow conformance, and the Features build the branch preview ran.
+7. once accepted, verify tracker neutrality, workflow conformance, and the Features from the branch's verified build; use explicit Preview when they are not yet on main.
 
 The archived branch describes the intended post-merge canonical state. It becomes current on the default branch only when the pull request merges. If PR feedback changes behavior, constraints, decisions, tests, or review evidence, amend the promoted knowledge on the same branch and rerun the applicable gates. Merge performs no second knowledge sync; it only permits the operational issue to move to Done.
+
+The next hosted build derives the landing date without republishing the Change. Accepted gate snapshots and measurements stay frozen; the disposable lifecycle overlay is not durable review history.
 
 Change pages are durable review history again: publishing them to the `blueprint-changes` store branch keeps every Proposal and Review tab browsable after merge, without making them a second lifecycle authority — Features, decision records, and commit bodies remain canonical current knowledge.
 

@@ -1,0 +1,181 @@
+name: Blueprint Preview
+
+run-name: Blueprint Preview ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full commit SHA for the requested source branch
+        required: true
+        type: string
+      store_sha:
+        description: Full commit SHA for the Blueprint changes store
+        required: true
+        type: string
+      integration_sha:
+        description: Full commit SHA for the integration snapshot
+        required: true
+        type: string
+      branch:
+        description: Named source branch
+        required: true
+        type: string
+      slug:
+        description: Blueprint Change slug
+        required: true
+        type: string
+      input_hash:
+        description: Full SHA-256 hash of the Blueprint Change inputs
+        required: true
+        type: string
+      request_id:
+        description: UUID that correlates this preview request
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: blueprint-preview-volleybro-blueprint
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  request:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      INPUT_SOURCE_SHA: ${{ inputs.source_sha }}
+      INPUT_STORE_SHA: ${{ inputs.store_sha }}
+      INPUT_INTEGRATION_SHA: ${{ inputs.integration_sha }}
+      INPUT_BRANCH: ${{ inputs.branch }}
+      INPUT_SLUG: ${{ inputs.slug }}
+      INPUT_HASH: ${{ inputs.input_hash }}
+      INPUT_REQUEST_ID: ${{ inputs.request_id }}
+    steps:
+      - name: Check out the trusted workflow revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: controller
+          persist-credentials: false
+      - name: Validate request and public snapshots
+        run: node controller/scripts/blueprint-preview.js validate-request
+
+  build:
+    needs: request
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    env:
+      INPUT_SOURCE_SHA: ${{ inputs.source_sha }}
+      INPUT_STORE_SHA: ${{ inputs.store_sha }}
+      INPUT_INTEGRATION_SHA: ${{ inputs.integration_sha }}
+      INPUT_BRANCH: ${{ inputs.branch }}
+      INPUT_SLUG: ${{ inputs.slug }}
+      INPUT_HASH: ${{ inputs.input_hash }}
+      INPUT_REQUEST_ID: ${{ inputs.request_id }}
+    steps:
+      - name: Check out the trusted workflow revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: controller
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Set up pnpm
+        uses: pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1
+        with:
+          version: 12.8.1
+      - name: Fetch the exact public source branch without credentials
+        run: |
+          git clone --no-tags --depth=1 --single-branch --branch "$INPUT_BRANCH" https://github.com/andrewck24/volleybro.git candidate
+          test "$(git -C candidate rev-parse HEAD)" = "$INPUT_SOURCE_SHA"
+      - name: Install dependencies
+        working-directory: candidate
+        run: pnpm install --frozen-lockfile
+      - name: Build the pinned Blueprint snapshots
+        working-directory: candidate
+        env:
+          BLUEPRINT_CHANGES_STORE_SHA: ${{ inputs.store_sha }}
+          BLUEPRINT_INTEGRATION_SHA: ${{ inputs.integration_sha }}
+        run: pnpm --filter blueprint build
+      - name: Validate build receipt and reject unsafe output files
+        working-directory: candidate
+        env:
+          PREVIEW_ARTIFACT_DIR: blueprint/out
+        run: node ../controller/scripts/blueprint-preview.js validate-artifact
+      - name: Upload the same-run static build artifact
+        id: artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: blueprint-preview-${{ inputs.request_id }}
+          path: candidate/blueprint/out
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+    outputs:
+      artifact_id: ${{ steps.artifact.outputs.artifact-id }}
+
+  upload:
+    needs: [request, build]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+    env:
+      INPUT_SOURCE_SHA: ${{ inputs.source_sha }}
+      INPUT_STORE_SHA: ${{ inputs.store_sha }}
+      INPUT_INTEGRATION_SHA: ${{ inputs.integration_sha }}
+      INPUT_BRANCH: ${{ inputs.branch }}
+      INPUT_SLUG: ${{ inputs.slug }}
+      INPUT_HASH: ${{ inputs.input_hash }}
+      INPUT_REQUEST_ID: ${{ inputs.request_id }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out the trusted workflow revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: controller
+          persist-credentials: false
+      - name: Initialize isolated runner paths
+        run: |
+          printf '%s\n' \
+            "PREVIEW_ARTIFACT_DIR=$RUNNER_TEMP/blueprint-preview-artifact" \
+            "WRANGLER_CONFIG_PATH=$RUNNER_TEMP/blueprint-preview-deploy/wrangler.json" \
+            "WRANGLER_CLI=$RUNNER_TEMP/blueprint-preview-wrangler/node_modules/wrangler/bin/wrangler.js" \
+            >> "$GITHUB_ENV"
+      - name: Download the exact artifact from this workflow run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/blueprint-preview-artifact
+      - name: Validate the artifact receipt and file types
+        run: node controller/scripts/blueprint-preview.js validate-artifact
+      - name: Prepare the isolated Wrangler configuration
+        id: preview
+        run: node controller/scripts/blueprint-preview.js prepare-upload
+      - name: Install the pinned Wrangler CLI before credential access
+        run: |
+          npm --cache "$RUNNER_TEMP/blueprint-preview-npm-cache" install \
+            --prefix "$RUNNER_TEMP/blueprint-preview-wrangler" \
+            --no-save --ignore-scripts --no-audit --no-fund wrangler@4.147.0
+          test "$(node "$WRANGLER_CLI" --version)" = "4.147.0"
+      - name: Revalidate the source branch immediately before upload
+        run: node controller/scripts/blueprint-preview.js revalidate-branch
+      - name: Upload an isolated static Worker version
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_BLUEPRINT_PREVIEW_DEPLOY_TOKEN }}
+        run: node controller/scripts/blueprint-preview.js upload

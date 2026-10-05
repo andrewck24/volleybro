@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0103",
+  "title": "Gate snapshots stay published while builds derive Change lifecycle",
+  "capabilities": ["platform/blueprint"],
+  "context": "ADR-0074 assumed deleted delivery branches removed the history needed by site builds. Integration history retains merge ancestry and trailers. ADR-0078 consequently required a post-merge publish for the landing date. Hosted checkout depth is not guaranteed; rewriting pulled facts would contaminate gate snapshots and drafts.",
+  "decision": "Keep published facts as gate snapshots, including measurements and start dates. Blueprint preparation derives archive dates and shard merge state from a pinned complete integration-history snapshot into a separate disposable overlay, combined only with matching published input. Missing required history stops the build instead of guessing unmerged state. Merge needs no extra publish solely for lifecycle dates. WORKFLOW.md and the Blueprint adapter own current operating rules.",
+  "alternatives": [
+    {
+      "option": "Keep the post-merge publish",
+      "reason": "Adds an operation after acceptance; forgotten cleanup leaves lifecycle status stale."
+    },
+    {
+      "option": "Rewrite pulled facts during build",
+      "reason": "Changes gate snapshots and store hashes, risking draft protection and accidental republishing of derived data."
+    },
+    {
+      "option": "Recompute all measurements",
+      "reason": "Exceeds the lifecycle problem and discards stable gate-by-gate measurement meaning."
+    }
+  ],
+  "consequences": [
+    "Builds require one complete read-only integration-history snapshot; failed derivation leaves the last successful deployment in place.",
+    "archivedAt still means integration landing, not pre-PR Archive or production release; all declared shards must land before their parent.",
+    "Converted pages retain historical facts; gate and publish validation never use the overlay."
+  ],
+  "originChange": "blueprint-build-archive"
+}

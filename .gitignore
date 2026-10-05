@@ -64,4 +64,8 @@ package-lock.json
 
 # Blueprint Change pages are throwaway review surfaces, generated per gate
 /blueprint/content/changes/
+/blueprint/.change-lifecycle.json
+/blueprint/.change-lifecycle.json.tmp
+/blueprint/public/blueprint-build.json
+/blueprint/public/blueprint-build.json.tmp
 .scratch/
