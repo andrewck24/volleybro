@@ -2,6 +2,11 @@ packages:
   - "."
   - blueprint
 
+# Only the Zod resolver is used. Revisit before enabling the AJV resolver.
+overrides:
+  "@hookform/resolvers@5.9.1>ajv": "-"
+  "@hookform/resolvers@5.9.1>ajv-formats": "-"
+
 allowBuilds:
   "@swc/core": false
   core-js-pure: true
