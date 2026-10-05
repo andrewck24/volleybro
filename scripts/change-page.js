@@ -238,69 +238,101 @@ async function orNull(read) {
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Integration cutovers may carry earlier batch merges through a second parent.
-export async function landingOf(root, base, slug, shard) {
-  const name = escapeRegExp(shard === undefined ? slug : `${slug}-s${shard}`);
-  const branch = new RegExp(
-    `(?:^|[\\s/'])(?:${CHANGE_BRANCH_PREFIXES.join("|")})/${name}(?:$|[\\s'])`,
-  );
-  // git parses the trailers, so a body line that merely starts with "Shard:"
-  // is not taken for one.
-  const log = await git(root, [
-    "log",
-    "--format=%H%x1f%P%x1f%cI%x1f%s%x1f%(trailers:key=Blueprint-Change,valueonly,separator=%x1d)%x1f%(trailers:key=Shard,valueonly,separator=%x1d)%x1e",
-    base,
-  ]);
-  for (const record of log.split("\x1e")) {
-    const [
-      hash,
-      parents = "",
-      archivedAt,
-      subject = "",
-      change = "",
-      shards = "",
-    ] = record.trim().split("\x1f");
-    const [first, second] = parents.split(" ");
-    let isBatchMerge = second && branch.test(subject);
-    if (second && !isBatchMerge) {
-      const trailers = await git(root, [
+export function createLandingHistory(root, base) {
+  let records;
+  const mergeSideRecords = new Map();
+
+  const readRecords = () => {
+    records ??= git(root, [
+      "log",
+      "--format=%H%x1f%P%x1f%cI%x1f%s%x1f%(trailers:key=Blueprint-Change,valueonly,separator=%x1d)%x1f%(trailers:key=Shard,valueonly,separator=%x1d)%x1e",
+      base,
+    ]).then((log) =>
+      log
+        .split("\x1e")
+        .map((record) => {
+          const [
+            hash,
+            parents = "",
+            archivedAt,
+            subject = "",
+            change = "",
+            shards = "",
+          ] = record.trim().split("\x1f");
+          const [first, second] = parents.split(" ");
+          return { hash, first, second, archivedAt, subject, change, shards };
+        })
+        .filter((record) => record.hash),
+    );
+    return records;
+  };
+
+  const readMergeSideRecords = (first, second) => {
+    const range = `${first}..${second}`;
+    let entries = mergeSideRecords.get(range);
+    if (!entries) {
+      entries = git(root, [
         "log",
         "--no-merges",
         "--format=%(trailers:key=Blueprint-Change,valueonly)%x1f%(trailers:key=Shard,valueonly)%x1e",
-        `${first}..${second}`,
-      ]);
-      const entries = trailers.split("\x1e").filter((entry) => entry.trim());
-      isBatchMerge =
-        entries.length > 0 &&
-        entries.every((entry) => {
-          const [change, batch] = entry.trim().split("\x1f");
-          return (
-            change?.trim() === slug &&
-            batch?.trim() === (shard === undefined ? "" : String(shard))
+        range,
+      ]).then((trailers) =>
+        trailers
+          .split("\x1e")
+          .filter((entry) => entry.trim())
+          .map((entry) => entry.trim().split("\x1f")),
+      );
+      mergeSideRecords.set(range, entries);
+    }
+    return entries;
+  };
+
+  return async (slug, shard) => {
+    const name = escapeRegExp(shard === undefined ? slug : `${slug}-s${shard}`);
+    const branch = new RegExp(
+      `(?:^|[\\s/'])(?:${CHANGE_BRANCH_PREFIXES.join("|")})/${name}(?:$|[\\s'])`,
+    );
+    for (const record of await readRecords()) {
+      const { hash, first, second, archivedAt, subject, change, shards } =
+        record;
+      let isBatchMerge = second && branch.test(subject);
+      if (second && !isBatchMerge) {
+        const entries = await readMergeSideRecords(first, second);
+        isBatchMerge =
+          entries.length > 0 &&
+          entries.every(
+            ([batchChange, batchShard]) =>
+              batchChange?.trim() === slug &&
+              batchShard?.trim() === (shard === undefined ? "" : String(shard)),
           );
-        });
+      }
+      if (isBatchMerge) {
+        return {
+          from: first,
+          to: hash,
+          commitRange: `${first}..${second}`,
+          archivedAt,
+        };
+      }
+      const values = (text) => text.split("\x1d").filter(Boolean);
+      const shardValues = values(shards);
+      if (
+        first &&
+        !second &&
+        values(change).includes(slug) &&
+        (shard === undefined
+          ? shardValues.length === 0
+          : shardValues.includes(String(shard)))
+      ) {
+        return { from: first, to: hash, commitRange: null, archivedAt };
+      }
     }
-    if (isBatchMerge) {
-      return {
-        from: first,
-        to: hash,
-        commitRange: `${first}..${second}`,
-        archivedAt,
-      };
-    }
-    const values = (text) => text.split("\x1d").filter(Boolean);
-    const shardValues = values(shards);
-    if (
-      first &&
-      !second &&
-      values(change).includes(slug) &&
-      (shard === undefined
-        ? shardValues.length === 0
-        : shardValues.includes(String(shard)))
-    ) {
-      return { from: first, to: hash, commitRange: null, archivedAt };
-    }
-  }
-  return null;
+    return null;
+  };
+}
+
+export async function landingOf(root, base, slug, shard) {
+  return createLandingHistory(root, base)(slug, shard);
 }
 
 // A merged Change is measured by what landed it, so republishing it from
@@ -423,8 +455,9 @@ export async function changeFacts(
   // so its publishes never become the Proposal's baseline (ADR-0095).
   const gateOf = (shard) =>
     reviewed.has(shard) ? "G2" : shard === 1 ? "G1" : undefined;
+  const landingFor = createLandingHistory(root, base);
   for (let shard = 1; shard <= count; shard += 1) {
-    const landing = await orNull(() => landingOf(root, base, slug, shard));
+    const landing = await orNull(() => landingFor(slug, shard));
     const head =
       landing || shard === current
         ? "HEAD"

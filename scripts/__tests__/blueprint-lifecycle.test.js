@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import {
   copyFile,
+  chmod,
   mkdir,
   mkdtemp,
   readFile,
@@ -267,4 +268,84 @@ test("keeps a sharded parent open until every declared shard lands", async (t) =
   assert.equal(overlay.changes.alpha.facts.shards.merged, 1);
   assert.ok(overlay.changes.alpha.facts.shards.items[0].archivedAt);
   assert.equal(overlay.changes.alpha.facts.shards.items[1].archivedAt, null);
+});
+
+test("scans one integration history and reuses merge-side records across Changes and shards", async (t) => {
+  const { repo } = await fixture(t);
+  await git(repo, "config", "user.name", "Fixture");
+  await git(repo, "config", "user.email", "fixture@example.test");
+
+  async function land(branch, slug, shard) {
+    await git(repo, "checkout", "--quiet", "-b", branch);
+    const source = branch.replaceAll("/", "-");
+    await commit(
+      repo,
+      { [`src/${source}.ts`]: `export const value = "${source}";\n` },
+      `${source}\n\nBlueprint-Change: ${slug}${shard ? `\nShard: ${shard}` : ""}`,
+    );
+    await git(repo, "checkout", "--quiet", "main");
+    await git(
+      repo,
+      "merge",
+      "--quiet",
+      "--no-ff",
+      branch,
+      "-m",
+      `Integrate ${source}`,
+    );
+    return git(repo, "show", "-s", "--format=%cI", "HEAD");
+  }
+
+  const alpha1 = await land("feat/alpha-s1", "alpha", 1);
+  const beta = await land("feat/beta", "beta");
+  const alpha2 = await land("feat/alpha-s2", "alpha", 2);
+  await git(repo, "push", "--quiet", "origin", "main");
+  await published(repo, "alpha", { shards: 2 });
+  await published(repo, "beta");
+
+  const bin = await mkdtemp(path.join(os.tmpdir(), "git-history-counter-"));
+  t.after(() => rm(bin, { recursive: true, force: true }));
+  const gitPath = (await execFileAsync("which", ["git"])).stdout.trim();
+  const commandLog = path.join(bin, "commands.jsonl");
+  const wrapper = path.join(bin, "git");
+  await writeFile(
+    wrapper,
+    `#!${process.execPath}\nimport {appendFileSync} from 'node:fs';\nimport {spawnSync} from 'node:child_process';\nconst args=process.argv.slice(2);\nif(args[0]==='log') appendFileSync(${JSON.stringify(commandLog)},JSON.stringify(args)+'\\n');\nconst result=spawnSync(${JSON.stringify(gitPath)},args,{stdio:'inherit'});\nprocess.exit(result.status ?? 1);\n`,
+  );
+  await chmod(wrapper, 0o755);
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${bin}${path.delimiter}${previousPath}`;
+  t.after(() => {
+    process.env.PATH = previousPath;
+  });
+
+  const result = await prepareLifecycle(repo);
+  const overlay = JSON.parse(await readFile(result.overlayPath, "utf8"));
+  const commands = (await readFile(commandLog, "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  const completeHistoryScans = commands.filter(
+    (args) => args[0] === "log" && args[1]?.startsWith("--format=%H%x1f%P"),
+  );
+  const mergeSideScans = commands.filter(
+    (args) => args[0] === "log" && args[1] === "--no-merges",
+  );
+
+  assert.equal(result.integrationSha, await git(repo, "rev-parse", "HEAD"));
+  assert.equal(completeHistoryScans.length, 1);
+  assert.equal(mergeSideScans.length, 3);
+  assert.equal(
+    overlay.changes.alpha.facts.shards.items[0].archivedAt,
+    new Date(alpha1).toISOString(),
+  );
+  assert.equal(
+    overlay.changes.alpha.facts.shards.items[1].archivedAt,
+    new Date(alpha2).toISOString(),
+  );
+  assert.equal(overlay.changes.alpha.facts.shards.merged, 2);
+  assert.equal(
+    overlay.changes.beta.facts.archivedAt,
+    new Date(beta).toISOString(),
+  );
 });

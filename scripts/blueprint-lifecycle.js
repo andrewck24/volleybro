@@ -13,7 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { landingOf } from "./change-page.js";
+import { createLandingHistory } from "./change-page.js";
 import { hashDir } from "./blueprint-changes.js";
 
 const execFileAsync = promisify(execFile);
@@ -96,6 +96,10 @@ export async function prepareLifecycle(
       "rev-parse",
       "refs/blueprint-changes/remote^{commit}",
     ]);
+    const landingFor = createLandingHistory(
+      temporary,
+      "refs/heads/integration",
+    );
     const changes = {};
     const changeInputHashes = {};
     const storeState = await optional(async () =>
@@ -121,12 +125,7 @@ export async function prepareLifecycle(
       if (Number.isInteger(declared) && declared > 0) {
         const items = [];
         for (let shard = 1; shard <= declared; shard += 1) {
-          const landing = await landingOf(
-            temporary,
-            "refs/heads/integration",
-            slug,
-            shard,
-          );
+          const landing = await landingFor(slug, shard);
           items.push({
             shard,
             archivedAt: landing
@@ -156,11 +155,7 @@ export async function prepareLifecycle(
           },
         };
       } else {
-        const landing = await landingOf(
-          temporary,
-          "refs/heads/integration",
-          slug,
-        );
+        const landing = await landingFor(slug);
         lifecycle = {
           archivedAt: landing
             ? new Date(landing.archivedAt).toISOString()
