@@ -279,7 +279,7 @@ export function InteractiveFlowchart({
         </svg>
       </div>
 
-      <div className="w-full shrink-0 self-start rounded-lg border bg-card p-4 md:w-64">
+      <div className="w-full shrink-0 self-start rounded-lg border bg-card p-4 [overflow-wrap:anywhere] md:w-64">
         {activeDetail ? (
           <>
             <strong>{renderInline(activeDetail.title)}</strong>
