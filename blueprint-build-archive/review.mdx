@@ -1,0 +1,117 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+本頁仍是驗證草稿，不是 G2 就緒通知。程式與本機驗證已完成；新的按需 Preview 尚缺 hosted uploader 與 rendered page 證據。隔離 rehearsal 必須先取得原生 Preview trigger 暫時排除測試分支的授權，避免兩個 publisher 覆寫同一 alias；測完還原。未取得授權不改共享 trigger、不改 production。
+
+合併後才註冊 trusted-main workflow，再按 canonical activation contract 切換原生觸發與 coordinator、驗證正常 dispatch。不能把合併前 bootstrap 當成正常 dispatch 已啟用；操作規則以 `WORKFLOW.md` 為準。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `scripts/blueprint-lifecycle.js` 與 `scripts/change-page.js`：在完整、固定 integration history 上共用掃描；overlay 不寫回 gate facts，未合併 shard 不偽造落地日期。
+2. `scripts/blueprint-gate.js` 與 Change route：hosted receipt 和實際 HTML 的 source／integration／store／content hash 必須一致；只看到 HTTP 成功不算驗收。
+3. Preview workflow：分支建置不拿 Cloudflare token；trusted controller 在另一 runner 驗證 static artifact，最後才取得 deploy credential。Production 使用不同的序列化 coordinator 與 native Builds 路徑。
+
+</ReviewFocus>
+
+<Deviations>
+
+沒有更改 G1 scope 或 scenarios。原生 Preview 自動建置不能直接當成「按需」：新路徑改由 trusted-main workflow 建置公開且固定的 branch／store／integration snapshots，再上傳 static export；原生 Preview 必須在 activation 時停用並排空。
+
+複審修正了 rendered page 與 receipt 不一致仍可能被接受的缺口，並補上跨 Change／shard 的共用 history reader。CLI 測試使用真實入口，不保留 test-only production injection。隔離 native rehearsal 只證明 coordinator 的重疊事件與單次 build，不拿它代替新 uploader 的證據。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "真實 Git landing fixtures 與 reader tests 證明合併日期可推導；原始 facts 保持不變。" },
+    { id: "S2", result: "pass", evidence: "Partial-shard fixture 保持 parent open；跨 Change fixture 核對各 shard 落地時間與完整 parent。" },
+    { id: "S3", result: "pass", evidence: "隔離 fetch、固定 SHA／完整 ancestry checks 與失敗路徑通過；共用掃描 regression 修正前失敗、修正後通過。" },
+    { id: "S4", result: "pass", evidence: "Converted、local draft、輸入 hash 不符與 stale overlay 的 owner-boundary tests 通過。" },
+    { id: "S5", result: "pass", evidence: "共同 preparation／reader 與正常、squash、shard fixtures 通過；publish 保留原始 snapshot。" },
+    { id: "S6", result: "pass", evidence: "真實 concurrent store fixtures 保留兩個 slug；有限重試與失敗路徑通過，沒有 force push。" },
+    { id: "S7", result: "pass", evidence: "隔離 hosted native rehearsal 實際重疊 publication／app-only merge，序列化後最終 receipt 指向最新輸入，production baseline 不變。" },
+    { id: "S8", result: "fail", evidence: "CLI／HTML identity regression 通過；新的 static-upload Preview 尚未完成 hosted 與 rendered page 驗證，此草稿不主張場景完成。" },
+    { id: "S9", result: "fail", evidence: "Native hosted logs 已證明每次建置只有一次 Next build；新 Preview uploader 的最終 hosted logs 尚未取得。" },
+  ]}
+/>
+
+<TestPlan items={[
+  { id: "T1", executor: "agent", result: "pass", checks: "本機與獨立複審", method: "pnpm verify:all；targeted landing／lifecycle tests；Spec／Standards review", environment: "隔離 checkout 與真實 Git fixtures", evidence: "全部 lanes 通過；共用 history regression 修正前失敗、修正後通過。" },
+  { id: "T2", executor: "agent", result: "pass", checks: "Native hosted rehearsal", method: "重疊 publication／app-only merge；核對 receipts／hosted logs／production baseline", environment: "隔離 Preview", evidence: "最終輸入正確、一次 Next build；暫時 hook／secret 已刪除並 read back。" },
+  { id: "T3", executor: "agent", result: "fail", checks: "新 Preview uploader 與頁面", method: "授權後執行 exact-ref bootstrap，讀取 hosted receipt／HTML 與 light／dark 正常 viewport", environment: "隔離 bootstrap／按需 Preview", evidence: "尚未執行；不請開發者代跑，不宣稱 G2。" },
+  { id: "T4", executor: "agent", result: "fail", checks: "正常 dispatch／activation", method: "合併並接受 activation checklist 後 read back triggers／coordinator，驗證單一 publisher", environment: "Trusted main", evidence: "尚未註冊正常 workflow；失敗停止，不宣稱 activation 完成。" },
+]} />
+
+<ReviewDetails>
+
+### Credentials：主站路徑
+
+圖中只有使用 credential 的步驟標示 token／hook；完整名稱在可展開說明內。設定與授權契約由 `WORKFLOW.md` 持有，本圖只解釋它們在哪一段使用。
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "publish", label: "Publish／main merge", sublabel: "GitHub auth", x: 112, y: 40, w: 192, h: 48 },
+    { id: "queue", label: "序列化 coordinator", sublabel: "Build read token", x: 112, y: 124, w: 192, h: 48 },
+    { id: "hook", label: "要求 native build", sublabel: "Deploy hook secret", x: 112, y: 208, w: 192, h: 48 },
+    { id: "build", label: "一次 Next build", sublabel: "No CF token in source build", x: 112, y: 292, w: 192, h: 48 },
+    { id: "upload", label: "部署既有 export", sublabel: "Native build token", x: 112, y: 376, w: 192, h: 48 },
+    { id: "receipt", label: "公開 receipt／頁面", sublabel: "No credential", x: 112, y: 460, w: 192, h: 48 },
+  ]}
+  edges={[{ from: "publish", to: "queue" }, { from: "queue", to: "hook" }, { from: "hook", to: "build" }, { from: "build", to: "upload" }, { from: "upload", to: "receipt" }]}
+  details={{
+    publish: { title: "不需要 Cloudflare 登入", body: "Store publication 與 main merge 使用 GitHub 身分；本機 gate 的 publish 不需要 cf auth login。" },
+    queue: { title: "唯讀 Workers Builds", body: "GitHub secret CLOUDFLARE_BLUEPRINT_BUILD_READ_TOKEN 只查指定 Worker／production trigger 的 build 與狀態，不能用它部署。" },
+    hook: { title: "Hook URL 本身就是 credential", body: "CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK 只保存在 GitHub secret；不能把 URL 放進頁面、log 或 commit。Coordinator 核對它與 production trigger 的關聯。" },
+    build: { title: "建置與部署分開", body: "Next export 執行一次；公開 Git history 與 store fetch 不需要 Cloudflare API token。" },
+    upload: { title: "Cloudflare 平台內的 build token", body: "Native Builds 使用平台設定的 deployment API token 部署已檢查 export，不由 Agent 的本機 OAuth 代替，也不重新跑 Next build。" },
+    receipt: { title: "公開證據，不需 token", body: "Agent 讀公開 build receipt 與 Change HTML，核對完整 snapshot identity；成功 hook 或相同標題不能取代驗證。" },
+  }}
+/>
+
+### Credentials：按需 Preview
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "request", label: "Trusted-main dispatch", sublabel: "GitHub auth", x: 112, y: 40, w: 192, h: 48 },
+    { id: "build", label: "固定公開 snapshots", sublabel: "Credential-free build", x: 112, y: 124, w: 192, h: 48 },
+    { id: "artifact", label: "Static artifact 檢查", sublabel: "Separate trusted runner", x: 112, y: 208, w: 192, h: 48 },
+    { id: "upload", label: "Versions upload", sublabel: "Preview deploy token", x: 112, y: 292, w: 192, h: 48 },
+    { id: "verify", label: "Receipt＋渲染核對", sublabel: "No credential", x: 112, y: 376, w: 192, h: 48 },
+  ]}
+  edges={[{ from: "request", to: "build" }, { from: "build", to: "artifact" }, { from: "artifact", to: "upload" }, { from: "upload", to: "verify" }]}
+  details={{
+    request: { title: "Controller 不來自待驗分支", body: "正常 workflow_dispatch 必須在 trusted main；GitHub 身分啟動 workflow，不需要把本機 cf OAuth 複製到 CI。合併前隔離 bootstrap 是另外受限的驗證，不冒充此流程已啟用。" },
+    build: { title: "不把部署權限交給分支程式", body: "公開且固定的 source／store／integration SHA 在無 Cloudflare secret 的 runner 執行一次 Next build；不部署 production。" },
+    artifact: { title: "先檢查，再取得 token", body: "Trusted controller 只下載同一 run 的 exact artifact，拒絕 symlink／特殊檔案與錯誤 receipt；在取得 credential 前安裝固定 Wrangler 並準備最小部署設定。" },
+    upload: { title: "只有最後一步取得 deploy secret", body: "CLOUDFLARE_BLUEPRINT_PREVIEW_DEPLOY_TOKEN 只提供給 static versions upload；上傳前重查 public branch head，使用隔離設定，不能改 production deployment。" },
+    verify: { title: "驗證 alias 沒有變成另一份內容", body: "公開 receipt 與 HTML marker 必須同時符合 source／integration／store／完整 Change hash；此步驟不需要 cf login。" },
+  }}
+/>
+
+### 本機需要 cf 登入的位置
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "login", label: "cf auth login", sublabel: "Local OAuth", x: 112, y: 40, w: 192, h: 48 },
+    { id: "inspect", label: "檢查平台設定", sublabel: "cf auth whoami／read back", x: 112, y: 124, w: 192, h: 48 },
+    { id: "change", label: "授權後設定／清理", sublabel: "Triggers／temporary hooks", x: 112, y: 208, w: 192, h: 48 },
+  ]}
+  edges={[{ from: "login", to: "inspect" }, { from: "inspect", to: "change" }]}
+  details={{
+    login: { title: "本機管理身分", body: "操作 cf 的平台 API 前先登入並檢查權限。OAuth 留在本機，不讀取／複製 credential 檔，也不當成 GitHub deploy token。" },
+    inspect: { title: "只讀盤點", body: "核對 Worker、triggers、builds 與實際 production baseline；公開 receipt 與頁面讀取不需此登入。" },
+    change: { title: "登入不等於修改授權", body: "修改共享 trigger、建立／刪除暫時 hook 都需要符合明確授權；完成後 read back。暫時 rehearsal hook 的 secret 刪除，不納入 recurring flow。" },
+  }}
+/>
+
+### Archive assessment 與殘留工作
+
+最窄 Blueprint Feature 已描述 lifecycle overlay、rendered identity、按需 Preview 與 coordinated deployment；沒有 app domain vocabulary 改變，不改 CONTEXT。此 Change 是 Blueprint／CI plumbing，不改 app 行為或 contributor toolchain，沒有 app Changeset。
+
+Code fixed point 不代表平台 activation 或 G2 完成。Hosted static-uploader、rendered Review 與正常 dispatch 證據仍須補齊；安全設定不以 bypass 取得綠燈。Store 成本評估另案：文件 footprint 不等於實際 PR diff 或 token 節省，本次不刪除 store。
+
+</ReviewDetails>
