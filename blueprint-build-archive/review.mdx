@@ -2,7 +2,7 @@ import { scenarios } from "./proposal.mdx";
 
 <ActionItems>
 
-本頁仍是驗證草稿，不是 G2 就緒通知。程式、本機驗證與隔離 hosted upload 已完成；替換 token 後，build、artifact、receipt 與 Worker version upload 全部通過。暫時 Preview trigger 覆寫已還原，production trigger 未變。此版本的 rendered page 與最終 Review 尚待 browser 核對。
+無新增待決事項。程式、本機驗證、獨立複審與隔離 hosted upload 已完成；build、artifact、receipt 與 Worker version upload 通過。長 credential 名稱的換行修正已在正常 viewport 的深／亮色模式核對。
 
 合併後才註冊 trusted-main workflow，再按 canonical activation contract 切換原生觸發與 coordinator、驗證正常 dispatch。不能把合併前 bootstrap 當成正常 dispatch 已啟用；操作規則以 `WORKFLOW.md` 為準。
 
@@ -24,6 +24,8 @@ import { scenarios } from "./proposal.mdx";
 
 Hosted rehearsal 另修正 GitHub runner context 的初始化位置，以及 download-artifact 的 extraction layout；仍限定同一 run 的 exact artifact ID，驗證成功後才取得 deploy token，沒有放寬 credential 邊界。
 
+瀏覽器核對發現 flowchart detail card 的長 credential 名稱溢出；只新增 emergency wrapping，不改節點、操作或 credential 範圍。修正後深／亮色模式可完整閱讀，本機全套驗證與兩軸 delta review 通過。
+
 </Deviations>
 
 <ScenarioResults
@@ -36,7 +38,7 @@ Hosted rehearsal 另修正 GitHub runner context 的初始化位置，以及 dow
     { id: "S5", result: "pass", evidence: "共同 preparation／reader 與正常、squash、shard fixtures 通過；publish 保留原始 snapshot。" },
     { id: "S6", result: "pass", evidence: "真實 concurrent store fixtures 保留兩個 slug；有限重試與失敗路徑通過，沒有 force push。" },
     { id: "S7", result: "pass", evidence: "隔離 hosted native rehearsal 實際重疊 publication／app-only merge，序列化後最終 receipt 指向最新輸入，production baseline 不變。" },
-    { id: "S8", result: "fail", evidence: "CLI／HTML identity regression 通過；新的 static-upload Preview 尚未完成 hosted 與 rendered page 驗證，此草稿不主張場景完成。" },
+    { id: "S8", result: "pass", evidence: "CLI／HTML identity regression、隔離 static-upload hosted receipt 與 rendered identity 核對通過；正常 viewport 深／亮色 detail card 可完整閱讀。" },
     { id: "S9", result: "pass", evidence: "Native 與新 static-upload Preview 的 hosted logs 均證明只有一次 Next build；upload job 直接部署同一 run 的 static artifact，成功上傳 assets。" },
   ]}
 />
@@ -44,9 +46,14 @@ Hosted rehearsal 另修正 GitHub runner context 的初始化位置，以及 dow
 <TestPlan items={[
   { id: "T1", executor: "agent", result: "pass", checks: "本機與獨立複審", method: "pnpm verify:all；targeted landing／lifecycle tests；Spec／Standards review", environment: "隔離 checkout 與真實 Git fixtures", evidence: "全部 lanes 通過；共用 history regression 修正前失敗、修正後通過。" },
   { id: "T2", executor: "agent", result: "pass", checks: "Native hosted rehearsal", method: "重疊 publication／app-only merge；核對 receipts／hosted logs／production baseline", environment: "隔離 Preview", evidence: "最終輸入正確、一次 Next build；暫時 hook／secret 已刪除並 read back。" },
-  { id: "T3", executor: "agent", result: "fail", checks: "新 Preview uploader 與頁面", method: "執行授權的 exact-ref bootstrap，讀取 hosted receipt／HTML 與 light／dark 正常 viewport", environment: "隔離 bootstrap／按需 Preview", evidence: "Build、artifact 與 receipt 通過；token header 格式遭拒，未完成 upload／hosted page，不能宣稱 G2。" },
-  { id: "T4", executor: "agent", result: "fail", checks: "正常 dispatch／activation", method: "合併並接受 activation checklist 後 read back triggers／coordinator，驗證單一 publisher", environment: "Trusted main", evidence: "尚未註冊正常 workflow；失敗停止，不宣稱 activation 完成。" },
+  { id: "T3", executor: "agent", result: "pass", checks: "新 Preview uploader 與頁面", method: "執行授權的 exact-ref bootstrap，讀取 hosted receipt／HTML 與 light／dark 正常 viewport", environment: "隔離 bootstrap／按需 Preview", evidence: "Build、exact artifact、receipt、static upload 與公開 HTML identity 通過；換行修正核對後可完整閱讀。" },
 ]} />
+
+<AfterRelease>
+
+合併後由 Agent 執行已授權的 activation：註冊 trusted-main workflow、停用並排空 native automatic Preview、read back production trigger 與 coordinator 設定，最後驗證正常 gate dispatch 及主網址的 landing overlay。合併前的隔離 bootstrap 不代表正常 dispatch 已啟用；未完成上述核對前不關閉 operational issue。失敗即停止切換，不以 bypass 取得綠燈。設定順序與 credential 契約只由 `WORKFLOW.md` 持有。
+
+</AfterRelease>
 
 <ReviewDetails>
 
@@ -114,7 +121,7 @@ Hosted rehearsal 另修正 GitHub runner context 的初始化位置，以及 dow
 
 最窄 Blueprint Feature 已描述 lifecycle overlay、rendered identity、按需 Preview 與 coordinated deployment；沒有 app domain vocabulary 改變，不改 CONTEXT。此 Change 是 Blueprint／CI plumbing，不改 app 行為或 contributor toolchain，沒有 app Changeset。
 
-Code fixed point 不代表平台 activation 或 G2 完成。Hosted static-uploader 已成功；rendered Review 與合併後正常 dispatch 證據仍須補齊，安全設定不以 bypass 取得綠燈。Store 成本評估另案：文件 footprint 不等於實際 PR diff 或 token 節省，本次不刪除 store。
+Code fixed point 不代表平台 activation。Hosted static-uploader 已成功；合併後正常 dispatch 是 AfterRelease 的操作義務，不偽報為已完成的 pre-merge 測試。Store 成本評估另案：文件 footprint 不等於實際 PR diff 或 token 節省，本次不刪除 store。
 
 全面改採 `cf` 已另案追蹤，不阻擋本輪。現行 `cf --prebuilt` 能消費官方 Build Output，但封裝既有 export 的官方 writer API 尚未穩定；本次保留已 review 且 hosted upload 成功的 pinned Wrangler。下一次 deploy toolchain 升級、官方提供穩定或更直接的 static export 路徑、或 Wrangler 發生維護問題時重新評估；比較額外依賴與轉換成本，保持同一 credential 邊界及一次 build，不以工具名稱取代驗證。
 
