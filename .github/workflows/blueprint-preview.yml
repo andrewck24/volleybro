@@ -141,9 +141,6 @@ jobs:
       INPUT_SLUG: ${{ inputs.slug }}
       INPUT_HASH: ${{ inputs.input_hash }}
       INPUT_REQUEST_ID: ${{ inputs.request_id }}
-      PREVIEW_ARTIFACT_DIR: ${{ runner.temp }}/blueprint-preview-artifact
-      WRANGLER_CONFIG_PATH: ${{ runner.temp }}/blueprint-preview-deploy/wrangler.json
-      WRANGLER_CLI: ${{ runner.temp }}/blueprint-preview-wrangler/node_modules/wrangler/bin/wrangler.js
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Check out the trusted workflow revision
@@ -152,6 +149,13 @@ jobs:
           ref: ${{ github.workflow_sha }}
           path: controller
           persist-credentials: false
+      - name: Initialize isolated runner paths
+        run: |
+          printf '%s\n' \
+            "PREVIEW_ARTIFACT_DIR=$RUNNER_TEMP/blueprint-preview-artifact" \
+            "WRANGLER_CONFIG_PATH=$RUNNER_TEMP/blueprint-preview-deploy/wrangler.json" \
+            "WRANGLER_CLI=$RUNNER_TEMP/blueprint-preview-wrangler/node_modules/wrangler/bin/wrangler.js" \
+            >> "$GITHUB_ENV"
       - name: Download the exact artifact from this workflow run
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
