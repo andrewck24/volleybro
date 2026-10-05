@@ -28,7 +28,7 @@
     "lint:fix": "eslint . --fix",
     "knip": "knip",
     "test": "jest --selectProjects backend frontend",
-    "test:integration": "jest --selectProjects integration",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects integration",
     "test:workflow": "node --test scripts/__tests__/*.test.js",
     "test:watch": "jest --watch",
     "storybook": "storybook dev -p 6006",
