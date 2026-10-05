@@ -94,7 +94,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1
         with:
-          version: 12.8.1
+          version: 12.9.1
       - name: Fetch the exact public source branch without credentials
         run: |
           git clone --no-tags --depth=1 --single-branch --branch "$INPUT_BRANCH" https://github.com/andrewck24/volleybro.git candidate
