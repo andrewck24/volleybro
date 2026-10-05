@@ -8,6 +8,7 @@ overrides:
   "@hookform/resolvers@5.9.1>ajv-formats": "-"
 
 allowBuilds:
+  "@parcel/watcher": false
   "@swc/core": false
   core-js-pure: true
   esbuild: true
@@ -42,7 +43,9 @@ minimumReleaseAgeExclude:
   - "@better-auth/telemetry@1.7.2"
   - "@testing-library/react@16.3.3"
   - better-auth@1.7.2
-  - chromatic@18.6.1
+  - chromatic@18.6.1 || 18.11.0
   - fumadocs-core@16.15.4
   - fumadocs-mdx@15.4.0
   - fumadocs-ui@16.15.4
+  - mongoose@9.11.0
+  - postcss@8.5.29
