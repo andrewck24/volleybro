@@ -57,7 +57,7 @@ jobs:
       controller_sha: ${{ steps.controller.outputs.controller_sha }}
       mode: ${{ steps.controller.outputs.mode }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.workflow_sha || github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
@@ -115,7 +115,7 @@ jobs:
           else
             node "$RUNNER_TEMP/release-controls.js" authorize
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.authorize.outputs.sha }}
           fetch-depth: 0
@@ -209,7 +209,7 @@ jobs:
         with:
           name: production-release-source-plan
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
@@ -378,7 +378,7 @@ jobs:
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
@@ -502,7 +502,7 @@ jobs:
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
@@ -544,7 +544,7 @@ jobs:
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
@@ -578,7 +578,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.workflow_sha }}
           fetch-depth: 0
@@ -613,7 +613,7 @@ jobs:
         with:
           name: trusted-release-controller
           path: ${{ runner.temp }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
