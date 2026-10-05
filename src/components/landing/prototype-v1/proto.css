@@ -1,4 +1,4 @@
-/* PROTOTYPE: landing visual-direction keyframes.
+/* PROTOTYPE: v1 landing keyframes.
    transform / opacity / stroke-dashoffset only. One beat = one rally:
    500ms, cubic-bezier(0.2, 0.8, 0.2, 1), same as the hero entry rows. */
 
@@ -99,16 +99,22 @@
   }
 }
 
-/* 「每球三步」: mandatory snap on the root only while the steps section fully
-   covers the viewport (class toggled by IntersectionObserver sentinels). */
-html.proto-steps-snap {
-  scroll-snap-type: y mandatory;
+/* 「每球三步」 pinned part: 4 step tracks of (viewport − header). Shared by the
+   lazy placeholder and the loaded section so loading never shifts the page.
+   Landscape phones get a static block of fixed height instead. */
+.v1-steps-h {
+  height: calc(4 * (100svh - var(--header-h)));
 }
 
 @media (max-height: 500px) {
-  html.proto-steps-snap {
-    scroll-snap-type: none;
+  .v1-steps-h {
+    height: 42rem;
   }
+}
+
+/* Section 4 Points slot: the real Points block is 5 fixed-height rows. */
+.v1-points-h {
+  min-height: 24.5rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

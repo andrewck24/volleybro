@@ -2,27 +2,26 @@ import { LogoType } from "@/components/brand";
 import { DarkMode } from "@/components/landing/footer/dark-mode";
 import { cn } from "@/lib/utils";
 
-// PROTOTYPE: content + small pieces every visual-direction variant draws from.
-// Layout is NOT shared — each variant owns its own page structure.
+// PROTOTYPE: v1 landing copy + small shared pieces.
 
 export const SKILL_WORDS = ["發球", "攻擊", "攔網"];
 
 export const COPY = {
   heroTitle: ["場邊記錄，", "數據自動長出來"],
-  heroLead: "比賽打到哪、你就點到哪。比分、輪轉、技術統計，記完當下就整理好。",
   heroNote: "用瀏覽器打開就能記，不必下載 App",
   recordTitle: "每球三步，送出不必等網路",
   recordLead: "點選、確認、送出。訊號不好也不會卡住下一球。",
-  statsTitle: "不用另外整理，記完就是統計",
   statsLead: "每一球都已經分好類。比賽一結束，數字就在那裡。",
   kitTitle: "一支手機就夠",
   kitLead: "建隊、邀請、排陣容，全部在同一支手機上完成。",
-  ctaTitle: "下一場比賽就開始用",
   ctaLead: "先建好球隊，開賽哨聲一響就能記。",
   /** hero = title + this one sentence, with the rally word in the middle */
   heroDesc: ["讓每一次", "都變成數據。"],
 };
 
+// DECIDE: step copy — B1 wording kept; record-demo had 「點場上的球員，決定這一球
+// 是誰的。」「從動作面板挑一個：發球、攻擊、攔網……」「面板換成對方的結果，再點一次。」
+// 「確認這一球的摘要，送出即記錄完成。」, which tracks the real panel more literally.
 export const STEPS = [
   { title: "選球員", body: "點場上的背號，誰碰到球就點誰。" },
   { title: "我方動作", body: "攻擊、攔網、接發……得分 + 或失分 −。" },
@@ -89,7 +88,7 @@ export const DevBadge = ({ className }: { className?: string }) => (
   </span>
 );
 
-/** Footer shared by the round-2 variants: logo flush left, links, theme toggle. */
+/** Footer: logo flush left, author, links, theme toggle. */
 export const ProtoFooter = ({ year }: { year: number }) => (
   <footer className="bg-background px-4 pt-16 pb-28 md:px-8">
     <div className="mx-auto flex max-w-7xl flex-col items-start gap-8 lg:flex-row lg:items-end lg:justify-between">
@@ -133,30 +132,12 @@ export const ProtoFooter = ({ year }: { year: number }) => (
 /** Section spacing reference: round-1 B's ending CTA. */
 export const SECTION = "mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-32";
 
-/* ---------- round-4 switchable params (B1 only) ---------- */
-
 /** All CTA buttons: destructive ground + black text (8.06:1). */
 export const BTN_DESTRUCTIVE =
   "bg-destructive font-bold text-black hover:bg-destructive/90";
 
-/** `&header=` — `h` is the header's overlay height (hero/steps pad by it). */
-export const HEADER_OPTIONS = [
-  { key: "1", name: "玻璃（現行 header 改）", h: "4rem" },
-  { key: "2", name: "實色記分板條", h: "3.5rem" },
-  { key: "3", name: "浮動膠囊", h: "3.75rem" },
-];
+/** id of section 4's server-rendered slot the live Points bars portal into */
+export const POINTS_SLOT = "v1-points";
 
-/** `&ctaLayout=` — closing-CTA arrangement below lg (lg+ is always side by side). */
-export const CTA_LAYOUTS = [
-  { key: "1", name: "文字在上、圖在下" },
-  { key: "2", name: "圖當整塊文字的背景" },
-  { key: "3", name: "圖夾在說明與按鈕間" },
-];
-
-/** `&curve=` — diff line shape. */
-export const CURVES = [
-  { key: "sharp", name: "折線" },
-  { key: "soft", name: "小圓角（4px fillet）" },
-  { key: "tension", name: "低張力（cardinal 0.7）" },
-  { key: "round", name: "圓滑（monotone cubic）" },
-];
+/** Overlay height of the fixed header (pt-2 + h-14); exported as --header-h. */
+export const HEADER_H = "4rem";

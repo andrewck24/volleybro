@@ -34,6 +34,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // PROTOTYPE: `/?variant=v1` shows the landing v1 prototype; `/` itself stays
+  // the static current landing.
+  if (
+    nextUrl.pathname === "/" &&
+    nextUrl.searchParams.get("variant") === "v1"
+  ) {
+    return NextResponse.rewrite(new URL("/landing-v1", nextUrl));
+  }
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });

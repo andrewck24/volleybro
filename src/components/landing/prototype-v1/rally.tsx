@@ -1,12 +1,11 @@
 "use client";
 import { Figure } from "@/components/custom/stats/figures";
 import {
-  isSetOver,
-  newSet,
-  playRally,
+  SET_RALLIES,
+  setAt,
   type SetState,
-} from "@/components/landing/prototype-visual/set-model";
-import { SKILL_WORDS } from "@/components/landing/prototype-visual/shared";
+} from "@/components/landing/prototype-v1/demo-data";
+import { SKILL_WORDS } from "@/components/landing/prototype-v1/shared";
 import { cn } from "@/lib/utils";
 import {
   createContext,
@@ -23,22 +22,21 @@ import { FiMinus, FiPlus } from "react-icons/fi";
 // choreography from prototype/hero-entry-motion, 2.2s cadence). CSS
 // transitions/keyframes only (transform, opacity, stroke-dashoffset); moving
 // layers carry no shadow or blur. Clock pauses off-screen / hidden tab;
-// reduced motion renders a fixed mid-set snapshot.
+// reduced motion renders a fixed mid-set snapshot. The set is the shared demo
+// fixture (demo-data.ts), replayed from rally 1 after a pause once it ends;
+// this clock never touches the sections 3-4 store.
 
+// DECIDE: the clock replays the same fixture set (25:21) every loop instead of
+// B1's fresh random set, and the skill word still rotates by rally index
+// rather than naming the fixture rally's own skill.
 const INTERVAL = 2200;
 const PAUSE_TICKS = 1;
 const SEED_RALLIES = 5;
+const STATIC_RALLIES = 22;
 export const EASE = "cubic-bezier(0.2,0.8,0.2,1)";
 
-const seeded = (n: number, pattern: number[]) => {
-  let s = newSet();
-  for (let i = 0; i < n; i++)
-    s = playRally(s, () => pattern[i % pattern.length]!);
-  return s;
-};
-// deterministic so server and client render the same first frame
-const seedSet = () => seeded(SEED_RALLIES, [0, 0.9, 0, 0, 0.9]);
-const STATIC_SET = seeded(22, [0, 0.9, 0, 0, 0.9, 0.9, 0, 0.9, 0, 0, 0]);
+const STATIC_SET = setAt(STATIC_RALLIES);
+const SET_LEN = SET_RALLIES.length;
 
 type Rally = {
   set: SetState;
@@ -66,7 +64,7 @@ export const RallyProvider = ({
   className?: string;
 }) => {
   const [state, setState] = useState<Rally>(() => ({
-    set: seedSet(),
+    set: setAt(SEED_RALLIES),
     setNo: 0,
     live: false,
   }));
@@ -115,19 +113,15 @@ export const RallyProvider = ({
     if (reduced || !active) return;
     const id = setInterval(() => {
       const cur = live.current;
-      if (isSetOver(cur.set)) {
+      if (cur.set.rallies >= SET_LEN) {
         if (pause.current > 0) {
           pause.current--;
           return;
         }
-        live.current = {
-          set: playRally(newSet()),
-          setNo: cur.setNo + 1,
-          live: true,
-        };
+        live.current = { set: setAt(1), setNo: cur.setNo + 1, live: true };
       } else {
-        live.current = { ...cur, set: playRally(cur.set), live: true };
-        if (isSetOver(live.current.set)) pause.current = PAUSE_TICKS;
+        live.current = { ...cur, set: setAt(cur.set.rallies + 1), live: true };
+        if (cur.set.rallies + 1 >= SET_LEN) pause.current = PAUSE_TICKS;
       }
       setState(live.current);
     }, INTERVAL);
