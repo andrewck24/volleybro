@@ -2,69 +2,17 @@
 import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
 import { BTN_PRIMARY } from "@/components/landing/prototype-v2/copy";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
-import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
-import { RiComputerLine, RiMoonLine, RiSunLine } from "react-icons/ri";
 
 // PROTOTYPE: floating chrome (LAYERS L2) in the app's own language. At rest
 // it is transparent over the teal free zone; once the page scrolls (top
 // sentinel IntersectionObserver, as v1) the app navigation bar's glass fades
 // in (src/components/layout/nav/index.tsx: bg-background/94, shadow-lg,
-// ring-1 ring-foreground/10, backdrop-blur-sm). The theme switch rides in
-// it with the same rest / scrolled colours. Concentric radius: the pill is
-// rounded-2xl (16) with p-1.5 (6), so the CTA and the switch group inside
-// are rounded-[10px]; the switch group's p-1 (4) makes its buttons
-// rounded-md (6). Height stays --header-h for the hero and the walkthrough
-// offset.
-
-const THEMES = [
-  { value: "system", label: "跟隨系統", Icon: RiComputerLine },
-  { value: "light", label: "淺色", Icon: RiSunLine },
-  { value: "dark", label: "深色", Icon: RiMoonLine },
-] as const;
-
-const ThemeSwitch = ({ scrolled }: { scrolled: boolean }) => {
-  const mounted = useHydrated();
-  const { theme, setTheme } = useTheme();
-  return (
-    <div
-      role="group"
-      aria-label="色彩主題"
-      className={cn(
-        "hidden h-9 items-center gap-0.5 rounded-[10px] p-1 transition-colors duration-300 min-[22.5rem]:flex",
-        scrolled ? "bg-muted/70" : "bg-(--v2-on-free)/10",
-      )}
-    >
-      {THEMES.map(({ value, label, Icon }) => {
-        const on = mounted && theme === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            aria-label={label}
-            aria-pressed={on}
-            disabled={!mounted}
-            onClick={() => setTheme(value)}
-            className={cn(
-              "grid size-7 place-items-center rounded-md transition-colors",
-              scrolled
-                ? on
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-                : on
-                  ? "bg-(--v2-on-free) text-(--v2-free)"
-                  : "text-(--v2-on-free-2) hover:text-(--v2-on-free)",
-            )}
-          >
-            <Icon className="size-4" />
-          </button>
-        );
-      })}
-    </div>
-  );
-};
+// ring-1 ring-foreground/10, backdrop-blur-sm). Concentric radius: the pill
+// is rounded-2xl (16) with p-1.5 (6), so the CTA inside is rounded-[10px].
+// The theme switch uses the same pill in the footer (theme-switch.tsx).
+// Height stays --header-h for the hero and the walkthrough offset.
 
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -104,14 +52,11 @@ export const Header = () => {
               Beta
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <ThemeSwitch scrolled={scrolled} />
-            <CTAButton
-              className={cn("h-9 rounded-[10px] px-3 md:px-3.5", BTN_PRIMARY)}
-            >
-              開始記錄
-            </CTAButton>
-          </div>
+          <CTAButton
+            className={cn("h-9 rounded-[10px] px-3 md:px-3.5", BTN_PRIMARY)}
+          >
+            開始記錄
+          </CTAButton>
         </div>
       </header>
     </>

@@ -104,11 +104,13 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
 const Frame = () => {
   useCounter("frame");
   return (
-    // No shared frame ground: the app court, the panel and the preview each
-    // stand on the coral field as their own L1 object (rounded-xl, shadow).
-    // The court keeps its 11:9 box (its 35vh cap is lifted: the frame is
-    // zoomed to fit instead); the panel takes the remaining height.
-    <div className="flex size-full flex-col gap-2 [&_.max-h-\[35vh\]]:max-h-none">
+    // The three app objects (court, panel, preview; rounded-xl, shadow) sit
+    // on one grey tray: the app's --muted surface (light 90%, dark 37.5%),
+    // a step off --card in both themes so each card still reads as its own
+    // object. Concentric: tray p-2 (8) + card 12 = rounded-[20px]. The
+    // court keeps its 11:9 box (its 35vh cap is lifted: the frame is zoomed
+    // to fit instead); the panel takes the remaining height.
+    <div className="flex size-full flex-col gap-2 rounded-[20px] bg-muted p-2 shadow-lg [&_.max-h-\[35vh\]]:max-h-none">
       <div className="w-full shrink-0 overflow-hidden rounded-xl shadow-lg">
         <GameCourt gameId={DEMO_GAME_ID} mode="general" />
       </div>

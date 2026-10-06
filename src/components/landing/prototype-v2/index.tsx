@@ -22,7 +22,7 @@ import { Header } from "@/components/landing/prototype-v2/header";
 import { LazyRecordDemo } from "@/components/landing/prototype-v2/lazy-demo";
 import { LazyLiveStats } from "@/components/landing/prototype-v2/lazy-stats";
 import { RallyLayer } from "@/components/landing/prototype-v2/rally-layer";
-import { DarkMode } from "@/components/landing/footer/dark-mode";
+import { ThemeSwitch } from "@/components/landing/prototype-v2/theme-switch";
 import { Badge } from "@/components/ui/badge";
 import "@/components/landing/prototype-v2/v2.css";
 import { cn } from "@/lib/utils";
@@ -120,7 +120,7 @@ const Stats = () => (
   <section
     className={cn("v2-snap-point mx-auto max-w-[92rem] py-24 md:py-32", GUTTER)}
   >
-    <div className="v2-stats mx-auto max-w-[30rem] lg:max-w-[80rem]">
+    <div className="v2-stats mx-auto max-w-(--v2-court-max) lg:max-w-[80rem]">
       <Court />
       <div className="v2-stats-head flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.35*var(--m))] text-(--v2-ink) lg:p-[calc(0.5*var(--m))]">
         <h2 className="text-[max(1.5rem,calc(0.7*var(--m)))] leading-tight font-bold text-balance lg:text-[calc(0.55*var(--m))]">
@@ -208,7 +208,7 @@ const Closing = () => (
       GUTTER,
     )}
   >
-    <div className="v2-square w-full max-w-[30rem] lg:max-w-none">
+    <div className="v2-square w-full max-w-(--v2-court-max) lg:max-w-none">
       <CourtPlan span={9} portrait className="lg:hidden" />
       <CourtPlan className="hidden lg:block" />
       <div
@@ -284,11 +284,7 @@ const Footer = () => (
           </a>
         </p>
       </div>
-      {/* the theme switch lives in the header from 360px; below that it
-          stays here */}
-      <div className="min-[22.5rem]:hidden">
-        <DarkMode />
-      </div>
+      <ThemeSwitch />
     </div>
   </footer>
 );

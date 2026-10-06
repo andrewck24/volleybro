@@ -75,11 +75,11 @@
    (record-demo.tsx). The field fills the stage height; the frame fills the
    field (zoomed down by --fz on short stages so the content keeps room). */
 .field {
-  --fm: calc(100% / 9);
   position: relative;
   flex: 1 1 0;
   min-height: 0;
-  width: 100%;
+  /* the same cap as the other courts below lg (v2.css --v2-court-max) */
+  width: min(100%, var(--v2-court-max));
   display: flex;
   flex-direction: column;
   align-items: center;

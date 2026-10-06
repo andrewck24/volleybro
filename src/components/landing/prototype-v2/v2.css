@@ -32,6 +32,9 @@
   /* one rally beat, shared by every animated element (rally.tsx INTERVAL) */
   --v2-beat: 2200ms;
   --header-h: 4rem;
+  /* below lg every drawn court (hero, walkthrough field, stats, closing)
+     shares this width cap, so their side lines line up */
+  --v2-court-max: 30rem;
   background: var(--v2-free);
   color: var(--v2-on-free);
 }
@@ -156,7 +159,7 @@ html.v2-snap {
 /* ---------- hero ---------- */
 
 .v2-hero-court {
-  width: min(100%, 30rem);
+  width: min(100%, var(--v2-court-max));
 }
 
 @media (min-width: 64rem) {
