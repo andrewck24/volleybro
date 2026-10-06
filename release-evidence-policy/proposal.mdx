@@ -63,15 +63,20 @@ export const scenarios = [
                 <li><code>0104-production-data-compatibility-follows-database-activation.json</code> <span className="text-emerald-700 dark:text-emerald-300">[新增]</span></li>
               </ul>
             </li>
-        <li>
-          <code>features/</code>
-          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
             <li>
-              <code>platform/delivery-workflow/</code>
+              <code>features/</code>
               <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                <li><code>index.mdx</code> <span className="text-amber-700 dark:text-amber-300">[Archive 評估]</span></li>
-              </ul>
-            </li>
+                <li>
+                  <code>platform/</code>
+                  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                    <li>
+                      <code>delivery-workflow/</code>
+                      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                        <li><code>index.mdx</code> <span className="text-amber-700 dark:text-amber-300">[Archive 評估]</span></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
               </ul>
             </li>
           </ul>
@@ -95,7 +100,7 @@ export const scenarios = [
       <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
         <li><code>release-controls.js</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
         <li>
-          <code>__tests__/</code>
+          <code>{"__tests__/"}</code>
           <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
             <li><code>release-controls.test.js</code> <span className="text-blue-700 dark:text-blue-300">[修改／驗證]</span></li>
           </ul>
@@ -109,9 +114,19 @@ export const scenarios = [
           <code>app/</code>
           <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
             <li>
-              <code>api/auth/[...all]/</code>
+              <code>api/</code>
               <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                <li><code>route.ts</code> <span className="text-muted-foreground">[讀取驗證入口]</span></li>
+                <li>
+                  <code>auth/</code>
+                  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                    <li>
+                      <code>[...all]/</code>
+                      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                        <li><code>route.ts</code> <span className="text-muted-foreground">[讀取驗證入口]</span></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
               </ul>
             </li>
           </ul>
@@ -120,17 +135,22 @@ export const scenarios = [
           <code>infrastructure/</code>
           <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
             <li>
-              <code>db/mongoose/</code>
+              <code>db/</code>
               <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                <li><code>connect-to-mongodb.ts</code> <span className="text-muted-foreground">[讀取 DB 邊界]</span></li>
                 <li>
-                  <code>schemas/</code>
+                  <code>mongoose/</code>
                   <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                    <li><code>game.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                    <li><code>player.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                    <li><code>profile.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                    <li><code>team.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                    <li><code>user.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                    <li><code>connect-to-mongodb.ts</code> <span className="text-muted-foreground">[讀取 DB 邊界]</span></li>
+                    <li>
+                      <code>schemas/</code>
+                      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                        <li><code>game.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                        <li><code>player.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                        <li><code>profile.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                        <li><code>team.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                        <li><code>user.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                      </ul>
+                    </li>
                   </ul>
                 </li>
               </ul>
