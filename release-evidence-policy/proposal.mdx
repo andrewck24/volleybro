@@ -37,132 +37,38 @@ export const scenarios = [
 
 下面直接沿 repository 的實際目錄展開；每個節點後的標記才說明本 Change 對該路徑的作用。這讓讀者先看到 Clean Architecture 與交付工具分別落在哪裡，再辨認修改邊界，而不是先把檔案切成 EDIT／READ 類別。
 
-<div className="my-5 rounded-lg border border-border bg-background p-4 text-sm">
-  <p className="mb-2 font-semibold"><code>repository root/</code></p>
-  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-    <li>
-      <code>.github/</code>
-      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-        <li>
-          <code>workflows/</code>
-          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-            <li><code>production-release.yml</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-    <li>
-      <code>blueprint/</code>
-      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-        <li>
-          <code>content/</code>
-          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-            <li>
-              <code>decisions/</code>
-              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                <li><code>0104-production-data-compatibility-follows-database-activation.json</code> <span className="text-emerald-700 dark:text-emerald-300">[新增]</span></li>
-              </ul>
-            </li>
-            <li>
-              <code>features/</code>
-              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                <li>
-                  <code>platform/</code>
-                  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                    <li>
-                      <code>delivery-workflow/</code>
-                      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                        <li><code>index.mdx</code> <span className="text-amber-700 dark:text-amber-300">[Archive 評估]</span></li>
-                      </ul>
-                    </li>
-                  </ul>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-    <li>
-      <code>docs/</code>
-      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-        <li>
-          <code>migrations/</code>
-          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-            <li><code>migrate-legacy-accounts.js</code> <span className="text-muted-foreground">[讀取既有遷移]</span></li>
-          </ul>
-        </li>
-        <li><code>release-runbook.md</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
-      </ul>
-    </li>
-    <li>
-      <code>scripts/</code>
-      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-        <li><code>release-controls.js</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
-        <li>
-          <code>{"__tests__/"}</code>
-          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-            <li><code>release-controls.test.js</code> <span className="text-blue-700 dark:text-blue-300">[修改／驗證]</span></li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-    <li>
-      <code>src/</code>
-      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-        <li>
-          <code>app/</code>
-          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-            <li>
-              <code>api/</code>
-              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                <li>
-                  <code>auth/</code>
-                  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                    <li>
-                      <code>[...all]/</code>
-                      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                        <li><code>route.ts</code> <span className="text-muted-foreground">[讀取驗證入口]</span></li>
-                      </ul>
-                    </li>
-                  </ul>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </li>
-        <li>
-          <code>infrastructure/</code>
-          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-            <li>
-              <code>db/</code>
-              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                <li>
-                  <code>mongoose/</code>
-                  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                    <li><code>connect-to-mongodb.ts</code> <span className="text-muted-foreground">[讀取 DB 邊界]</span></li>
-                    <li>
-                      <code>schemas/</code>
-                      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
-                        <li><code>game.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                        <li><code>player.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                        <li><code>profile.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                        <li><code>team.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                        <li><code>user.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
-                      </ul>
-                    </li>
-                  </ul>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </li>
-        <li><code>lib/auth.ts</code> <span className="text-muted-foreground">[讀取認證／session 寫入範圍]</span></li>
-      </ul>
-    </li>
-    <li><code>WORKFLOW.md</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
-  </ul>
-</div>
+<pre className="my-5 overflow-x-auto rounded-lg border border-border bg-muted/30 p-3 text-[10px] leading-relaxed sm:p-4 sm:text-xs"><code>
+  <span className="block whitespace-pre">{"repository root/"}</span>
+  <span className="block whitespace-pre">{"├── .github/"}</span>
+  <span className="block whitespace-pre">{"│   └── workflows/"}</span>
+  <span className="block whitespace-pre">{"│       └── production-release.yml "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+  <span className="block whitespace-pre">{"├── blueprint/"}</span>
+  <span className="block whitespace-pre">{"│   └── content/"}</span>
+  <span className="block whitespace-pre">{"│       ├── decisions/"}</span>
+  <span className="block whitespace-pre">{"│       │   └── 0104-production-data-compatibility-follows-database-activation.json "}<span className="rounded bg-emerald-500/15 px-1 py-0.5 text-emerald-700 dark:text-emerald-300">新增</span></span>
+  <span className="block whitespace-pre">{"│       └── features/platform/delivery-workflow/"}</span>
+  <span className="block whitespace-pre">{"│           └── index.mdx "}<span className="rounded bg-amber-500/15 px-1 py-0.5 text-amber-700 dark:text-amber-300">Archive 評估</span></span>
+  <span className="block whitespace-pre">{"├── docs/"}</span>
+  <span className="block whitespace-pre">{"│   ├── migrations/"}</span>
+  <span className="block whitespace-pre">{"│   │   └── migrate-legacy-accounts.js "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   └── release-runbook.md "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+  <span className="block whitespace-pre">{"├── scripts/"}</span>
+  <span className="block whitespace-pre">{"│   ├── release-controls.js "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+  <span className="block whitespace-pre">{"│   └── __tests__/"}</span>
+  <span className="block whitespace-pre">{"│       └── release-controls.test.js "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改／驗證</span></span>
+  <span className="block whitespace-pre">{"├── src/"}</span>
+  <span className="block whitespace-pre">{"│   ├── app/api/auth/[...all]/route.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   ├── infrastructure/db/mongoose/"}</span>
+  <span className="block whitespace-pre">{"│   │   ├── connect-to-mongodb.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │   └── schemas/"}</span>
+  <span className="block whitespace-pre">{"│   │       ├── game.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │       ├── player.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │       ├── profile.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │       ├── team.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │       └── user.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"│   └── lib/auth.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
+  <span className="block whitespace-pre">{"└── WORKFLOW.md "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+</code></pre>
 
 標記說明：`修改`／`新增` 是預計交付的 repository 變更；`讀取` 僅用於查明資料契約與驗證範圍；`Archive 評估` 是實作完成後才依現況更新 Feature，不把未實作內容先寫成事實。
 
