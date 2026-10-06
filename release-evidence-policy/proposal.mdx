@@ -37,7 +37,7 @@ export const scenarios = [
 
 下面直接沿 repository 的實際目錄展開；每個節點後的標記才說明本 Change 對該路徑的作用。這讓讀者先看到 Clean Architecture 與交付工具分別落在哪裡，再辨認修改邊界，而不是先把檔案切成 EDIT／READ 類別。
 
-<pre className="my-5 w-full overflow-x-auto rounded-lg border border-border bg-background p-3 text-[10px] leading-relaxed sm:p-4 sm:text-xs">
+<pre className="my-5 w-full overflow-x-auto rounded-lg border border-border p-3 text-[10px] leading-relaxed sm:p-4 sm:text-xs" style={{ backgroundColor: "#0d1117", color: "#c9d1d9", colorScheme: "dark" }}>
   <code className="block w-full">{[
     ["repository root/", null, null],
     ["├── .github/", null, null],
@@ -80,18 +80,18 @@ export const scenarios = [
     ["└── WORKFLOW.md", "modify", "修改"],
   ].map(([path, tone, annotation], index) => {
     const colors = {
-      modify: { background: "color-mix(in oklab, var(--info) 18%, var(--background))", text: "color-mix(in oklab, var(--info) 80%, var(--foreground))" },
-      add: { background: "color-mix(in oklab, var(--success) 18%, var(--background))", text: "color-mix(in oklab, var(--success) 80%, var(--foreground))" },
-      delete: { background: "color-mix(in oklab, var(--destructive) 18%, var(--background))", text: "color-mix(in oklab, var(--destructive) 80%, var(--foreground))" },
-      read: { background: "color-mix(in oklab, var(--muted) 35%, var(--background))", text: "var(--muted-foreground)" },
-      archive: { background: "color-mix(in oklab, var(--warning) 18%, var(--background))", text: "color-mix(in oklab, var(--warning) 80%, var(--foreground))" },
+      modify: { background: "rgba(56, 139, 253, 0.18)", text: "#79c0ff" },
+      add: { background: "rgba(46, 160, 67, 0.18)", text: "#56d364" },
+      delete: { background: "rgba(248, 81, 73, 0.18)", text: "#ff7b72" },
+      read: { background: "rgba(139, 148, 158, 0.18)", text: "#8b949e" },
+      archive: { background: "rgba(210, 153, 34, 0.18)", text: "#e3b341" },
     };
     const color = tone ? colors[tone] : null;
     return <span key={index} className="block whitespace-pre" style={color ? { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", width: "100%", backgroundColor: color.background } : undefined}><span style={{ whiteSpace: "pre" }}>{path}</span>{annotation ? <span style={{ color: color.text, whiteSpace: "nowrap" }}>{annotation}</span> : null}</span>;
   })}</code>
 </pre>
 
-標記說明：<span style={{ color: "var(--info)" }}>修改</span>（藍）／<span style={{ color: "var(--success)" }}>新增</span>（綠）／<span style={{ color: "var(--destructive)" }}>刪除</span>（紅）／<span style={{ color: "var(--muted-foreground)" }}>讀取</span>（灰）；<span style={{ color: "var(--warning)" }}>Archive 評估</span>（琥珀）只代表實作完成後檢查 Feature，不是本次預計刪除或修改該 Feature。
+標記說明：<span style={{ color: "#79c0ff" }}>修改</span>（藍）／<span style={{ color: "#56d364" }}>新增</span>（綠）／<span style={{ color: "#ff7b72" }}>刪除</span>（紅）／<span style={{ color: "#8b949e" }}>讀取</span>（灰）；<span style={{ color: "#e3b341" }}>Archive 評估</span>（琥珀）只代表實作完成後檢查 Feature，不是本次預計刪除或修改該 Feature。
 
 不在本 Change 執行的操作：production DB cutover／資料匯入、app schema／auth 修改、production data rollback、完整 auth-smoke 自動化，以及改寫既有 release run。
 
