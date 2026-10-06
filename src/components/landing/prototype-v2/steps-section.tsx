@@ -12,7 +12,7 @@
 import styles from "@/components/landing/prototype-v2/steps.module.css";
 import { STEPS } from "@/components/landing/prototype-v2/copy";
 import { cn } from "@/lib/utils";
-import { RiCheckLine } from "react-icons/ri";
+import { RiSendPlaneLine } from "react-icons/ri";
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 
 const N = STEPS.length;
@@ -40,7 +40,7 @@ const isWheelNotch = (e: WheelEvent) =>
 
 const Numeral = ({ i }: { i: number }) => (
   <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-card text-3xl leading-none font-bold text-primary tabular-nums shadow-md lg:size-24 lg:rounded-2xl lg:text-6xl dark:text-chart-1">
-    {i === N - 1 ? <RiCheckLine className="size-[1em]" /> : i + 1}
+    {i === N - 1 ? <RiSendPlaneLine className="size-[0.85em]" /> : i + 1}
   </span>
 );
 
@@ -84,8 +84,46 @@ export const StepsSection = ({
     );
     section.querySelectorAll("[data-i]").forEach((n) => stepIO.observe(n));
 
+    // v2: mandatory snap while the stage is pinned, so touch / trackpad never
+    // rest between steps. The snap points are the rails (scroll-snap-align
+    // start under scroll-padding-top = header); the class lives on <html>
+    // only while the section top is under the header and its bottom still
+    // fills the viewport, so the rest of the page scrolls freely and leaving
+    // past the first or last step is never pulled back.
+    const root = document.documentElement;
+    const setSnap = (on: boolean) => root.classList.toggle("v2-snap", on);
+    const syncSnap = () => {
+      if (staticMq.matches) return setSnap(false);
+      const r = section.getBoundingClientRect();
+      const head = parseFloat(getComputedStyle(stage).top);
+      setSnap(r.top <= head + 1 && r.bottom >= window.innerHeight - 1);
+    };
+    syncSnap();
+    window.addEventListener("scroll", syncSnap, { passive: true });
+    // keyboard scrolling (and Tab focus jumps) compute their destination up
+    // front, so snap would pull a PageDown past the last step back onto it:
+    // drop snap for the key's scroll, re-sync once it settles
+    const KEYS = ["PageDown", "PageUp", "End", "Home", " ", "Tab"];
+    const onKey = (e: KeyboardEvent) => {
+      if (!KEYS.includes(e.key)) return;
+      const r = section.getBoundingClientRect();
+      const head = parseFloat(getComputedStyle(stage).top);
+      const step = Number(section.dataset.step);
+      const down = !(e.key === "PageUp" || e.key === "Home" || e.shiftKey);
+      // inside the steps, PageDown / PageUp still land on a step position
+      const leaving =
+        e.key === "End" ||
+        e.key === "Home" ||
+        e.key === "Tab" ||
+        (down ? step >= N - 1 : step <= 0) ||
+        r.top > head + 1;
+      if (leaving) setSnap(false);
+    };
+    window.addEventListener("keydown", onKey);
+
     // wheelstep: one mouse-wheel gesture = one native smooth scroll to the next
-    // step; anything else scrubs freely. No CSS scroll snap in any mode.
+    // step (= the next snap point, so snap never pulls it back); anything else
+    // scrolls natively and the snap settles it on a step.
     let mode: "step" | "scrub" | null = null;
     let acc = 0;
     let locked = false;
@@ -122,8 +160,12 @@ export const StepsSection = ({
       const off = window.scrollY - (base + step * track);
       const next =
         dir > 0 ? (off < -2 ? step : step + 1) : off > 2 ? step : step - 1;
-      // first/last step: let the gesture through so the page scrolls out
-      if (next < 0 || next >= N) return;
+      // first/last step: let the gesture through so the page scrolls out,
+      // with snap off first so the notch is not pulled back onto the step
+      if (next < 0 || next >= N) {
+        setSnap(false);
+        return;
+      }
       e.preventDefault();
       // a trackpad's inertial tail is many small deltas; a mouse notch is one
       // big delta, so a settled big notch may start the next step without a pause
@@ -162,6 +204,9 @@ export const StepsSection = ({
       stepIO.disconnect();
       modeIO.disconnect();
       off();
+      window.removeEventListener("scroll", syncSnap);
+      window.removeEventListener("keydown", onKey);
+      setSnap(false);
       clearTimeout(gapTimer);
       clearTimeout(busyTimer);
     };

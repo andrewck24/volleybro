@@ -34,38 +34,41 @@ const RECTS: R[] = [
   ),
 ];
 
-// our half: everything that starts before the far edge of the centre line
-const HALF = RECTS.filter(([x]) => x < 9).map(([x, y, w, h]): R => [
-  x,
-  y,
-  Math.min(w, 9 - x),
-  h,
-]);
+// the first `span` metres from our end line (9 = our half, 12 = plus
+// their attack zone), lines clipped at the cut
+const upTo = (span: number) =>
+  RECTS.filter(([x]) => x < span).map(([x, y, w, h]): R => [
+    x,
+    y,
+    Math.min(w, span - x),
+    h,
+  ]);
 
 /**
  * The court as one SVG at its box's size. `portrait` turns it a quarter so the
  * net runs horizontally (along → down, across → right); lines are symmetric
- * across the court, so the transpose reads as the same court. `half` draws
- * our half only (9 × 9: end line to the net, attack line, service marks).
+ * across the court, so the transpose reads as the same court. `span` draws
+ * only the first metres from our end line (9 = our half, 12 = plus their
+ * attack zone).
  */
 export const CourtPlan = ({
   portrait = false,
-  half = false,
+  span = 18,
   className,
 }: {
   portrait?: boolean;
-  half?: boolean;
+  span?: number;
   className?: string;
 }) => (
   <svg
     aria-hidden
-    viewBox={half ? "0 0 9 9" : portrait ? "0 0 9 18" : "0 0 18 9"}
+    viewBox={portrait ? `0 0 9 ${span}` : `0 0 ${span} 9`}
     overflow="visible"
     className={cn("absolute inset-0 size-full", className)}
   >
     <g transform={portrait ? "matrix(0 1 1 0 0 0)" : undefined}>
-      <rect width={half ? 9 : 18} height={9} className="fill-(--v2-in)" />
-      {(half ? HALF : RECTS).map(([x, y, w, h], i) => (
+      <rect width={span} height={9} className="fill-(--v2-in)" />
+      {(span < 18 ? upTo(span) : RECTS).map(([x, y, w, h], i) => (
         <rect
           key={i}
           x={x}

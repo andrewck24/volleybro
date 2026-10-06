@@ -104,7 +104,9 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
 const Frame = () => {
   useCounter("frame");
   return (
-    <div className="flex size-full flex-col gap-1 bg-background">
+    // the app court's 35vh cap would squeeze its 11:9 box (and clip the
+    // player cards) inside the frame; the frame is zoomed to fit instead
+    <div className="flex size-full flex-col gap-1 bg-background [&_.max-h-\[35vh\]]:max-h-none">
       <div className="w-full shrink-0 overflow-hidden rounded-lg">
         <GameCourt gameId={DEMO_GAME_ID} mode="general" />
       </div>

@@ -3,8 +3,7 @@
 
 export const COPY = {
   heroTitle: ["記下每一球，", "統計自己出來。"],
-  heroDesc:
-    "點球員、點我方動作、點對方回應，一球三下記完；送出不等網路，比賽一結束，技術統計已經算好。",
+  heroDesc: "每一球點三下就記完，送出不必等網路；比賽一結束，統計已經算好。",
   heroNote: "用瀏覽器打開就能記，不必下載 App",
   recordTitle: ["每球三步，", "送出不必等網路"],
   recordLead:

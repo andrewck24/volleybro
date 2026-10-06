@@ -4,7 +4,20 @@
    glow or blur. Light: the brand teal free zone. Dark: a night-session free
    zone (deep teal), coral unchanged, lines a touch softer.
    Contrast (WCAG): ink on coral 6.67, ivory on teal 5.81 (dark 12.97),
-   teal-tint secondary on teal 4.83 (dark 8.86), ivory on teal CTA 5.81. */
+   teal-tint secondary on teal 4.83 (dark 8.86), ivory on teal CTA 5.81.
+
+   LAYERS — elevation, radius and spacing (concentric: inner = outer − padding)
+   L0 court    ground + rules. Radius 0, no shadow, never interactive.
+   L1 object   in-flow app surfaces the court positions: --card + shadow-md/lg.
+               Entry card rounded-xl (12) p-1.5 (6) → app rows rounded-md (6).
+               Stats panel rounded-2xl (16) p-2 (8) → figures rounded-lg (8);
+               lg:rounded-3xl (24) p-4 (16). Score chip, step chip, demo
+               frame: standalone, rounded-lg / rounded-xl / rounded-2xl.
+               Buttons keep the app's rounded-md.
+   L2 chrome   the floating header only: inset 8px from the viewport,
+               rounded-2xl (16) p-1.5 (6) → inner CTA rounded-[10px];
+               transparent at rest, the app nav's glass once the page scrolls.
+   Objects never carry line-width outlines; rules never carry radius. */
 
 .v2 {
   --v2-free: hsl(192 77.46% 27.84%);
@@ -39,6 +52,33 @@ html.dark:has(.v2) {
   background: hsl(192 70% 13%);
 }
 
+/* the free-zone colour on <html>, for the status bar / toolbar tint
+   (StatusBarColor reads it, and re-reads it when the theme class flips) */
+html:has(.v2) {
+  --v2-root: hsl(192 77.46% 27.84%);
+}
+
+html.dark:has(.v2) {
+  --v2-root: hsl(192 70% 13%);
+}
+
+/* the walkthrough turns mandatory snap on only while its stage is pinned
+   (steps-section.tsx); snap points sit under the floating header */
+html:has(.v2) {
+  scroll-padding-top: 4rem;
+}
+
+html.v2-snap {
+  scroll-snap-type: y mandatory;
+}
+
+/* while snap is on, the sections before and after the walkthrough are its
+   way in and out, so a fling past the first or last step is never pulled
+   back onto it */
+.v2-snap-point {
+  scroll-snap-align: start;
+}
+
 .v2 ::selection {
   background: var(--v2-in);
   color: var(--v2-ink);
@@ -62,13 +102,21 @@ html.dark:has(.v2) {
   --lwc: calc(0.05 * var(--m));
 }
 
-/* our half alone (closing): 9 × 9, same zone grammar as the full court */
+/* closing: our half alone below lg (9 × 9); from lg our half plus their
+   attack zone (12 × 9), same zone grammar as the full court */
 .v2-square {
   position: relative;
   container-type: inline-size;
   aspect-ratio: 1 / 1;
   --m: calc(100cqw / 9);
   --lwc: calc(0.05 * var(--m));
+}
+
+@media (min-width: 64rem) {
+  .v2-square {
+    aspect-ratio: 12 / 9;
+    --m: calc(100cqw / 12);
+  }
 }
 
 /* a zone of the court: --a0..--a1 along (from our end line), --c0..--c1
@@ -161,33 +209,46 @@ html.dark:has(.v2) {
 
 /* ---------- entry rows (opponent back zone) ---------- */
 
-/* the app's EntryRow is 40px tall (Figure sm + p-1); rows stack on a 44px
-   pitch inside the card. Phones cap the list at 3 rows (first-viewport
-   density), desktop at 10. */
+/* The zone is a size container. The app's EntryRow (40px, Figure sm + p-1)
+   stacks on a 44px pitch inside the card (p-1.5 = 12px). Row count comes
+   from the zone's height, rounded down to whole rows (no half row ever
+   shows), capped at 10. Where the card is narrow the rows are zoomed down
+   instead of dropping a column, so both moves always show on one line
+   (each needs ~300px at zoom 1). */
+.v2-entries {
+  container-type: size;
+}
+
 .v2-rows {
-  --pitch: 2.75rem;
-  --rows: 3;
+  --z: 1;
+  --pitch: calc(2.75rem * var(--z));
+  --gap: calc(0.25rem * var(--z));
   position: relative;
   overflow: hidden;
-  height: calc(var(--rows) * var(--pitch) - 0.25rem);
+  height: calc(
+    min(
+        round(down, 100cqh - 0.75rem + var(--gap), var(--pitch)),
+        10 * var(--pitch)
+      ) -
+      var(--gap)
+  );
 }
 
-@media (min-width: 64rem) {
+@container (max-width: 312px) {
   .v2-rows {
-    --rows: 10;
+    --z: 0.85;
   }
 }
 
-/* Where the card is too narrow for both moves (≤23.74rem phones, 64–80rem
-   desktops) the app row's away column is dropped so the home move stays on
-   one line; the row component itself is not restyled. */
-@media (max-width: 23.74rem), (min-width: 64rem) and (max-width: 79.99rem) {
-  .v2-row p:last-of-type {
-    display: none;
+@container (max-width: 277px) {
+  .v2-rows {
+    --z: 0.72;
   }
-  /* …and the home move may take the room the away column left */
-  .v2-row p {
-    max-width: none;
+}
+
+@container (max-width: 240px) {
+  .v2-rows {
+    --z: 0.62;
   }
 }
 
@@ -195,7 +256,9 @@ html.dark:has(.v2) {
   position: absolute;
   inset-inline: 0;
   top: 0;
-  transform: translateY(calc(var(--i) * var(--pitch)));
+  zoom: var(--z);
+  /* zoom scales this translate too, so it is in unzoomed units */
+  transform: translateY(calc(var(--i) * 2.75rem));
 }
 
 .v2-row[data-animate] {

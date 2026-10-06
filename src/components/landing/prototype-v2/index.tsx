@@ -24,14 +24,6 @@ import { LazyLiveStats } from "@/components/landing/prototype-v2/lazy-stats";
 import { RallyLayer } from "@/components/landing/prototype-v2/rally-layer";
 import { DarkMode } from "@/components/landing/footer/dark-mode";
 import { Badge } from "@/components/ui/badge";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
 import "@/components/landing/prototype-v2/v2.css";
 import { cn } from "@/lib/utils";
 import type { CSSProperties } from "react";
@@ -59,7 +51,7 @@ const FeatureTitle = ({ f, className }: { f: Feature; className?: string }) => (
 const Hero = () => (
   <section
     className={cn(
-      "flex justify-center pt-[calc(var(--header-h)+1.5rem)] pb-12 lg:min-h-svh lg:items-center lg:pt-[calc(var(--header-h)+2rem)] lg:pb-16",
+      "v2-snap-point flex justify-center overflow-x-clip pt-[calc(var(--header-h)+1.5rem)] pb-12 lg:min-h-svh lg:items-center lg:pt-[calc(var(--header-h)+2rem)] lg:pb-16",
       GUTTER,
     )}
   >
@@ -77,16 +69,21 @@ const Hero = () => (
           <br />
           {COPY.heroTitle[1]}
         </h1>
-        <p className="v2-hero-desc max-w-[34ch] font-medium">{COPY.heroDesc}</p>
+        <p className="v2-hero-desc max-w-[30ch] font-medium">{COPY.heroDesc}</p>
+        {/* lg: action + helper share the title's left edge */}
+        <div className="mt-[calc(0.3*var(--m))] hidden flex-col items-start gap-3 lg:flex">
+          <CTAButton size="lg" className={cn("h-14 px-8", BTN_PRIMARY)}>
+            開始記錄
+          </CTAButton>
+          <p className="text-sm font-medium">{COPY.heroNote}</p>
+        </div>
       </div>
-      <div className="v2-on-attack">
-        <CTAButton
-          size="lg"
-          className={cn("h-12 px-6 lg:h-14 lg:px-8", BTN_PRIMARY)}
-        >
+      {/* below lg: the action sits on our attack line */}
+      <div className="v2-on-attack lg:hidden">
+        <CTAButton size="lg" className={cn("h-12 px-6", BTN_PRIMARY)}>
           開始記錄
         </CTAButton>
-        <p className="absolute top-full left-0 mt-[calc(0.3*var(--m))] text-sm font-medium whitespace-nowrap text-(--v2-ink) lg:right-[calc(50%+0.3*var(--m))] lg:left-auto">
+        <p className="absolute top-full left-0 mt-[calc(0.3*var(--m))] text-sm font-medium whitespace-nowrap text-(--v2-ink)">
           {COPY.heroNote}
         </p>
       </div>
@@ -120,7 +117,9 @@ const Record = () => (
  *  Points across the net (home values on our side, away on theirs, tagged as
  *  demo data like the hero's score), the list on the opponent half. */
 const Stats = () => (
-  <section className={cn("mx-auto max-w-[92rem] py-24 md:py-32", GUTTER)}>
+  <section
+    className={cn("v2-snap-point mx-auto max-w-[92rem] py-24 md:py-32", GUTTER)}
+  >
     <div className="v2-stats mx-auto max-w-[30rem] lg:max-w-[80rem]">
       <Court />
       <div className="v2-stats-head flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.35*var(--m))] text-(--v2-ink) lg:p-[calc(0.5*var(--m))]">
@@ -135,7 +134,7 @@ const Stats = () => (
       </div>
       <div
         data-rally
-        className="v2-stats-points flex items-center rounded-xl bg-card p-2 text-card-foreground shadow-lg lg:p-4"
+        className="v2-stats-points flex items-center rounded-2xl bg-card p-2 text-card-foreground shadow-lg lg:rounded-3xl lg:p-4"
       >
         <p className="sr-only">
           團隊數據統計（示意動畫）：跟著上方的示範比賽逐球更新。
@@ -161,13 +160,13 @@ const Stats = () => (
   </section>
 );
 
-/** Supporting features as the app's roster: one Item row per feature in a
- *  single column, the number set like a jersey number (#1), on the teal free
- *  zone. */
+/** Supporting features in the walkthrough steps' layout: a number figure
+ *  (the same object as the step chips, numbered like a jersey) beside the
+ *  title and description, one column, on the teal free zone. */
 const Kit = () => (
   <section
     className={cn(
-      "mx-auto grid max-w-[92rem] grid-cols-1 gap-12 py-24 md:py-32 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-16",
+      "mx-auto grid max-w-[92rem] grid-cols-1 gap-12 py-24 md:py-32 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-16",
       GUTTER,
     )}
   >
@@ -175,45 +174,34 @@ const Kit = () => (
       <h2 className={H2}>{COPY.kitTitle}</h2>
       <p className="max-w-lg text-lg text-(--v2-on-free-2)">{COPY.kitLead}</p>
     </div>
-    {/* the app's roster language: ItemGroup / Item (card surface, shadow,
-        rounded-xl, p-2) with a jersey-number media block (rounded, 12 - 8) */}
-    <ItemGroup className="flex flex-col gap-2.5">
+    <ol className="flex flex-col gap-6 md:gap-8">
       {KIT.map((k, i) => (
-        <Item
-          key={k.title}
-          role="listitem"
-          className="items-start gap-3 rounded-xl p-2 pr-3 hover:bg-card"
-        >
-          <ItemMedia
+        <li key={k.title} className="flex items-start gap-4 lg:gap-6">
+          <span
             aria-hidden
-            className="h-10 min-w-12 rounded bg-primary px-1.5 text-lg font-bold text-primary-foreground tabular-nums"
+            className="grid size-12 shrink-0 place-items-center rounded-xl bg-card text-xl leading-none font-bold text-primary tabular-nums shadow-md lg:size-16 lg:text-2xl dark:text-chart-1"
           >
-            #{i + 1}
-          </ItemMedia>
-          <ItemContent className="gap-0.5 py-0.5">
-            <ItemTitle className="flex-wrap text-base font-semibold">
-              <h3>{k.title}</h3>
-              {k.dev && <DevBadge />}
-            </ItemTitle>
-            <ItemDescription className="line-clamp-none">
-              {k.body}
-            </ItemDescription>
-          </ItemContent>
-        </Item>
+            {i + 1}
+          </span>
+          <div className="flex flex-col gap-1 pt-0.5 lg:pt-1.5">
+            <FeatureTitle f={k} className="text-lg md:text-2xl" />
+            <p className="text-(--v2-on-free-2) md:text-lg">{k.body}</p>
+          </div>
+        </li>
       ))}
-    </ItemGroup>
+    </ol>
   </section>
 );
 
-/** The page closes on our half of the court, in the hero's grammar: heading
- *  and lead in the back zone, the primary action on our attack line. A true
- *  9 × 9 half (portrait below lg, net at the bottom; landscape from lg, net
- *  on the right), whole and centred, never cut by the viewport. */
+/** The page closes on the court in the hero's grammar: heading and lead in
+ *  our back zone, the primary action on our attack line. Below lg our 9 × 9
+ *  half (net at the bottom); from lg our half plus their attack zone (12 m,
+ *  net and their attack line), whole and centred, never cut by the viewport. */
 const Closing = () => (
   <section className={cn("flex justify-center py-24 md:py-32", GUTTER)}>
-    <div className="v2-square w-full max-w-[30rem] lg:max-w-[46rem]">
-      <CourtPlan half portrait className="lg:hidden" />
-      <CourtPlan half className="hidden lg:block" />
+    <div className="v2-square w-full max-w-[30rem] lg:max-w-[60rem]">
+      <CourtPlan span={9} portrait className="lg:hidden" />
+      <CourtPlan span={12} className="hidden lg:block" />
       <div
         className="v2-z flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.5*var(--m))] text-(--v2-ink)"
         style={zone(0, 6)}

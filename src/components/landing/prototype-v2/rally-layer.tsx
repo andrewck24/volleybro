@@ -50,7 +50,11 @@ export const RallyLayer = () => {
   const r = n > 0 ? RALLIES[n - 1]! : null;
 
   return (
-    <div aria-hidden data-rally className="absolute inset-0">
+    <div
+      aria-hidden
+      data-rally
+      className="pointer-events-none absolute inset-0"
+    >
       {/* running set score at the net post */}
       <div className="v2-post flex items-baseline rounded-lg bg-card px-3 py-1.5 text-card-foreground shadow-md">
         <span className="text-xl font-bold tabular-nums lg:text-2xl">
@@ -80,7 +84,7 @@ export const RallyLayer = () => {
       )}
 
       <div
-        className="v2-z p-[calc(0.3*var(--m))] lg:p-[calc(0.5*var(--m))]"
+        className="v2-z v2-entries p-[calc(0.3*var(--m))] lg:p-[calc(0.5*var(--m))]"
         style={{ "--a0": 11.3, "--a1": 18 } as CSSProperties}
       >
         {/* card surface (rounded-xl, p-1.5) so the rows' own teal and

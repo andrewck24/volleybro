@@ -1,24 +1,28 @@
-/* PROTOTYPE (throwaway). Section 3 pinned part. Scrub = CSS scroll-driven
-   animation (transform/opacity only, no JS per frame). Geometry: the stage
-   sticks at top: --header-h and is one --track tall (the viewport minus the
+/* PROTOTYPE (throwaway). Section 3 pinned part. Geometry: the stage sticks
+   at top: --header-h and is one --track tall (the viewport minus the
    header); the section is 4 tracks, so the pin lasts 3 tracks = steps 0..3.
-   The view timeline is inset by the header at the top, so `contain 0%..100%`
-   spans exactly "section top under the header" .. "section bottom at the
-   viewport bottom". Component state does NOT follow this timeline: it changes
-   at step boundaries from IntersectionObserver. The section's height comes
-   from the global `.v2-steps-h` (v2.css) so the lazy placeholder matches.
-   Copied from prototype-v1; v2 only centres the stage at lg. */
+   v2: the captions are DISCRETE, not scroll-scrubbed. v1 bound their
+   cross-fade to a view timeline, so any rest between two step positions
+   (touch momentum, iOS, no snap) showed two half-transparent captions. Here
+   scroll only decides the step index (IntersectionObserver writes
+   data-step) and a time-based transition swaps the captions; snap and
+   wheelstep just carry the scroll to a step position. The section's height
+   comes from the global `.v2-steps-h` (v2.css) so the lazy placeholder
+   matches. */
 .section {
   --track: calc(100svh - var(--header-h));
   position: relative;
-  view-timeline: --steps block;
-  view-timeline-inset: var(--header-h) 0px;
 }
 
 .stage {
   position: sticky;
   top: var(--header-h);
   height: var(--track);
+  /* the frame scales from the stage's height (see .frame) */
+  container-type: size;
+  /* an opaque free-zone ground: Safari tints its bottom toolbar from the
+     sticky element at the edge, so that edge is the page colour */
+  background: var(--v2-free);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -63,46 +67,84 @@
   grid-area: 1 / 1;
 }
 
-/* v2: the court continues through the walkthrough — a strip of in-court
-   coral bounded by white side lines, the app frame standing on it. The
-   frame (light: --background on coral) separates by the field's contrast
-   plus its own shadow, no outline. */
+/* v2: the court continues through the walkthrough — a padded block of
+   in-court coral bounded by white side lines, the app frame standing on it
+   (chosen over removing it: the frame keeps its separation from the page in
+   light mode and the attack line has a court to run into). No outline on
+   the frame itself. */
 .field {
-  flex: 1 1 0;
-  min-height: 0;
+  flex: none;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.75rem;
+  padding: 0.5rem;
   background: var(--v2-in);
   border-inline: var(--v2-lw) solid var(--v2-line);
 }
 
+/* The app frame keeps one design size (22 × 36rem: the app court at its
+   own 11:9 ratio, the trimmed panel, the preview) and is zoomed to fit the
+   stage's height, so the court's player cards are never squeezed or clipped
+   at any width. */
 .frame {
+  --fz: 1;
   position: relative;
   z-index: 2;
-  flex: 1 1 0;
-  min-height: 0;
-  max-height: 40rem;
-  width: min(22rem, 100%);
+  flex: none;
+  width: 22rem;
+  height: 36rem;
+  zoom: var(--fz);
+}
+
+@media (max-width: 63.99rem) {
+  /* below lg the intro and captions sit above the field (~15rem) */
+  @container (max-height: 51rem) {
+    .frame {
+      --fz: 0.85;
+    }
+  }
+  @container (max-height: 46rem) {
+    .frame {
+      --fz: 0.72;
+    }
+  }
+  @container (max-height: 41rem) {
+    .frame {
+      --fz: 0.6;
+    }
+  }
+  @container (max-height: 36rem) {
+    .frame {
+      --fz: 0.5;
+    }
+  }
+  @container (max-height: 33rem) {
+    .frame {
+      --fz: 0.42;
+    }
+  }
 }
 
 @media (min-width: 64rem) {
-  /* full stage height, from the captions column's right edge: the attack
-     line (captions::after) enters the court at its side line */
+  /* a block around the frame, from the captions column's right edge: the
+     attack line (captions::after) enters the court at its side line */
   .field {
     flex: none;
     width: auto;
-    align-self: stretch;
     justify-content: center;
-    margin-block: -2rem;
-    padding: 2rem clamp(3rem, 10vw, 10rem);
+    padding: 2rem clamp(3rem, 8vw, 7rem);
   }
-  .frame {
-    flex: none;
-    width: 22rem;
-    height: min(40rem, calc(var(--track) - 4rem));
+  /* lg: stage padding + field padding take 8rem */
+  @container (max-height: 44rem) {
+    .frame {
+      --fz: 0.85;
+    }
+  }
+  @container (max-height: 39rem) {
+    .frame {
+      --fz: 0.72;
+    }
   }
 }
 
@@ -114,10 +156,13 @@
 
 .rail {
   height: var(--track);
+  /* v2: the step rest positions are the snap points (html.v2-snap) */
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
-/* fallback (no animation-timeline): IntersectionObserver writes data-step on
-   the section and the layers transition to that step's value */
+/* IntersectionObserver writes data-step on the section; the captions
+   transition to that step's value on time, never on scroll position */
 .layer {
   transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
   opacity: var(--v0);
@@ -135,36 +180,6 @@
 @media (prefers-reduced-motion: reduce) {
   .layer {
     transition: none;
-  }
-}
-
-@keyframes fade {
-  0% {
-    opacity: var(--v0);
-  }
-  33.333% {
-    opacity: var(--v1);
-  }
-  66.667% {
-    opacity: var(--v2);
-  }
-  100% {
-    opacity: var(--v3);
-  }
-}
-
-@supports (animation-timeline: view()) {
-  .layer {
-    transition: none;
-    animation: fade linear both;
-    animation-timeline: --steps;
-    animation-range: contain 0% contain 100%;
-  }
-  /* reduced motion: hold each keyframe value until the next = instant swaps */
-  @media (prefers-reduced-motion: reduce) {
-    .layer {
-      animation-timing-function: step-end;
-    }
   }
 }
 
@@ -233,7 +248,16 @@
   .captions::after {
     z-index: 1;
     left: 100%;
-    width: clamp(3rem, 10vw, 10rem);
+    width: clamp(3rem, 8vw, 7rem);
     border-top-style: solid;
   }
+}
+
+/* v2: the demo shows a trimmed panel so every button fits the frame with no
+   scroll or squeeze on phones — three opponent errors, the first two skill
+   rows (the demo rally's 攻擊 is among them). Landing-only; the app is not
+   changed. */
+.frame :global([class*="slide-in-from"] > .auto-rows-fr > :nth-child(n + 4)),
+.frame :global([class*="slide-in-from"] > .grid-cols-2 > :nth-child(n + 5)) {
+  display: none;
 }
