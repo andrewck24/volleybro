@@ -39,7 +39,7 @@ const isWheelNotch = (e: WheelEvent) =>
   e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50);
 
 const Numeral = ({ i }: { i: number }) => (
-  <span className="grid size-14 shrink-0 place-items-center border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) text-3xl leading-none font-bold text-(--v2-ink) tabular-nums lg:size-20 lg:text-5xl">
+  <span className="grid size-14 shrink-0 place-items-center border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) text-3xl leading-none font-bold text-(--v2-ink) tabular-nums lg:size-24 lg:text-6xl">
     {i === N - 1 ? <RiCheckLine className="size-[1em]" /> : i + 1}
   </span>
 );
@@ -174,14 +174,14 @@ export const StepsSection = ({
               className={cn(
                 styles.caption,
                 styles.layer,
-                "flex gap-4 lg:gap-6",
+                "flex gap-4 lg:gap-8",
               )}
               style={vars(STEPS.map((_, j) => (i === j ? 1 : 0)))}
             >
               <Numeral i={i} />
               <div className="flex flex-col gap-1 lg:gap-2">
-                <h3 className="text-xl font-bold lg:text-4xl">{s.title}</h3>
-                <p className="text-sm text-(--v2-on-free-2) lg:text-lg">
+                <h3 className="text-xl font-bold lg:text-5xl">{s.title}</h3>
+                <p className="text-sm text-(--v2-on-free-2) lg:text-xl">
                   {s.body}
                 </p>
               </div>

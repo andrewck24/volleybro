@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 
-// PROTOTYPE: our half of the court, 9 × 9 m, drawn from lg only: centre line
+// PROTOTYPE: our half of the court, 9 × 9 m: centre line
 // (half its 5 cm on this side) on top, attack line with its rear edge 3 m from
 // the centre axis, end line at the bottom, attack-line extensions and the
 // service zone marks outside. Position zones carry no lines on a real court,
-// so the six features sit in them unmarked. Below lg the children flow as a
-// plain list.
+// so the six features sit in them unmarked. Drawn at every width.
 
 const LW = 0.05;
 const RECTS: [number, number, number, number][] = [
@@ -23,12 +22,12 @@ const RECTS: [number, number, number, number][] = [
 ];
 
 export const HalfCourt = ({ children }: { children: ReactNode }) => (
-  <div className="v2-half-lg">
+  <div className="v2-half">
     <svg
       aria-hidden
       viewBox="0 0 9 9"
       overflow="visible"
-      className="absolute inset-0 hidden size-full lg:block"
+      className="absolute inset-0 size-full"
     >
       <rect width={9} height={9} className="fill-(--v2-in)" />
       {RECTS.map(([x, y, w, h], i) => (

@@ -170,3 +170,30 @@
     height: 100%;
   }
 }
+
+/* v2, lg: the stage stands on the court plan. A dashed attack-line
+   extension runs at the step chip's centre from the page's left edge to the
+   chip, and on from the captions to the real app court in the frame. Borders
+   only (no gradient); the section clips the overrun without becoming a
+   scroll container, so the sticky stage keeps working. */
+@media (min-width: 64rem) and (min-height: 500.02px) {
+  .section {
+    overflow-x: clip;
+  }
+  .captions::before,
+  .captions::after {
+    content: "";
+    position: absolute;
+    top: 3rem;
+    translate: 0 -50%;
+    border-top: var(--v2-lw) dashed var(--v2-line);
+  }
+  .captions::before {
+    right: 100%;
+    width: 50vw;
+  }
+  .captions::after {
+    left: 100%;
+    width: clamp(3rem, 10vw, 10rem);
+  }
+}

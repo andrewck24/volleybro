@@ -19,7 +19,7 @@ import {
   SENT_RALLY,
 } from "@/components/landing/prototype-v1/demo-data";
 import { demoGame } from "@/components/landing/prototype-v1/demo-game";
-import { StatsPoints } from "@/components/landing/prototype-v1/stats-section";
+import { StatsPoints } from "@/components/landing/prototype-v2/stats-section";
 import { POINTS_SLOT } from "@/components/landing/prototype-v2/copy";
 import { StepsSection } from "@/components/landing/prototype-v2/steps-section";
 import { useCounter } from "@/components/landing/prototype-v1/use-counter";

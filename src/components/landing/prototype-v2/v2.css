@@ -313,42 +313,90 @@ html.dark:has(.v2) {
   }
 }
 
-/* stats: the real Points block is 5 fixed-height rows */
-.v2-points-h {
-  min-height: 24.5rem;
+/* ---------- stats court: portrait below lg, landscape from lg ----------
+   Below lg the Points panel has a fixed height (--ph: five compact rows) and
+   sits centred on the net; our half above it holds the heading, the
+   opponent half below it the list. From lg the zones follow the court:
+   back zone / between the attack lines / their back zone. */
+
+.v2-stats {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 1 / 2;
+  --m: calc(100cqw / 9);
+  --ph: 19.5rem;
 }
 
-/* ---------- lg-only courts (stats: full court; kit: our half) ----------
-   Below lg their zones flow as plain blocks on the free zone. */
+.v2-stats-head,
+.v2-stats-points,
+.v2-stats-list {
+  position: absolute;
+}
+
+.v2-stats-head {
+  inset: 0 0 auto;
+  height: calc(9 * var(--m) - var(--ph) / 2 + var(--shift, 0px));
+}
+
+.v2-stats-points {
+  top: calc(9 * var(--m) - var(--ph) / 2 + var(--shift, 0px));
+  height: var(--ph);
+  inset-inline: calc(0.3 * var(--m));
+}
+
+.v2-stats-list {
+  inset: calc(9 * var(--m) + var(--ph) / 2 + var(--shift, 0px)) 0 0;
+}
+
+/* narrow phones (320): smaller figures, and the panel rides 1.25rem above
+   the net so the list keeps its lines */
+@media (max-width: 23.74rem) {
+  .v2-stats {
+    --ph: 16.5rem;
+    --shift: -1.25rem;
+  }
+}
 
 @media (min-width: 64rem) {
-  .v2-court-lg {
-    position: relative;
-    container-type: inline-size;
+  .v2-stats {
     aspect-ratio: 2 / 1;
     --m: calc(100cqw / 18);
   }
-  .v2-court-lg > .v2-zl {
-    position: absolute;
-    left: calc(var(--a0) * var(--m));
-    width: calc((var(--a1) - var(--a0)) * var(--m));
-    top: calc(var(--c0) * var(--m));
-    height: calc((var(--c1) - var(--c0)) * var(--m));
+  .v2-stats-head {
+    inset: 0 auto 0 0;
+    width: calc(6 * var(--m));
+    height: auto;
   }
-  .v2-half-lg {
-    position: relative;
-    container-type: inline-size;
-    aspect-ratio: 1 / 1;
-    --m: calc(100cqw / 9);
+  .v2-stats-points {
+    inset: calc(0.4 * var(--m)) auto auto calc(6.45 * var(--m));
+    width: calc(5.1 * var(--m));
+    height: calc(8.2 * var(--m));
   }
-  /* net on top: --a runs down from the centre line, --c across */
-  .v2-half-lg .v2-hz {
-    position: absolute;
-    top: calc(var(--a0) * var(--m));
-    height: calc((var(--a1) - var(--a0)) * var(--m));
-    left: calc(var(--c0) * var(--m));
-    width: calc((var(--c1) - var(--c0)) * var(--m));
+  .v2-stats-list {
+    inset: 0 0 0 calc(12.05 * var(--m));
   }
+  /* the real Points block is 5 fixed-height rows */
+  .v2-points-h {
+    min-height: 24.5rem;
+  }
+}
+
+/* ---------- our half court (six positions), at every width ---------- */
+
+.v2-half {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 1 / 1;
+  --m: calc(100cqw / 9);
+}
+
+/* net on top: --a runs down from the centre line, --c across */
+.v2-half .v2-hz {
+  position: absolute;
+  top: calc(var(--a0) * var(--m));
+  height: calc((var(--a1) - var(--a0)) * var(--m));
+  left: calc(var(--c0) * var(--m));
+  width: calc((var(--c1) - var(--c0)) * var(--m));
 }
 
 /* ---------- reduced motion: a still court ---------- */

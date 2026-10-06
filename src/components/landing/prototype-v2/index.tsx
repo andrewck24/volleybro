@@ -75,7 +75,7 @@ const Hero = () => (
         >
           開始記錄
         </CTAButton>
-        <p className="absolute top-full left-0 mt-[calc(0.3*var(--m))] text-sm font-medium whitespace-nowrap text-(--v2-ink) lg:left-1/2 lg:-translate-x-1/2">
+        <p className="absolute top-full left-0 mt-[calc(0.3*var(--m))] text-sm font-medium whitespace-nowrap text-(--v2-ink) lg:right-[calc(50%+0.3*var(--m))] lg:left-auto">
           {COPY.heroNote}
         </p>
       </div>
@@ -105,48 +105,43 @@ const Record = () => (
   </section>
 );
 
-/** lg: a landscape court — heading on our back zone, the real Points across
- *  the net (home values on our side, away on theirs), the list on theirs. */
+/** A court at every width (portrait below lg): heading on our half, the real
+ *  Points across the net (home values on our side, away on theirs, tagged as
+ *  demo data like the hero's score), the list on the opponent half. */
 const Stats = () => (
   <section className={cn("mx-auto max-w-[92rem] py-24 md:py-32", GUTTER)}>
-    <div className="v2-court-lg mx-auto lg:max-w-[80rem]">
-      <CourtPlan className="hidden lg:block" />
-      <div
-        className="v2-zl flex flex-col gap-5 lg:p-[calc(0.5*var(--m))] lg:text-(--v2-ink)"
-        style={zone(0, 6)}
-      >
-        <h2 className={cn(H2, "lg:text-[calc(0.55*var(--m))]")}>
+    <div className="v2-stats mx-auto max-w-[30rem] lg:max-w-[80rem]">
+      <Court />
+      <div className="v2-stats-head flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.35*var(--m))] text-(--v2-ink) lg:p-[calc(0.5*var(--m))]">
+        <h2 className="text-[max(1.5rem,calc(0.7*var(--m)))] leading-tight font-bold text-balance lg:text-[calc(0.55*var(--m))]">
           {COPY.statsTitle[0]}
           <br />
           {COPY.statsTitle[1]}
         </h2>
-        <p className="max-w-lg text-lg text-(--v2-on-free-2) lg:text-[max(1rem,calc(0.25*var(--m)))] lg:font-medium lg:text-(--v2-ink)">
+        <p className="text-sm font-medium lg:text-[max(1rem,calc(0.25*var(--m)))]">
           {COPY.statsLead}
         </p>
       </div>
-      <div
-        className="v2-zl mt-12 border-(length:--v2-lw) border-(--v2-line) bg-card p-4 text-card-foreground md:p-8 lg:mt-0 lg:flex lg:items-center lg:p-4"
-        style={zone(6.45, 11.55, 0.4, 8.6)}
-      >
+      <div className="v2-stats-points flex items-center border-(length:--v2-lw) border-(--v2-line) bg-card px-2 pt-4 pb-2 text-card-foreground lg:p-4">
+        <span className="absolute top-0 left-1/2 -translate-1/2 border-(length:--v2-lw) border-(--v2-line) bg-(--v2-free) px-2.5 py-1 text-xs font-bold whitespace-nowrap text-(--v2-on-free-2)">
+          示範數據
+        </span>
         <p className="sr-only">
-          團隊數據統計：上一段記錄的這一球送出後，攻擊得分與總得分各加一。
+          團隊數據統計（示範數據）：上一段記錄的這一球送出後，攻擊得分與總得分各加一。
         </p>
         <div
           id={POINTS_SLOT}
           className="v2-points-h flex w-full items-center"
         />
       </div>
-      <ul
-        className="v2-zl mt-12 flex flex-col gap-6 border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) p-5 text-(--v2-ink) lg:mt-0 lg:justify-center lg:gap-[calc(0.3*var(--m))] lg:border-0 lg:bg-transparent lg:p-[calc(0.5*var(--m))]"
-        style={zone(12.05, 18)}
-      >
+      <ul className="v2-stats-list grid grid-cols-2 content-center gap-x-[calc(0.3*var(--m))] gap-y-[calc(0.15*var(--m))] p-[calc(0.3*var(--m))] text-(--v2-ink) max-[23.75rem]:p-2 lg:grid-cols-1 lg:gap-[calc(0.3*var(--m))] lg:p-[calc(0.5*var(--m))]">
         {STATS.map((s) => (
-          <li key={s.title} className="flex flex-col gap-1">
+          <li key={s.title} className="flex flex-col gap-0.5 lg:gap-1">
             <FeatureTitle
               f={s}
-              className="text-xl lg:text-[max(1rem,calc(0.3*var(--m)))]"
+              className="gap-1 text-[0.9375rem] leading-snug max-[23.75rem]:text-sm lg:gap-2 lg:text-[max(1rem,calc(0.3*var(--m)))]"
             />
-            <p className="font-medium lg:text-[max(0.875rem,calc(0.22*var(--m)))]">
+            <p className="text-xs leading-snug font-medium lg:text-[max(0.875rem,calc(0.22*var(--m)))]">
               {s.body}
             </p>
           </li>
@@ -156,9 +151,9 @@ const Stats = () => (
   </section>
 );
 
-/** Six features on the six positions of our half (lg: a true 9 × 9 half
- *  court, net on top, front row 3 m deep); below lg a list keyed by the same
- *  position numerals. */
+/** Six features on the six positions of our half: a true 9 × 9 half court
+ *  at every width, net on top, front row (4-3-2) 3 m deep, back row (5-6-1)
+ *  behind the attack line. Both rows top-aligned. */
 const POS: Record<number, [row: number, col: number]> = {
   4: [0, 0],
   3: [0, 1],
@@ -180,38 +175,36 @@ const Kit = () => (
       <p className="max-w-lg text-lg text-(--v2-on-free-2)">{COPY.kitLead}</p>
     </div>
     <HalfCourt>
-      <ol className="flex flex-col gap-8 lg:contents">
+      <ol className="absolute inset-0">
         {KIT.map((k) => {
           const [row, col] = POS[k.zone]!;
           return (
             <li
               key={k.title}
-              className={cn(
-                "v2-hz flex gap-4 lg:flex-col",
-                row === 1 && "lg:justify-center",
-                "lg:gap-[calc(0.12*var(--m))] lg:p-[calc(0.3*var(--m))] lg:text-(--v2-ink)",
-              )}
+              className="v2-hz flex flex-col gap-[calc(0.1*var(--m))] p-[max(0.5rem,calc(0.3*var(--m)))] text-(--v2-ink)"
               style={
                 row === 0
                   ? zone(0.05, 2.95, col * 3, col * 3 + 3)
                   : zone(3.0, 8.95, col * 3, col * 3 + 3)
               }
             >
-              <span
-                aria-label={`位置 ${k.zone}`}
-                className="grid size-12 shrink-0 place-items-center border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) text-2xl leading-none font-bold text-(--v2-ink) tabular-nums lg:size-auto lg:place-items-start lg:border-0 lg:bg-transparent lg:text-[calc(0.7*var(--m))]"
-              >
-                {k.zone}
-              </span>
-              <div className="flex flex-col gap-1">
+              {/* numeral beside the title below lg (a 3 m front zone is
+                  short on a phone), above it from lg */}
+              <div className="flex items-baseline gap-1.5 lg:flex-col lg:items-start lg:gap-[calc(0.1*var(--m))]">
+                <span
+                  aria-label={`位置 ${k.zone}`}
+                  className="text-[calc(0.6*var(--m))] leading-none font-bold tabular-nums lg:text-[calc(0.7*var(--m))]"
+                >
+                  {k.zone}
+                </span>
                 <FeatureTitle
                   f={k}
-                  className="text-xl lg:text-[max(1rem,calc(0.26*var(--m)))]"
+                  className="gap-1 text-[max(0.875rem,calc(0.26*var(--m)))] leading-snug"
                 />
-                <p className="text-(--v2-on-free-2) lg:text-[max(0.875rem,calc(0.2*var(--m)))] lg:font-medium lg:text-(--v2-ink)">
-                  {k.body}
-                </p>
               </div>
+              <p className="text-[max(0.75rem,calc(0.2*var(--m)))] leading-snug font-medium">
+                {k.body}
+              </p>
             </li>
           );
         })}
@@ -221,17 +214,12 @@ const Kit = () => (
 );
 
 /** The page closes behind the end line: the action stands in the service
- *  zone, the court it will serve into beside it. */
+ *  zone, the court it will serve into beside it (lg) or above it. */
 const Closing = () => (
   <section className="relative overflow-hidden">
-    <div aria-hidden className="relative h-80 overflow-hidden lg:hidden">
-      <div className="absolute inset-x-4 bottom-10 aspect-[1/2] md:inset-x-[max(2rem,calc(50%-15rem))]">
-        <CourtPlan portrait />
-      </div>
-    </div>
     <div
       className={cn(
-        "relative mx-auto grid max-w-[92rem] grid-cols-1 pt-4 pb-24 lg:min-h-[36rem] lg:grid-cols-2 lg:items-center lg:py-32",
+        "relative mx-auto grid max-w-[92rem] grid-cols-1 pt-24 pb-10 lg:min-h-[36rem] lg:grid-cols-2 lg:items-center lg:py-32",
         GUTTER,
       )}
     >
@@ -242,9 +230,31 @@ const Closing = () => (
           {COPY.ctaTitle[1]}
         </h2>
         <p className="max-w-md text-lg text-(--v2-on-free-2)">{COPY.ctaLead}</p>
-        <CTAButton size="lg" className={cn("h-14 px-8", BTN_ON_FREE)}>
+        <CTAButton
+          size="lg"
+          className={cn("hidden h-14 px-8 lg:inline-flex", BTN_ON_FREE)}
+        >
           開始記錄
         </CTAButton>
+      </div>
+    </div>
+    <div className={cn("pb-24 lg:hidden", GUTTER)}>
+      <div className="[container-type:inline-size] mx-auto max-w-[30rem]">
+        {/* the last 3 m of the court down to the end line, then the service
+            zone with its two marks; the action is the server */}
+        <div aria-hidden className="relative h-[calc(100cqw/9*3.5)]">
+          <div className="absolute inset-x-0 bottom-[calc(100cqw/9*0.5)] h-[calc(100cqw/9*3)] overflow-hidden">
+            <div className="absolute inset-x-0 bottom-0 aspect-[1/2]">
+              <CourtPlan portrait />
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-[calc(100cqw/9*0.15)] h-[calc(100cqw/9*0.15)] border-x-(length:--v2-lw) border-(--v2-line)" />
+        </div>
+        <div className="flex justify-end pt-2">
+          <CTAButton size="lg" className={cn("h-14 px-8", BTN_ON_FREE)}>
+            開始記錄
+          </CTAButton>
+        </div>
       </div>
     </div>
     <div
