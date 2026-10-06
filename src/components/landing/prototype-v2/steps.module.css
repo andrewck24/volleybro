@@ -1,0 +1,172 @@
+/* PROTOTYPE (throwaway). Section 3 pinned part. Scrub = CSS scroll-driven
+   animation (transform/opacity only, no JS per frame). Geometry: the stage
+   sticks at top: --header-h and is one --track tall (the viewport minus the
+   header); the section is 4 tracks, so the pin lasts 3 tracks = steps 0..3.
+   The view timeline is inset by the header at the top, so `contain 0%..100%`
+   spans exactly "section top under the header" .. "section bottom at the
+   viewport bottom". Component state does NOT follow this timeline: it changes
+   at step boundaries from IntersectionObserver. The section's height comes
+   from the global `.v2-steps-h` (v2.css) so the lazy placeholder matches.
+   Copied from prototype-v1; v2 only centres the stage at lg. */
+.section {
+  --track: calc(100svh - var(--header-h));
+  position: relative;
+  view-timeline: --steps block;
+  view-timeline-inset: var(--header-h) 0px;
+}
+
+.stage {
+  position: sticky;
+  top: var(--header-h);
+  height: var(--track);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-inline: auto;
+  max-width: 80rem;
+}
+
+@media (min-width: 64rem) {
+  .stage {
+    flex-direction: row;
+    justify-content: center;
+    gap: clamp(3rem, 10vw, 10rem);
+    padding: 2rem;
+  }
+}
+
+.captions {
+  position: relative;
+  display: grid;
+  width: min(22rem, 100%);
+  flex-shrink: 0;
+}
+
+@media (min-width: 64rem) {
+  .captions {
+    width: min(32rem, 45%);
+  }
+}
+
+.caption {
+  grid-area: 1 / 1;
+}
+
+.frame {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 40rem;
+  width: min(22rem, 100%);
+}
+
+@media (min-width: 64rem) {
+  .frame {
+    flex: none;
+    height: min(40rem, calc(var(--track) - 4rem));
+  }
+}
+
+.rails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.rail {
+  height: var(--track);
+}
+
+/* fallback (no animation-timeline): IntersectionObserver writes data-step on
+   the section and the layers transition to that step's value */
+.layer {
+  transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  opacity: var(--v0);
+}
+.section[data-step="1"] .layer {
+  opacity: var(--v1);
+}
+.section[data-step="2"] .layer {
+  opacity: var(--v2);
+}
+.section[data-step="3"] .layer {
+  opacity: var(--v3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    transition: none;
+  }
+}
+
+@keyframes fade {
+  0% {
+    opacity: var(--v0);
+  }
+  33.333% {
+    opacity: var(--v1);
+  }
+  66.667% {
+    opacity: var(--v2);
+  }
+  100% {
+    opacity: var(--v3);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .layer {
+    transition: none;
+    animation: fade linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  /* reduced motion: hold each keyframe value until the next = instant swaps */
+  @media (prefers-reduced-motion: reduce) {
+    .layer {
+      animation-timing-function: step-end;
+    }
+  }
+}
+
+/* the real components carry their own enter animations and transitions;
+   reduced motion turns those into instant swaps too */
+@media (prefers-reduced-motion: reduce) {
+  .frame *,
+  .frame *::before,
+  .frame *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* landscape phones: no pin, no scrub — captions listed beside a frame frozen
+   on the finished rally (the driver is sent to the last step) */
+@media (max-height: 500px) {
+  .stage {
+    position: static;
+    height: 100%;
+    flex-direction: row;
+    justify-content: center;
+    gap: 2rem;
+    padding-block: 3rem;
+  }
+  .captions {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .rails {
+    display: none;
+  }
+  .layer {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+  }
+  .frame {
+    flex: none;
+    height: 100%;
+  }
+}

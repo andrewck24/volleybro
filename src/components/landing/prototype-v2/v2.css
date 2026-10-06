@@ -1,0 +1,363 @@
+/* PROTOTYPE (throwaway): landing v2 「球場平面圖」 world.
+   Teal free zone = page ground; coral in-court = where content and action
+   live; white 5 cm lines = the only dividers. Flat: no gradient, texture,
+   glow or blur. Light: the brand teal free zone. Dark: a night-session free
+   zone (deep teal), coral unchanged, lines a touch softer.
+   Contrast (WCAG): ink on coral 6.67, ivory on teal 5.81 (dark 12.97),
+   teal-tint secondary on teal 4.83 (dark 8.86), ivory on teal CTA 5.81. */
+
+.v2 {
+  --v2-free: hsl(192 77.46% 27.84%);
+  --v2-in: #fc7a56;
+  --v2-line: #fff;
+  --v2-ink: hsl(192 70% 8%);
+  --v2-on-free: hsl(330 10% 96.08%);
+  --v2-on-free-2: hsl(192 45% 86%);
+  /* UI line width outside a drawn court (≈ the hero court's 5 cm at 1280) */
+  --v2-lw: 3px;
+  --v2-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* one rally beat, shared by every animated element (rally.tsx INTERVAL) */
+  --v2-beat: 2200ms;
+  --header-h: 4rem;
+  background: var(--v2-free);
+  color: var(--v2-on-free);
+}
+
+:where(.dark) .v2 {
+  --v2-free: hsl(192 70% 13%);
+  --v2-line: hsl(330 10% 94%);
+  --v2-on-free-2: hsl(192 30% 78%);
+}
+
+/* the canvas behind the page (overscroll, scrollbar gutter) is free zone too */
+html:has(.v2) {
+  background: hsl(192 77.46% 27.84%);
+  scrollbar-color: hsl(192 45% 86% / 0.6) transparent;
+}
+
+html.dark:has(.v2) {
+  background: hsl(192 70% 13%);
+}
+
+.v2 ::selection {
+  background: var(--v2-in);
+  color: var(--v2-ink);
+}
+
+.v2 :focus-visible {
+  outline: var(--v2-lw) solid var(--v2-line);
+  outline-offset: 3px;
+}
+
+/* ---------- the court box: metre units ---------- */
+
+/* A court box is a size container; --m is one metre in cqw, so everything
+   placed on it (text, marks, rows) scales with the court and stays on its
+   geometry. Portrait (net horizontal) below lg, landscape from lg. */
+.v2-court {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 1 / 2;
+  --m: calc(100cqw / 9);
+  --lwc: calc(0.05 * var(--m));
+}
+
+.v2-court-half {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 1 / 1;
+  --m: calc(100cqw / 9);
+  --lwc: calc(0.05 * var(--m));
+}
+
+/* a zone of the court: --a0..--a1 along (from our end line), --c0..--c1
+   across */
+.v2-z {
+  position: absolute;
+  top: calc(var(--a0) * var(--m));
+  height: calc((var(--a1) - var(--a0)) * var(--m));
+  left: calc(var(--c0, 0) * var(--m));
+  width: calc((var(--c1, 9) - var(--c0, 0)) * var(--m));
+}
+
+@media (min-width: 64rem) {
+  .v2-court {
+    aspect-ratio: 2 / 1;
+    --m: calc(100cqw / 18);
+  }
+  .v2-court .v2-z {
+    left: calc(var(--a0) * var(--m));
+    width: calc((var(--a1) - var(--a0)) * var(--m));
+    top: calc(var(--c0, 0) * var(--m));
+    height: calc((var(--c1, 9) - var(--c0, 0)) * var(--m));
+  }
+}
+
+/* ---------- hero ---------- */
+
+.v2-hero-court {
+  width: min(100%, 30rem);
+}
+
+@media (min-width: 64rem) {
+  .v2-hero-court {
+    width: min(100%, calc((100svh - var(--header-h) - 6rem) * 2), 92rem);
+  }
+}
+
+.v2-hero-title {
+  font-size: calc(0.8 * var(--m));
+  line-height: 1.15;
+}
+
+.v2-hero-desc {
+  font-size: max(0.9375rem, calc(0.38 * var(--m)));
+  line-height: 1.55;
+}
+
+@media (min-width: 64rem) {
+  .v2-hero-title {
+    font-size: calc(0.64 * var(--m));
+  }
+  .v2-hero-desc {
+    font-size: max(1rem, calc(0.25 * var(--m)));
+  }
+}
+
+/* the action sits on our attack line (rear edge at 6 m) */
+.v2-on-attack {
+  position: absolute;
+  top: calc(6.025 * var(--m));
+  left: calc(0.5 * var(--m));
+  translate: 0 -50%;
+}
+
+@media (min-width: 64rem) {
+  .v2-on-attack {
+    top: calc(7 * var(--m));
+    left: calc(6.025 * var(--m));
+    translate: -50% -50%;
+  }
+}
+
+/* the running set score sits at the net post */
+.v2-post {
+  position: absolute;
+  top: calc(9 * var(--m));
+  right: calc(0.4 * var(--m));
+  translate: 0 -50%;
+}
+
+@media (min-width: 64rem) {
+  .v2-post {
+    top: 0;
+    right: auto;
+    left: calc(9 * var(--m));
+    translate: -50% -50%;
+  }
+}
+
+/* ---------- entry rows (opponent back zone) ---------- */
+
+.v2-rows {
+  --rh: calc(1 * var(--m));
+  --pitch: calc(1.2 * var(--m));
+  --rows: 4;
+  position: relative;
+  overflow: hidden;
+  height: calc(var(--rows) * var(--pitch) - (var(--pitch) - var(--rh)));
+  font-size: calc(0.38 * var(--m));
+}
+
+@media (min-width: 64rem) {
+  .v2-rows {
+    --rh: calc(0.6 * var(--m));
+    --pitch: calc(0.72 * var(--m));
+    --rows: 11;
+    font-size: max(0.8125rem, calc(0.25 * var(--m)));
+  }
+}
+
+.v2-row {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: var(--rh);
+  transform: translateY(calc(var(--i) * var(--pitch)));
+  border: var(--lwc) solid var(--v2-line);
+}
+
+.v2-row[data-animate] {
+  transition:
+    transform 500ms var(--v2-ease) calc(var(--i) * 35ms),
+    opacity 450ms ease-out;
+}
+
+/* ---------- the landing mark ---------- */
+
+.v2-mark {
+  position: absolute;
+  top: calc(var(--a) * var(--m));
+  left: calc(var(--c) * var(--m));
+  /* where it files: the first Entry row in the opponent back zone */
+  --ta: 13.05;
+  --tc: 1;
+  --dx: calc((var(--tc) - var(--c)) * var(--m));
+  --dy: calc((var(--ta) - var(--a)) * var(--m));
+  font-size: calc(0.38 * var(--m));
+  transform-origin: 0 0;
+}
+
+@media (min-width: 64rem) {
+  .v2-mark {
+    top: calc(var(--c) * var(--m));
+    left: calc(var(--a) * var(--m));
+    --ta: 12.9;
+    --tc: 0.8;
+    --dx: calc((var(--ta) - var(--a)) * var(--m));
+    --dy: calc((var(--tc) - var(--c)) * var(--m));
+    font-size: max(0.8125rem, calc(0.25 * var(--m)));
+  }
+}
+
+.v2-dot {
+  position: relative;
+  display: block;
+  width: calc(0.5 * var(--m));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: var(--v2-line);
+}
+
+.v2-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: var(--lwc) solid var(--v2-line);
+}
+
+.v2-mark-label {
+  position: absolute;
+  top: 0;
+  left: calc(0.4 * var(--m));
+  translate: 0 -50%;
+  white-space: nowrap;
+}
+
+/* landscape: a point lost lands on our front zone and labels toward our end
+   line, so the label never crosses the net */
+@media (min-width: 64rem) {
+  .v2-mark[data-ours] .v2-mark-label {
+    left: auto;
+    /* the mark box spans spot..spot + 0.5 m (the dot is pulled back half) */
+    right: calc(0.9 * var(--m));
+  }
+}
+
+.v2-mark[data-live] {
+  animation: v2-land var(--v2-beat) both;
+}
+
+.v2-mark[data-live] .v2-ring {
+  animation: v2-ripple calc(var(--v2-beat) * 0.4) ease-out both;
+}
+
+/* one rally beat: lands (0-16%), holds, files into the list (62-96%) */
+@keyframes v2-land {
+  0% {
+    opacity: 0;
+    transform: scale(2);
+    animation-timing-function: var(--v2-ease);
+  }
+  16% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1);
+  }
+  92% {
+    opacity: 0.6;
+    transform: translate(var(--dx), var(--dy)) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.6);
+  }
+}
+
+@keyframes v2-ripple {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+/* ---------- 每球三步 (lazy): the placeholder and the loaded section share
+   this height so loading never shifts the page ---------- */
+
+.v2-steps-h {
+  height: calc(4 * (100svh - var(--header-h)));
+}
+
+@media (max-height: 500px) {
+  .v2-steps-h {
+    height: 42rem;
+  }
+}
+
+/* stats: the real Points block is 5 fixed-height rows */
+.v2-points-h {
+  min-height: 24.5rem;
+}
+
+/* ---------- lg-only courts (stats: full court; kit: our half) ----------
+   Below lg their zones flow as plain blocks on the free zone. */
+
+@media (min-width: 64rem) {
+  .v2-court-lg {
+    position: relative;
+    container-type: inline-size;
+    aspect-ratio: 2 / 1;
+    --m: calc(100cqw / 18);
+  }
+  .v2-court-lg > .v2-zl {
+    position: absolute;
+    left: calc(var(--a0) * var(--m));
+    width: calc((var(--a1) - var(--a0)) * var(--m));
+    top: calc(var(--c0) * var(--m));
+    height: calc((var(--c1) - var(--c0)) * var(--m));
+  }
+  .v2-half-lg {
+    position: relative;
+    container-type: inline-size;
+    aspect-ratio: 1 / 1;
+    --m: calc(100cqw / 9);
+  }
+  /* net on top: --a runs down from the centre line, --c across */
+  .v2-half-lg .v2-hz {
+    position: absolute;
+    top: calc(var(--a0) * var(--m));
+    height: calc((var(--a1) - var(--a0)) * var(--m));
+    left: calc(var(--c0) * var(--m));
+    width: calc((var(--c1) - var(--c0)) * var(--m));
+  }
+}
+
+/* ---------- reduced motion: a still court ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .v2-mark[data-live],
+  .v2-mark[data-live] .v2-ring,
+  .v2-row[data-animate] {
+    animation: none;
+    transition: none;
+  }
+}

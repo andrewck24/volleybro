@@ -34,13 +34,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // PROTOTYPE: `/?variant=v1` shows the landing v1 prototype; `/` itself stays
+  // PROTOTYPE: `/?variant=v1|v2` shows a landing prototype; `/` itself stays
   // the static current landing.
-  if (
-    nextUrl.pathname === "/" &&
-    nextUrl.searchParams.get("variant") === "v1"
-  ) {
-    return NextResponse.rewrite(new URL("/landing-v1", nextUrl));
+  const variant = nextUrl.searchParams.get("variant");
+  if (nextUrl.pathname === "/" && (variant === "v1" || variant === "v2")) {
+    return NextResponse.rewrite(new URL(`/landing-${variant}`, nextUrl));
   }
 
   const session = await auth.api.getSession({
