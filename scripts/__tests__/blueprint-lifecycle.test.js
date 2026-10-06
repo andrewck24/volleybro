@@ -14,6 +14,7 @@ import path from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
+import { commitFiles as commit } from "../../test/support/git-fixture.js";
 import { checkBlueprintOutput } from "../blueprint-check-output.js";
 import { prepareBlueprint } from "../blueprint-prepare.js";
 import { changeInputHash, prepareLifecycle } from "../blueprint-lifecycle.js";
@@ -22,17 +23,6 @@ const execFileAsync = promisify(execFile);
 
 async function git(cwd, ...args) {
   return (await execFileAsync("git", args, { cwd })).stdout.trim();
-}
-
-async function commit(cwd, files, message) {
-  for (const [name, content] of Object.entries(files)) {
-    const file = path.join(cwd, name);
-    await mkdir(path.dirname(file), { recursive: true });
-    await writeFile(file, content);
-  }
-  await git(cwd, "add", ".");
-  await git(cwd, "commit", "--quiet", "-m", message);
-  return git(cwd, "rev-parse", "HEAD");
 }
 
 async function fixture(t) {

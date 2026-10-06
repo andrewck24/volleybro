@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { appendFile, readFile } from "node:fs/promises";
+import { appendFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -155,13 +155,14 @@ function rootProtectedImporter(importer) {
   return result;
 }
 
-function packageLocator(name, reference) {
+function packageLocator(name, reference, lock) {
   if (typeof reference !== "string" || reference.startsWith("link:")) {
     throw new Error(`unsupported or missing package reference for ${name}`);
   }
   if (reference.startsWith("file:") || reference.startsWith("workspace:")) {
     throw new Error(`unsupported package reference for ${name}`);
   }
+  if (Object.hasOwn(lock.snapshots, reference)) return reference;
   return `${name}@${reference}`;
 }
 
@@ -170,7 +171,7 @@ function protectedGraph(lock) {
   const visited = new Set();
   const packages = {};
   const visit = (name, reference) => {
-    const locator = packageLocator(name, reference);
+    const locator = packageLocator(name, reference, lock);
     if (visited.has(locator)) return;
     visited.add(locator);
     const snapshot = lock.snapshots[locator];
@@ -267,7 +268,8 @@ function runGit(args, cwd) {
   });
 }
 
-export function assess({ base, head, cwd = process.cwd(), force = false }) {
+function assess({ base, head, force = false }) {
+  const cwd = process.cwd();
   if (force) return { skip: false, reason: "forced by --force" };
   if (
     !base ||
@@ -344,7 +346,6 @@ async function main() {
   if (process.env.GITHUB_OUTPUT)
     await appendFile(process.env.GITHUB_OUTPUT, line);
   console.log(`${line.trim()} reason=${result.reason}`);
-  if (!result.skip && result.reason.startsWith("forced")) process.exitCode = 0;
 }
 
 const isMain =
