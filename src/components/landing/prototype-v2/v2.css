@@ -43,9 +43,14 @@
 }
 
 /* the canvas behind the page (overscroll, scrollbar gutter) is free zone too */
+/* A classic scrollbar's gutter cannot carry page content, so the full-bleed
+   closing court stops at it; the track is the free zone (transparent shows
+   the html ground) and the bar is thin, so the gutter reads as the free
+   zone beyond the court rather than a separate strip. */
 html:has(.v2) {
   background: hsl(192 77.46% 27.84%);
   scrollbar-color: hsl(192 45% 86% / 0.6) transparent;
+  scrollbar-width: thin;
 }
 
 html.dark:has(.v2) {

@@ -182,20 +182,28 @@
   scroll-snap-stop: always;
 }
 
-/* IntersectionObserver writes data-step on the section; the captions
-   transition to that step's value on time, never on scroll position */
+/* IntersectionObserver writes data-step on the section; the captions switch
+   to that step's value on time, never on scroll position, and in sequence:
+   the leaving caption fades out in 180ms, the entering one waits 200ms (its
+   --vN is 1, so its delay is 1 × 200ms) before fading in, so at no moment
+   are two captions visible together. */
 .layer {
-  transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --out: 180ms;
+  --gap: 200ms;
+  transition: opacity var(--out) ease-out calc(var(--v0) * var(--gap));
   opacity: var(--v0);
 }
 .section[data-step="1"] .layer {
   opacity: var(--v1);
+  transition-delay: calc(var(--v1) * var(--gap));
 }
 .section[data-step="2"] .layer {
   opacity: var(--v2);
+  transition-delay: calc(var(--v2) * var(--gap));
 }
 .section[data-step="3"] .layer {
   opacity: var(--v3);
+  transition-delay: calc(var(--v3) * var(--gap));
 }
 
 @media (prefers-reduced-motion: reduce) {

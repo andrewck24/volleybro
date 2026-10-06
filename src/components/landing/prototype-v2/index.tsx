@@ -113,9 +113,9 @@ const Record = () => (
   </section>
 );
 
-/** A court at every width (portrait below lg): heading on our half, the real
- *  Points across the net (home values on our side, away on theirs, tagged as
- *  demo data like the hero's score), the list on the opponent half. */
+/** A court at every width (portrait below lg): heading on our half, the
+ *  app's Points rows across the net (home values on our side, away on
+ *  theirs, following the hero's rally clock), the list on the opponent half. */
 const Stats = () => (
   <section
     className={cn("v2-snap-point mx-auto max-w-[92rem] py-24 md:py-32", GUTTER)}
@@ -202,7 +202,9 @@ const Kit = () => (
 const Closing = () => (
   <section
     className={cn(
-      "flex justify-center overflow-x-clip py-24 md:py-32 lg:justify-start",
+      // lg: the attack-line extensions reach 1.95 m (10.7vw at 5.5vw a metre)
+      // past the side lines, so the padding is 13vw to end them in here
+      "flex justify-center overflow-x-clip py-24 md:py-32 lg:justify-start lg:py-[13vw]",
       GUTTER,
     )}
   >
