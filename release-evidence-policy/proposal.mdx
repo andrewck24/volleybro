@@ -37,8 +37,8 @@ export const scenarios = [
 
 下面直接沿 repository 的實際目錄展開；每個節點後的標記才說明本 Change 對該路徑的作用。這讓讀者先看到 Clean Architecture 與交付工具分別落在哪裡，再辨認修改邊界，而不是先把檔案切成 EDIT／READ 類別。
 
-<pre className="my-5 overflow-x-auto rounded-lg border border-border bg-muted/30 p-3 text-[10px] leading-relaxed sm:p-4 sm:text-xs"><code>
-  <span className="block whitespace-pre">{"repository root/"}</span>
+<pre className="my-5 overflow-x-auto rounded-lg border border-border bg-muted/30 p-3 text-[10px] leading-relaxed sm:p-4 sm:text-xs">
+  <code><span className="block whitespace-pre">{"repository root/"}</span>
   <span className="block whitespace-pre">{"├── .github/"}</span>
   <span className="block whitespace-pre">{"│   └── workflows/"}</span>
   <span className="block whitespace-pre">{"│       └── production-release.yml "}<span className="rounded px-1 py-0.5 font-medium" style={{ backgroundColor: "color-mix(in oklab, var(--info) 22%, var(--background))", color: "var(--color-info-text)" }}>修改</span></span>
@@ -77,7 +77,8 @@ export const scenarios = [
   <span className="block whitespace-pre">{"│   └── lib/"}</span>
   <span className="block whitespace-pre">{"│       └── auth.ts "}<span className="rounded px-1 py-0.5 font-medium" style={{ backgroundColor: "color-mix(in oklab, var(--muted) 55%, var(--background))", color: "var(--muted-foreground)" }}>讀取</span></span>
   <span className="block whitespace-pre">{"└── WORKFLOW.md "}<span className="rounded px-1 py-0.5 font-medium" style={{ backgroundColor: "color-mix(in oklab, var(--info) 22%, var(--background))", color: "var(--color-info-text)" }}>修改</span></span>
-</code></pre>
+  </code>
+</pre>
 
 標記說明：<span className="rounded px-1 py-0.5 font-medium" style={{ backgroundColor: "color-mix(in oklab, var(--info) 22%, var(--background))", color: "var(--color-info-text)" }}>修改</span>／<span className="rounded px-1 py-0.5 font-medium" style={{ backgroundColor: "color-mix(in oklab, var(--success) 22%, var(--background))", color: "var(--color-success-text)" }}>新增</span> 是預計交付的 repository 變更；<span className="rounded px-1 py-0.5 font-medium" style={{ backgroundColor: "color-mix(in oklab, var(--muted) 55%, var(--background))", color: "var(--muted-foreground)" }}>讀取</span> 僅用於查明資料契約與驗證範圍；<span className="rounded px-1 py-0.5 font-medium" style={{ backgroundColor: "color-mix(in oklab, var(--warning) 22%, var(--background))", color: "var(--color-warning-text)" }}>Archive 評估</span> 是實作完成後才依現況更新 Feature，不把未實作內容先寫成事實。
 
