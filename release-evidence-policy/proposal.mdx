@@ -69,14 +69,14 @@ promotion 或停止。
 <InteractiveFlowchart
   nodes={[
     { id: "source", label: "固定 release source", x: 185, y: 30, w: 180 },
-    { id: "proof", label: "核對可信 CI／部署證據", x: 185, y: 100, w: 200 },
-    { id: "proof-ok", label: "證據完整且相符？", x: 185, y: 175, w: 170, h: 64, shape: "diamond" },
+    { id: "proof", label: "核對 CI／部署證據", x: 185, y: 100, w: 200 },
+    { id: "proof-ok", label: "證據有效？", x: 185, y: 175, w: 170, h: 64, shape: "diamond" },
     { id: "stop", label: "停止並通知", x: 365, y: 175, w: 115 },
     { id: "epoch", label: "production DB 已啟用？", x: 185, y: 265, w: 200 },
-    { id: "test-db", label: "test DB：forward migration", x: 85, y: 350, w: 165 },
+    { id: "test-db", label: "test DB 正向遷移", x: 85, y: 350, w: 165 },
     { id: "production-db", label: "讀 legacy／驗 baseline", x: 285, y: 350, w: 165 },
-    { id: "promote", label: "自動 promote 候選", x: 185, y: 430, w: 180 },
-    { id: "qa", label: "正式站 Google／session smoke", x: 185, y: 500, w: 200 },
+    { id: "promote", label: "自動 promote", x: 185, y: 430, w: 180 },
+    { id: "qa", label: "正式站登入 smoke", x: 185, y: 500, w: 200 },
     { id: "tag", label: "通過才 tag／Release", x: 185, y: 570, w: 180 },
   ]}
   edges={[
@@ -100,7 +100,7 @@ promotion 或停止。
     "test-db": { title: "上線前可完整遷移", body: "舊程式不再讀得懂已完整遷移的 test DB 時採 forward-fix；舊 SHA Preview 先重建與重驗，不做資料回復。" },
     "production-db": { title: "正式資料不倒退", body: "候選必須讀取仍存在的 legacy records；只證明當次 release policy 允許的 exact baseline 可讀 candidate writes。沒有 proof 就不允許 promote 或 code rollback。" },
     promote: { title: "自動流程到 production QA 前", body: "通過機械 evidence gate 後沿用 production lock 與 Vercel protection，自動 promote；此處不保留 candidate evidence 人工核准。" },
-    qa: { title: "唯一固定的人工作業", body: "人在正式 alias 驗 Google sign-in/session 與 team 唯讀路徑；完整 app 功能不在這一步重測。" },
+    qa: { title: "唯一固定的人工作業", body: "人在正式 alias 驗 Google sign-in、session 與 team 唯讀路徑；完整 app 功能不在這一步重測。" },
     tag: { title: "正式驗收後 finalize", body: "未成功完成正式站 QA 不得建立成功 tag／GitHub Release。" },
     stop: { title: "拒絕不是待核准", body: "機械證據不足時停在 promote 前，列出缺的來源／範圍／資料相容性證明與通知；不得退回每次 release 的人工 evidence approval。" },
   }}
