@@ -53,7 +53,11 @@
 
 @media (min-width: 64rem) {
   .lead {
-    width: min(34rem, 45%);
+    /* up to 34rem, and it gives way first: the field keeps its 37rem (the
+       app cards their 22rem) from 1024px up, inside the stage padding */
+    flex: 0 1 34rem;
+    width: auto;
+    min-width: 0;
     gap: 3rem;
   }
 }
