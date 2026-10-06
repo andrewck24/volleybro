@@ -12,6 +12,10 @@
 .section {
   --track: calc(100svh - var(--header-h));
   position: relative;
+  /* drives only the finger dot: contain 0%..100% spans step 0's rest
+     (section top under the header) to step 3's rest */
+  view-timeline: --steps block;
+  view-timeline-inset: var(--header-h) 0px;
 }
 
 .stage {
@@ -183,9 +187,150 @@
 
 .rail {
   height: var(--track);
-  /* v2: the step rest positions are the snap points (html.v2-snap) */
+}
+
+/* v2: the step rest positions are the snap points (html.v2-snap) */
+.rails > .rail {
   scroll-snap-align: start;
   scroll-snap-stop: always;
+}
+
+/* the state switches: the rails moved up half a header, so each flips
+   exactly mid-way between two rest positions (steps-section.tsx) */
+.switches {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--header-h) / -2);
+  pointer-events: none;
+}
+
+/* ---------- finger dot ----------
+   One scroll-driven path over the whole walkthrough (transform / opacity
+   only, compositor): rest i sits at tap point Pi; each segment moves to the
+   next target in its first 40%, taps at 50% (where the switch flips the real
+   components) and rests there. --pNx / --pNy are stage-relative, measured
+   from the real buttons (steps-section.tsx). */
+.dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.dotCore,
+.dotRing {
+  position: absolute;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.875rem 0 0 -0.875rem;
+  border-radius: 50%;
+}
+
+.dotCore {
+  background: #fff;
+  box-shadow:
+    0 2px 6px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.dotRing {
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12);
+  opacity: 0;
+}
+
+@supports (animation-timeline: view()) {
+  .section[data-dot] .dot {
+    display: block;
+    animation: dot-path linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  .section[data-dot] .dotCore {
+    animation: dot-press linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  .section[data-dot] .dotRing {
+    animation: dot-ring linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+}
+
+@keyframes dot-path {
+  0% {
+    transform: translate(var(--p0x), var(--p0y));
+  }
+  13.333% {
+    transform: translate(var(--p1x), var(--p1y));
+  }
+  33.333% {
+    transform: translate(var(--p1x), var(--p1y));
+  }
+  46.667% {
+    transform: translate(var(--p2x), var(--p2y));
+  }
+  66.667% {
+    transform: translate(var(--p2x), var(--p2y));
+  }
+  80% {
+    transform: translate(var(--p3x), var(--p3y));
+  }
+  100% {
+    transform: translate(var(--p3x), var(--p3y));
+  }
+}
+
+@keyframes dot-press {
+  0%,
+  15%,
+  18.5%,
+  48.333%,
+  51.833%,
+  81.667%,
+  85.167%,
+  100% {
+    transform: scale(1);
+  }
+  16.667%,
+  50%,
+  83.333% {
+    transform: scale(0.72);
+  }
+}
+
+@keyframes dot-ring {
+  0%,
+  15%,
+  48.333%,
+  81.667% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  16.667%,
+  50%,
+  83.333% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  21%,
+  54.333%,
+  87.667%,
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section .dot {
+    display: none !important;
+  }
 }
 
 /* IntersectionObserver writes data-step on the section; the captions switch
@@ -245,8 +390,10 @@
     flex-direction: column;
     gap: 1.5rem;
   }
-  .rails {
-    display: none;
+  .rails,
+  .switches,
+  .dot {
+    display: none !important;
   }
   .layer {
     animation: none !important;

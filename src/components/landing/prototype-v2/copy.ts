@@ -87,6 +87,10 @@ export const moveLabel = (num: number, win: boolean) =>
 /** Button `default` variant: teal fill, ivory label (5.81:1). On coral and in the header. */
 export const BTN_PRIMARY =
   "bg-primary font-semibold text-primary-foreground shadow-md ring-transparent hover:bg-primary/90 dark:ring-transparent";
+/** The header CTA at rest, over the teal free zone: a card chip with a
+ *  primary label (light: primary on card 6.14:1; dark: chart-1 on card). */
+export const BTN_CARD =
+  "bg-card font-semibold text-primary shadow-md ring-transparent hover:bg-card/90 dark:text-chart-1 dark:ring-transparent";
 /** Button `secondary` variant: on the teal free zone (label 16:1 light, 9:1 dark). */
 export const BTN_SECONDARY =
   "bg-secondary font-semibold text-secondary-foreground shadow-md ring-transparent hover:bg-secondary/80 dark:ring-transparent";

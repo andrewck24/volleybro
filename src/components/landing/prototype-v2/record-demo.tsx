@@ -16,6 +16,7 @@ import { GamePanel } from "@/components/game/panel";
 import { GamePreview } from "@/components/game/preview";
 import {
   DEMO_GAME_ID,
+  HOME_PLAYERS,
   SEED_COUNT,
   SENT_RALLY,
 } from "@/components/landing/prototype-v1/demo-data";
@@ -128,13 +129,50 @@ const Frame = () => {
   );
 };
 
+/** The real element each tap of the demo rally lands on, found in the frame
+ *  by what the user sees: the player card with the demo player's number,
+ *  then the move buttons by their label and win / lose look. */
+const locate = (tap: number, frame: HTMLElement): Element | null => {
+  if (tap === 1) {
+    const number = String(
+      HOME_PLAYERS.find((p) => p.id === SENT_RALLY.player)!.number,
+    );
+    return (
+      [...frame.querySelectorAll("p")]
+        .find((p) => p.textContent === number && p.closest(".border-4"))
+        ?.closest(".border-4") ?? null
+    );
+  }
+  // the moves body (the progress bar's label also slides in, from the bottom)
+  const body = frame.querySelector(
+    '[class*="slide-in-from-right"], [class*="slide-in-from-left"]',
+  );
+  const buttons = [...(body?.querySelectorAll("button") ?? [])];
+  if (tap === 2) {
+    const move = scoringMoves[SENT_RALLY.home]!;
+    return (
+      buttons.find(
+        (b) =>
+          b.textContent?.trim() === move.text &&
+          b.className.includes(move.win ? "bg-primary" : "bg-destructive"),
+      ) ?? null
+    );
+  }
+  const away = scoringMoves[SENT_RALLY.away]!;
+  return buttons.find((b) => b.textContent?.includes(away.text)) ?? null;
+};
+
 const Sections = ({ intro }: { intro: ReactNode }) => {
   const ctrlRef = useRef<Ctrl | null>(null);
   const [frame] = useState(() => <Frame />);
   return (
     <>
       <Driver ctrlRef={ctrlRef} />
-      <StepsSection intro={intro} onStep={(n) => ctrlRef.current?.step(n)}>
+      <StepsSection
+        intro={intro}
+        locate={locate}
+        onStep={(n) => ctrlRef.current?.step(n)}
+      >
         {frame}
       </StepsSection>
     </>

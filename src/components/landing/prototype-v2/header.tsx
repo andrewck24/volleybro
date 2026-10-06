@@ -1,7 +1,7 @@
 "use client";
 import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
-import { BTN_PRIMARY } from "@/components/landing/prototype-v2/copy";
+import { BTN_CARD, BTN_PRIMARY } from "@/components/landing/prototype-v2/copy";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -53,7 +53,11 @@ export const Header = () => {
             </span>
           </div>
           <CTAButton
-            className={cn("h-9 rounded-[10px] px-3 md:px-3.5", BTN_PRIMARY)}
+            className={cn(
+              "h-9 rounded-[10px] px-3 transition-[background-color,box-shadow,color] duration-300 md:px-3.5",
+              // at rest a card chip on the teal; with the glass, solid primary
+              scrolled ? BTN_PRIMARY : BTN_CARD,
+            )}
           >
             開始記錄
           </CTAButton>

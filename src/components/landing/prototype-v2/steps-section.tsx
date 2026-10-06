@@ -47,17 +47,22 @@ const Numeral = ({ i }: { i: number }) => (
 export const StepsSection = ({
   intro,
   onStep,
+  locate,
   children,
 }: {
   /** the section heading + lead, set in the sticky stage above the steps */
   intro: ReactNode;
   onStep: (step: number) => void;
+  /** the element tap `t` (1..3) lands on, found in the frame's current DOM */
+  locate?: (tap: number, frame: HTMLElement) => Element | null;
   children: ReactNode;
 }) => {
   const box = useRef<HTMLDivElement>(null);
   const onStepRef = useRef(onStep);
+  const locateRef = useRef(locate);
   useEffect(() => {
     onStepRef.current = onStep;
+    locateRef.current = locate;
   });
 
   useEffect(() => {
@@ -69,20 +74,87 @@ export const StepsSection = ({
     // landscape phones: no pin, no scrub — show the finished rally
     if (staticMq.matches) onStepRef.current(N - 1);
 
-    // step boundary: a rail crossing the viewport centre line. IO only reports
+    // step boundary: a switch sentinel crossing the viewport centre line. The
+    // switches are the rails shifted up by half the header, so step i holds
+    // from half a segment before its rest position to half a segment after:
+    // the state flips exactly mid-way between two snap points, where the
+    // finger dot taps (CSS keyframe 50% of each segment). IO only reports
     // changes, so every callback is a real boundary (including re-entry).
+    let calibrating = false;
     const stepIO = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
-          const i = Number((e.target as HTMLElement).dataset.i);
+          const i = Number((e.target as HTMLElement).dataset.s);
           section.dataset.step = String(i);
-          onStepRef.current(i);
+          if (!calibrating) onStepRef.current(i);
         }
       },
       { rootMargin: "-50% 0px -50% 0px" },
     );
-    section.querySelectorAll("[data-i]").forEach((n) => stepIO.observe(n));
+    section.querySelectorAll("[data-s]").forEach((n) => stepIO.observe(n));
+
+    // finger dot: the tap targets are measured once in the real components
+    // (each step's target exists while the previous step is showing), kept
+    // in the frame's unzoomed design space, and re-placed as stage-relative
+    // CSS variables on any resize. The dot's path itself is a CSS
+    // scroll-driven animation (compositor); JS never runs per frame.
+    const frame = section.querySelector<HTMLElement>(`.${styles.frame}`)!;
+    const design: { x: number; y: number }[] = [];
+    let cancelled = false;
+    const zoomOf = () => Number(getComputedStyle(frame).zoom) || 1;
+    const placeDot = () => {
+      if (design.length < 4) return;
+      const s = stage.getBoundingClientRect();
+      const f = frame.getBoundingClientRect();
+      const z = zoomOf();
+      design.forEach((p, i) => {
+        stage.style.setProperty(`--p${i}x`, `${f.left - s.left + p.x * z}px`);
+        stage.style.setProperty(`--p${i}y`, `${f.top - s.top + p.y * z}px`);
+      });
+      section.dataset.dot = "";
+    };
+    const settle = async () => {
+      await new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(r)),
+      );
+      const finite = frame
+        .getAnimations({ subtree: true })
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
+      await Promise.race([
+        Promise.all(finite.map((a) => a.finished.catch(() => {}))),
+        new Promise((r) => setTimeout(r, 900)),
+      ]);
+    };
+    const calibrate = async () => {
+      const locate = locateRef.current;
+      if (!locate || staticMq.matches) return;
+      calibrating = true;
+      const f0 = frame.getBoundingClientRect();
+      const z = zoomOf();
+      // rest point before the first tap: low centre of the frame
+      design[0] = { x: f0.width / z / 2, y: (f0.height / z) * 0.88 };
+      for (let t = 1; t <= 3; t++) {
+        onStepRef.current(t - 1);
+        await settle();
+        if (cancelled) return;
+        const el = locate(t, frame);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const f = frame.getBoundingClientRect();
+        design[t] = {
+          x: (r.left + r.width / 2 - f.left) / z,
+          y: (r.top + r.height / 2 - f.top) / z,
+        };
+      }
+      calibrating = false;
+      onStepRef.current(Number(section.dataset.step));
+      placeDot();
+    };
+    void calibrate();
+    const dotRO = new ResizeObserver(placeDot);
+    dotRO.observe(stage);
+    dotRO.observe(frame);
 
     // v2: mandatory snap while the stage is pinned, so touch / trackpad never
     // rest between steps. The snap points are the rails (scroll-snap-align
@@ -226,6 +298,8 @@ export const StepsSection = ({
       off();
       window.removeEventListener("scroll", syncSnap);
       ro.disconnect();
+      dotRO.disconnect();
+      cancelled = true;
       window.removeEventListener("keydown", onKey);
       setSnap(false);
       clearTimeout(gapTimer);
@@ -276,10 +350,20 @@ export const StepsSection = ({
             {children}
           </div>
         </div>
+        {/* the finger: hero's white rally dot, its path scroll-driven */}
+        <div aria-hidden className={styles.dot}>
+          <span className={styles.dotRing} />
+          <span className={styles.dotCore} />
+        </div>
       </div>
       <div className={styles.rails}>
         {STEPS.map((s, i) => (
           <div key={s.title} data-i={i} className={styles.rail} />
+        ))}
+      </div>
+      <div className={styles.switches}>
+        {STEPS.map((s, i) => (
+          <div key={s.title} data-s={i} className={styles.rail} />
         ))}
       </div>
     </div>

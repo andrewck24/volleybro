@@ -208,8 +208,20 @@ const Kit = () => (
             >
               <Icon className="size-6 lg:size-8" />
             </span>
-            <div className="flex flex-col gap-1 pt-0.5 lg:pt-1.5">
-              <FeatureTitle f={k} className="text-lg md:text-2xl" />
+            {/* the title's cap height starts level with the icon tile's top
+                edge: text-box trims the line box to Saira's cap / alphabetic, and the
+                CJK ideographs rise 0.17em above that cap line (measured), so a
+                0.17em top margin lands their ink on the tile edge */}
+            <div className="flex flex-col gap-2">
+              <h3 className="mt-[0.17em] text-lg font-bold [text-box:trim-both_cap_alphabetic] md:text-2xl">
+                {k.title}
+                {k.dev && (
+                  <>
+                    {" "}
+                    <DevBadge />
+                  </>
+                )}
+              </h3>
               <p className="text-(--v2-on-free-2) md:text-lg">{k.body}</p>
             </div>
           </li>
