@@ -60,3 +60,15 @@ jobs:
           pr-title: "release: update versions"
           create-github-releases: false
           push-git-tags: false
+
+      # The action's default parser does not recognize our linked, dated
+      # changelog headings and can exceed its PR-body limit with full history.
+      # Replace the body with only the current version's accumulated notes.
+      - name: Update version PR body with current release notes
+        if: steps.changesets.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          PR_NUMBER: ${{ steps.changesets.outputs.pr-number }}
+        run: |
+          node scripts/release-pr-body.js > "$RUNNER_TEMP/release-pr-body.md"
+          gh pr edit "$PR_NUMBER" --body-file "$RUNNER_TEMP/release-pr-body.md"
