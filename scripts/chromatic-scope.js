@@ -36,6 +36,8 @@ const NON_VISUAL_DEV_DEPENDENCIES = new Set([
 const SAFE_PATHS = [
   /^docs\/.*\.md$/,
   /^blueprint\//,
+  /^\.(?:agents|claude)\//,
+  /^(?:AGENTS|CLAUDE|WORKFLOW|CONTRIBUTING|CODING_STANDARDS|CONTEXT|PRODUCT|DESIGN|README(?:\.[^/]+)?)\.md$/,
   /^\.changeset\/[^/]+\.md$/,
   /^scripts\/__tests__\/chromatic-scope\.test\.js$/,
   /^\.eslintrc(?:\.[^/]+)?$/,
