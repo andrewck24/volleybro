@@ -39,32 +39,28 @@ export const scenarios = [
 
 ```text
 release-evidence-policy
-├── EDIT  .github/workflows/production-release.yml
-│   ├── source-preview-acceptance ── remove manual approval-only gate
-│   ├── candidate-acceptance ─────── remove per-release human evidence gate
-│   └── production-acceptance ────── keep post-promotion authenticated QA
-├── EDIT  scripts/release-controls.js
-│   └── assemble + verify trusted source / data-compatibility / recovery receipt
-├── EDIT  scripts/__tests__/release-controls.test.js
-│   └── exact binding, expiry, missing proof, incompatible proof, fail-closed cases
-├── EDIT  WORKFLOW.md
-│   └── canonical release evidence, test-DB / production-DB boundary, operations
-├── EDIT  docs/release-runbook.md
-│   └── recurring steps after manual candidate approval is removed
-├── ADD   blueprint/content/decisions/0104-production-data-compatibility-follows-database-activation.json
+├── EDIT
+│   ├── .github/workflows/production-release.yml
+│   ├── scripts/release-controls.js + tests
+│   ├── WORKFLOW.md + docs/release-runbook.md
+│   └── blueprint/content/decisions/0104-…json
 ├── ARCHIVE REVIEW
 │   └── blueprint/content/features/platform/delivery-workflow/index.mdx
-│       └── promote the new rule only after implementation changes current policy
-├── READ  src/infrastructure/db/mongoose/**, src/lib/auth.ts,
-│         src/app/api/auth/[...all]/route.ts, docs/migrations/**
-│   └── locate persisted formats, migration behavior, auth/session writes
-└── OUT   production DB cutover/data import, app schema/auth changes,
-          full authenticated-smoke automation, data rollback, old run mutation
-
-Evidence path: trusted GitHub CI + exact source tree ─┐
-                                                      ├─> release-controls.js ─> promotion / stop
-Vercel project + candidate + live baseline ──────────┘
+├── READ
+│   ├── src/infrastructure/db/mongoose/
+│   ├── src/lib/auth.ts
+│   ├── src/app/api/auth/[...all]/route.ts
+│   └── docs/migrations/
+└── OUT
+    ├── production DB cutover / data import
+    ├── app schema/auth changes / data rollback
+    └── full auth-smoke automation / old-run mutation
 ```
+
+`production-release.yml` 移除 candidate／source approval-only gates、保留正式站 QA；
+`release-controls.js` 與 tests 負責可信 receipt 和 fail-closed 判定。Evidence 由
+GitHub CI 的 exact source tree、Vercel candidate 與 live baseline 匯入 controller，決定
+promotion 或停止。
 
 這是規範與 release controller 的交付，不是 production DB migration。尤其 Google OAuth/session smoke 會在 promote 後進行；任何可能寫入的紀錄都算 candidate-write compatibility 的一部分，不能因 smoke 是唯讀 team flow 就假設整段完全不寫資料。
 
@@ -72,29 +68,29 @@ Vercel project + candidate + live baseline ──────────┘
 
 <InteractiveFlowchart
   nodes={[
-    { id: "source", label: "固定 release source", x: 175, y: 30, w: 230 },
-    { id: "proof", label: "讀可信 CI／資料證據與部署狀態", x: 175, y: 115, w: 230 },
-    { id: "proof-ok", label: "證據完整、可信且相符？", x: 175, y: 205, w: 230 },
-    { id: "stop", label: "停止／通知，不 promote", x: 465, y: 215, w: 210 },
-    { id: "epoch", label: "production DB 已啟用？", x: 175, y: 300, w: 230 },
-    { id: "test-db", label: "test DB：允許完整 forward migration；舊 Preview 重驗", x: 5, y: 405, w: 265 },
-    { id: "production-db", label: "production DB：讀 legacy；exact baseline 能讀 candidate writes", x: 315, y: 405, w: 285 },
-    { id: "promote", label: "自動 promote exact candidate", x: 175, y: 520, w: 230 },
-    { id: "qa", label: "Production QA：Google／session／team 唯讀 smoke", x: 175, y: 610, w: 250 },
-    { id: "tag", label: "QA 通過才 tag／Release", x: 175, y: 705, w: 230 },
+    { id: "source", label: "固定 release source", x: 185, y: 30, w: 180 },
+    { id: "proof", label: "核對可信 CI／部署證據", x: 185, y: 100, w: 200 },
+    { id: "proof-ok", label: "證據完整且相符？", x: 185, y: 175, w: 170, h: 64, shape: "diamond" },
+    { id: "stop", label: "停止並通知", x: 365, y: 175, w: 115 },
+    { id: "epoch", label: "production DB 已啟用？", x: 185, y: 265, w: 200 },
+    { id: "test-db", label: "test DB：forward migration", x: 85, y: 350, w: 165 },
+    { id: "production-db", label: "讀 legacy／驗 baseline", x: 285, y: 350, w: 165 },
+    { id: "promote", label: "自動 promote 候選", x: 185, y: 430, w: 180 },
+    { id: "qa", label: "正式站 Google／session smoke", x: 185, y: 500, w: 200 },
+    { id: "tag", label: "通過才 tag／Release", x: 185, y: 570, w: 180 },
   ]}
   edges={[
     { from: "source", to: "proof" },
     { from: "proof", to: "proof-ok" },
     { from: "proof-ok", to: "epoch", label: "完整" },
-    { from: "proof-ok", to: "stop", label: "缺失／不明／不相容" },
+    { from: "proof-ok", to: "stop", label: "否" },
     { from: "epoch", to: "test-db", label: "尚未啟用" },
     { from: "epoch", to: "production-db", label: "已啟用" },
     { from: "test-db", to: "promote" },
     { from: "production-db", to: "promote" },
     { from: "promote", to: "qa" },
     { from: "qa", to: "tag", label: "通過" },
-    { from: "qa", to: "stop", label: "失敗：只可復原至已證明 baseline；不回滾資料" },
+    { from: "qa", to: "stop", label: "失敗" },
   ]}
   details={{
     source: { title: "版本不漂移", body: "一般 version PR、normal-retry 與 hotfix 均以已授權的固定 source 為準；後續 main 變更不偷換此候選。" },
