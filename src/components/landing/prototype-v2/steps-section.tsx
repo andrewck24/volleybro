@@ -117,11 +117,12 @@ export const StepsSection = ({
       const locate = locateRef.current;
       if (!dotOn || !locate) return;
       const s = stage.getBoundingClientRect();
-      const f = frame.getBoundingClientRect();
-      const pts: [number, number][] = [
-        // rest point before the first tap: low centre of the frame
-        [f.left + f.width / 2, f.top + f.height * 0.88],
-      ];
+      // Rest points sit off the grey tray that holds the app cards, on the
+      // coral field around it (centred in that margin), so a resting dot
+      // never covers a button, the preview or the result it just tapped.
+      const tray = (frame.firstElementChild ?? frame).getBoundingClientRect();
+      const fl = (frame.parentElement ?? frame).getBoundingClientRect();
+      const pts: [number, number][] = [];
       for (let t = 1; t <= 3; t++) {
         const r = locate(t, frame)?.getBoundingClientRect();
         if (!r || !r.width) {
@@ -131,16 +132,32 @@ export const StepsSection = ({
         }
         pts.push([r.left + r.width / 2, r.top + r.height / 2]);
       }
-      const next = pts.map(([x, y]) => [
-        `${Math.round((x - s.left) * 10) / 10}px`,
-        `${Math.round((y - s.top) * 10) / 10}px`,
+      // beside the tray on the target's side, level with the target
+      const beside = ([x, y]: [number, number]): [number, number] => [
+        x >= tray.left + tray.width / 2
+          ? (tray.right + fl.right) / 2
+          : (tray.left + fl.left) / 2,
+        y,
+      ];
+      // before the first tap: below the tray when the field has room for
+      // the dot there (lg), else beside it, level with the first target
+      const p0: [number, number] =
+        fl.bottom - tray.bottom >= 24
+          ? [tray.left + tray.width / 2, (tray.bottom + fl.bottom) / 2]
+          : beside(pts[0]!);
+      const px = (v: number) => `${Math.round(v * 10) / 10}px`;
+      // --p0..3: start + the three tap targets; --r1..3: rest after each tap
+      const next = [p0, ...pts, ...pts.map(beside)].map(([x, y]) => [
+        px(x - s.left),
+        px(y - s.top),
       ]);
       const key = next.join();
       if (key === placed && "dot" in section.dataset) return;
       placed = key;
       next.forEach(([x, y], i) => {
-        stage.style.setProperty(`--p${i}x`, x!);
-        stage.style.setProperty(`--p${i}y`, y!);
+        const name = i < 4 ? `p${i}` : `r${i - 3}`;
+        stage.style.setProperty(`--${name}x`, x!);
+        stage.style.setProperty(`--${name}y`, y!);
       });
       section.dataset.dot = "";
       // A running scroll-driven animation on the compositor keeps the

@@ -120,7 +120,7 @@ const Record = () => (
     <LazyRecordDemo
       intro={
         <div className="flex flex-col gap-2 lg:gap-4">
-          <h2 className="text-2xl leading-tight font-bold text-balance md:text-4xl lg:text-5xl">
+          <h2 className="text-2xl leading-tight font-bold text-balance md:text-4xl xl:text-5xl">
             {COPY.recordTitle[0]}
             <br className="hidden lg:inline" />
             {COPY.recordTitle[1]}
