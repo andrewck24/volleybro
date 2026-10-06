@@ -58,6 +58,7 @@
     flex: 0 1 34rem;
     width: auto;
     min-width: 0;
+    padding-inline-end: 2rem;
     gap: 3rem;
   }
 }

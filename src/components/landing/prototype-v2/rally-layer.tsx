@@ -36,7 +36,7 @@ const spotOf = (n: number) => {
     ? { a: 9.9, ap: 9.9, c: ACROSS[(n * 2) % 3]!, cp: ACROSS[(n * 2) % 3]! }
     : // our front zone, clear of the action on the attack line; portrait
       // (cp) keeps them left, away from the score chip at the right post
-      { a: 8.1, ap: 8.45, c: ACROSS[n % 2]!, cp: 1.2 };
+      { a: 8.1, ap: 8.6, c: ACROSS[n % 2]!, cp: 1.2 };
 };
 
 export const RallyLayer = () => {

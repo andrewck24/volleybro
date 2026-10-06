@@ -27,6 +27,27 @@ import { Badge } from "@/components/ui/badge";
 import "@/components/landing/prototype-v2/v2.css";
 import { cn } from "@/lib/utils";
 import type { CSSProperties } from "react";
+import type { IconType } from "react-icons";
+import { BsGrid3X2Gap } from "react-icons/bs";
+import {
+  RiAddBoxLine,
+  RiDeviceLine,
+  RiGroupLine,
+  RiLineChartLine,
+  RiShieldKeyholeLine,
+  RiUserAddLine,
+} from "react-icons/ri";
+
+/** One icon per roster row, in KIT order. */
+const KIT_ICONS: IconType[] = [
+  RiGroupLine, // 建立球隊
+  RiUserAddLine, // 邀請隊友
+  RiShieldKeyholeLine, // 角色權限
+  BsGrid3X2Gap, // 每場陣容
+  RiAddBoxLine, // 安裝到主畫面
+  RiLineChartLine, // 球員數據與進階圖表
+  RiDeviceLine, // 多裝置同時記錄
+];
 
 const zone = (a0: number, a1: number, c0 = 0, c1 = 9) =>
   ({ "--a0": a0, "--a1": a1, "--c0": c0, "--c1": c1 }) as CSSProperties;
@@ -75,7 +96,7 @@ const Hero = () => (
           <CTAButton size="lg" className={cn("h-14 px-8", BTN_PRIMARY)}>
             開始記錄
           </CTAButton>
-          <p className="text-sm font-medium">{COPY.heroNote}</p>
+          <p className="text-base font-medium">{COPY.heroNote}</p>
         </div>
       </div>
       {/* below lg: the action sits on our attack line */}
@@ -83,7 +104,7 @@ const Hero = () => (
         <CTAButton size="lg" className={cn("h-12 px-6", BTN_PRIMARY)}>
           開始記錄
         </CTAButton>
-        <p className="absolute top-full left-0 mt-[calc(0.3*var(--m))] text-sm font-medium whitespace-nowrap text-(--v2-ink)">
+        <p className="absolute top-full left-0 mt-[calc(0.3*var(--m))] text-base font-medium whitespace-nowrap text-(--v2-ink)">
           {COPY.heroNote}
         </p>
       </div>
@@ -104,7 +125,7 @@ const Record = () => (
             <br className="hidden lg:inline" />
             {COPY.recordTitle[1]}
           </h2>
-          <p className="text-sm text-(--v2-on-free-2) md:text-base lg:text-lg">
+          <p className="text-base text-(--v2-on-free-2) lg:text-lg">
             {COPY.recordLead}
           </p>
         </div>
@@ -128,7 +149,7 @@ const Stats = () => (
           <br />
           {COPY.statsTitle[1]}
         </h2>
-        <p className="text-sm font-medium lg:text-[max(1rem,calc(0.25*var(--m)))]">
+        <p className="text-base font-medium lg:text-[max(1rem,calc(0.25*var(--m)))]">
           {COPY.statsLead}
         </p>
       </div>
@@ -148,9 +169,11 @@ const Stats = () => (
           <li key={s.title} className="flex flex-col gap-0.5 lg:gap-1">
             <FeatureTitle
               f={s}
-              className="gap-1 text-[0.9375rem] leading-snug max-[23.75rem]:text-sm lg:gap-2 lg:text-[max(1rem,calc(0.3*var(--m)))]"
+              className="gap-1 text-base leading-snug lg:gap-2 lg:text-[max(1rem,calc(0.3*var(--m)))]"
             />
-            <p className="text-xs leading-snug font-medium lg:text-[max(0.875rem,calc(0.22*var(--m)))]">
+            {/* below lg the portrait court's opponent zone holds the titles only
+                (bodies at the 16px floor do not fit); from lg the bodies */}
+            <p className="hidden leading-snug font-medium lg:block lg:text-[max(1rem,calc(0.22*var(--m)))]">
               {s.body}
             </p>
           </li>
@@ -175,20 +198,23 @@ const Kit = () => (
       <p className="max-w-lg text-lg text-(--v2-on-free-2)">{COPY.kitLead}</p>
     </div>
     <ol className="flex flex-col gap-6 md:gap-8">
-      {KIT.map((k, i) => (
-        <li key={k.title} className="flex items-start gap-4 lg:gap-6">
-          <span
-            aria-hidden
-            className="grid size-12 shrink-0 place-items-center rounded-xl bg-card text-xl leading-none font-bold text-primary tabular-nums shadow-md lg:size-16 lg:text-2xl dark:text-chart-1"
-          >
-            {i + 1}
-          </span>
-          <div className="flex flex-col gap-1 pt-0.5 lg:pt-1.5">
-            <FeatureTitle f={k} className="text-lg md:text-2xl" />
-            <p className="text-(--v2-on-free-2) md:text-lg">{k.body}</p>
-          </div>
-        </li>
-      ))}
+      {KIT.map((k, i) => {
+        const Icon = KIT_ICONS[i]!;
+        return (
+          <li key={k.title} className="flex items-start gap-4 lg:gap-6">
+            <span
+              aria-hidden
+              className="grid size-12 shrink-0 place-items-center rounded-xl bg-card text-primary shadow-md lg:size-16 dark:text-chart-1"
+            >
+              <Icon className="size-6 lg:size-8" />
+            </span>
+            <div className="flex flex-col gap-1 pt-0.5 lg:pt-1.5">
+              <FeatureTitle f={k} className="text-lg md:text-2xl" />
+              <p className="text-(--v2-on-free-2) md:text-lg">{k.body}</p>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   </section>
 );
@@ -221,7 +247,7 @@ const Closing = () => (
             <br />
             {COPY.ctaTitle[1]}
           </h2>
-          <p className="text-sm font-medium lg:text-[max(1rem,calc(0.24*var(--m)))]">
+          <p className="text-base font-medium lg:text-[max(1rem,calc(0.24*var(--m)))]">
             {COPY.ctaLead}
           </p>
         </div>
@@ -254,7 +280,7 @@ const Footer = () => (
     <div className="mx-auto flex max-w-[92rem] flex-col items-start gap-8 md:flex-row md:items-end md:justify-between">
       <div className="flex flex-col items-start gap-4">
         <LogoType className="h-7 w-auto" />
-        <p className="text-sm text-(--v2-on-free-2)">
+        <p className="text-base text-(--v2-on-free-2)">
           © {new Date().getFullYear()} VolleyBro · Made by{" "}
           <a
             href={LINKS.author}
@@ -265,7 +291,7 @@ const Footer = () => (
             Andrew Tseng
           </a>
         </p>
-        <p className="flex gap-6 text-sm font-bold">
+        <p className="flex gap-6 text-base font-bold">
           <a
             href={LINKS.github}
             target="_blank"

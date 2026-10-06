@@ -17,7 +17,20 @@
    L2 chrome   the floating header only: inset 8px from the viewport,
                rounded-2xl (16) p-1.5 (6) → inner CTA rounded-[10px];
                transparent at rest, the app nav's glass once the page scrolls.
-   Objects never carry line-width outlines; rules never carry radius. */
+   Objects never carry line-width outlines; rules never carry radius.
+
+   TYPE
+   Floors: body and description text ≥ text-sm (14px); any text set on the
+   coral court or the teal free zone ≥ text-base (16px). text-xs only for
+   badges (開發中), meta labels and Beta. App components keep their own
+   sizes (they are the product, not landing copy).
+   Scale, mobile → lg:
+     section heading   text-4xl → text-6xl (court-set: 0.55–0.8 m)
+     hero title        0.8 m → 0.64 m (≈31px → ≈49px)
+     lead / description text-base → text-lg (court-set: max(1rem, 0.25 m))
+     step caption      title text-xl → text-4xl, body text-base → text-xl
+     roster            title text-lg → text-2xl, body text-base → text-lg
+     mark label        max(1rem, 0.38 m) → max(1rem, 0.25 m) */
 
 .v2 {
   --v2-free: hsl(192 77.46% 27.84%);
@@ -174,7 +187,7 @@ html.v2-snap {
 }
 
 .v2-hero-desc {
-  font-size: max(0.9375rem, calc(0.38 * var(--m)));
+  font-size: max(1rem, calc(0.38 * var(--m)));
   line-height: 1.55;
 }
 
@@ -291,7 +304,7 @@ html.v2-snap {
   --tc: 1;
   --dx: calc((var(--tc) - var(--cp, var(--c))) * var(--m));
   --dy: calc((var(--ta) - var(--ap, var(--a))) * var(--m));
-  font-size: calc(0.38 * var(--m));
+  font-size: max(1rem, calc(0.38 * var(--m)));
   transform-origin: 0 0;
 }
 
@@ -303,7 +316,7 @@ html.v2-snap {
     --tc: 0.9;
     --dx: calc((var(--ta) - var(--a)) * var(--m));
     --dy: calc((var(--tc) - var(--c)) * var(--m));
-    font-size: max(0.8125rem, calc(0.25 * var(--m)));
+    font-size: max(1rem, calc(0.25 * var(--m)));
   }
 }
 
