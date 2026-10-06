@@ -32,6 +32,7 @@ export const scenarios = [
 4. 在 `WORKFLOW.md` 寫唯一規範，在 `docs/release-runbook.md` 寫日常操作；加入 ADR-0104 作為 production data compatibility policy 的永久決策紀錄。Archive 時評估並更新 `blueprint/content/features/platform/delivery-workflow/index.mdx` 的現況說明，不在 Proposal 階段把 Feature 當成已實作事實。
 5. 資料生命週期依 ADR-0104：v1.0 前 shared `test` DB 可完整 forward migration；失效的舊 SHA／Preview 不復原、不沿用，refresh 後再驗。v1.0 production 上線時同步啟用乾淨的 `production` DB，只保留開發者明確指定的資料；這個一次性 cutover 不在本 Change 執行。production DB 第一次可寫入後，legacy-read 與 recovery-baseline 相容性規則開始生效；Production DB 不做資料 rollback，只有受證明限制的程式碼復原。
 6. 一般 version PR、`normal-retry` 與 `hotfix` 共用相同 evidence 驗證；既有 run 保留原語意，更新後的 controller 不會改寫或補簽舊 artifact。Controller／政策修正不改 app runtime，不新增 Changeset；本 Change 不部署 production、不啟用 `production` DB、不移轉真實資料、不更改 auth／schema，也不移除正式站 QA。
+7. 在 `blueprint/src/components/InteractiveFlowchart.tsx` 增加可選的曲線 edge route，僅套用於 `正式站登入 smoke` 失敗至 `停止並通知` 的箭頭，繞開中間節點；未設定的既有圖表維持直線。
 
 ## Blast radius
 
@@ -44,13 +45,16 @@ export const scenarios = [
     ["│   └── workflows/", null, null],
     ["│       └── production-release.yml", "modify", "修改"],
     ["├── blueprint/", null, null],
-    ["│   └── content/", null, null],
+    ["│   ├── content/", null, null],
     ["│       ├── decisions/", null, null],
     ["│       │   └── 0104-production-data-compatibility-follows-database-activation.json", "add", "新增"],
     ["│       └── features/", null, null],
     ["│           └── platform/", null, null],
     ["│               └── delivery-workflow/", null, null],
     ["│                   └── index.mdx", "archive", "Archive 評估"],
+    ["│   └── src/", null, null],
+    ["│       └── components/", null, null],
+    ["│           └── InteractiveFlowchart.tsx", "modify", "修改（曲線 route）"],
     ["├── docs/", null, null],
     ["│   ├── migrations/", null, null],
     ["│   │   └── migrate-legacy-accounts.js", "read", "讀取"],
@@ -133,7 +137,7 @@ promotion 或停止。
     { from: "production-db", to: "promote" },
     { from: "promote", to: "qa" },
     { from: "qa", to: "tag", label: "通過" },
-    { from: "qa", to: "stop", label: "失敗" },
+    { from: "qa", to: "stop", label: "失敗", route: "curve" },
   ]}
   details={{
     source: { title: "版本不漂移", body: "一般 version PR、normal-retry 與 hotfix 均以已授權的固定 source 為準；後續 main 變更不偷換此候選。" },
