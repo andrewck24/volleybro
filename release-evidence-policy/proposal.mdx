@@ -35,27 +35,118 @@ export const scenarios = [
 
 ## Blast radius
 
-標記：`EDIT` 是本 Change 預計修改的 repository source；`READ` 是判斷資料契約與驗證證據的輸入，不改 app schema／runtime；`OUT` 是明確不在本 Change 的操作。
+下面直接沿 repository 的實際目錄展開；每個節點後的標記才說明本 Change 對該路徑的作用。這讓讀者先看到 Clean Architecture 與交付工具分別落在哪裡，再辨認修改邊界，而不是先把檔案切成 EDIT／READ 類別。
 
-```text
-release-evidence-policy
-├── EDIT
-│   ├── .github/workflows/production-release.yml
-│   ├── scripts/release-controls.js + tests
-│   ├── WORKFLOW.md + docs/release-runbook.md
-│   └── blueprint/content/decisions/0104-…json
-├── ARCHIVE REVIEW
-│   └── blueprint/content/features/platform/delivery-workflow/index.mdx
-├── READ
-│   ├── src/infrastructure/db/mongoose/
-│   ├── src/lib/auth.ts
-│   ├── src/app/api/auth/[...all]/route.ts
-│   └── docs/migrations/
-└── OUT
-    ├── production DB cutover / data import
-    ├── app schema/auth changes / data rollback
-    └── full auth-smoke automation / old-run mutation
-```
+<div className="my-5 rounded-lg border border-border bg-background p-4 text-sm">
+  <p className="mb-2 font-semibold"><code>repository root/</code></p>
+  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+    <li>
+      <code>.github/</code>
+      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+        <li>
+          <code>workflows/</code>
+          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+            <li><code>production-release.yml</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <code>blueprint/</code>
+      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+        <li>
+          <code>content/</code>
+          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+            <li>
+              <code>decisions/</code>
+              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                <li><code>0104-production-data-compatibility-follows-database-activation.json</code> <span className="text-emerald-700 dark:text-emerald-300">[新增]</span></li>
+              </ul>
+            </li>
+        <li>
+          <code>features/</code>
+          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+            <li>
+              <code>platform/delivery-workflow/</code>
+              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                <li><code>index.mdx</code> <span className="text-amber-700 dark:text-amber-300">[Archive 評估]</span></li>
+              </ul>
+            </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <code>docs/</code>
+      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+        <li>
+          <code>migrations/</code>
+          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+            <li><code>migrate-legacy-accounts.js</code> <span className="text-muted-foreground">[讀取既有遷移]</span></li>
+          </ul>
+        </li>
+        <li><code>release-runbook.md</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
+      </ul>
+    </li>
+    <li>
+      <code>scripts/</code>
+      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+        <li><code>release-controls.js</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
+        <li>
+          <code>__tests__/</code>
+          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+            <li><code>release-controls.test.js</code> <span className="text-blue-700 dark:text-blue-300">[修改／驗證]</span></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <code>src/</code>
+      <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+        <li>
+          <code>app/</code>
+          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+            <li>
+              <code>api/auth/[...all]/</code>
+              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                <li><code>route.ts</code> <span className="text-muted-foreground">[讀取驗證入口]</span></li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li>
+          <code>infrastructure/</code>
+          <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+            <li>
+              <code>db/mongoose/</code>
+              <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                <li><code>connect-to-mongodb.ts</code> <span className="text-muted-foreground">[讀取 DB 邊界]</span></li>
+                <li>
+                  <code>schemas/</code>
+                  <ul className="m-0 list-none space-y-1 border-l border-border pl-4">
+                    <li><code>game.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                    <li><code>player.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                    <li><code>profile.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                    <li><code>team.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                    <li><code>user.ts</code> <span className="text-muted-foreground">[讀取資料模型]</span></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li><code>lib/auth.ts</code> <span className="text-muted-foreground">[讀取認證／session 寫入範圍]</span></li>
+      </ul>
+    </li>
+    <li><code>WORKFLOW.md</code> <span className="text-blue-700 dark:text-blue-300">[修改]</span></li>
+  </ul>
+</div>
+
+標記說明：`修改`／`新增` 是預計交付的 repository 變更；`讀取` 僅用於查明資料契約與驗證範圍；`Archive 評估` 是實作完成後才依現況更新 Feature，不把未實作內容先寫成事實。
+
+不在本 Change 執行的操作：production DB cutover／資料匯入、app schema／auth 修改、production data rollback、完整 auth-smoke 自動化，以及改寫既有 release run。
 
 `production-release.yml` 移除 candidate／source approval-only gates、保留正式站 QA；
 `release-controls.js` 與 tests 負責可信 receipt 和 fail-closed 判定。Evidence 由
@@ -63,6 +154,11 @@ GitHub CI 的 exact source tree、Vercel candidate 與 live baseline 匯入 cont
 promotion 或停止。
 
 這是規範與 release controller 的交付，不是 production DB migration。尤其 Google OAuth/session smoke 會在 promote 後進行；任何可能寫入的紀錄都算 candidate-write compatibility 的一部分，不能因 smoke 是唯讀 team flow 就假設整段完全不寫資料。
+
+## References
+
+- [Thariq Shihipar, “Using Claude Code: The unreasonable effectiveness of HTML”](https://claude.com/blog/using-claude-code-the-unreasonable-effectiveness-of-html) — HTML 可把階層、空間資訊與互動做成較易檢視的呈現層。
+- [Andrej Karpathy, X post on structuring model output as HTML](https://x.com/karpathy/status/2053872850101285137) — 建議將 HTML 作為更有彈性的視覺／互動輸出形式。
 
 ## Release flow
 
