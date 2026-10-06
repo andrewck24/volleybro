@@ -1,9 +1,9 @@
 "use client";
 // PROTOTYPE (throwaway). Copied from prototype-v1 with its mechanics intact
 // (wheelstep / pure scroll-driven scrub, no CSS snap, inert frame + sr-only
-// steps, header offset); only the captions are re-cut for the court: each
-// step's numeral is a player-card chip (coral, ink numeral, white line), the
-// last one a check. Section 3's pinned part: sticky frame + scrub layers
+// steps, header offset). Layers: the step numeral and the app frame are
+// objects (card surface, rounded, shadow); the dashed attack-line extension
+// behind them is court. Section 3's pinned part: sticky frame + scrub layers
 // (CSS only) + step-boundary callback. It owns no demo state: `onStep(i)` is
 // the only thing that touches the components, and it fires from an
 // IntersectionObserver when a rail crosses the viewport centre, never per
@@ -39,7 +39,7 @@ const isWheelNotch = (e: WheelEvent) =>
   e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50);
 
 const Numeral = ({ i }: { i: number }) => (
-  <span className="grid size-14 shrink-0 place-items-center border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) text-3xl leading-none font-bold text-(--v2-ink) tabular-nums lg:size-24 lg:text-6xl">
+  <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-card text-3xl leading-none font-bold text-primary tabular-nums shadow-md lg:size-24 lg:rounded-2xl lg:text-6xl dark:text-chart-1">
     {i === N - 1 ? <RiCheckLine className="size-[1em]" /> : i + 1}
   </span>
 );
@@ -207,7 +207,7 @@ export const StepsSection = ({
           inert
           className={cn(
             styles.frame,
-            "overflow-hidden border-(length:--v2-lw) border-(--v2-line) text-foreground",
+            "overflow-hidden rounded-2xl text-foreground shadow-xl",
           )}
         >
           {children}

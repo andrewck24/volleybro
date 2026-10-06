@@ -5,8 +5,18 @@ import {
 } from "@/components/landing/prototype-v1/demo-data";
 import { useRally } from "@/components/landing/prototype-v1/rally";
 import { moveLabel } from "@/components/landing/prototype-v2/copy";
-import { useEffect, useState, type CSSProperties } from "react";
-import { FiMinus, FiPlus } from "react-icons/fi";
+import dynamic from "next/dynamic";
+import type { CSSProperties } from "react";
+
+// the app's real EntryRow list, lazy so entry/game modules stay out of the
+// first load; it reads the same clock
+const HeroEntries = dynamic(
+  () =>
+    import("@/components/landing/prototype-v2/hero-entries").then(
+      (m) => m.HeroEntries,
+    ),
+  { ssr: false },
+);
 
 // PROTOTYPE: the hero's moving layer, driven by v1's rally clock (one beat =
 // 2.2s, paused off-screen / hidden tab, a fixed mid-set snapshot under reduced
@@ -14,10 +24,11 @@ import { FiMinus, FiPlus } from "react-icons/fi";
 // play ended — our points on their front zone, their points on ours — then
 // files into the Entry list in the opponent back zone; the row it becomes
 // slides in on the next beat, and the score at the net post moves with it.
+// Layers: the mark is court (a ball's landing spot); the score and the Entry
+// list are app objects (card surfaces, rounded, shadow) the court positions.
 
 const RALLIES = foldRallies(SET_RALLIES);
 const ACROSS = [1.4, 3.9, 6.4];
-const RENDERED = 12;
 
 const spotOf = (n: number) => {
   const r = RALLIES[n - 1]!;
@@ -27,71 +38,12 @@ const spotOf = (n: number) => {
       { a: 8.1, c: ACROSS[n % 2]! };
 };
 
-const Row = ({
-  n,
-  index,
-  animate,
-}: {
-  n: number;
-  index: number;
-  animate: boolean;
-}) => {
-  const r = RALLIES[n - 1]!;
-  const [mounted, setMounted] = useState(!animate);
-  useEffect(() => {
-    if (mounted) return;
-    const id = requestAnimationFrame(() =>
-      requestAnimationFrame(() => setMounted(true)),
-    );
-    return () => cancelAnimationFrame(id);
-  }, [mounted]);
-
-  return (
-    <div
-      data-animate={animate || undefined}
-      className="v2-row flex items-center gap-[0.6em] px-[0.5em] text-(--v2-ink)"
-      style={
-        {
-          "--i": mounted ? index : index - 1,
-          opacity: mounted ? 1 : 0,
-        } as CSSProperties
-      }
-    >
-      <span className="w-[3.2em] font-semibold tabular-nums">
-        {r.homeScore}
-        <span className="px-[0.15em]">:</span>
-        {r.awayScore}
-      </span>
-      <span className="flex-1 truncate font-bold">
-        {moveLabel(r.home, r.win)}
-      </span>
-      <span
-        className={
-          r.win
-            ? "grid aspect-square h-[70%] place-items-center bg-(--v2-free) text-(--v2-on-free)"
-            : "grid aspect-square h-[70%] place-items-center bg-(--v2-ink) text-(--v2-in)"
-        }
-      >
-        {r.win ? (
-          <FiPlus className="size-[80%]" />
-        ) : (
-          <FiMinus className="size-[80%]" />
-        )}
-      </span>
-    </div>
-  );
-};
-
 export const RallyLayer = () => {
   const { set, setNo, live } = useRally();
   const n = set.rallies;
   // while live, the list trails the mark by one beat: rally n is still in the
   // air and becomes a row on the next tick
   const shown = live ? n - 1 : n;
-  const ids = Array.from(
-    { length: Math.min(RENDERED, shown) },
-    (_, i) => shown - i,
-  );
   const last = shown > 0 ? RALLIES[shown - 1]! : null;
   const spot = n > 0 ? spotOf(n) : null;
   const r = n > 0 ? RALLIES[n - 1]! : null;
@@ -99,8 +51,8 @@ export const RallyLayer = () => {
   return (
     <div aria-hidden data-rally className="absolute inset-0">
       {/* running set score at the net post */}
-      <div className="v2-post flex items-baseline gap-3 border-(length:--v2-lw) border-(--v2-line) bg-(--v2-free) px-3 py-1.5 text-(--v2-on-free)">
-        <span className="text-xs font-bold text-(--v2-on-free-2)">
+      <div className="v2-post flex items-baseline gap-3 rounded-lg bg-card px-3 py-1.5 text-card-foreground shadow-md">
+        <span className="text-xs font-semibold text-muted-foreground">
           示範比分
         </span>
         <span className="text-xl font-bold tabular-nums lg:text-2xl">
@@ -131,10 +83,13 @@ export const RallyLayer = () => {
         className="v2-z p-[calc(0.5*var(--m))]"
         style={{ "--a0": 12.05, "--a1": 18 } as CSSProperties}
       >
-        <div className="v2-rows">
-          {ids.map((id, i) => (
-            <Row key={`${setNo}-${id}`} n={id} index={i} animate={live} />
-          ))}
+        {/* card surface (rounded-xl, p-1.5) so the rows' own teal and
+            coral figures never sit on the coral court; inner rows keep
+            their rounded-md (12 - 6) */}
+        <div className="rounded-xl bg-card p-1.5 text-card-foreground shadow-lg">
+          <div className="v2-rows">
+            <HeroEntries />
+          </div>
         </div>
       </div>
     </div>

@@ -10,8 +10,8 @@ import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
 import { RallyProvider } from "@/components/landing/prototype-v1/rally";
 import {
-  BTN_ON_COURT,
-  BTN_ON_FREE,
+  BTN_PRIMARY,
+  BTN_SECONDARY,
   COPY,
   KIT,
   LINKS,
@@ -23,7 +23,16 @@ import { Header } from "@/components/landing/prototype-v2/header";
 import { LazyRecordDemo } from "@/components/landing/prototype-v2/lazy-demo";
 import { LazyLiveStats } from "@/components/landing/prototype-v2/lazy-stats";
 import { RallyLayer } from "@/components/landing/prototype-v2/rally-layer";
-import { ThemeToggle } from "@/components/landing/prototype-v2/theme-toggle";
+import { DarkMode } from "@/components/landing/footer/dark-mode";
+import { Badge } from "@/components/ui/badge";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import "@/components/landing/prototype-v2/v2.css";
 import { cn } from "@/lib/utils";
 import type { CSSProperties } from "react";
@@ -34,10 +43,11 @@ const zone = (a0: number, a1: number, c0 = 0, c1 = 9) =>
 const GUTTER = "px-4 md:px-8 lg:px-[clamp(2rem,5vw,6rem)]";
 const H2 = "text-4xl leading-tight font-bold text-balance md:text-6xl";
 
+/** Planned features: the app's Badge (secondary), same as shipped otherwise. */
 export const DevBadge = () => (
-  <span className="inline-flex shrink-0 items-center border-(length:--v2-lw) border-current px-1.5 text-xs leading-5 font-bold">
+  <Badge variant="secondary" className="px-1.5 py-0 text-xs">
     開發中
-  </span>
+  </Badge>
 );
 
 const FeatureTitle = ({ f, className }: { f: Feature; className?: string }) => (
@@ -73,7 +83,7 @@ const Hero = () => (
       <div className="v2-on-attack">
         <CTAButton
           size="lg"
-          className={cn("h-12 px-6 lg:h-14 lg:px-8", BTN_ON_COURT)}
+          className={cn("h-12 px-6 lg:h-14 lg:px-8", BTN_PRIMARY)}
         >
           開始記錄
         </CTAButton>
@@ -126,9 +136,9 @@ const Stats = () => (
       </div>
       <div
         data-rally
-        className="v2-stats-points flex items-center border-(length:--v2-lw) border-(--v2-line) bg-card px-2 pt-4 pb-2 text-card-foreground lg:p-4"
+        className="v2-stats-points flex items-center rounded-xl bg-card px-2 pt-4 pb-2 text-card-foreground shadow-lg lg:p-4"
       >
-        <span className="absolute top-0 left-1/2 -translate-1/2 border-(length:--v2-lw) border-(--v2-line) bg-(--v2-free) px-2.5 py-1 text-xs font-bold whitespace-nowrap text-(--v2-on-free-2)">
+        <span className="absolute top-0 left-1/2 -translate-1/2 rounded-lg bg-card px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-muted-foreground shadow-md">
           示範數據
         </span>
         <p className="sr-only">
@@ -169,25 +179,33 @@ const Kit = () => (
       <h2 className={H2}>{COPY.kitTitle}</h2>
       <p className="max-w-lg text-lg text-(--v2-on-free-2)">{COPY.kitLead}</p>
     </div>
-    <ol className="grid grid-cols-1 border-t-(length:--v2-lw) border-(--v2-line) md:grid-cols-2 md:gap-x-10">
+    {/* the app's roster language: ItemGroup / Item (card surface, shadow,
+        rounded-xl, p-2) with a jersey-number media block (rounded, 12 - 8) */}
+    <ItemGroup className="grid grid-cols-1 gap-3 md:grid-cols-2">
       {KIT.map((k, i) => (
-        <li
+        <Item
           key={k.title}
-          className="flex items-start gap-4 border-b-(length:--v2-lw) border-(--v2-line) py-5"
+          role="listitem"
+          className="items-start gap-3 rounded-xl p-2 pr-3 hover:bg-card"
         >
-          <span
+          <ItemMedia
             aria-hidden
-            className="grid size-11 shrink-0 place-items-center border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) text-xl leading-none font-bold text-(--v2-ink) tabular-nums"
+            className="size-10 rounded bg-primary text-lg font-bold text-primary-foreground tabular-nums"
           >
             {i + 1}
-          </span>
-          <div className="flex min-w-0 flex-col gap-1">
-            <FeatureTitle f={k} className="text-lg md:text-xl" />
-            <p className="text-(--v2-on-free-2)">{k.body}</p>
-          </div>
-        </li>
+          </ItemMedia>
+          <ItemContent className="gap-0.5 py-0.5">
+            <ItemTitle className="flex-wrap text-base font-semibold">
+              <h3>{k.title}</h3>
+              {k.dev && <DevBadge />}
+            </ItemTitle>
+            <ItemDescription className="line-clamp-none">
+              {k.body}
+            </ItemDescription>
+          </ItemContent>
+        </Item>
       ))}
-    </ol>
+    </ItemGroup>
   </section>
 );
 
@@ -210,7 +228,7 @@ const Closing = () => (
         <p className="max-w-md text-lg text-(--v2-on-free-2)">{COPY.ctaLead}</p>
         <CTAButton
           size="lg"
-          className={cn("hidden h-14 px-8 lg:inline-flex", BTN_ON_FREE)}
+          className={cn("hidden h-14 px-8 lg:inline-flex", BTN_SECONDARY)}
         >
           開始記錄
         </CTAButton>
@@ -229,7 +247,7 @@ const Closing = () => (
           <div className="absolute inset-x-0 bottom-[calc(100cqw/9*0.15)] h-[calc(100cqw/9*0.15)] border-x-(length:--v2-lw) border-(--v2-line)" />
         </div>
         <div className="flex justify-end pt-2">
-          <CTAButton size="lg" className={cn("h-14 px-8", BTN_ON_FREE)}>
+          <CTAButton size="lg" className={cn("h-14 px-8", BTN_SECONDARY)}>
             開始記錄
           </CTAButton>
         </div>
@@ -284,7 +302,7 @@ const Footer = () => (
           </a>
         </p>
       </div>
-      <ThemeToggle />
+      <DarkMode />
     </div>
   </footer>
 );

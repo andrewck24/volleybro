@@ -159,22 +159,20 @@ html.dark:has(.v2) {
 
 /* ---------- entry rows (opponent back zone) ---------- */
 
+/* the app's EntryRow is 40px tall (Figure sm + p-1); rows stack on a 44px
+   pitch inside the card. Phones cap the list at 3 rows (first-viewport
+   density), desktop at 10. */
 .v2-rows {
-  --rh: calc(1 * var(--m));
-  --pitch: calc(1.2 * var(--m));
-  --rows: 4;
+  --pitch: 2.75rem;
+  --rows: 3;
   position: relative;
   overflow: hidden;
-  height: calc(var(--rows) * var(--pitch) - (var(--pitch) - var(--rh)));
-  font-size: calc(0.38 * var(--m));
+  height: calc(var(--rows) * var(--pitch) - 0.25rem);
 }
 
 @media (min-width: 64rem) {
   .v2-rows {
-    --rh: calc(0.6 * var(--m));
-    --pitch: calc(0.72 * var(--m));
-    --rows: 11;
-    font-size: max(0.8125rem, calc(0.25 * var(--m)));
+    --rows: 10;
   }
 }
 
@@ -182,9 +180,7 @@ html.dark:has(.v2) {
   position: absolute;
   inset-inline: 0;
   top: 0;
-  height: var(--rh);
   transform: translateY(calc(var(--i) * var(--pitch)));
-  border: var(--lwc) solid var(--v2-line);
 }
 
 .v2-row[data-animate] {

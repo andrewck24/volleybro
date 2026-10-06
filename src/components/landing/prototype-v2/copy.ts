@@ -82,11 +82,12 @@ export const moveLabel = (num: number, win: boolean) =>
     ? "對方失誤"
     : `${MOVE_TEXT[num]}${win ? "得分" : "失分"}`;
 
-// Every action is the other surface plus a white line. Kept here, not in a
-// "use client" module, so server components import real strings.
-/** On the teal free zone: a coral chip, ink label (6.67:1). */
-export const BTN_ON_FREE =
-  "rounded-none border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) font-bold text-(--v2-ink) hover:bg-(--v2-in) hover:text-(--v2-ink) hover:brightness-105";
-/** On the coral court: a free-zone inset, ivory label (5.81:1). */
-export const BTN_ON_COURT =
-  "rounded-none border-(length:--v2-lw) border-(--v2-line) bg-(--v2-free) font-bold text-(--v2-on-free) hover:bg-(--v2-free) hover:text-(--v2-on-free) hover:brightness-110";
+// Actions are app objects: the app Button's own variants (rounded-md, shadow,
+// no outline), passed as classes over CTAButton's built-in outline look. Kept
+// here, not in a "use client" module, so server components import strings.
+/** Button `default` variant: teal fill, ivory label (5.81:1). On coral and in the header. */
+export const BTN_PRIMARY =
+  "bg-primary font-semibold text-primary-foreground shadow-md ring-transparent hover:bg-primary/90 dark:ring-transparent";
+/** Button `secondary` variant: on the teal free zone (label 16:1 light, 9:1 dark). */
+export const BTN_SECONDARY =
+  "bg-secondary font-semibold text-secondary-foreground shadow-md ring-transparent hover:bg-secondary/80 dark:ring-transparent";
