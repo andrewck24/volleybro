@@ -33,7 +33,10 @@ jobs:
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
+        with:
+          install: false
+          node-version-file: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
