@@ -203,14 +203,18 @@ export const StepsSection = ({
         </ol>
         {/* watch-only: inert drops pointer, focus and the a11y tree; the
             sr-only list above carries the content for screen readers */}
-        <div
-          inert
-          className={cn(
-            styles.frame,
-            "overflow-hidden rounded-2xl text-foreground shadow-xl",
-          )}
-        >
-          {children}
+        {/* court layer: an in-court field (coral, white side lines) the app
+            frame stands on; the frame is the object on it */}
+        <div className={styles.field}>
+          <div
+            inert
+            className={cn(
+              styles.frame,
+              "overflow-hidden rounded-2xl text-foreground shadow-xl",
+            )}
+          >
+            {children}
+          </div>
         </div>
       </div>
       <div className={styles.rails}>

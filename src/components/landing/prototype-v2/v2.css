@@ -62,7 +62,8 @@ html.dark:has(.v2) {
   --lwc: calc(0.05 * var(--m));
 }
 
-.v2-court-half {
+/* our half alone (closing): 9 × 9, same zone grammar as the full court */
+.v2-square {
   position: relative;
   container-type: inline-size;
   aspect-ratio: 1 / 1;
@@ -85,7 +86,8 @@ html.dark:has(.v2) {
     aspect-ratio: 2 / 1;
     --m: calc(100cqw / 18);
   }
-  .v2-court .v2-z {
+  .v2-court .v2-z,
+  .v2-square .v2-z {
     left: calc(var(--a0) * var(--m));
     width: calc((var(--a1) - var(--a0)) * var(--m));
     top: calc(var(--c0, 0) * var(--m));
@@ -176,6 +178,19 @@ html.dark:has(.v2) {
   }
 }
 
+/* Where the card is too narrow for both moves (≤23.74rem phones, 64–80rem
+   desktops) the app row's away column is dropped so the home move stays on
+   one line; the row component itself is not restyled. */
+@media (max-width: 23.74rem), (min-width: 64rem) and (max-width: 79.99rem) {
+  .v2-row p:last-of-type {
+    display: none;
+  }
+  /* …and the home move may take the room the away column left */
+  .v2-row p {
+    max-width: none;
+  }
+}
+
 .v2-row {
   position: absolute;
   inset-inline: 0;
@@ -194,11 +209,11 @@ html.dark:has(.v2) {
 .v2-mark {
   position: absolute;
   top: calc(var(--a) * var(--m));
-  left: calc(var(--c) * var(--m));
+  left: calc(var(--cp, var(--c)) * var(--m));
   /* where it files: the first Entry row in the opponent back zone */
-  --ta: 13.05;
+  --ta: 11.9;
   --tc: 1;
-  --dx: calc((var(--tc) - var(--c)) * var(--m));
+  --dx: calc((var(--tc) - var(--cp, var(--c))) * var(--m));
   --dy: calc((var(--ta) - var(--a)) * var(--m));
   font-size: calc(0.38 * var(--m));
   transform-origin: 0 0;
@@ -208,8 +223,8 @@ html.dark:has(.v2) {
   .v2-mark {
     top: calc(var(--c) * var(--m));
     left: calc(var(--a) * var(--m));
-    --ta: 12.9;
-    --tc: 0.8;
+    --ta: 12.4;
+    --tc: 0.9;
     --dx: calc((var(--ta) - var(--a)) * var(--m));
     --dy: calc((var(--tc) - var(--c)) * var(--m));
     font-size: max(0.8125rem, calc(0.25 * var(--m)));
@@ -320,7 +335,7 @@ html.dark:has(.v2) {
   container-type: inline-size;
   aspect-ratio: 1 / 2;
   --m: calc(100cqw / 9);
-  --ph: 19.5rem;
+  --ph: 19rem;
 }
 
 .v2-stats-head,
@@ -348,7 +363,7 @@ html.dark:has(.v2) {
    the net so the list keeps its lines */
 @media (max-width: 23.74rem) {
   .v2-stats {
-    --ph: 16.5rem;
+    --ph: 16rem;
     --shift: -0.75rem;
   }
 }
@@ -364,9 +379,10 @@ html.dark:has(.v2) {
     height: auto;
   }
   .v2-stats-points {
-    inset: calc(0.4 * var(--m)) auto auto calc(6.45 * var(--m));
+    inset: 50% auto auto calc(6.45 * var(--m));
+    translate: 0 -50%;
     width: calc(5.1 * var(--m));
-    height: calc(8.2 * var(--m));
+    height: auto;
   }
   .v2-stats-list {
     inset: 0 0 0 calc(12.05 * var(--m));

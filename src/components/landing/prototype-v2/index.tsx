@@ -11,7 +11,6 @@ import { CTAButton } from "@/components/landing/cta-button";
 import { RallyProvider } from "@/components/landing/prototype-v1/rally";
 import {
   BTN_PRIMARY,
-  BTN_SECONDARY,
   COPY,
   KIT,
   LINKS,
@@ -136,13 +135,10 @@ const Stats = () => (
       </div>
       <div
         data-rally
-        className="v2-stats-points flex items-center rounded-xl bg-card px-2 pt-4 pb-2 text-card-foreground shadow-lg lg:p-4"
+        className="v2-stats-points flex items-center rounded-xl bg-card p-2 text-card-foreground shadow-lg lg:p-4"
       >
-        <span className="absolute top-0 left-1/2 -translate-1/2 rounded-lg bg-card px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-muted-foreground shadow-md">
-          示範數據
-        </span>
         <p className="sr-only">
-          團隊數據統計（示範數據）：跟著上方的示範比賽逐球更新。
+          團隊數據統計（示意動畫）：跟著上方的示範比賽逐球更新。
         </p>
         <div className="v2-points-h flex w-full items-center">
           <LazyLiveStats />
@@ -165,9 +161,9 @@ const Stats = () => (
   </section>
 );
 
-/** Supporting features as the app's roster: one row per feature, a
- *  jersey-number chip (the court's player card: coral, ink, white line) and
- *  white line dividers, on the teal free zone. */
+/** Supporting features as the app's roster: one Item row per feature in a
+ *  single column, the number set like a jersey number (#1), on the teal free
+ *  zone. */
 const Kit = () => (
   <section
     className={cn(
@@ -181,7 +177,7 @@ const Kit = () => (
     </div>
     {/* the app's roster language: ItemGroup / Item (card surface, shadow,
         rounded-xl, p-2) with a jersey-number media block (rounded, 12 - 8) */}
-    <ItemGroup className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <ItemGroup className="flex flex-col gap-2.5">
       {KIT.map((k, i) => (
         <Item
           key={k.title}
@@ -190,9 +186,9 @@ const Kit = () => (
         >
           <ItemMedia
             aria-hidden
-            className="size-10 rounded bg-primary text-lg font-bold text-primary-foreground tabular-nums"
+            className="h-10 min-w-12 rounded bg-primary px-1.5 text-lg font-bold text-primary-foreground tabular-nums"
           >
-            {i + 1}
+            #{i + 1}
           </ItemMedia>
           <ItemContent className="gap-0.5 py-0.5">
             <ItemTitle className="flex-wrap text-base font-semibold">
@@ -209,55 +205,36 @@ const Kit = () => (
   </section>
 );
 
-/** The page closes behind the end line: the action stands in the service
- *  zone, the court it will serve into beside it (lg) or above it. */
+/** The page closes on our half of the court, in the hero's grammar: heading
+ *  and lead in the back zone, the primary action on our attack line. A true
+ *  9 × 9 half (portrait below lg, net at the bottom; landscape from lg, net
+ *  on the right), whole and centred, never cut by the viewport. */
 const Closing = () => (
-  <section className="relative overflow-hidden">
-    <div
-      className={cn(
-        "relative mx-auto grid max-w-[92rem] grid-cols-1 pt-24 pb-10 lg:min-h-[36rem] lg:grid-cols-2 lg:items-center lg:py-32",
-        GUTTER,
-      )}
-    >
-      <div className="flex flex-col items-start gap-8">
-        <h2 className={cn(H2, "md:text-7xl")}>
+  <section className={cn("flex justify-center py-24 md:py-32", GUTTER)}>
+    <div className="v2-square w-full max-w-[30rem] lg:max-w-[46rem]">
+      <CourtPlan half portrait className="lg:hidden" />
+      <CourtPlan half className="hidden lg:block" />
+      <div
+        className="v2-z flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.5*var(--m))] text-(--v2-ink)"
+        style={zone(0, 6)}
+      >
+        <h2 className="text-[max(1.625rem,calc(0.75*var(--m)))] leading-tight font-bold text-balance lg:text-[calc(0.62*var(--m))]">
           {COPY.ctaTitle[0]}
           <br />
           {COPY.ctaTitle[1]}
         </h2>
-        <p className="max-w-md text-lg text-(--v2-on-free-2)">{COPY.ctaLead}</p>
+        <p className="text-sm font-medium lg:text-[max(1rem,calc(0.24*var(--m)))]">
+          {COPY.ctaLead}
+        </p>
+      </div>
+      <div className="v2-on-attack">
         <CTAButton
           size="lg"
-          className={cn("hidden h-14 px-8 lg:inline-flex", BTN_SECONDARY)}
+          className={cn("h-12 px-6 lg:h-14 lg:px-8", BTN_PRIMARY)}
         >
           開始記錄
         </CTAButton>
       </div>
-    </div>
-    <div className={cn("pb-24 lg:hidden", GUTTER)}>
-      <div className="[container-type:inline-size] mx-auto max-w-[30rem]">
-        {/* the last 3 m of the court down to the end line, then the service
-            zone with its two marks; the action is the server */}
-        <div aria-hidden className="relative h-[calc(100cqw/9*3.5)]">
-          <div className="absolute inset-x-0 bottom-[calc(100cqw/9*0.5)] h-[calc(100cqw/9*3)] overflow-hidden">
-            <div className="absolute inset-x-0 bottom-0 aspect-[1/2]">
-              <CourtPlan portrait />
-            </div>
-          </div>
-          <div className="absolute inset-x-0 bottom-[calc(100cqw/9*0.15)] h-[calc(100cqw/9*0.15)] border-x-(length:--v2-lw) border-(--v2-line)" />
-        </div>
-        <div className="flex justify-end pt-2">
-          <CTAButton size="lg" className={cn("h-14 px-8", BTN_SECONDARY)}>
-            開始記錄
-          </CTAButton>
-        </div>
-      </div>
-    </div>
-    <div
-      aria-hidden
-      className="absolute top-1/2 left-1/2 hidden aspect-[2/1] h-[70%] -translate-y-1/2 lg:block"
-    >
-      <CourtPlan />
     </div>
   </section>
 );
@@ -310,7 +287,9 @@ const Footer = () => (
 export const LandingV2 = () => (
   <main className="v2 min-h-full w-full select-text">
     <Header />
-    <RallyProvider>
+    {/* seed 12: the Entry card is full on the first frame; a replayed set
+        restarts there too */}
+    <RallyProvider seed={12} replayFrom={12}>
       <Hero />
       <Record />
       <Stats />

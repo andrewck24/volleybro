@@ -33,9 +33,10 @@ const ACROSS = [1.4, 3.9, 6.4];
 const spotOf = (n: number) => {
   const r = RALLIES[n - 1]!;
   return r.win
-    ? { a: 10.3, c: ACROSS[(n * 2) % 3]! }
-    : // our front zone, clear of the action on the attack line
-      { a: 8.1, c: ACROSS[n % 2]! };
+    ? { a: 9.9, c: ACROSS[(n * 2) % 3]!, cp: ACROSS[(n * 2) % 3]! }
+    : // our front zone, clear of the action on the attack line; portrait
+      // (cp) keeps them left, away from the score chip at the right post
+      { a: 8.1, c: ACROSS[n % 2]!, cp: 1.2 };
 };
 
 export const RallyLayer = () => {
@@ -51,10 +52,7 @@ export const RallyLayer = () => {
   return (
     <div aria-hidden data-rally className="absolute inset-0">
       {/* running set score at the net post */}
-      <div className="v2-post flex items-baseline gap-3 rounded-lg bg-card px-3 py-1.5 text-card-foreground shadow-md">
-        <span className="text-xs font-semibold text-muted-foreground">
-          示範比分
-        </span>
+      <div className="v2-post flex items-baseline rounded-lg bg-card px-3 py-1.5 text-card-foreground shadow-md">
         <span className="text-xl font-bold tabular-nums lg:text-2xl">
           {last?.homeScore ?? 0}
           <span className="px-1.5">:</span>
@@ -68,7 +66,9 @@ export const RallyLayer = () => {
           data-live={live || undefined}
           data-ours={!r.win || undefined}
           className="v2-mark text-(--v2-ink)"
-          style={{ "--a": spot.a, "--c": spot.c } as CSSProperties}
+          style={
+            { "--a": spot.a, "--c": spot.c, "--cp": spot.cp } as CSSProperties
+          }
         >
           <span className="v2-dot">
             <span className="v2-ring" />
@@ -80,8 +80,8 @@ export const RallyLayer = () => {
       )}
 
       <div
-        className="v2-z p-[calc(0.5*var(--m))]"
-        style={{ "--a0": 12.05, "--a1": 18 } as CSSProperties}
+        className="v2-z p-[calc(0.3*var(--m))] lg:p-[calc(0.5*var(--m))]"
+        style={{ "--a0": 11.3, "--a1": 18 } as CSSProperties}
       >
         {/* card surface (rounded-xl, p-1.5) so the rows' own teal and
             coral figures never sit on the coral court; inner rows keep

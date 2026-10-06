@@ -59,12 +59,18 @@ export const diffsOf = (set: SetState) => {
 export const RallyProvider = ({
   children,
   className,
+  seed = SEED_RALLIES,
+  replayFrom = 1,
 }: {
   children: ReactNode;
   className?: string;
+  /** rallies already played at load (v2 fills its Entry card from frame one) */
+  seed?: number;
+  /** rally a replayed set restarts from */
+  replayFrom?: number;
 }) => {
   const [state, setState] = useState<Rally>(() => ({
-    set: setAt(SEED_RALLIES),
+    set: setAt(seed),
     setNo: 0,
     live: false,
   }));
@@ -118,7 +124,11 @@ export const RallyProvider = ({
           pause.current--;
           return;
         }
-        live.current = { set: setAt(1), setNo: cur.setNo + 1, live: true };
+        live.current = {
+          set: setAt(replayFrom),
+          setNo: cur.setNo + 1,
+          live: true,
+        };
       } else {
         live.current = { ...cur, set: setAt(cur.set.rallies + 1), live: true };
         if (cur.set.rallies + 1 >= SET_LEN) pause.current = PAUSE_TICKS;
@@ -126,7 +136,7 @@ export const RallyProvider = ({
       setState(live.current);
     }, INTERVAL);
     return () => clearInterval(id);
-  }, [reduced, active]);
+  }, [reduced, active, replayFrom]);
 
   const value = reduced ? { set: STATIC_SET, setNo: -1, live: false } : state;
 

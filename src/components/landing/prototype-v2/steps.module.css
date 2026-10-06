@@ -32,7 +32,7 @@
   .stage {
     flex-direction: row;
     justify-content: center;
-    gap: clamp(3rem, 10vw, 10rem);
+    gap: 0;
     padding: 2rem;
   }
 }
@@ -63,7 +63,25 @@
   grid-area: 1 / 1;
 }
 
+/* v2: the court continues through the walkthrough — a strip of in-court
+   coral bounded by white side lines, the app frame standing on it. The
+   frame (light: --background on coral) separates by the field's contrast
+   plus its own shadow, no outline. */
+.field {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--v2-in);
+  border-inline: var(--v2-lw) solid var(--v2-line);
+}
+
 .frame {
+  position: relative;
+  z-index: 2;
   flex: 1 1 0;
   min-height: 0;
   max-height: 40rem;
@@ -71,8 +89,19 @@
 }
 
 @media (min-width: 64rem) {
+  /* full stage height, from the captions column's right edge: the attack
+     line (captions::after) enters the court at its side line */
+  .field {
+    flex: none;
+    width: auto;
+    align-self: stretch;
+    justify-content: center;
+    margin-block: -2rem;
+    padding: 2rem clamp(3rem, 10vw, 10rem);
+  }
   .frame {
     flex: none;
+    width: 22rem;
     height: min(40rem, calc(var(--track) - 4rem));
   }
 }
@@ -180,11 +209,11 @@
   }
 }
 
-/* v2, lg: the stage stands on the court plan. A dashed attack-line
-   extension runs at the step chip's centre from the page's left edge to the
-   chip, and on from the captions to the real app court in the frame. Borders
-   only (no gradient); the section clips the overrun without becoming a
-   scroll container, so the sticky stage keeps working. */
+/* v2, lg: the stage stands on the court plan. The attack line runs at the
+   step chip's centre: dashed outside the court (the rules' extension) from
+   the page's left edge to the chip, solid inside it from the field's side
+   line to the frame. Borders only; the section clips the overrun without
+   becoming a scroll container, so the sticky stage keeps working. */
 @media (min-width: 64rem) and (min-height: 500.02px) {
   .section {
     overflow-x: clip;
@@ -202,7 +231,9 @@
     width: 50vw;
   }
   .captions::after {
+    z-index: 1;
     left: 100%;
     width: clamp(3rem, 10vw, 10rem);
+    border-top-style: solid;
   }
 }
