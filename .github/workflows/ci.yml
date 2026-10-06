@@ -137,7 +137,7 @@ jobs:
 
       - id: mongodb-memory-server-version
         run: echo "version=$(pnpm pkg get devDependencies.mongodb-memory-server --workspace-root | tr -d '\"^')" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/mongodb-binaries
           key: mongodb-binaries-${{ steps.mongodb-memory-server-version.outputs.version }}
