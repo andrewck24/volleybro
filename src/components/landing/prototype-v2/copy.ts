@@ -10,7 +10,7 @@ export const COPY = {
   recordLead:
     "就是 App 裡的那片球場。點選、確認、送出；訊號不好，也不會卡住下一球。",
   statsTitle: ["不用另外整理，", "記完就是統計"],
-  statsLead: "上面送出的那一球，已經算進攻擊得分。比賽一結束，數字就在那裡。",
+  statsLead: "上面每記一球，這裡的數字就跟著動；比賽一結束，統計已經在那裡。",
   kitTitle: "一支手機，整支球隊",
   kitLead: "建隊、邀請、分權限、排陣容，都在同一支手機上完成。",
   ctaTitle: ["下一場比賽，", "從發球就開始記"],
@@ -81,9 +81,6 @@ export const moveLabel = (num: number, win: boolean) =>
   num >= MOVE_TEXT.length
     ? "對方失誤"
     : `${MOVE_TEXT[num]}${win ? "得分" : "失分"}`;
-
-/** id of the stats section's server-rendered slot the live Points portal into */
-export const POINTS_SLOT = "v2-points";
 
 // Every action is the other surface plus a white line. Kept here, not in a
 // "use client" module, so server components import real strings.

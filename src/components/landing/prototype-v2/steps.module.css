@@ -37,17 +37,26 @@
   }
 }
 
-.captions {
-  position: relative;
-  display: grid;
+/* v2: the stage's text column — the section intro (heading + lead) above
+   the layered step captions, so step 0 shows both under the header */
+.lead {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   width: min(22rem, 100%);
   flex-shrink: 0;
 }
 
 @media (min-width: 64rem) {
-  .captions {
-    width: min(32rem, 45%);
+  .lead {
+    width: min(34rem, 45%);
+    gap: 3rem;
   }
+}
+
+.captions {
+  position: relative;
+  display: grid;
 }
 
 .caption {

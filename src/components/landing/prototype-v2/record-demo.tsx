@@ -1,17 +1,18 @@
 "use client";
-// PROTOTYPE (throwaway). Copied from prototype-v1 unchanged in behaviour; the
-// v2 steps section and Points slot id are the only swaps.
-// Sections 3-4 (record-demo approach A): the REAL recording components
-// (GameCourt / GamePanel / GamePreview + useSubmitEntryDraft) on a landing-only
+// PROTOTYPE (throwaway). Copied from prototype-v1; v2 keeps only the
+// walkthrough (steps 0-3 drive the real draft). The v1 "send on reaching the
+// stats" continuation is gone: v2's stats follow the hero's rally clock
+// (live-stats.tsx). The section intro arrives as `intro` and is set inside
+// the sticky stage. The REAL recording components
+// (GameCourt / GamePanel / GamePreview) on a landing-only
 // Redux store and a private SWR cache seeded with the fixture game.
 //  - store: makeStore() with a no-op storage, separate from the app singleton
 //  - SWR:   own cache (provider) preloaded with the game + isPaused, so useGame
-//           never fetches; mutate() from the real submit hook updates it
+//           never fetches; each step resets it to the fixture
 //  - queue: PendingWritesContext is a stub, so enqueue/flush never run and the
 //           app's pending-writes queue is never touched
 import { GameCourt } from "@/components/game/court";
 import { GamePanel } from "@/components/game/panel";
-import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { GamePreview } from "@/components/game/preview";
 import {
   DEMO_GAME_ID,
@@ -19,14 +20,11 @@ import {
   SENT_RALLY,
 } from "@/components/landing/prototype-v1/demo-data";
 import { demoGame } from "@/components/landing/prototype-v1/demo-game";
-import { StatsPoints } from "@/components/landing/prototype-v2/stats-section";
-import { POINTS_SLOT } from "@/components/landing/prototype-v2/copy";
 import { StepsSection } from "@/components/landing/prototype-v2/steps-section";
 import { useCounter } from "@/components/landing/prototype-v1/use-counter";
 import { useGame } from "@/hooks/use-data";
 import {
   PendingWritesContext,
-  usePendingWritesContext,
   type PendingWritesApi,
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -35,7 +33,7 @@ import type { PendingWritesStorage } from "@/lib/features/game/pending-writes-st
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
@@ -52,20 +50,15 @@ const stubQueue: PendingWritesApi = {
   retry: async () => ({ ok: true }),
 };
 
-type Ctrl = { step: (n: number) => void; send: () => void };
+type Ctrl = { step: (n: number) => void };
 
 // Headless: re-renders only on the slices it reads; the frame and sections are
 // siblings, so a step change reaches them through the store, not through here.
 const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
   const dispatch = useAppDispatch();
   const status = useAppSelector((s) => s.game.general.status);
-  const draftId = useAppSelector(
-    (s) => s.game.general.entryDraft.home.player?.id,
-  );
   const { starting } = useLineup(DEMO_GAME_ID, 0, status);
   const { mutate } = useGame(DEMO_GAME_ID);
-  const submit = useSubmitEntryDraft(DEMO_GAME_ID, usePendingWritesContext());
-  const sent = useRef(false);
   const zone = useRef(4);
   useCounter("driver");
 
@@ -78,7 +71,6 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
 
   useEffect(() => {
     const reset = () => {
-      sent.current = false;
       void mutate(demoGame, { revalidate: false });
       dispatch(gameActions.initialize({ game: demoGame, setIndex: 0 }));
       // initialize leaves the draft alone, and a stale player would make the
@@ -103,14 +95,7 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
           gameActions.setEntryDraftAwayMove(scoringMoves[SENT_RALLY.away]!),
         );
     };
-    ctrlRef.current = {
-      step,
-      send: () => {
-        if (sent.current || !draftId) return;
-        sent.current = true;
-        void submit();
-      },
-    };
+    ctrlRef.current = { step };
   });
 
   return null;
@@ -133,36 +118,20 @@ const Frame = () => {
   );
 };
 
-const Stats = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
-  const { game } = useGame(DEMO_GAME_ID);
-  const [slot] = useState(() => document.getElementById(POINTS_SLOT));
-  useCounter("stats");
-  return (
-    slot && (
-      <StatsPoints
-        game={game!}
-        slot={slot}
-        onEnter={() => ctrlRef.current?.send()}
-      />
-    )
-  );
-};
-
-const Sections = () => {
+const Sections = ({ intro }: { intro: ReactNode }) => {
   const ctrlRef = useRef<Ctrl | null>(null);
   const [frame] = useState(() => <Frame />);
   return (
     <>
       <Driver ctrlRef={ctrlRef} />
-      <StepsSection onStep={(n) => ctrlRef.current?.step(n)}>
+      <StepsSection intro={intro} onStep={(n) => ctrlRef.current?.step(n)}>
         {frame}
       </StepsSection>
-      <Stats ctrlRef={ctrlRef} />
     </>
   );
 };
 
-export const RecordDemo = () => {
+export const RecordDemo = ({ intro }: { intro: ReactNode }) => {
   const [store] = useState(() => {
     const s = makeStore(noStorage);
     s.dispatch(gameActions.initialize({ game: demoGame, setIndex: 0 }));
@@ -184,7 +153,7 @@ export const RecordDemo = () => {
         }}
       >
         <PendingWritesContext.Provider value={stubQueue}>
-          <Sections />
+          <Sections intro={intro} />
         </PendingWritesContext.Provider>
       </SWRConfig>
     </Provider>

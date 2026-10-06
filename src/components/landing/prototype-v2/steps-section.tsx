@@ -45,9 +45,12 @@ const Numeral = ({ i }: { i: number }) => (
 );
 
 export const StepsSection = ({
+  intro,
   onStep,
   children,
 }: {
+  /** the section heading + lead, set in the sticky stage above the steps */
+  intro: ReactNode;
   onStep: (step: number) => void;
   children: ReactNode;
 }) => {
@@ -167,26 +170,29 @@ export const StepsSection = ({
   return (
     <div ref={box} data-step="0" className={cn(styles.section, "v2-steps-h")}>
       <div className={styles.stage}>
-        <div aria-hidden className={styles.captions}>
-          {STEPS.map((s, i) => (
-            <div
-              key={s.title}
-              className={cn(
-                styles.caption,
-                styles.layer,
-                "flex gap-4 lg:gap-8",
-              )}
-              style={vars(STEPS.map((_, j) => (i === j ? 1 : 0)))}
-            >
-              <Numeral i={i} />
-              <div className="flex flex-col gap-1 lg:gap-2">
-                <h3 className="text-xl font-bold lg:text-5xl">{s.title}</h3>
-                <p className="text-sm text-balance text-(--v2-on-free-2) lg:text-xl">
-                  {s.body}
-                </p>
+        <div className={styles.lead}>
+          {intro}
+          <div aria-hidden className={styles.captions}>
+            {STEPS.map((s, i) => (
+              <div
+                key={s.title}
+                className={cn(
+                  styles.caption,
+                  styles.layer,
+                  "flex gap-4 lg:gap-8",
+                )}
+                style={vars(STEPS.map((_, j) => (i === j ? 1 : 0)))}
+              >
+                <Numeral i={i} />
+                <div className="flex flex-col gap-1 lg:gap-2">
+                  <h3 className="text-xl font-bold lg:text-4xl">{s.title}</h3>
+                  <p className="text-sm text-balance text-(--v2-on-free-2) lg:text-xl">
+                    {s.body}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         <ol className="sr-only">
           {STEPS.map((s) => (

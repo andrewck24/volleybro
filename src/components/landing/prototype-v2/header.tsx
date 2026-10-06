@@ -40,7 +40,9 @@ export const Header = () => {
         <div className="relative mx-auto flex h-full max-w-[92rem] items-center justify-between gap-3 px-4 md:px-8">
           <div className="flex items-center gap-3">
             <LogoType className="h-5 md:h-6" />
-            <span className="border-(length:--v2-lw) border-(--v2-on-free-2) px-1.5 text-xs leading-5 font-bold text-(--v2-on-free)">
+            {/* low-importance status: a quiet text label, no outline
+                (secondary on-free tone on teal, 4.83:1; dark 8.86:1) */}
+            <span className="text-xs leading-5 font-semibold tracking-wide text-(--v2-on-free-2)">
               Beta
             </span>
           </div>

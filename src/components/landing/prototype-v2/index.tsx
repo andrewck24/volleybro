@@ -1,8 +1,11 @@
 // PROTOTYPE (throwaway): landing v2 candidate, 「球場平面圖」 world. One flat
 // regulation court plan — coral in-bounds, teal free zone, white 5 cm lines —
 // carries every section. Mounted on `/?variant=v2`; lives only on branch
-// prototype/landing-v2. Reuses v1's rally clock + demo fixture (hero) and its
-// real-component scroll demo (每球三步 + Points +1), restyled into the court.
+// prototype/landing-v2. Reuses v1's rally clock + demo fixture and its
+// real-component scroll demo (每球三步), restyled into the court. One
+// RallyProvider wraps hero → stats: the hero court and the live stats panel
+// are its only consumers; the walkthrough between them is a server-passed
+// child and never re-renders on a beat.
 import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
 import { RallyProvider } from "@/components/landing/prototype-v1/rally";
@@ -12,13 +15,13 @@ import {
   COPY,
   KIT,
   LINKS,
-  POINTS_SLOT,
   STATS,
   type Feature,
 } from "@/components/landing/prototype-v2/copy";
 import { Court, CourtPlan } from "@/components/landing/prototype-v2/court";
 import { Header } from "@/components/landing/prototype-v2/header";
 import { LazyRecordDemo } from "@/components/landing/prototype-v2/lazy-demo";
+import { LazyLiveStats } from "@/components/landing/prototype-v2/lazy-stats";
 import { RallyLayer } from "@/components/landing/prototype-v2/rally-layer";
 import { ThemeToggle } from "@/components/landing/prototype-v2/theme-toggle";
 import "@/components/landing/prototype-v2/v2.css";
@@ -51,7 +54,7 @@ const Hero = () => (
       GUTTER,
     )}
   >
-    <RallyProvider className="v2-court v2-hero-court">
+    <div className="v2-court v2-hero-court">
       <Court />
       <p className="sr-only">
         示範動畫：一局示範比賽逐球落在球場上，每一球記成一列記錄，比分跟著更新。
@@ -79,28 +82,28 @@ const Hero = () => (
         </p>
       </div>
       <RallyLayer />
-    </RallyProvider>
+    </div>
   </section>
 );
 
+/** The intro rides in the walkthrough's sticky stage (server-rendered here,
+ *  placed by StepsSection), so stepping in never skips it. */
 const Record = () => (
-  <section id="record">
-    <div
-      className={cn(
-        "mx-auto flex max-w-[92rem] flex-col gap-4 pt-24 pb-8 md:pt-32",
-        GUTTER,
-      )}
-    >
-      <h2 className={H2}>
-        {COPY.recordTitle[0]}
-        <br className="md:hidden" />
-        {COPY.recordTitle[1]}
-      </h2>
-      <p className="max-w-xl text-lg text-(--v2-on-free-2)">
-        {COPY.recordLead}
-      </p>
-    </div>
-    <LazyRecordDemo />
+  <section id="record" className="pt-16 md:pt-24">
+    <LazyRecordDemo
+      intro={
+        <div className="flex flex-col gap-2 lg:gap-4">
+          <h2 className="text-2xl leading-tight font-bold text-balance md:text-4xl lg:text-5xl">
+            {COPY.recordTitle[0]}
+            <br className="hidden lg:inline" />
+            {COPY.recordTitle[1]}
+          </h2>
+          <p className="text-sm text-(--v2-on-free-2) md:text-base lg:text-lg">
+            {COPY.recordLead}
+          </p>
+        </div>
+      }
+    />
   </section>
 );
 
@@ -121,17 +124,19 @@ const Stats = () => (
           {COPY.statsLead}
         </p>
       </div>
-      <div className="v2-stats-points flex items-center border-(length:--v2-lw) border-(--v2-line) bg-card px-2 pt-4 pb-2 text-card-foreground lg:p-4">
+      <div
+        data-rally
+        className="v2-stats-points flex items-center border-(length:--v2-lw) border-(--v2-line) bg-card px-2 pt-4 pb-2 text-card-foreground lg:p-4"
+      >
         <span className="absolute top-0 left-1/2 -translate-1/2 border-(length:--v2-lw) border-(--v2-line) bg-(--v2-free) px-2.5 py-1 text-xs font-bold whitespace-nowrap text-(--v2-on-free-2)">
           示範數據
         </span>
         <p className="sr-only">
-          團隊數據統計（示範數據）：上一段記錄的這一球送出後，攻擊得分與總得分各加一。
+          團隊數據統計（示範數據）：跟著上方的示範比賽逐球更新。
         </p>
-        <div
-          id={POINTS_SLOT}
-          className="v2-points-h flex w-full items-center"
-        />
+        <div className="v2-points-h flex w-full items-center">
+          <LazyLiveStats />
+        </div>
       </div>
       <ul className="v2-stats-list grid grid-cols-2 content-center gap-x-[calc(0.3*var(--m))] gap-y-[calc(0.15*var(--m))] p-[calc(0.3*var(--m))] text-(--v2-ink) max-[23.75rem]:p-2 lg:grid-cols-1 lg:gap-[calc(0.3*var(--m))] lg:p-[calc(0.5*var(--m))]">
         {STATS.map((s) => (
@@ -287,9 +292,11 @@ const Footer = () => (
 export const LandingV2 = () => (
   <main className="v2 min-h-full w-full select-text">
     <Header />
-    <Hero />
-    <Record />
-    <Stats />
+    <RallyProvider>
+      <Hero />
+      <Record />
+      <Stats />
+    </RallyProvider>
     <Kit />
     <Closing />
     <Footer />
