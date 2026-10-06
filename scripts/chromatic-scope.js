@@ -34,12 +34,18 @@ const NON_VISUAL_DEV_DEPENDENCIES = new Set([
 ]);
 
 const SAFE_PATHS = [
-  /^docs\/.*\.md$/,
+  /^docs\//,
   /^blueprint\//,
-  /^\.(?:agents|claude)\//,
-  /^(?:AGENTS|CLAUDE|WORKFLOW|CONTRIBUTING|CODING_STANDARDS|CONTEXT|PRODUCT|DESIGN|README(?:\.[^/]+)?)\.md$/,
-  /^\.changeset\/[^/]+\.md$/,
-  /^scripts\/__tests__\/chromatic-scope\.test\.js$/,
+  /^\.(?:agents|claude|codex|impeccable|diagram-design)\//,
+  /^(?:AGENTS|CLAUDE|WORKFLOW|CONTRIBUTING|CODING_STANDARDS|CONTEXT|PRODUCT|DESIGN|CHANGELOG|README(?:\.[^/]+)?)\.md$/,
+  /^\.changeset\//,
+  // The classifier and its workflow must still run when they change.
+  /^scripts\/(?!chromatic-scope\.js$)/,
+  /^\.github\/(?!workflows\/chromatic\.yml$)/,
+  // Storybook loads src/**/*.stories and never imports tests or test/.
+  /^test\//,
+  /^src\/(?:.*\/__tests__\/|.*\.test\.[jt]sx?$)/,
+  /^(?:jest\.config\.ts|knip\.json|commitlint\.title\.config\.js|\.markdownlint\.jsonc|vercel\.json|\.gitignore|\.worktreeinclude|\.env\.example|skills-lock\.json|LICENSE)$/,
   /^\.eslintrc(?:\.[^/]+)?$/,
   /^eslint\.config\.[^/]+$/,
   /^\.prettier(?:rc(?:\.[^/]+)?|ignore)$/,
@@ -49,7 +55,6 @@ const SAFE_PATHS = [
   /^\.lintstagedrc(?:\.[^/]+)?$/,
   /^lint-staged\.config\.[^/]+$/,
   /^\.husky\//,
-  /^\.github\/workflows\/(?:ci|changesets|dependency-submission)\.yml$/,
 ];
 
 function canonical(value) {
