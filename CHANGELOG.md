@@ -1,5 +1,17 @@
 # VolleyBro CHANGELOG
 
+## [0.16.3](https://github.com/andrewck24/volleybro/compare/v0.16.2...v0.16.3) 2026-10-06
+
+### Security
+
+- Update Better Auth with upstream authentication security fixes.
+- Update Next.js to address the ImageResponse security advisory.
+- Patch URI and IP address parsing vulnerabilities in transitive dependencies.
+
+### Changed
+
+- Update the required pnpm version to 12.9.1 for local development and CI.
+
 ## [0.16.2](https://github.com/andrewck24/volleybro/compare/v0.15.0...v0.16.2) 2026-10-03
 
 ### Fixed
