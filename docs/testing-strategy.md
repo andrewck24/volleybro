@@ -147,7 +147,8 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 - Catch layout, spacing, color, and responsive breakpoint regressions via screenshot diffing
 - Stories serve as living documentation and visual test cases
-- Run Chromatic on CI to gate visual changes, with TurboSnap (`onlyChanged`) so a trigger snapshots only the stories the change can reach — the workflow's path filter admits edits that are not visual at all
+- Run Chromatic on CI to gate visual changes, with TurboSnap (`onlyChanged`) to trace affected stories; shared preview inputs can require a full capture
+- Before invoking Chromatic, `scripts/chromatic-scope.js` compares the complete change and the protected root dependency graph. Only proven unrelated tooling or isolated Blueprint changes may skip the build; runtime, Storybook, CSS, assets and uncertain changes still run. Nonvisual development tools are explicitly classified in the script, not inferred from `devDependencies`. A shared transitive change remains protected. Manual dispatch always runs; commit titles cannot bypass this assessment. Chromatic's `skip` reports the skipped result without leaving a pending check. TurboSnap can still require a full capture when a shared preview input changes ([official setup](https://www.chromatic.com/docs/turbosnap/setup/)).
 - Stories do **not** include `play()` functions — Storybook is not used for interaction testing
 - `fn()` from `storybook/test` is used only for action spying in the Actions panel, not for assertions
 - The behavioral ↔ visual split is intentional: Jest + RTL owns interactions, Chromatic owns pixels

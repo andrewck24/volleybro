@@ -5,25 +5,9 @@ permissions:
 
 on:
   pull_request:
-    paths:
-      - "pnpm-lock.yaml"
-      - ".storybook/**"
-      - "src/components/ui/**"
-      - "src/components/custom/**"
-      - "src/components/game/**"
-      - "src/components/layout/**"
-      - "src/stories/**"
   push:
     branches:
       - main
-    paths:
-      - "pnpm-lock.yaml"
-      - ".storybook/**"
-      - "src/components/ui/**"
-      - "src/components/custom/**"
-      - "src/components/game/**"
-      - "src/components/layout/**"
-      - "src/stories/**"
   workflow_dispatch:
 
 concurrency:
@@ -38,14 +22,14 @@ jobs:
     name: Chromatic
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(github.event.head_commit.message || github.event.pull_request.title, '[skip chromatic]') }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Chromatic diffs against history to find a baseline
+          persist-credentials: false
           # pull_request checks out an ephemeral merge commit; TurboSnap would
           # then diff every integration commit since the branch point.
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
         with:
           install: false
@@ -56,6 +40,19 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
 
+      - name: Assess Storybook impact
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            node scripts/chromatic-scope.js --force
+          else
+            node scripts/chromatic-scope.js --base "$BASE_SHA" --head "$HEAD_SHA"
+          fi
+
       - uses: chromaui/action@latest
         env:
           CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -64,9 +61,7 @@ jobs:
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Without this every trigger snapshots all 105 stories, and the paths
-          # filter above cannot tell a payload edit inside src/components/game/
-          # from a visual one.
+          skip: ${{ steps.scope.outputs.skip == 'true' }}
           onlyChanged: true
           # Served from staticDirs, so no story imports them and the dependency
           # graph cannot see them; changing one falls back to a full snapshot.
