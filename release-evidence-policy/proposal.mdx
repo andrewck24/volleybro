@@ -41,36 +41,45 @@ export const scenarios = [
   <span className="block whitespace-pre">{"repository root/"}</span>
   <span className="block whitespace-pre">{"├── .github/"}</span>
   <span className="block whitespace-pre">{"│   └── workflows/"}</span>
-  <span className="block whitespace-pre">{"│       └── production-release.yml "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+  <span className="block whitespace-pre">{"│       └── production-release.yml "}<span className="rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">修改</span></span>
   <span className="block whitespace-pre">{"├── blueprint/"}</span>
   <span className="block whitespace-pre">{"│   └── content/"}</span>
   <span className="block whitespace-pre">{"│       ├── decisions/"}</span>
-  <span className="block whitespace-pre">{"│       │   └── 0104-production-data-compatibility-follows-database-activation.json "}<span className="rounded bg-emerald-500/15 px-1 py-0.5 text-emerald-700 dark:text-emerald-300">新增</span></span>
-  <span className="block whitespace-pre">{"│       └── features/platform/delivery-workflow/"}</span>
-  <span className="block whitespace-pre">{"│           └── index.mdx "}<span className="rounded bg-amber-500/15 px-1 py-0.5 text-amber-700 dark:text-amber-300">Archive 評估</span></span>
+  <span className="block whitespace-pre">{"│       │   └── 0104-production-data-compatibility-follows-database-activation.json "}<span className="rounded bg-emerald-100 px-1 py-0.5 font-medium text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">新增</span></span>
+  <span className="block whitespace-pre">{"│       └── features/"}</span>
+  <span className="block whitespace-pre">{"│           └── platform/"}</span>
+  <span className="block whitespace-pre">{"│               └── delivery-workflow/"}</span>
+  <span className="block whitespace-pre">{"│                   └── index.mdx "}<span className="rounded bg-amber-100 px-1 py-0.5 font-medium text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">Archive 評估</span></span>
   <span className="block whitespace-pre">{"├── docs/"}</span>
   <span className="block whitespace-pre">{"│   ├── migrations/"}</span>
-  <span className="block whitespace-pre">{"│   │   └── migrate-legacy-accounts.js "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   └── release-runbook.md "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+  <span className="block whitespace-pre">{"│   │   └── migrate-legacy-accounts.js "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   └── release-runbook.md "}<span className="rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">修改</span></span>
   <span className="block whitespace-pre">{"├── scripts/"}</span>
-  <span className="block whitespace-pre">{"│   ├── release-controls.js "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+  <span className="block whitespace-pre">{"│   ├── release-controls.js "}<span className="rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">修改</span></span>
   <span className="block whitespace-pre">{"│   └── __tests__/"}</span>
-  <span className="block whitespace-pre">{"│       └── release-controls.test.js "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改／驗證</span></span>
+  <span className="block whitespace-pre">{"│       └── release-controls.test.js "}<span className="rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">修改／驗證</span></span>
   <span className="block whitespace-pre">{"├── src/"}</span>
-  <span className="block whitespace-pre">{"│   ├── app/api/auth/[...all]/route.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   ├── infrastructure/db/mongoose/"}</span>
-  <span className="block whitespace-pre">{"│   │   ├── connect-to-mongodb.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   │   └── schemas/"}</span>
-  <span className="block whitespace-pre">{"│   │       ├── game.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   │       ├── player.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   │       ├── profile.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   │       ├── team.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   │       └── user.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"│   └── lib/auth.ts "}<span className="rounded bg-slate-500/15 px-1 py-0.5 text-slate-700 dark:text-slate-300">讀取</span></span>
-  <span className="block whitespace-pre">{"└── WORKFLOW.md "}<span className="rounded bg-sky-500/15 px-1 py-0.5 text-sky-700 dark:text-sky-300">修改</span></span>
+  <span className="block whitespace-pre">{"│   ├── app/"}</span>
+  <span className="block whitespace-pre">{"│   │   └── api/"}</span>
+  <span className="block whitespace-pre">{"│   │       └── auth/"}</span>
+  <span className="block whitespace-pre">{"│   │           └── [...all]/"}</span>
+  <span className="block whitespace-pre">{"│   │               └── route.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   ├── infrastructure/"}</span>
+  <span className="block whitespace-pre">{"│   │   └── db/"}</span>
+  <span className="block whitespace-pre">{"│   │       └── mongoose/"}</span>
+  <span className="block whitespace-pre">{"│   │           ├── connect-to-mongodb.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │           └── schemas/"}</span>
+  <span className="block whitespace-pre">{"│   │               ├── game.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │               ├── player.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │               ├── profile.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │               ├── team.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   │               └── user.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"│   └── lib/"}</span>
+  <span className="block whitespace-pre">{"│       └── auth.ts "}<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span></span>
+  <span className="block whitespace-pre">{"└── WORKFLOW.md "}<span className="rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">修改</span></span>
 </code></pre>
 
-標記說明：`修改`／`新增` 是預計交付的 repository 變更；`讀取` 僅用於查明資料契約與驗證範圍；`Archive 評估` 是實作完成後才依現況更新 Feature，不把未實作內容先寫成事實。
+標記說明：<span className="rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">修改</span>／<span className="rounded bg-emerald-100 px-1 py-0.5 font-medium text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">新增</span> 是預計交付的 repository 變更；<span className="rounded bg-slate-200 px-1 py-0.5 font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">讀取</span> 僅用於查明資料契約與驗證範圍；<span className="rounded bg-amber-100 px-1 py-0.5 font-medium text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">Archive 評估</span> 是實作完成後才依現況更新 Feature，不把未實作內容先寫成事實。
 
 不在本 Change 執行的操作：production DB cutover／資料匯入、app schema／auth 修改、production data rollback、完整 auth-smoke 自動化，以及改寫既有 release run。
 
