@@ -80,41 +80,81 @@ export const StepsSection = ({
     // the state flips exactly mid-way between two snap points, where the
     // finger dot taps (CSS keyframe 50% of each segment). IO only reports
     // changes, so every callback is a real boundary (including re-entry).
-    let calibrating = false;
     const stepIO = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
           const i = Number((e.target as HTMLElement).dataset.s);
           section.dataset.step = String(i);
-          if (!calibrating) onStepRef.current(i);
+          onStepRef.current(i);
         }
       },
       { rootMargin: "-50% 0px -50% 0px" },
     );
     section.querySelectorAll("[data-s]").forEach((n) => stepIO.observe(n));
 
-    // finger dot: the tap targets are measured once in the real components
-    // (each step's target exists while the previous step is showing), kept
-    // in the frame's unzoomed design space, and re-placed as stage-relative
-    // CSS variables on any resize. The dot's path itself is a CSS
-    // scroll-driven animation (compositor); JS never runs per frame.
+    // finger dot: its path is a CSS scroll-driven animation (compositor; JS
+    // never runs per frame). The tap targets are measured live: tap 1 in the
+    // visible court (the player card exists in every state), taps 2 and 3 in
+    // hidden mirror panels that hold steps 1 and 2 on stores of their own
+    // (record-demo.tsx), so the visible store is never touched to measure.
+    // Re-measured on every resize of the stage or frame (height, --fz
+    // steps); any target missing hides the dot rather than send it to 0,0.
+    // Off entirely under reduced motion or without view timelines.
     const frame = section.querySelector<HTMLElement>(`.${styles.frame}`)!;
-    const design: { x: number; y: number }[] = [];
+    const dotOn =
+      !reduced.matches &&
+      !staticMq.matches &&
+      CSS.supports("animation-timeline: view()");
     let cancelled = false;
-    const zoomOf = () => Number(getComputedStyle(frame).zoom) || 1;
+    let placed = "";
+    const dotParts = [
+      ...section.querySelectorAll<HTMLElement>(
+        `.${styles.dot}, .${styles.dotCore}, .${styles.dotRing}`,
+      ),
+    ];
     const placeDot = () => {
-      if (design.length < 4) return;
+      const locate = locateRef.current;
+      if (!dotOn || !locate) return;
       const s = stage.getBoundingClientRect();
       const f = frame.getBoundingClientRect();
-      const z = zoomOf();
-      design.forEach((p, i) => {
-        stage.style.setProperty(`--p${i}x`, `${f.left - s.left + p.x * z}px`);
-        stage.style.setProperty(`--p${i}y`, `${f.top - s.top + p.y * z}px`);
+      const pts: [number, number][] = [
+        // rest point before the first tap: low centre of the frame
+        [f.left + f.width / 2, f.top + f.height * 0.88],
+      ];
+      for (let t = 1; t <= 3; t++) {
+        const r = locate(t, frame)?.getBoundingClientRect();
+        if (!r || !r.width) {
+          delete section.dataset.dot;
+          placed = "";
+          return;
+        }
+        pts.push([r.left + r.width / 2, r.top + r.height / 2]);
+      }
+      const next = pts.map(([x, y]) => [
+        `${Math.round((x - s.left) * 10) / 10}px`,
+        `${Math.round((y - s.top) * 10) / 10}px`,
+      ]);
+      const key = next.join();
+      if (key === placed && "dot" in section.dataset) return;
+      placed = key;
+      next.forEach(([x, y], i) => {
+        stage.style.setProperty(`--p${i}x`, x!);
+        stage.style.setProperty(`--p${i}y`, y!);
       });
       section.dataset.dot = "";
+      // A running scroll-driven animation on the compositor keeps the
+      // keyframe values it started with, var() included: restart the three
+      // dot animations so the new targets reach the compositor too.
+      for (const el of dotParts) {
+        el.style.animationName = "none";
+        void el.offsetWidth;
+        el.style.animationName = "";
+      }
     };
-    const settle = async () => {
+    // first placement once the mirrors' own enter animations have settled
+    const firstPlace = async () => {
+      if (!dotOn) return;
       await new Promise((r) =>
         requestAnimationFrame(() => requestAnimationFrame(r)),
       );
@@ -125,36 +165,18 @@ export const StepsSection = ({
         Promise.all(finite.map((a) => a.finished.catch(() => {}))),
         new Promise((r) => setTimeout(r, 900)),
       ]);
+      if (!cancelled) placeDot();
     };
-    const calibrate = async () => {
-      const locate = locateRef.current;
-      if (!locate || staticMq.matches) return;
-      calibrating = true;
-      const f0 = frame.getBoundingClientRect();
-      const z = zoomOf();
-      // rest point before the first tap: low centre of the frame
-      design[0] = { x: f0.width / z / 2, y: (f0.height / z) * 0.88 };
-      for (let t = 1; t <= 3; t++) {
-        onStepRef.current(t - 1);
-        await settle();
-        if (cancelled) return;
-        const el = locate(t, frame);
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        const f = frame.getBoundingClientRect();
-        design[t] = {
-          x: (r.left + r.width / 2 - f.left) / z,
-          y: (r.top + r.height / 2 - f.top) / z,
-        };
-      }
-      calibrating = false;
-      onStepRef.current(Number(section.dataset.step));
-      placeDot();
-    };
-    void calibrate();
+    void firstPlace();
     const dotRO = new ResizeObserver(placeDot);
-    dotRO.observe(stage);
-    dotRO.observe(frame);
+    if (dotOn) {
+      dotRO.observe(stage);
+      dotRO.observe(frame);
+      // the mirrors (and the real panel) slide in after every state change;
+      // re-measure once a slide has landed, so a target is never read
+      // mid-animation
+      frame.addEventListener("animationend", placeDot);
+    }
 
     // v2: mandatory snap while the stage is pinned, so touch / trackpad never
     // rest between steps. The snap points are the rails (scroll-snap-align
@@ -299,6 +321,7 @@ export const StepsSection = ({
       window.removeEventListener("scroll", syncSnap);
       ro.disconnect();
       dotRO.disconnect();
+      frame.removeEventListener("animationend", placeDot);
       cancelled = true;
       window.removeEventListener("keydown", onKey);
       setSnap(false);

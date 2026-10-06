@@ -80,26 +80,71 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
     };
     const step = (n: number) => {
       reset();
-      if (n >= 1)
-        dispatch(
-          gameActions.setEntryDraftPlayer({
-            id: SENT_RALLY.player,
-            zone: zone.current,
-          }),
-        );
-      if (n >= 2)
-        dispatch(
-          gameActions.setEntryDraftHomeMove(scoringMoves[SENT_RALLY.home]!),
-        );
-      if (n >= 3)
-        dispatch(
-          gameActions.setEntryDraftAwayMove(scoringMoves[SENT_RALLY.away]!),
-        );
+      playTo(dispatch, n, zone.current);
     };
     ctrlRef.current = { step };
   });
 
   return null;
+};
+
+/** Plays the demo rally's first `n` taps onto a store (the Driver's steps
+ *  and the mirrors share it). */
+const playTo = (
+  dispatch: (
+    a: Parameters<ReturnType<typeof makeStore>["dispatch"]>[0],
+  ) => unknown,
+  n: number,
+  zone: number,
+) => {
+  if (n >= 1)
+    dispatch(gameActions.setEntryDraftPlayer({ id: SENT_RALLY.player, zone }));
+  if (n >= 2)
+    dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[SENT_RALLY.home]!));
+  if (n >= 3)
+    dispatch(gameActions.setEntryDraftAwayMove(scoringMoves[SENT_RALLY.away]!));
+};
+
+const MirrorDriver = ({ step }: { step: number }) => {
+  const dispatch = useAppDispatch();
+  const status = useAppSelector((s) => s.game.general.status);
+  const { starting } = useLineup(DEMO_GAME_ID, 0, status);
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current) return;
+    const i = starting.findIndex((p) => p.id === SENT_RALLY.player);
+    if (i < 0) return;
+    done.current = true;
+    playTo(dispatch, step, i + 1);
+  }, [starting, dispatch, step]);
+  return null;
+};
+
+/** A hidden copy of the panel held at `step` on a store of its own, laid
+ *  over the real panel's box: where the finger's next target sits, measured
+ *  without moving the visible store. */
+const MirrorPanel = ({ step }: { step: number }) => {
+  const [store] = useState(() => {
+    const s = makeStore(noStorage);
+    s.dispatch(gameActions.initialize({ game: demoGame, setIndex: 0 }));
+    return s;
+  });
+  return (
+    <div
+      aria-hidden
+      data-mirror={step}
+      className="pointer-events-none invisible absolute inset-0 flex flex-col"
+    >
+      <Provider store={store}>
+        <MirrorDriver step={step} />
+        <GamePanel
+          gameId={DEMO_GAME_ID}
+          mode="general"
+          className="min-h-0 flex-1"
+        />
+      </Provider>
+    </div>
+  );
 };
 
 const Frame = () => {
@@ -115,12 +160,14 @@ const Frame = () => {
       <div className="w-full shrink-0 overflow-hidden rounded-xl shadow-lg">
         <GameCourt gameId={DEMO_GAME_ID} mode="general" />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl shadow-lg">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl shadow-lg">
         <GamePanel
           gameId={DEMO_GAME_ID}
           mode="general"
           className="min-h-0 flex-1"
         />
+        <MirrorPanel step={1} />
+        <MirrorPanel step={2} />
       </div>
       <div className="shrink-0 overflow-hidden rounded-xl bg-card shadow-lg">
         <GamePreview gameId={DEMO_GAME_ID} mode="general" />
@@ -143,10 +190,13 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
         ?.closest(".border-4") ?? null
     );
   }
-  // the moves body (the progress bar's label also slides in, from the bottom)
-  const body = frame.querySelector(
-    '[class*="slide-in-from-right"], [class*="slide-in-from-left"]',
-  );
+  // taps 2 and 3 are measured in the hidden mirror holding the step before
+  // them; its moves body (the progress label also slides in, from below)
+  const body = frame
+    .querySelector(`[data-mirror="${tap - 1}"]`)
+    ?.querySelector(
+      '[class*="slide-in-from-right"], [class*="slide-in-from-left"]',
+    );
   const buttons = [...(body?.querySelectorAll("button") ?? [])];
   if (tap === 2) {
     const move = scoringMoves[SENT_RALLY.home]!;

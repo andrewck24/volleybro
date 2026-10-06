@@ -211,6 +211,8 @@
    components) and rests there. --pNx / --pNy are stage-relative, measured
    from the real buttons (steps-section.tsx). */
 .dot {
+  --off-x: 2.4rem;
+  --off-y: 1.9rem;
   position: absolute;
   top: 0;
   left: 0;
@@ -262,45 +264,67 @@
   }
 }
 
+/* Each segment k (k × 33.333%): arrive on the target at +13.333%, tap at
+   +16.667% (the switch flips the components there), then step aside to
+   --off (down-right) and shrink, so the result just tapped stays visible. */
 @keyframes dot-path {
   0% {
     transform: translate(var(--p0x), var(--p0y));
   }
-  13.333% {
+  13.333%,
+  16.667% {
     transform: translate(var(--p1x), var(--p1y));
   }
+  20%,
   33.333% {
-    transform: translate(var(--p1x), var(--p1y));
+    transform: translate(
+      calc(var(--p1x) + var(--off-x)),
+      calc(var(--p1y) + var(--off-y))
+    );
   }
-  46.667% {
+  46.667%,
+  50% {
     transform: translate(var(--p2x), var(--p2y));
   }
+  53.333%,
   66.667% {
-    transform: translate(var(--p2x), var(--p2y));
+    transform: translate(
+      calc(var(--p2x) + var(--off-x)),
+      calc(var(--p2y) + var(--off-y))
+    );
   }
-  80% {
+  80%,
+  83.333% {
     transform: translate(var(--p3x), var(--p3y));
   }
+  86.667%,
   100% {
-    transform: translate(var(--p3x), var(--p3y));
+    transform: translate(
+      calc(var(--p3x) + var(--off-x)),
+      calc(var(--p3y) + var(--off-y))
+    );
   }
 }
 
 @keyframes dot-press {
   0%,
   15%,
-  18.5%,
   48.333%,
-  51.833%,
-  81.667%,
-  85.167%,
-  100% {
+  81.667% {
     transform: scale(1);
   }
   16.667%,
   50%,
   83.333% {
     transform: scale(0.72);
+  }
+  20%,
+  33.333%,
+  53.333%,
+  66.667%,
+  86.667%,
+  100% {
+    transform: scale(0.6);
   }
 }
 
