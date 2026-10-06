@@ -19,6 +19,7 @@ interface Edge {
   to: string;
   label?: string;
   dashed?: boolean;
+  route?: "curve";
 }
 
 interface Detail {
@@ -34,6 +35,7 @@ interface InteractiveFlowchartProps {
 
 const DEFAULT_W = 120;
 const DEFAULT_H = 48;
+const CURVE_GAP = 12;
 
 // ponytail: assumes axis-ish layouts — treats every node as its bounding rect
 // (diamonds included), so anchors are approximate for steep diagonal edges.
@@ -62,6 +64,18 @@ export function InteractiveFlowchart({
 
   const activeDetail = activeId ? details[activeId] : null;
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  const rightmostNode = Math.max(
+    0,
+    ...nodes.map((node) => node.x + (node.w ?? DEFAULT_W) / 2),
+  );
+  const curveRailX = rightmostNode + CURVE_GAP;
+  const curveLabelHalfWidth =
+    Math.max(
+      0,
+      ...edges
+        .filter((edge) => edge.route === "curve" && edge.label)
+        .map((edge) => edge.label!.length * 6.8 + 8),
+    ) / 2;
 
   // Fit viewBox to all node rects with padding.
   const pad = 24;
@@ -75,7 +89,8 @@ export function InteractiveFlowchart({
   });
   const minX = Math.min(0, ...xs) - pad;
   const minY = Math.min(0, ...ys) - pad;
-  const maxX = Math.max(0, ...xs) + pad;
+  const maxX =
+    Math.max(0, ...xs) + Math.max(pad, CURVE_GAP + curveLabelHalfWidth);
   const maxY = Math.max(0, ...ys) + pad;
   const vbW = maxX - minX;
   const vbH = maxY - minY;
@@ -123,10 +138,18 @@ export function InteractiveFlowchart({
             const from = nodeById.get(edge.from);
             const to = nodeById.get(edge.to);
             if (!from || !to) return null;
-            const start = rectEdgePoint(from, to.x, to.y);
-            const end = rectEdgePoint(to, from.x, from.y);
-            const midX = (start.x + end.x) / 2;
+            const start =
+              edge.route === "curve"
+                ? { x: from.x + (from.w ?? DEFAULT_W) / 2, y: from.y }
+                : rectEdgePoint(from, to.x, to.y);
+            const end =
+              edge.route === "curve"
+                ? { x: to.x + (to.w ?? DEFAULT_W) / 2, y: to.y }
+                : rectEdgePoint(to, from.x, from.y);
+            const midX =
+              edge.route === "curve" ? curveRailX : (start.x + end.x) / 2;
             const midY = (start.y + end.y) / 2;
+            const path = `M ${start.x} ${start.y} C ${curveRailX} ${start.y}, ${curveRailX} ${end.y}, ${end.x} ${end.y}`;
             const stroke = edge.dashed
               ? "var(--warning)"
               : "var(--muted-foreground)";
@@ -134,21 +157,39 @@ export function InteractiveFlowchart({
 
             return (
               <g key={i}>
-                <line
-                  x1={start.x}
-                  y1={start.y}
-                  x2={end.x}
-                  y2={end.y}
-                  stroke={stroke}
-                  strokeWidth={1.5}
-                  strokeOpacity={edge.dashed ? 1 : 0.7}
-                  strokeDasharray={edge.dashed ? "6 5" : undefined}
-                  markerEnd={
-                    edge.dashed
-                      ? "url(#flow-arrow-dashed)"
-                      : "url(#flow-arrow-solid)"
-                  }
-                />
+                {edge.route === "curve" ? (
+                  <path
+                    role="presentation"
+                    d={path}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={1.5}
+                    strokeOpacity={edge.dashed ? 1 : 0.7}
+                    strokeDasharray={edge.dashed ? "6 5" : undefined}
+                    markerEnd={
+                      edge.dashed
+                        ? "url(#flow-arrow-dashed)"
+                        : "url(#flow-arrow-solid)"
+                    }
+                  />
+                ) : (
+                  <line
+                    role="presentation"
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x}
+                    y2={end.y}
+                    stroke={stroke}
+                    strokeWidth={1.5}
+                    strokeOpacity={edge.dashed ? 1 : 0.7}
+                    strokeDasharray={edge.dashed ? "6 5" : undefined}
+                    markerEnd={
+                      edge.dashed
+                        ? "url(#flow-arrow-dashed)"
+                        : "url(#flow-arrow-solid)"
+                    }
+                  />
+                )}
                 {edge.label && (
                   <g>
                     <rect
