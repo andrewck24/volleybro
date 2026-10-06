@@ -18,7 +18,6 @@ import {
 } from "@/components/landing/prototype-v2/copy";
 import { Court, CourtPlan } from "@/components/landing/prototype-v2/court";
 import { Header } from "@/components/landing/prototype-v2/header";
-import { HalfCourt } from "@/components/landing/prototype-v2/half-court";
 import { LazyRecordDemo } from "@/components/landing/prototype-v2/lazy-demo";
 import { RallyLayer } from "@/components/landing/prototype-v2/rally-layer";
 import { ThemeToggle } from "@/components/landing/prototype-v2/theme-toggle";
@@ -151,22 +150,13 @@ const Stats = () => (
   </section>
 );
 
-/** Six features on the six positions of our half: a true 9 × 9 half court
- *  at every width, net on top, front row (4-3-2) 3 m deep, back row (5-6-1)
- *  behind the attack line. Both rows top-aligned. */
-const POS: Record<number, [row: number, col: number]> = {
-  4: [0, 0],
-  3: [0, 1],
-  2: [0, 2],
-  5: [1, 0],
-  6: [1, 1],
-  1: [1, 2],
-};
-
+/** Supporting features as the app's roster: one row per feature, a
+ *  jersey-number chip (the court's player card: coral, ink, white line) and
+ *  white line dividers, on the teal free zone. */
 const Kit = () => (
   <section
     className={cn(
-      "mx-auto grid max-w-[92rem] grid-cols-1 gap-12 py-24 md:py-32 lg:grid-cols-[1fr_minmax(0,44rem)] lg:items-center lg:gap-16",
+      "mx-auto grid max-w-[92rem] grid-cols-1 gap-12 py-24 md:py-32 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-16",
       GUTTER,
     )}
   >
@@ -174,42 +164,25 @@ const Kit = () => (
       <h2 className={H2}>{COPY.kitTitle}</h2>
       <p className="max-w-lg text-lg text-(--v2-on-free-2)">{COPY.kitLead}</p>
     </div>
-    <HalfCourt>
-      <ol className="absolute inset-0">
-        {KIT.map((k) => {
-          const [row, col] = POS[k.zone]!;
-          return (
-            <li
-              key={k.title}
-              className="v2-hz flex flex-col gap-[calc(0.1*var(--m))] p-[max(0.5rem,calc(0.3*var(--m)))] text-(--v2-ink)"
-              style={
-                row === 0
-                  ? zone(0.05, 2.95, col * 3, col * 3 + 3)
-                  : zone(3.0, 8.95, col * 3, col * 3 + 3)
-              }
-            >
-              {/* numeral beside the title below lg (a 3 m front zone is
-                  short on a phone), above it from lg */}
-              <div className="flex items-baseline gap-1.5 lg:flex-col lg:items-start lg:gap-[calc(0.1*var(--m))]">
-                <span
-                  aria-label={`位置 ${k.zone}`}
-                  className="text-[calc(0.6*var(--m))] leading-none font-bold tabular-nums lg:text-[calc(0.7*var(--m))]"
-                >
-                  {k.zone}
-                </span>
-                <FeatureTitle
-                  f={k}
-                  className="gap-1 text-[max(0.875rem,calc(0.26*var(--m)))] leading-snug"
-                />
-              </div>
-              <p className="text-[max(0.75rem,calc(0.2*var(--m)))] leading-snug font-medium">
-                {k.body}
-              </p>
-            </li>
-          );
-        })}
-      </ol>
-    </HalfCourt>
+    <ol className="grid grid-cols-1 border-t-(length:--v2-lw) border-(--v2-line) md:grid-cols-2 md:gap-x-10">
+      {KIT.map((k, i) => (
+        <li
+          key={k.title}
+          className="flex items-start gap-4 border-b-(length:--v2-lw) border-(--v2-line) py-5"
+        >
+          <span
+            aria-hidden
+            className="grid size-11 shrink-0 place-items-center border-(length:--v2-lw) border-(--v2-line) bg-(--v2-in) text-xl leading-none font-bold text-(--v2-ink) tabular-nums"
+          >
+            {i + 1}
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <FeatureTitle f={k} className="text-lg md:text-xl" />
+            <p className="text-(--v2-on-free-2)">{k.body}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
   </section>
 );
 

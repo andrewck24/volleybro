@@ -12,7 +12,7 @@ export const COPY = {
   statsTitle: ["不用另外整理，", "記完就是統計"],
   statsLead: "上面送出的那一球，已經算進攻擊得分。比賽一結束，數字就在那裡。",
   kitTitle: "一支手機，整支球隊",
-  kitLead: "建隊、邀請、排陣容都在同一支手機上完成，六個位置各司其職。",
+  kitLead: "建隊、邀請、分權限、排陣容，都在同一支手機上完成。",
   ctaTitle: ["下一場比賽，", "從發球就開始記"],
   ctaLead: "先建好球隊，哨聲一響就能記。",
 };
@@ -33,29 +33,28 @@ export const STATS: Feature[] = [
   },
   { title: "每局比分", body: "每一局打到幾比幾，局末自動結算。" },
   { title: "逐球時間軸", body: "每一分怎麼來的，照順序一球一球排好。" },
+];
+
+/** Supporting features, one roster row each (PRODUCT.md capabilities only;
+ *  planned ones carry 開發中 and are otherwise styled the same). */
+export const KIT: Feature[] = [
+  { title: "建立球隊", body: "填隊名就建好。" },
+  { title: "邀請隊友", body: "搜尋使用者，直接邀請加入球隊。" },
+  { title: "角色權限", body: "擁有者、管理員、成員，各自能做的事分開管。" },
+  { title: "每場陣容", body: "每一場各排一份先發、位置與自由球員。" },
+  {
+    title: "安裝到主畫面",
+    body: "像 App 一樣從主畫面打開；訊號不好照樣記，連線後在背景送出。",
+  },
   {
     title: "球員數據與進階圖表",
     body: "跨場次累計每位球員的各項技術數據，並畫成進階圖表。",
     dev: true,
   },
-];
-
-/** Six features on the six positions of one half court (zone = position). */
-export const KIT: (Feature & { zone: number })[] = [
-  { zone: 1, title: "建立球隊", body: "填隊名就建好。" },
-  { zone: 2, title: "邀請隊友", body: "搜尋使用者，直接邀請加入球隊。" },
-  { zone: 3, title: "排陣容", body: "背號、位置、自由球員一次排好。" },
-  { zone: 4, title: "安裝到主畫面", body: "像 App 一樣從主畫面打開。" },
   {
-    zone: 5,
     title: "多裝置同時記錄",
     body: "多支手機一起記同一場；隊友可開唯讀即時頁面跟著看。",
     dev: true,
-  },
-  {
-    zone: 6,
-    title: "Google 帳號登入",
-    body: "用 Google 帳號登入，不必另記密碼。",
   },
 ];
 

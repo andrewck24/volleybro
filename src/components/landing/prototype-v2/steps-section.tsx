@@ -181,7 +181,7 @@ export const StepsSection = ({
               <Numeral i={i} />
               <div className="flex flex-col gap-1 lg:gap-2">
                 <h3 className="text-xl font-bold lg:text-5xl">{s.title}</h3>
-                <p className="text-sm text-(--v2-on-free-2) lg:text-xl">
+                <p className="text-sm text-balance text-(--v2-on-free-2) lg:text-xl">
                   {s.body}
                 </p>
               </div>

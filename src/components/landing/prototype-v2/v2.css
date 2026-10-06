@@ -348,12 +348,12 @@ html.dark:has(.v2) {
   inset: calc(9 * var(--m) + var(--ph) / 2 + var(--shift, 0px)) 0 0;
 }
 
-/* narrow phones (320): smaller figures, and the panel rides 1.25rem above
+/* narrow phones (320): smaller figures, and the panel rides 0.75rem above
    the net so the list keeps its lines */
 @media (max-width: 23.74rem) {
   .v2-stats {
     --ph: 16.5rem;
-    --shift: -1.25rem;
+    --shift: -0.75rem;
   }
 }
 
@@ -379,24 +379,6 @@ html.dark:has(.v2) {
   .v2-points-h {
     min-height: 24.5rem;
   }
-}
-
-/* ---------- our half court (six positions), at every width ---------- */
-
-.v2-half {
-  position: relative;
-  container-type: inline-size;
-  aspect-ratio: 1 / 1;
-  --m: calc(100cqw / 9);
-}
-
-/* net on top: --a runs down from the centre line, --c across */
-.v2-half .v2-hz {
-  position: absolute;
-  top: calc(var(--a0) * var(--m));
-  height: calc((var(--a1) - var(--a0)) * var(--m));
-  left: calc(var(--c0) * var(--m));
-  width: calc((var(--c1) - var(--c0)) * var(--m));
 }
 
 /* ---------- reduced motion: a still court ---------- */
