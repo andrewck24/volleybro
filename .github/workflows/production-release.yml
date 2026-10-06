@@ -119,7 +119,10 @@ jobs:
         with:
           ref: ${{ steps.authorize.outputs.sha }}
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
+        with:
+          install: false
+          node-version-file: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -213,7 +216,10 @@ jobs:
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
+        with:
+          install: false
+          node-version-file: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -386,7 +392,10 @@ jobs:
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
+        with:
+          install: false
+          node-version-file: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -510,7 +519,10 @@ jobs:
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
+        with:
+          install: false
+          node-version-file: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
