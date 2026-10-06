@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0104",
+  "title": "Production data compatibility follows database activation",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Before the first stable release, deployments share the test database and its records are disposable. The v1.0 production cutover starts a separate clean database, while later production releases may write durable records that must survive recovery to the exact previous production deployment.",
+  "decision": "Before the production database is activated, an accepted migration may move the shared test database fully forward even when older application revisions can no longer read it; do not restore old code against that data, use a forward fix, and refresh stale previews. Activate the clean production database as part of the v1.0 cutover and retain only explicitly selected data. From the first production write onward, current code must read legacy-format records while any remain, and a candidate may be promoted only when its writes remain readable by the exact previous production baseline that the release policy permits as a recovery target. Never roll production data back. Missing, stale, mismatched or uncertain proof blocks promotion and notifies; a human-entered assertion is not proof.",
+  "alternatives": [
+    {
+      "option": "Require every historical application revision to read the shared test database",
+      "reason": "The test database is not production data, and preserving compatibility across it would prevent complete pre-v1 migrations without protecting durable user data."
+    },
+    {
+      "option": "Roll production database contents back with application code",
+      "reason": "Restoring a database snapshot can discard legitimate writes made after promotion and is outside the accepted recovery model."
+    }
+  ],
+  "consequences": [
+    "Pre-v1 migrations can be complete forward migrations; incompatible old Preview deployments must be refreshed before they are trusted again.",
+    "After production data exists, recovery evidence is limited to the exact allowed baseline and must be bound to the source, candidate and release run.",
+    "Legacy-read checks remain only while legacy production data may exist; cross-version checks are risk-targeted to an actual candidate-write and recovery-baseline incompatibility."
+  ],
+  "revisitTriggers": [
+    "The production data retention or recovery-target policy changes.",
+    "Evidence proves that no legacy-format production records remain, allowing the legacy-read obligation to retire."
+  ],
+  "originChange": "release-evidence-policy"
+}
