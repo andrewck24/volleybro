@@ -38,7 +38,7 @@ export const scenarios = [
 下面直接沿 repository 的實際目錄展開；每個節點後的標記才說明本 Change 對該路徑的作用。這讓讀者先看到 Clean Architecture 與交付工具分別落在哪裡，再辨認修改邊界，而不是先把檔案切成 EDIT／READ 類別。
 
 <pre className="my-5 w-full overflow-x-auto rounded-lg border border-border p-3 text-[10px] leading-relaxed sm:p-4 sm:text-xs" style={{ backgroundColor: "#0d1117", color: "#c9d1d9", colorScheme: "dark" }}>
-  <code className="block w-full">{[
+  <code className="block w-full" style={{ backgroundColor: "#0d1117", color: "#c9d1d9" }}>{[
     ["repository root/", null, null],
     ["├── .github/", null, null],
     ["│   └── workflows/", null, null],
@@ -87,7 +87,7 @@ export const scenarios = [
       archive: { background: "rgba(210, 153, 34, 0.18)", text: "#e3b341" },
     };
     const color = tone ? colors[tone] : null;
-    return <span key={index} className="block whitespace-pre" style={color ? { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", width: "100%", backgroundColor: color.background } : undefined}><span style={{ whiteSpace: "pre" }}>{path}</span>{annotation ? <span style={{ color: color.text, whiteSpace: "nowrap" }}>{annotation}</span> : null}</span>;
+    return <span key={index} className="block whitespace-pre" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", width: "100%", backgroundColor: color?.background ?? "#0d1117" }}><span style={{ whiteSpace: "pre" }}>{path}</span>{annotation ? <span style={{ color: color.text, whiteSpace: "nowrap" }}>{annotation}</span> : null}</span>;
   })}</code>
 </pre>
 
