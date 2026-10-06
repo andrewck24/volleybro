@@ -129,6 +129,27 @@ test("skips documentation and Blueprint edits when the graph is unchanged", asyn
   assert.equal(result.output, "skip=true\n");
 });
 
+test("skips agent tooling and root prose docs but still runs when mixed with src", async (t) => {
+  const skipped = {
+    ".agents/skills/x/SKILL.md": "next\n",
+    ".claude/launch.json": "{}\n",
+    "AGENTS.md": "next\n",
+    "README.zh-TW.md": "next\n",
+  };
+  for (const [files, skip] of [
+    [skipped, true],
+    [{ ...skipped, "src/Button.tsx": "next\n" }, false],
+  ]) {
+    const { cwd, base, head } = await commitPair(
+      t,
+      { "docs/a.md": "a\n" },
+      files,
+    );
+    const result = await classify(cwd, compareArgs(base, head));
+    assert.equal(result.output, `skip=${skip}\n`);
+  }
+});
+
 test("skips an allowlisted devDependency-only update, including a real npm alias graph", async (t) => {
   const { cwd, base, head } = await lockPair(
     t,
