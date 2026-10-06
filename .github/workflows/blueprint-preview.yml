@@ -92,9 +92,11 @@ jobs:
         with:
           node-version: 24
       - name: Set up pnpm
-        uses: pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1
+        uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
         with:
           version: 12.9.1
+          install: false
+          node-version-file: false
       - name: Fetch the exact public source branch without credentials
         run: |
           git clone --no-tags --depth=1 --single-branch --branch "$INPUT_BRANCH" https://github.com/andrewck24/volleybro.git candidate
