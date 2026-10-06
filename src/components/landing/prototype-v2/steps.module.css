@@ -112,7 +112,8 @@
   position: relative;
   z-index: 2;
   flex: none;
-  width: 22rem;
+  /* the app cards keep their 22rem; the grey tray adds p-2 each side */
+  width: calc(22rem + 1rem);
   /* a zoomed box still resolves % against its parent: it fills the field */
   height: 100%;
   zoom: var(--fz);
@@ -149,10 +150,10 @@
 
 @media (min-width: 64rem) {
   /* the field spans the stage height from the captions column's right
-     edge, 9 m = frame + 2 × 7rem wide */
+     edge, 9 m = frame (22rem cards + tray padding) + 2 × 7rem wide */
   .field {
     flex: none;
-    width: 36rem;
+    width: 37rem;
     align-self: stretch;
     margin-block: -2rem;
     padding: 2rem 7rem;
