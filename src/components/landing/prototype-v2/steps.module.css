@@ -67,38 +67,59 @@
   grid-area: 1 / 1;
 }
 
-/* v2: the court continues through the walkthrough — a padded block of
-   in-court coral bounded by white side lines, the app frame standing on it
-   (chosen over removing it: the frame keeps its separation from the page in
-   light mode and the attack line has a court to run into). No outline on
-   the frame itself. */
+/* v2: the court continues through the walkthrough. The field is a piece
+   of the court plan 9 m wide (its width): white side lines, the attack line
+   right across it at the step chip's centre (--line-y, measured) and the
+   centre line 3 m further on — the same 5 cm rules as the other courts.
+   The app's court, panel and preview stand on it as separate L1 objects
+   (record-demo.tsx). The field fills the stage height; the frame fills the
+   field (zoomed down by --fz on short stages so the content keeps room). */
 .field {
-  flex: none;
+  --fm: calc(100% / 9);
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.5rem;
+  padding: 0.75rem 0.5rem;
   background: var(--v2-in);
   border-inline: var(--v2-lw) solid var(--v2-line);
+  overflow: clip;
 }
 
-/* The app frame keeps one design size (22 × 36rem: the app court at its
-   own 11:9 ratio, the trimmed panel, the preview) and is zoomed to fit the
-   stage's height, so the court's player cards are never squeezed or clipped
-   at any width. */
+.field::before,
+.field::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  border-top: var(--v2-lw) solid var(--v2-line);
+  translate: 0 -50%;
+}
+
+/* attack line, then the centre line 3 m (a third of the width) further */
+.field::before {
+  top: var(--line-y, 30%);
+}
+
+.field::after {
+  top: calc(var(--line-y, 30%) + var(--w9, 0px) / 3);
+}
+
 .frame {
   --fz: 1;
   position: relative;
   z-index: 2;
   flex: none;
   width: 22rem;
-  height: 36rem;
+  /* a zoomed box still resolves % against its parent: it fills the field */
+  height: 100%;
   zoom: var(--fz);
 }
 
 @media (max-width: 63.99rem) {
-  /* below lg the intro and captions sit above the field (~15rem) */
+  /* below lg the intro and captions sit above the field */
   @container (max-height: 51rem) {
     .frame {
       --fz: 0.85;
@@ -127,15 +148,15 @@
 }
 
 @media (min-width: 64rem) {
-  /* a block around the frame, from the captions column's right edge: the
-     attack line (captions::after) enters the court at its side line */
+  /* the field spans the stage height from the captions column's right
+     edge, 9 m = frame + 2 × 7rem wide */
   .field {
     flex: none;
-    width: auto;
-    justify-content: center;
-    padding: 2rem clamp(3rem, 8vw, 7rem);
+    width: 36rem;
+    align-self: stretch;
+    margin-block: -2rem;
+    padding: 2rem 7rem;
   }
-  /* lg: stage padding + field padding take 8rem */
   @container (max-height: 44rem) {
     .frame {
       --fz: 0.85;
@@ -245,11 +266,9 @@
     right: 100%;
     width: 50vw;
   }
+  /* the field draws the in-court part of the line itself */
   .captions::after {
-    z-index: 1;
-    left: 100%;
-    width: clamp(3rem, 8vw, 7rem);
-    border-top-style: solid;
+    display: none;
   }
 }
 

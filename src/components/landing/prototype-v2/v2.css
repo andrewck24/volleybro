@@ -113,9 +113,14 @@ html.v2-snap {
 }
 
 @media (min-width: 64rem) {
+  /* the full 18 m court, one metre = 5.5vw: from the gutter it always runs
+     past the viewport's right edge (the section clips it) */
   .v2-square {
-    aspect-ratio: 12 / 9;
-    --m: calc(100cqw / 12);
+    container-type: normal;
+    aspect-ratio: 2 / 1;
+    --m: 5.5vw;
+    width: calc(18 * var(--m));
+    flex: none;
   }
 }
 
@@ -271,13 +276,13 @@ html.v2-snap {
 
 .v2-mark {
   position: absolute;
-  top: calc(var(--a) * var(--m));
+  top: calc(var(--ap, var(--a)) * var(--m));
   left: calc(var(--cp, var(--c)) * var(--m));
   /* where it files: the first Entry row in the opponent back zone */
   --ta: 11.9;
   --tc: 1;
   --dx: calc((var(--tc) - var(--cp, var(--c))) * var(--m));
-  --dy: calc((var(--ta) - var(--a)) * var(--m));
+  --dy: calc((var(--ta) - var(--ap, var(--a))) * var(--m));
   font-size: calc(0.38 * var(--m));
   transform-origin: 0 0;
 }

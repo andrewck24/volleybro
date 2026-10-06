@@ -104,18 +104,24 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
 const Frame = () => {
   useCounter("frame");
   return (
-    // the app court's 35vh cap would squeeze its 11:9 box (and clip the
-    // player cards) inside the frame; the frame is zoomed to fit instead
-    <div className="flex size-full flex-col gap-1 bg-background [&_.max-h-\[35vh\]]:max-h-none">
-      <div className="w-full shrink-0 overflow-hidden rounded-lg">
+    // No shared frame ground: the app court, the panel and the preview each
+    // stand on the coral field as their own L1 object (rounded-xl, shadow).
+    // The court keeps its 11:9 box (its 35vh cap is lifted: the frame is
+    // zoomed to fit instead); the panel takes the remaining height.
+    <div className="flex size-full flex-col gap-2 [&_.max-h-\[35vh\]]:max-h-none">
+      <div className="w-full shrink-0 overflow-hidden rounded-xl shadow-lg">
         <GameCourt gameId={DEMO_GAME_ID} mode="general" />
       </div>
-      <GamePanel
-        gameId={DEMO_GAME_ID}
-        mode="general"
-        className="min-h-0 flex-1"
-      />
-      <GamePreview gameId={DEMO_GAME_ID} mode="general" />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl shadow-lg">
+        <GamePanel
+          gameId={DEMO_GAME_ID}
+          mode="general"
+          className="min-h-0 flex-1"
+        />
+      </div>
+      <div className="shrink-0 overflow-hidden rounded-xl bg-card shadow-lg">
+        <GamePreview gameId={DEMO_GAME_ID} mode="general" />
+      </div>
     </div>
   );
 };

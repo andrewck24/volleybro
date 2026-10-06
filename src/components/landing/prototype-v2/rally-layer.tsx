@@ -33,10 +33,10 @@ const ACROSS = [1.4, 3.9, 6.4];
 const spotOf = (n: number) => {
   const r = RALLIES[n - 1]!;
   return r.win
-    ? { a: 9.9, c: ACROSS[(n * 2) % 3]!, cp: ACROSS[(n * 2) % 3]! }
+    ? { a: 9.9, ap: 9.9, c: ACROSS[(n * 2) % 3]!, cp: ACROSS[(n * 2) % 3]! }
     : // our front zone, clear of the action on the attack line; portrait
       // (cp) keeps them left, away from the score chip at the right post
-      { a: 8.1, c: ACROSS[n % 2]!, cp: 1.2 };
+      { a: 8.1, ap: 8.45, c: ACROSS[n % 2]!, cp: 1.2 };
 };
 
 export const RallyLayer = () => {
@@ -71,7 +71,12 @@ export const RallyLayer = () => {
           data-ours={!r.win || undefined}
           className="v2-mark text-(--v2-ink)"
           style={
-            { "--a": spot.a, "--c": spot.c, "--cp": spot.cp } as CSSProperties
+            {
+              "--a": spot.a,
+              "--ap": spot.ap,
+              "--c": spot.c,
+              "--cp": spot.cp,
+            } as CSSProperties
           }
         >
           <span className="v2-dot">

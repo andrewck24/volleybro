@@ -100,6 +100,26 @@ export const StepsSection = ({
     };
     syncSnap();
     window.addEventListener("scroll", syncSnap, { passive: true });
+
+    // the field's attack line sits at the step chip's centre (where the
+    // captions' dashed extension meets the court): measured, not guessed
+    const field = section.querySelector<HTMLElement>(`.${styles.field}`)!;
+    const captions = section.querySelector<HTMLElement>(`.${styles.captions}`)!;
+    const wide = window.matchMedia("(min-width: 64rem)");
+    const placeLine = () => {
+      const f = field.getBoundingClientRect();
+      const c = captions.getBoundingClientRect();
+      // the field is 9 m wide: a metre is a ninth of it
+      field.style.setProperty("--w9", `${f.width}px`);
+      // lg: level with the step chip; below lg the captions sit above the
+      // field, so the attack line takes the court's own place on it
+      const y = wide.matches ? c.top - f.top + 48 : f.height * 0.3;
+      field.style.setProperty("--line-y", `${y}px`);
+    };
+    placeLine();
+    const ro = new ResizeObserver(placeLine);
+    ro.observe(field);
+    ro.observe(captions);
     // keyboard scrolling (and Tab focus jumps) compute their destination up
     // front, so snap would pull a PageDown past the last step back onto it:
     // drop snap for the key's scroll, re-sync once it settles
@@ -205,6 +225,7 @@ export const StepsSection = ({
       modeIO.disconnect();
       off();
       window.removeEventListener("scroll", syncSnap);
+      ro.disconnect();
       window.removeEventListener("keydown", onKey);
       setSnap(false);
       clearTimeout(gapTimer);
@@ -251,13 +272,7 @@ export const StepsSection = ({
         {/* court layer: an in-court field (coral, white side lines) the app
             frame stands on; the frame is the object on it */}
         <div className={styles.field}>
-          <div
-            inert
-            className={cn(
-              styles.frame,
-              "overflow-hidden rounded-2xl text-foreground shadow-xl",
-            )}
-          >
+          <div inert className={cn(styles.frame, "text-foreground")}>
             {children}
           </div>
         </div>

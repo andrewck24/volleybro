@@ -193,33 +193,48 @@ const Kit = () => (
   </section>
 );
 
-/** The page closes on the court in the hero's grammar: heading and lead in
- *  our back zone, the primary action on our attack line. Below lg our 9 × 9
- *  half (net at the bottom); from lg our half plus their attack zone (12 m,
- *  net and their attack line), whole and centred, never cut by the viewport. */
+/** The page closes on the court in the hero's grammar. Below lg our 9 × 9
+ *  half (net at the bottom), heading in the back zone, the action on our
+ *  attack line. From lg the whole court runs from the gutter out past the
+ *  viewport's right edge (full bleed; 1 m = 5.5vw, so the 18 m court always
+ *  reaches it): heading and lead centred in our back zone, the action at its
+ *  foot on the copy's left edge. */
 const Closing = () => (
-  <section className={cn("flex justify-center py-24 md:py-32", GUTTER)}>
-    <div className="v2-square w-full max-w-[30rem] lg:max-w-[60rem]">
+  <section
+    className={cn(
+      "flex justify-center overflow-x-clip py-24 md:py-32 lg:justify-start",
+      GUTTER,
+    )}
+  >
+    <div className="v2-square w-full max-w-[30rem] lg:max-w-none">
       <CourtPlan span={9} portrait className="lg:hidden" />
-      <CourtPlan span={12} className="hidden lg:block" />
+      <CourtPlan className="hidden lg:block" />
       <div
-        className="v2-z flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.5*var(--m))] text-(--v2-ink)"
+        className="v2-z flex flex-col p-[calc(0.5*var(--m))] text-(--v2-ink)"
         style={zone(0, 6)}
       >
-        <h2 className="text-[max(1.625rem,calc(0.75*var(--m)))] leading-tight font-bold text-balance lg:text-[calc(0.62*var(--m))]">
-          {COPY.ctaTitle[0]}
-          <br />
-          {COPY.ctaTitle[1]}
-        </h2>
-        <p className="text-sm font-medium lg:text-[max(1rem,calc(0.24*var(--m)))]">
-          {COPY.ctaLead}
-        </p>
-      </div>
-      <div className="v2-on-attack">
+        <div className="flex flex-col gap-[calc(0.3*var(--m))] lg:my-auto">
+          <h2 className="text-[max(1.625rem,calc(0.75*var(--m)))] leading-tight font-bold text-balance lg:text-[calc(0.62*var(--m))]">
+            {COPY.ctaTitle[0]}
+            <br />
+            {COPY.ctaTitle[1]}
+          </h2>
+          <p className="text-sm font-medium lg:text-[max(1rem,calc(0.24*var(--m)))]">
+            {COPY.ctaLead}
+          </p>
+        </div>
         <CTAButton
           size="lg"
-          className={cn("h-12 px-6 lg:h-14 lg:px-8", BTN_PRIMARY)}
+          className={cn(
+            "hidden h-14 self-start px-8 lg:inline-flex",
+            BTN_PRIMARY,
+          )}
         >
+          開始記錄
+        </CTAButton>
+      </div>
+      <div className="v2-on-attack lg:hidden">
+        <CTAButton size="lg" className={cn("h-12 px-6", BTN_PRIMARY)}>
           開始記錄
         </CTAButton>
       </div>
@@ -267,7 +282,11 @@ const Footer = () => (
           </a>
         </p>
       </div>
-      <DarkMode />
+      {/* the theme switch lives in the header from 360px; below that it
+          stays here */}
+      <div className="min-[22.5rem]:hidden">
+        <DarkMode />
+      </div>
     </div>
   </footer>
 );
