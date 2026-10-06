@@ -150,6 +150,31 @@ test("skips agent tooling and root prose docs but still runs when mixed with src
   }
 });
 
+test("skips non-visual directories and tests but runs for the classifier, its workflow, and src code", async (t) => {
+  const skipped = {
+    "docs/images/shot.png": "next\n",
+    ".github/workflows/ci.yml": "next\n",
+    "scripts/verify.js": "next\n",
+    "src/components/__tests__/Button.test.tsx": "next\n",
+    "test/support/fixture.js": "next\n",
+    "jest.config.ts": "next\n",
+  };
+  for (const [files, skip] of [
+    [skipped, true],
+    [{ ".github/workflows/chromatic.yml": "next\n" }, false],
+    [{ "scripts/chromatic-scope.js": "next\n" }, false],
+    [{ "src/Button.test.tsx": "next\n", "src/Button.tsx": "next\n" }, false],
+  ]) {
+    const { cwd, base, head } = await commitPair(
+      t,
+      { "docs/a.md": "a\n" },
+      files,
+    );
+    const result = await classify(cwd, compareArgs(base, head));
+    assert.equal(result.output, `skip=${skip}\n`, Object.keys(files).join());
+  }
+});
+
 test("skips an allowlisted devDependency-only update, including a real npm alias graph", async (t) => {
   const { cwd, base, head } = await lockPair(
     t,
