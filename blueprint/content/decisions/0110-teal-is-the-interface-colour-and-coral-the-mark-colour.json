@@ -1,28 +1,23 @@
 {
   "schemaVersion": 2,
   "id": "0110",
-  "title": "Colour roles: teal for the interface, coral for the mark, a muted red for destructive, a vivid red for danger actions",
+  "title": "Teal is the interface brand colour; coral is the mark colour, sourced from --court",
   "capabilities": ["platform/design-system"],
-  "context": "`--court` aliased `--destructive`, so brand coral had to serve as an error fill, where white text on it reaches only 2.38:1. A vivid red that passes clashes with the muted palette on badges and rows, yet a muted red is too weak on a danger button.",
-  "decision": "Teal `primary` is the interface brand colour. Coral #FC7A56 is the mark colour: the V mark, the recording court and the landing court. `--court` is its source token for the court surfaces, and the V mark keeps the same value as the literal `V_CORAL`, because the splash and icon renderers have no stylesheet. `--destructive` is a muted coral-red, hsl(13 60% 40%) (5.63:1 against white text), for surfaces and text that carry error or loss: badges, toasts, figures, set tally, rally rows. `--danger` is a vivid red, hsl(13 85% 42%) (4.83:1 against its near-white foreground `--danger-foreground`), for danger actions only: the Button `destructive` variant.",
+  "context": "`--court` aliased `--destructive`, so brand coral had to serve as an error fill, where white text on it reaches only 2.38:1.",
+  "decision": "Teal `primary` is the interface brand colour. Coral #FC7A56 is the mark colour: the V mark, the recording court and the landing court. `--court` is its source token for the court surfaces, and the V mark keeps the same value as the literal `V_CORAL`, because the splash and icon renderers have no stylesheet. Error and danger colours no longer reuse brand coral.",
   "alternatives": [
     {
       "option": "Keep coral as both destructive and court",
       "reason": "Fails AA for white text on every destructive fill."
     },
     {
-      "option": "One vivid red for every destructive surface",
-      "reason": "Clashes with the muted teal and court palette on badges and rows."
-    },
-    {
-      "option": "One muted red for every destructive surface",
-      "reason": "Too weak on a button that confirms a destructive action."
+      "option": "Darken the court too",
+      "reason": "Loses the brand coral the mark and landing are built on."
     }
   ],
   "consequences": [
     "Landing and recording court stay brand coral because they read --court.",
-    "The V_CORAL literal must stay equal to --court.",
-    "A destructive action takes --danger, not --destructive."
+    "The V_CORAL literal must stay equal to --court."
   ],
   "originChange": "design-authority"
 }
