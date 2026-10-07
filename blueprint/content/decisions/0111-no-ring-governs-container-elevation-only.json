@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "id": "0111",
+  "title": "The No-Ring rule governs container elevation only",
+  "capabilities": ["platform/design-system"],
+  "context": "The rule was written as a ban on all rings, yet buttons and item media already used rings for edges, and state rings had no sanctioned place.",
+  "decision": "The No-Ring rule applies to container elevation: a container does not show depth with a decorative ring or border. The ring-instead-of-border technique for edge definition on controls and small media is a formal part of the system and no longer marked experimental. A semantically coloured ring may express component state, such as selected or invalid.",
+  "alternatives": [
+    {
+      "option": "Ban every ring",
+      "reason": "Contradicts the shipped button and item edges."
+    },
+    {
+      "option": "Leave the rule ambiguous",
+      "reason": "Reviewers cannot tell a decorative ring from a state ring."
+    }
+  ],
+  "consequences": [
+    "DESIGN.md states the rule in this narrower form when the docs migrate.",
+    "Focus rings stay on --ring, reserved for focus-visible."
+  ],
+  "originChange": "design-authority"
+}

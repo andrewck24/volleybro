@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "id": "0108",
+  "title": "Teal is the interface brand colour; coral is the mark colour, sourced from --court",
+  "capabilities": ["platform/design-system"],
+  "context": "`--court` aliased `--destructive`, so brand coral had to serve as an error fill, where white text on it reaches only 2.38:1.",
+  "decision": "Teal `primary` is the interface brand colour. Coral #FC7A56 is the mark colour (the V mark, the recording court, the landing court), and `--court` is its single source token. `--destructive` is derived from `--court`, darker (about hsl(13 85% 42%), 4.83:1 against white text), and no longer equals brand coral.",
+  "alternatives": [
+    {
+      "option": "Keep coral as both destructive and court",
+      "reason": "Fails AA for white text on every destructive fill."
+    },
+    {
+      "option": "Darken the court too",
+      "reason": "Loses the brand coral the mark and landing are built on."
+    }
+  ],
+  "consequences": [
+    "Error and danger surfaces read as a deeper red-orange than the mark.",
+    "Landing and recording court stay brand coral because they read --court."
+  ],
+  "originChange": "design-authority"
+}
