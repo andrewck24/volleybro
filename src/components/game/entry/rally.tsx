@@ -72,4 +72,4 @@ export const Rally = ({
 
 const IconWin = () => <FiPlus className="text-primary-text" />;
 
-const IconLose = () => <FiMinus className="text-error-text" />;
+const IconLose = () => <FiMinus className="text-away-text" />;

@@ -49,7 +49,7 @@ export const figureVariants = cva(
         secondary: "bg-secondary text-muted-foreground",
         outline: "border text-foreground",
         primaryText: "bg-accent text-primary-text",
-        awayText: "bg-accent text-error-text",
+        awayText: "bg-accent text-away-text",
       },
       size: {
         sm: "size-8 text-[1.5rem] font-normal",

@@ -83,7 +83,7 @@ export const Container = ({
 const WIN_STYLE =
   "bg-primary/30 text-foreground [&>svg]:text-primary-text shadow-sm hover:bg-primary/80";
 const LOSE_STYLE =
-  "bg-away/30 text-foreground [&>svg]:text-error-text shadow-sm hover:bg-away/80";
+  "bg-away/30 text-foreground [&>svg]:text-away-text shadow-sm hover:bg-away/80";
 
 const moveLook = (
   win: boolean,

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
-import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 
@@ -8,14 +7,6 @@ const meta = {
   title: "Design System/Molecules/Toaster",
   parameters: { layout: "centered" },
   tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <div>
-        <Story />
-        <Toaster />
-      </div>
-    ),
-  ],
 } satisfies Meta;
 
 export default meta;

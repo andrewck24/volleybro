@@ -23,7 +23,7 @@ export const Substitution = ({
       <EntryText>
         <EntryPlayerNumber>{outPlayer?.number}</EntryPlayerNumber>
         OUT
-        <RiArrowDownWideLine className="text-error-text" />
+        <RiArrowDownWideLine className="text-away-text" />
       </EntryText>
       <EntryText>
         <EntryPlayerNumber>{inPlayer?.number}</EntryPlayerNumber>
