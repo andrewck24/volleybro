@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "0106",
+  "title": "The landing's visual world is a flat volleyball court plan in three layers",
+  "capabilities": ["landing/visual-design"],
+  "decision": "The page ground is the free zone (teal) and content sits on the court (coral). White 5 cm court lines are the only dividers. L0 court: rules and ground; radius 0, no shadow, never interactive, lines never rounded. L1 objects: app surfaces on --card with shadow, never outlined, radius concentric (inner = outer - padding). L2 floating chrome: only the header and the footer theme switcher; transparent at rest, the app nav's glass once scrolled. Type floors follow the design-system doc. Global tokens are only --court and --court-foreground; every other court token is scoped to the landing.",
+  "alternatives": [
+    {
+      "option": "The earlier \"scoreboard\" direction (B1)",
+      "reason": "Superseded by the court plan as the landing's visual world."
+    },
+    {
+      "option": "A generic SaaS template",
+      "reason": "Says nothing about volleyball or the product."
+    },
+    {
+      "option": "A wood-floor texture",
+      "reason": "The recording screen already uses the flat court colours, and texture or gradient conflicts with the flat product UI."
+    }
+  ],
+  "consequences": [
+    "Landing colour tokens do not leak into the app.",
+    "A future DESIGN.md migration records these rules."
+  ],
+  "originChange": "landing-court-redesign"
+}

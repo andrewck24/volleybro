@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "id": "0105",
+  "title": "The landing demo drives the real app components from a landing-only store",
+  "capabilities": ["landing/hero", "landing/record-demo", "landing/stats"],
+  "decision": "The walkthrough, hero rally list and stats render the app's real components (GamePanel, EntryRow, Points), not screenshots or replicas. The data comes from a landing-only Redux store and a private, paused SWR cache, with a stub pending-writes queue. Frames are inert and read-only, and make no network request. Finger-dot targets are measured on hidden mirror panels with their own stores, never by fast-forwarding the visible store.",
+  "alternatives": [
+    {
+      "option": "Static screenshots",
+      "reason": "Drift from the product and cannot animate."
+    },
+    {
+      "option": "Hand-built replicas",
+      "reason": "Duplicate UI that drifts from the app."
+    }
+  ],
+  "consequences": [
+    "App component changes show on the landing automatically.",
+    "Two extra hidden GamePanel trees.",
+    "Demo fixtures must stay valid against the app store's shape."
+  ],
+  "originChange": "landing-court-redesign"
+}
