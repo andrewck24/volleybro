@@ -80,6 +80,18 @@ export const Container = ({
   );
 };
 
+const WIN_STYLE =
+  "bg-primary/30 text-foreground [&>svg]:text-primary-text shadow-sm hover:bg-primary/80";
+const LOSE_STYLE =
+  "bg-destructive/30 text-foreground [&>svg]:text-destructive-text shadow-sm hover:bg-destructive/80";
+
+const moveLook = (win: boolean, toggled: boolean) => {
+  if (toggled) return { variant: win ? "default" : "court" } as const;
+  return win
+    ? ({ variant: "default", tint: WIN_STYLE } as const)
+    : ({ variant: "destructive", tint: LOSE_STYLE } as const);
+};
+
 export const MoveButton = ({
   move,
   toggled,
@@ -91,27 +103,19 @@ export const MoveButton = ({
   onClick: (move: ScoringMove) => void;
   children?: React.ReactNode;
 }) => {
-  const WIN_STYLE =
-    "bg-primary/30 text-foreground [&>svg]:text-primary-text shadow-sm hover:bg-primary/80";
-  const LOSE_STYLE =
-    "bg-destructive/30 text-foreground [&>svg]:text-destructive-text shadow-sm hover:bg-destructive/80";
-  const TOGGLED_LOSE_STYLE = "bg-court text-court-foreground hover:bg-court/90";
+  const look = moveLook(move.win, toggled);
 
   return (
     <Button
       key={`${move.type}-${move.num}`}
-      variant={move.win ? "default" : "destructive"}
+      variant={look.variant}
       size="lg"
       className={cn(
         // min-h-0 lets the button shrink below its content height so an
         // auto-rows-fr grid (opponent errors) can fit every row with no scroll;
         // a grid/flex item defaults to min-height:auto and would overflow.
         "h-full min-h-0 pr-1 text-[1.5rem] transition-colors duration-200",
-        move.win
-          ? !toggled && WIN_STYLE
-          : toggled
-            ? TOGGLED_LOSE_STYLE
-            : LOSE_STYLE,
+        "tint" in look && look.tint,
       )}
       onClick={() => onClick(move)}
     >

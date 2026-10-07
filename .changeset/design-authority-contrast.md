@@ -4,4 +4,8 @@
 
 ### Fixed
 
-- Fix low-contrast red text, teal icons and selected move buttons in dark mode: destructive buttons, badges and toasts use a deeper red that keeps white text readable, error text and teal icons use lighter variants on dark surfaces, and a selected opponent move button now shows the court coral with dark text. The recording court, the V mark and the landing page keep the brand coral.
+- Make red and coral error text readable in light and dark mode, and give destructive buttons, badges and toasts a deeper red that keeps their white text legible.
+- Make teal text and icons readable on dark cards, including the rally list plus and minus icons, navigation labels, tabs and links.
+- Make secondary grey text readable on muted backgrounds in dark mode.
+- Make the radio button outline visible in dark mode.
+- Show the selected opponent-move button on the recording panel in the court coral with dark text.

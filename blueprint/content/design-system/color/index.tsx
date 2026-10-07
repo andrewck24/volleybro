@@ -3,8 +3,8 @@ import Link from "next/link";
 import { SwatchGrid, type TokenInfo } from "../_shared";
 
 // Token groups only name the CSS custom property and its role — the rendered
-// color and the displayed values come straight from the shared tokens.css
-// (src/styles/tokens.css) that the app, landing, and blueprint all import.
+// color and the displayed values come straight from the token blocks in
+// blueprint/src/app/globals.css, a copy of the app's.
 
 const surface: TokenInfo[] = [
   {
@@ -85,12 +85,11 @@ export default function ColorPage() {
       <h1>Color</h1>
       <p>
         Every surface, brand, feedback, and chart token, rendered live from a
-        frozen copy of the app&apos;s <code>globals.css</code> token blocks
-        (finalized by the elevation-depth-system change). Each swatch is split —
-        left half is the light-theme value, right half the dark-theme value —
-        and the color strings underneath are resolved from the stylesheet at
-        runtime, so this page always shows what the stylesheet actually
-        resolves.
+        copy of the app&apos;s <code>globals.css</code> token blocks, kept equal
+        to the app&apos;s by a test. Each swatch is split — left half is the
+        light-theme value, right half the dark-theme value — and the color
+        strings underneath are resolved from the stylesheet at runtime, so this
+        page always shows what the stylesheet actually resolves.
       </p>
 
       <h2 id="surface">Surface &amp; elevation</h2>

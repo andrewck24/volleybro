@@ -15,6 +15,8 @@ const buttonVariants = cva(
           "bg-primary text-primary-foreground shadow-sm ring-1 ring-transparent hover:bg-primary/90",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm ring-1 ring-transparent hover:bg-destructive/90",
+        court:
+          "bg-court text-court-foreground shadow-sm ring-1 ring-transparent hover:bg-court/90",
         outline:
           "bg-background text-foreground shadow-sm ring-1 ring-gray-950/10 hover:bg-muted/50 dark:ring-white/10",
         secondary:

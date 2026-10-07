@@ -27,6 +27,7 @@ const meta = {
       options: [
         "default",
         "destructive",
+        "court",
         "outline",
         "secondary",
         "ghost",
