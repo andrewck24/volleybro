@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0107",
+  "id": "0108",
   "title": "DESIGN.md is the sole design authority; Blueprint presents it",
   "capabilities": ["platform/blueprint"],
   "context": "The design rules lived in docs/design-system.md, the Blueprint design-system section and the landing decision records, and they drifted apart. Contrast and button-size defects went unnoticed because no one document owned the tokens.",

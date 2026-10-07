@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0114",
+  "id": "0115",
   "title": "Danger actions keep the vivid destructive red; away data and error states take a muted red",
   "capabilities": ["platform/design-system"],
   "context": "Once error colours stopped reusing brand coral, one red had to serve both badges and rows that carry text and buttons that confirm a destructive action. A vivid red clashes with the muted teal and court palette on dense surfaces, yet a muted red is too weak on a danger button.",

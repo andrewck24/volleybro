@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0110",
+  "id": "0111",
   "title": "Teal is the interface brand colour; coral is the mark colour, sourced from --court",
   "capabilities": ["platform/design-system"],
   "context": "`--court` aliased `--destructive`, so brand coral had to serve as an error fill, where white text on it reaches only 2.38:1.",

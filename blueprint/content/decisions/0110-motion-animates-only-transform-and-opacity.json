@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0109",
+  "id": "0110",
   "title": "Motion animates only transform and opacity, and honours reduced motion",
   "capabilities": ["platform/design-system"],
   "context": "Landing scroll animation already runs on the compositor; the rest of the app had no stated motion rule.",

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0111",
+  "id": "0112",
   "title": "Text and icons take role tokens that pass contrast in both themes",
   "capabilities": ["platform/design-system"],
   "context": "Teal primary icons and coral error text fell below AA on dark cards.",
