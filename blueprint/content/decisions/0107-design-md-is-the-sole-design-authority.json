@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "0107",
   "title": "DESIGN.md is the sole design authority; Blueprint presents it",
-  "capabilities": ["platform/design-system"],
+  "capabilities": ["platform/blueprint"],
   "context": "The design rules lived in docs/design-system.md, the Blueprint design-system section and the landing decision records, and they drifted apart. Contrast and button-size defects went unnoticed because no one document owned the tokens.",
   "decision": "A root DESIGN.md in the impeccable format is the only authority for the design system. docs/design-system.md is migrated into it and deleted; the Blueprint design-system section becomes a presentation layer over it. .impeccable/design.json is a committed, generated artefact (the sidecar), regenerated from DESIGN.md.",
   "alternatives": [

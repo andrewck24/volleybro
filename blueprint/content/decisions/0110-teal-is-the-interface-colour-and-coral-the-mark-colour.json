@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "id": "0109",
+  "id": "0110",
   "title": "Teal is the interface brand colour; coral is the mark colour, sourced from --court",
   "capabilities": ["platform/design-system"],
   "context": "`--court` aliased `--destructive`, so brand coral had to serve as an error fill, where white text on it reaches only 2.38:1.",
-  "decision": "Teal `primary` is the interface brand colour. Coral #FC7A56 is the mark colour (the V mark, the recording court, the landing court), and `--court` is its single source token. `--destructive` is derived from `--court`, darker (about hsl(13 85% 42%), 4.83:1 against white text), and no longer equals brand coral.",
+  "decision": "Teal `primary` is the interface brand colour. Coral #FC7A56 is the mark colour: the V mark, the recording court and the landing court. `--court` is its source token for the court surfaces, and the V mark keeps the same value as the literal `V_CORAL`, because the splash and icon renderers have no stylesheet; a test keeps the two equal. `--destructive` is derived from `--court`, darker (about hsl(13 85% 42%), 4.83:1 against white text), and no longer equals brand coral.",
   "alternatives": [
     {
       "option": "Keep coral as both destructive and court",

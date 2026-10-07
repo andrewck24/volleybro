@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "id": "0109",
+  "title": "Motion rules live in DESIGN.md and animate only transform and opacity",
+  "capabilities": ["platform/design-system"],
+  "context": "Landing scroll animation already runs on the compositor; the rest of the app had no stated motion rule.",
+  "decision": "Motion rules live in DESIGN.md's Do's and Don'ts: animate transform and opacity only, and honour reduced motion. Duration and easing values live in the sidecar. Landing motion tokens stay landing-scoped.",
+  "alternatives": [
+    {
+      "option": "Motion tokens in the global stylesheet",
+      "reason": "Landing-only values would leak into the app."
+    }
+  ],
+  "consequences": ["Animating a layout property is a review finding."],
+  "originChange": "design-authority"
+}
