@@ -3,8 +3,8 @@
   "id": "0111",
   "title": "Text and icons take role tokens that pass contrast in both themes",
   "capabilities": ["platform/design-system"],
-  "context": "Teal primary icons and coral destructive text fell below AA on dark cards.",
-  "decision": "A new `--destructive-text` colours destructive text and icons on card and accent surfaces: in light mode it is the destructive fill, in dark mode brand coral (6.04:1 on the dark card). A new `--primary-text` colours teal text and icons; in light mode it equals primary, in dark mode it is a lighter teal that passes on dark surfaces.",
+  "context": "Teal primary icons and coral error text fell below AA on dark cards.",
+  "decision": "A new `--error-text` colours error text and icons on card and accent surfaces: in light mode it is the error fill, in dark mode brand coral (6.04:1 on the dark card). A new `--primary-text` colours teal text and icons; in light mode it equals primary, in dark mode it is a lighter teal that passes on dark surfaces.",
   "alternatives": [
     {
       "option": "Lighten or darken the single tokens in place",
@@ -12,7 +12,7 @@
     }
   ],
   "consequences": [
-    "Components choose between the destructive fill and destructive-text by role."
+    "Components choose between the error fill and error-text by role."
   ],
   "originChange": "design-authority"
 }
