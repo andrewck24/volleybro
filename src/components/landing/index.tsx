@@ -31,7 +31,6 @@ import {
   RiUserAddLine,
 } from "react-icons/ri";
 
-/** One icon per roster row, in SUPPORTING_FEATURES order. */
 const FEATURE_ICONS: IconType[] = [
   RiGroupLine,
   RiUserAddLine,
@@ -56,7 +55,8 @@ const zone = (
   }) as CSSProperties;
 
 const GUTTER = "px-4 md:px-8 lg:px-[clamp(2rem,5vw,6rem)]";
-const H2 = "text-4xl leading-tight font-bold text-balance md:text-6xl";
+const SECTION_HEADING =
+  "text-4xl leading-tight font-bold text-balance md:text-6xl";
 
 const Hero = () => (
   <section
@@ -86,7 +86,6 @@ const Hero = () => (
         <p className="landing-hero-desc max-w-[30ch] font-medium lg:max-w-none">
           {COPY.heroDesc}
         </p>
-        {/* lg: action + helper share the title's left edge */}
         <div className="mt-[calc(0.15*var(--court-meter))] hidden flex-col items-start gap-3 lg:flex">
           <CTAButton size="lg" className={cn("h-14 px-8", BTN_PRIMARY)}>
             開始記錄
@@ -94,8 +93,7 @@ const Hero = () => (
           <p className="text-base font-medium">{COPY.heroNote}</p>
         </div>
       </div>
-      {/* below lg: the action sits on our attack line */}
-      <div className="landing-on-attack lg:hidden">
+      <div className="landing-on-attack-line lg:hidden">
         <CTAButton size="lg" className={cn("h-12 px-6", BTN_PRIMARY)}>
           開始記錄
         </CTAButton>
@@ -109,7 +107,7 @@ const Hero = () => (
 );
 
 /** The intro is server-rendered here but placed inside the walkthrough's sticky stage. */
-const Record = () => (
+const WalkthroughSection = () => (
   <section id="record" className="pt-16 md:pt-24">
     <LazyRecordDemo
       intro={
@@ -128,7 +126,6 @@ const Record = () => (
   </section>
 );
 
-/** Heading on our half, the carousel across the net, its description on the opponent half. */
 const Stats = () => (
   <section
     className={cn(
@@ -159,16 +156,16 @@ const SupportingFeatures = () => (
     )}
   >
     <div className="flex flex-col gap-5">
-      <h2 className={H2}>{COPY.supportTitle}</h2>
+      <h2 className={SECTION_HEADING}>{COPY.supportTitle}</h2>
       <p className="max-w-lg text-lg text-(--free-zone-muted-foreground)">
         {COPY.supportLead}
       </p>
     </div>
     <ol className="flex flex-col gap-6 md:gap-8">
-      {SUPPORTING_FEATURES.map((k, i) => {
-        const Icon = FEATURE_ICONS[i]!;
+      {SUPPORTING_FEATURES.map((feature, index) => {
+        const Icon = FEATURE_ICONS[index]!;
         return (
-          <li key={k.title} className="flex items-start gap-4 lg:gap-6">
+          <li key={feature.title} className="flex items-start gap-4 lg:gap-6">
             <span
               aria-hidden
               className="grid size-12 shrink-0 place-items-center rounded-xl bg-card text-primary shadow-md lg:size-16 dark:text-chart-1"
@@ -179,8 +176,8 @@ const SupportingFeatures = () => (
                 (measured); the margin lands their ink on the tile's top edge */}
             <div className="flex flex-col gap-2">
               <h3 className="mt-[0.17em] text-lg font-bold [text-box:trim-both_cap_alphabetic] md:text-2xl">
-                {k.title}
-                {k.dev && (
+                {feature.title}
+                {feature.dev && (
                   <>
                     {" "}
                     <DevBadge />
@@ -188,7 +185,7 @@ const SupportingFeatures = () => (
                 )}
               </h3>
               <p className="text-(--free-zone-muted-foreground) md:text-lg">
-                {k.body}
+                {feature.body}
               </p>
             </div>
           </li>
@@ -198,7 +195,6 @@ const SupportingFeatures = () => (
   </section>
 );
 
-/** Below lg our 9 × 9 half; from lg the whole court bleeds past the viewport's right edge. */
 const Closing = () => (
   <section
     className={cn(
@@ -233,7 +229,7 @@ const Closing = () => (
           開始記錄
         </CTAButton>
       </div>
-      <div className="landing-on-attack lg:hidden">
+      <div className="landing-on-attack-line lg:hidden">
         <CTAButton size="lg" className={cn("h-12 px-6", BTN_PRIMARY)}>
           開始記錄
         </CTAButton>
@@ -295,7 +291,7 @@ export const Landing = () => (
     <Header />
     <RallyProvider seed={SEED_COUNT} replayFrom={SEED_COUNT}>
       <Hero />
-      <Record />
+      <WalkthroughSection />
       <Stats />
     </RallyProvider>
     <SupportingFeatures />

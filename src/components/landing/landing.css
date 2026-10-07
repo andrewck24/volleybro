@@ -67,11 +67,7 @@ html.landing-snap {
   outline-offset: 3px;
 }
 
-/* ---------- the court box: metre units ---------- */
-
-/* A court box is a size container; --court-meter is one metre in cqw, so everything
-   placed on it (text, marks, rows) scales with the court and stays on its
-   geometry. Portrait (net horizontal) below lg, landscape from lg. */
+/* a size container: --court-meter is one metre in cqw, so everything on it scales with the court */
 .landing-court {
   position: relative;
   container-type: inline-size;
@@ -102,7 +98,6 @@ html.landing-snap {
   }
 }
 
-/* A zone of the court, in metres: along it from our end line, across it from a side line. */
 .landing-zone {
   position: absolute;
   top: calc(var(--zone-start-from-end-line) * var(--court-meter));
@@ -140,8 +135,6 @@ html.landing-snap {
   }
 }
 
-/* ---------- hero ---------- */
-
 .landing-hero-court {
   width: min(100%, var(--court-max-width));
 }
@@ -176,8 +169,7 @@ html.landing-snap {
   }
 }
 
-/* the action sits on our attack line (rear edge at 6 m) */
-.landing-on-attack {
+.landing-on-attack-line {
   position: absolute;
   top: calc(6.025 * var(--court-meter));
   left: calc(0.5 * var(--court-meter));
@@ -185,14 +177,13 @@ html.landing-snap {
 }
 
 @media (min-width: 64rem) {
-  .landing-on-attack {
+  .landing-on-attack-line {
     top: calc(7 * var(--court-meter));
     left: calc(6.025 * var(--court-meter));
     translate: -50% -50%;
   }
 }
 
-/* the running set score sits at the net post */
 .landing-net-post {
   position: absolute;
   top: calc(9 * var(--court-meter));
@@ -208,8 +199,6 @@ html.landing-snap {
     translate: -50% -50%;
   }
 }
-
-/* ---------- entry rows (opponent back zone) ---------- */
 
 /* The zone is a size container. The app's EntryRow (40px, Figure sm + p-1)
    stacks on a 44px pitch inside the card (p-1.5 = 12px). Row count comes
@@ -263,13 +252,11 @@ html.landing-snap {
   transform: translateY(calc(var(--row-index) * 2.75rem));
 }
 
-.landing-entry-row[data-animate] {
+.landing-entry-row[data-is-animated] {
   transition:
     transform 500ms var(--ease-landing) calc(var(--row-index) * 35ms),
     opacity 450ms ease-out;
 }
-
-/* ---------- the landing mark ---------- */
 
 .landing-mark {
   position: absolute;
@@ -342,22 +329,21 @@ html.landing-snap {
 /* landscape: a point lost lands on our front zone and labels toward our end
    line, so the label never crosses the net */
 @media (min-width: 64rem) {
-  .landing-mark[data-ours] .landing-mark-label {
+  .landing-mark[data-lands-on-our-half] .landing-mark-label {
     left: auto;
     /* the mark box spans spot..spot + 0.5 m (the dot is pulled back half) */
     right: calc(0.9 * var(--court-meter));
   }
 }
 
-.landing-mark[data-live] {
+.landing-mark[data-is-live] {
   animation: landing-land var(--rally-beat) both;
 }
 
-.landing-mark[data-live] .landing-mark-ring {
+.landing-mark[data-is-live] .landing-mark-ring {
   animation: landing-ripple calc(var(--rally-beat) * 0.4) ease-out both;
 }
 
-/* one rally beat: lands (0-16%), holds, files into the list (62-96%) */
 @keyframes landing-land {
   0% {
     opacity: 0;
@@ -456,26 +442,23 @@ html.landing-snap {
 
 /* the carousel track: native scroll-snap, horizontal only; a horizontal swipe
    stays inside it, a vertical wheel or drag still scrolls the page */
-.landing-slides {
+.landing-stats-slides {
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   scroll-behavior: smooth;
 }
 
-.landing-slides::-webkit-scrollbar {
+.landing-stats-slides::-webkit-scrollbar {
   display: none;
 }
 
-/* the description swaps with a discrete fade: out, then in */
-.landing-desc {
+.landing-stats-description {
   transition: opacity 160ms ease-out;
 }
 
-.landing-desc[data-out] {
+.landing-stats-description[data-is-fading-out] {
   opacity: 0;
 }
-
-/* ---------- court-set type: sizes follow the court's metre ---------- */
 
 .landing-stats-heading {
   font-size: max(1.5rem, calc(0.7 * var(--court-meter)));
@@ -508,18 +491,16 @@ html.landing-snap {
   }
 }
 
-/* ---------- reduced motion: a still court ---------- */
-
 @media (prefers-reduced-motion: reduce) {
-  .landing-slides {
+  .landing-stats-slides {
     scroll-behavior: auto;
   }
-  .landing-desc {
+  .landing-stats-description {
     transition: none;
   }
-  .landing-mark[data-live],
-  .landing-mark[data-live] .landing-mark-ring,
-  .landing-entry-row[data-animate] {
+  .landing-mark[data-is-live],
+  .landing-mark[data-is-live] .landing-mark-ring,
+  .landing-entry-row[data-is-animated] {
     animation: none;
     transition: none;
   }

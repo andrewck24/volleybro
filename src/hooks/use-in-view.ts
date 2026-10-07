@@ -9,7 +9,6 @@ type InViewOptions = {
   initial?: boolean;
 };
 
-/** Whether the ref's element intersects the viewport. */
 export const useInView = (
   ref: RefObject<Element | null>,
   { rootMargin, once = false, initial = false }: InViewOptions = {},

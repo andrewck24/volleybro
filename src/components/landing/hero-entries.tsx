@@ -22,15 +22,15 @@ const Row = ({
   const [isMounted, setIsMounted] = useState(!isAnimated);
   useEffect(() => {
     if (isMounted) return;
-    const id = requestAnimationFrame(() =>
+    const frame = requestAnimationFrame(() =>
       requestAnimationFrame(() => setIsMounted(true)),
     );
-    return () => cancelAnimationFrame(id);
+    return () => cancelAnimationFrame(frame);
   }, [isMounted]);
 
   return (
     <div
-      data-animate={isAnimated || undefined}
+      data-is-animated={isAnimated || undefined}
       className="landing-entry-row"
       style={
         {
@@ -48,7 +48,6 @@ const Row = ({
   );
 };
 
-/** The app's real EntryRow list, newest rally first, watch-only. */
 export const HeroEntries = () => {
   const { setNo, isLive, filedRallies } = useRally();
   const rallies = Array.from(

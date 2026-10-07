@@ -3,7 +3,6 @@ import { EntryType } from "@/entities/game";
 import type { EntryView } from "@/lib/features/game/types";
 import { scoringMoves } from "@/lib/scoring-moves";
 
-/** The first `count` rallies of the demo set as the app's Entry list items. */
 export const entriesOf = (
   idPrefix: string,
   count = FOLDED_RALLIES.length,

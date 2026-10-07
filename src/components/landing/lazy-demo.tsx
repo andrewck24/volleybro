@@ -20,12 +20,11 @@ const Placeholder = ({
 }) => (
   <div ref={ref} className={styles.section}>
     <div className={styles.stage}>
-      <div className={styles.lead}>{intro}</div>
+      <div className={styles.introColumn}>{intro}</div>
     </div>
   </div>
 );
 
-/** Loads the demo code once the placeholder is within a viewport of the screen. */
 export const LazyRecordDemo = ({ intro }: { intro: ReactNode }) => {
   const placeholder = useRef<HTMLDivElement>(null);
   const isNear = useInView(placeholder, { rootMargin: "100% 0px", once: true });

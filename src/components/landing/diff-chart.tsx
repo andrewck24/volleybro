@@ -23,7 +23,6 @@ const yOf = (diff: number) =>
 
 const splinePath = (points: Point[]) => {
   const count = points.length;
-  // the tangent as a Bézier handle: a third of half the neighbours' span
   const handle = (1 - TENSION) / 6;
   const at = (i: number) => points[Math.max(0, Math.min(count - 1, i))]!;
   let path = `M${points[0]![0]} ${points[0]![1]}`;
@@ -37,23 +36,19 @@ const splinePath = (points: Point[]) => {
   return path;
 };
 
-/**
- * Point-difference chart, hand-written SVG with no labels or axes: above the
- * baseline in chart-1, below in chart-2, split by two clip paths so the
- * colours stay exact along the curve. The line spans the whole canvas until
- * the set has more points than fit, then the spacing stays fixed.
- */
+// Two clip paths split the colours at the baseline, so they stay exact along
+// the curve.
 export const DiffChart = ({ className }: { className?: string }) => {
   const { rallies } = useRally();
-  const box = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(480);
-  const id = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const clipId = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
       setWidth(entry!.contentRect.width),
     );
-    observer.observe(box.current!);
+    observer.observe(boxRef.current!);
     return () => observer.disconnect();
   }, []);
 
@@ -80,7 +75,7 @@ export const DiffChart = ({ className }: { className?: string }) => {
   }, [rallies, width]);
 
   const plot = (side: "up" | "down") => (
-    <g clipPath={`url(#${id}${side})`}>
+    <g clipPath={`url(#${clipId}${side})`}>
       <path
         d={area}
         className={side === "up" ? "fill-chart-1/20" : "fill-chart-2/20"}
@@ -98,17 +93,22 @@ export const DiffChart = ({ className }: { className?: string }) => {
   );
 
   return (
-    <div ref={box} data-rally aria-hidden className={cn("relative", className)}>
+    <div
+      ref={boxRef}
+      data-rally
+      aria-hidden
+      className={cn("relative", className)}
+    >
       <svg
         viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
         preserveAspectRatio="none"
         className="size-full overflow-hidden"
       >
         <defs>
-          <clipPath id={`${id}up`}>
+          <clipPath id={`${clipId}up`}>
             <rect width={VIEW_WIDTH} height={VIEW_HEIGHT / 2} />
           </clipPath>
-          <clipPath id={`${id}down`}>
+          <clipPath id={`${clipId}down`}>
             <rect
               y={VIEW_HEIGHT / 2}
               width={VIEW_WIDTH}

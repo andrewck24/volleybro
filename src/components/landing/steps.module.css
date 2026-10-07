@@ -48,9 +48,7 @@
   }
 }
 
-/* the stage's text column — the section intro (heading + lead) above
-   the layered step captions, so step 0 shows both under the header */
-.lead {
+.introColumn {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -59,7 +57,7 @@
 }
 
 @media (min-width: 64rem) {
-  .lead {
+  .introColumn {
     /* up to 34rem, and it gives way first: the field keeps its 37rem (the
        app cards their 22rem) from 1024px up, inside the stage padding */
     flex: 0 1 34rem;
@@ -181,38 +179,33 @@
   }
 }
 
-.rails {
+.stepRails {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.rail {
+.stepRail {
   height: var(--walkthrough-track-height);
 }
 
-/* the step rest positions are the snap points (html.landing-snap) */
-.rails > .rail {
+.stepRails > .stepRail {
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
-/* the state switches: the rails moved up half a header, so each flips
-   exactly mid-way between two rest positions (steps-section.tsx) */
-.switches {
+/* the switch sentinels: the rails shifted up half a header */
+.stepSwitches {
   position: absolute;
   inset-inline: 0;
   top: calc(var(--landing-header-height) / -2);
   pointer-events: none;
 }
 
-/* ---------- finger dot ----------
-   One scroll-driven path over the whole walkthrough (transform / opacity
-   only, compositor): rest i sits at tap point Pi; each segment moves to the
-   next target in its first 40%, taps at 50% (where the switch flips the real
-   components) and rests there. The --finger-dot-* points are stage-relative,
-   measured from the real buttons (use-walkthrough.ts). */
-.dot {
+/* The finger dot: one scroll-driven path over the walkthrough, transform and
+   opacity only. Each segment moves to the next target in its first 40% and
+   taps at 50%, where the step flips. */
+.fingerDot {
   /* the resting dot's scale (14px) on the target it just tapped: measured
      clear of the label ink, the 對方防守 "−" being the nearest at 390 */
   --finger-dot-rest-scale: 0.5;
@@ -226,8 +219,8 @@
   display: none;
 }
 
-.dotCore,
-.dotRing {
+.fingerDotCore,
+.fingerDotRing {
   position: absolute;
   width: 1.75rem;
   height: 1.75rem;
@@ -235,43 +228,39 @@
   border-radius: 50%;
 }
 
-.dotCore {
+.fingerDotCore {
   background: #fff;
   box-shadow:
     0 2px 6px rgb(0 0 0 / 0.35),
     0 0 0 1px rgb(0 0 0 / 0.08);
 }
 
-.dotRing {
+.fingerDotRing {
   border: 3px solid #fff;
   box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12);
   opacity: 0;
 }
 
 @supports (animation-timeline: view()) {
-  .section[data-dot] .dot {
+  .section[data-has-finger-dot] .fingerDot {
     display: block;
-    animation: dot-path linear both;
+    animation: finger-dot-path linear both;
     animation-timeline: --steps;
     animation-range: contain 0% contain 100%;
   }
-  .section[data-dot] .dotCore {
-    animation: dot-press linear both;
+  .section[data-has-finger-dot] .fingerDotCore {
+    animation: finger-dot-press linear both;
     animation-timeline: --steps;
     animation-range: contain 0% contain 100%;
   }
-  .section[data-dot] .dotRing {
-    animation: dot-ring linear both;
+  .section[data-has-finger-dot] .fingerDotRing {
+    animation: finger-dot-ring linear both;
     animation-timeline: --steps;
     animation-range: contain 0% contain 100%;
   }
 }
 
-/* Each segment k (k × 33.333%): arrive on the target at +13.333%, tap at
-   +16.667% (the switch flips the components there), then stay on that
-   point and shrink to --finger-dot-rest-scale, so the dot marks what was just tapped
-   without covering its label. */
-@keyframes dot-path {
+@keyframes finger-dot-path {
   0% {
     transform: translate(var(--finger-dot-start-x), var(--finger-dot-start-y));
   }
@@ -289,7 +278,7 @@
   }
 }
 
-@keyframes dot-press {
+@keyframes finger-dot-press {
   0% {
     transform: scale(0.6);
   }
@@ -316,7 +305,7 @@
   }
 }
 
-@keyframes dot-ring {
+@keyframes finger-dot-ring {
   0%,
   15%,
   48.333%,
@@ -390,8 +379,8 @@
     flex-direction: column;
     gap: 1.5rem;
   }
-  .rails,
-  .switches {
+  .stepRails,
+  .stepSwitches {
     display: none !important;
   }
   .caption {
@@ -400,10 +389,8 @@
   }
 }
 
-/* lg: the stage stands on the court plan. The attack line runs at the
-   step chip's centre: dashed outside the court (the rules' extension) from
-   the page's left edge to the chip, solid inside it from the field's side
-   line to the frame. Borders only; the section clips the overrun without
+/* lg: the attack line runs at the step chip's centre, dashed outside the court
+   from the page's left edge to the chip. The section clips the overrun without
    becoming a scroll container, so the sticky stage keeps working. */
 @media (min-width: 64rem) and (min-height: 500.02px) {
   .section {

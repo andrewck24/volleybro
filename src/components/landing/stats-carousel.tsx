@@ -1,7 +1,5 @@
 "use client";
-// The centre attack zone is an object-layer card holding one slide at a time
-// (native scroll-snap, so touch swipe is free); the opponent zone shows the
-// active slide's description, swapped by a fade-out then fade-in, never both.
+// The opponent zone's description fades out, then the next fades in, never both.
 import { DevBadge } from "@/components/landing/dev-badge";
 import { SLIDES } from "@/components/landing/stats-slides";
 import { Button } from "@/components/ui/button";
@@ -18,31 +16,33 @@ const STEP_BUTTONS = [
 ];
 
 export const StatsCarousel = () => {
-  const track = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-  const [shown, setShown] = useState(0);
-  const n = SLIDES.length;
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [shownIndex, setShownIndex] = useState(0);
+  const slideCount = SLIDES.length;
   const isReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (active === shown) return;
+    if (activeIndex === shownIndex) return;
     const timer = setTimeout(
-      () => setShown(active),
+      () => setShownIndex(activeIndex),
       isReducedMotion ? 0 : FADE_MS,
     );
     return () => clearTimeout(timer);
-  }, [active, shown, isReducedMotion]);
+  }, [activeIndex, shownIndex, isReducedMotion]);
 
-  const go = (i: number) => {
-    const el = track.current!;
-    el.scrollTo({ left: ((i + n) % n) * el.clientWidth });
+  const goTo = (index: number) => {
+    const track = trackRef.current!;
+    track.scrollTo({
+      left: ((index + slideCount) % slideCount) * track.clientWidth,
+    });
   };
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    go(active + (e.key === "ArrowRight" ? 1 : -1));
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    goTo(activeIndex + (event.key === "ArrowRight" ? 1 : -1));
   };
-  const s = SLIDES[shown]!;
+  const shownSlide = SLIDES[shownIndex]!;
 
   return (
     <>
@@ -52,30 +52,30 @@ export const StatsCarousel = () => {
         aria-roledescription="carousel"
         aria-label="統計功能示範（示意動畫）"
         tabIndex={0}
-        onKeyDown={onKeyDown}
+        onKeyDown={handleKeyDown}
         className="landing-stats-points flex flex-col gap-2 rounded-2xl bg-card p-2 text-card-foreground shadow-lg lg:rounded-3xl lg:p-4"
       >
         <div
-          ref={track}
-          onScroll={(e) => {
-            const el = e.currentTarget;
-            setActive(Math.round(el.scrollLeft / el.clientWidth));
+          ref={trackRef}
+          onScroll={(event) => {
+            const track = event.currentTarget;
+            setActiveIndex(Math.round(track.scrollLeft / track.clientWidth));
           }}
-          className="landing-slides flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto rounded-lg lg:h-[24.5rem] lg:flex-none"
+          className="landing-stats-slides flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto rounded-lg lg:h-[24.5rem] lg:flex-none"
         >
-          {SLIDES.map((sl, i) => (
+          {SLIDES.map((slide, index) => (
             <div
-              key={sl.title}
+              key={slide.title}
               role="group"
               aria-roledescription="slide"
-              aria-label={`${i + 1} / ${n}：${sl.title}`}
+              aria-label={`${index + 1} / ${slideCount}：${slide.title}`}
               className="flex w-full shrink-0 snap-start snap-always items-center"
             >
-              {Math.abs(i - active) <= 1 && <sl.Component />}
+              {Math.abs(index - activeIndex) <= 1 && <slide.Component />}
             </div>
           ))}
         </div>
-        {/* the buttons straddle the card's side edges: 8px (its padding) inside, the rest in the court margin */}
+        {/* straddling the card's edges: 8px inside (its padding), the rest in the margin */}
         {STEP_BUTTONS.map(({ label, step, Icon, edge }) => (
           <Button
             key={label}
@@ -83,26 +83,25 @@ export const StatsCarousel = () => {
             size="icon"
             aria-label={label}
             className={cn("absolute top-1/2 size-7 -translate-y-1/2", edge)}
-            onClick={() => go(active + step)}
+            onClick={() => goTo(activeIndex + step)}
           >
             <Icon />
           </Button>
         ))}
-        {/* position dots sit under the card, on the court */}
         <div className="absolute top-full left-1/2 mt-1 flex -translate-x-1/2 items-center">
-          {SLIDES.map((sl, i) => (
+          {SLIDES.map((slide, index) => (
             <button
-              key={sl.title}
+              key={slide.title}
               type="button"
-              aria-label={`${i + 1} / ${n}：${sl.title}`}
-              aria-current={i === active}
-              onClick={() => go(i)}
+              aria-label={`${index + 1} / ${slideCount}：${slide.title}`}
+              aria-current={index === activeIndex}
+              onClick={() => goTo(index)}
               className="grid size-8 place-items-center rounded-md focus-visible:ring-2 focus-visible:ring-court-foreground focus-visible:outline-hidden"
             >
               <span
                 className={cn(
                   "size-2.5 rounded-full bg-court-foreground/35 transition-colors",
-                  i === active && "bg-court-foreground",
+                  index === activeIndex && "bg-court-foreground",
                 )}
               />
             </button>
@@ -112,15 +111,15 @@ export const StatsCarousel = () => {
       <div className="landing-stats-list flex flex-col justify-start p-[calc(0.3*var(--court-meter))] pt-[calc(2.5rem+0.1*var(--court-meter))] text-court-foreground max-[23.75rem]:p-2 max-[23.75rem]:pt-10 lg:justify-center lg:p-[calc(0.5*var(--court-meter))]">
         <div
           aria-live="polite"
-          data-out={active !== shown || undefined}
-          className="landing-desc flex flex-col gap-1.5 lg:gap-3"
+          data-is-fading-out={activeIndex !== shownIndex || undefined}
+          className="landing-stats-description flex flex-col gap-1.5 lg:gap-3"
         >
           <h3 className="flex flex-wrap items-center gap-1.5 text-2xl leading-snug font-bold lg:gap-2 lg:text-[max(1.5rem,calc(0.4*var(--court-meter)))]">
-            {s.title}
-            {s.dev && <DevBadge />}
+            {shownSlide.title}
+            {shownSlide.dev && <DevBadge />}
           </h3>
           <p className="text-lg leading-snug font-medium lg:text-[max(1.125rem,calc(0.27*var(--court-meter)))]">
-            {s.body}
+            {shownSlide.body}
           </p>
         </div>
       </div>

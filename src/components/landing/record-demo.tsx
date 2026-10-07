@@ -49,22 +49,27 @@ const makeDemoStore = () => {
   return store;
 };
 
-type Ctrl = { step: (n: number) => void };
+type DemoController = { step: (tapCount: number) => void };
 
 // Headless: re-renders only on the slices it reads; the frame and sections are
 // siblings, so a step change reaches them through the store, not through here.
-const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
+const Driver = ({
+  controllerRef,
+}: {
+  controllerRef: { current: DemoController | null };
+}) => {
   const dispatch = useAppDispatch();
-  const status = useAppSelector((s) => s.game.general.status);
+  const status = useAppSelector((state) => state.game.general.status);
   const { starting } = useLineup(DEMO_GAME_ID, 0, status);
   const { mutate } = useGame(DEMO_GAME_ID);
   const zone = useRef(4);
 
-  // zone of the demo player while the lineup is still pristine
   useEffect(() => {
     if (status.entryIndex !== SEED_COUNT) return;
-    const i = starting.findIndex((p) => p.id === SENT_RALLY.player);
-    if (i >= 0) zone.current = i + 1;
+    const index = starting.findIndex(
+      (player) => player.id === SENT_RALLY.player,
+    );
+    if (index >= 0) zone.current = index + 1;
   }, [starting, status.entryIndex]);
 
   useEffect(() => {
@@ -75,50 +80,48 @@ const Driver = ({ ctrlRef }: { ctrlRef: { current: Ctrl | null } }) => {
       // replayed setEntryDraftPlayer toggle it off
       dispatch(gameActions.resetEntryDraft());
     };
-    const step = (n: number) => {
+    const step = (tapCount: number) => {
       reset();
-      playTo(dispatch, n, zone.current);
+      playTo(dispatch, tapCount, zone.current);
     };
-    ctrlRef.current = { step };
+    controllerRef.current = { step };
   });
 
   return null;
 };
 
-/** Plays the demo rally's first `n` taps onto a store. */
 const playTo = (
   dispatch: (
     a: Parameters<ReturnType<typeof makeStore>["dispatch"]>[0],
   ) => unknown,
-  n: number,
+  tapCount: number,
   zone: number,
 ) => {
-  if (n >= 1)
+  if (tapCount >= 1)
     dispatch(gameActions.setEntryDraftPlayer({ id: SENT_RALLY.player, zone }));
-  if (n >= 2)
+  if (tapCount >= 2)
     dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[SENT_RALLY.home]!));
-  if (n >= 3)
+  if (tapCount >= 3)
     dispatch(gameActions.setEntryDraftAwayMove(scoringMoves[SENT_RALLY.away]!));
 };
 
 const MirrorDriver = ({ step }: { step: number }) => {
   const dispatch = useAppDispatch();
-  const status = useAppSelector((s) => s.game.general.status);
+  const status = useAppSelector((state) => state.game.general.status);
   const { starting } = useLineup(DEMO_GAME_ID, 0, status);
   const hasPlayed = useRef(false);
   useEffect(() => {
     if (hasPlayed.current) return;
-    const i = starting.findIndex((p) => p.id === SENT_RALLY.player);
-    if (i < 0) return;
+    const index = starting.findIndex(
+      (player) => player.id === SENT_RALLY.player,
+    );
+    if (index < 0) return;
     hasPlayed.current = true;
-    playTo(dispatch, step, i + 1);
+    playTo(dispatch, step, index + 1);
   }, [starting, dispatch, step]);
   return null;
 };
 
-/** A hidden copy of the panel held at `step` on a store of its own, laid over
- *  the real panel: where the finger's next target sits, measured without
- *  moving the visible store. */
 const MirrorPanel = ({ step }: { step: number }) => {
   const [store] = useState(makeDemoStore);
   return (
@@ -172,17 +175,17 @@ const Frame = () => {
 
 const FRAME = <Frame />;
 
-/** The real element each tap of the demo rally lands on, found in the frame
- *  by what the user sees: the player card with the demo player's number,
- *  then the move buttons by their label and win / lose look. */
 const locate = (tap: number, frame: HTMLElement): Element | null => {
   if (tap === 1) {
     const number = String(
-      HOME_PLAYERS.find((p) => p.id === SENT_RALLY.player)!.number,
+      HOME_PLAYERS.find((player) => player.id === SENT_RALLY.player)!.number,
     );
     return (
       [...frame.querySelectorAll("p")]
-        .find((p) => p.textContent === number && p.closest(".border-4"))
+        .find(
+          (paragraph) =>
+            paragraph.textContent === number && paragraph.closest(".border-4"),
+        )
         ?.closest(".border-4") ?? null
     );
   }
@@ -198,25 +201,27 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
     const move = scoringMoves[SENT_RALLY.home]!;
     return (
       buttons.find(
-        (b) =>
-          b.textContent?.trim() === move.text &&
-          b.className.includes(move.win ? "bg-primary" : "bg-destructive"),
+        (button) =>
+          button.textContent?.trim() === move.text &&
+          button.className.includes(move.win ? "bg-primary" : "bg-destructive"),
       ) ?? null
     );
   }
   const away = scoringMoves[SENT_RALLY.away]!;
-  return buttons.find((b) => b.textContent?.includes(away.text)) ?? null;
+  return (
+    buttons.find((button) => button.textContent?.includes(away.text)) ?? null
+  );
 };
 
 const Sections = ({ intro }: { intro: ReactNode }) => {
-  const ctrlRef = useRef<Ctrl | null>(null);
+  const controllerRef = useRef<DemoController | null>(null);
   return (
     <>
-      <Driver ctrlRef={ctrlRef} />
+      <Driver controllerRef={controllerRef} />
       <StepsSection
         intro={intro}
         locate={locate}
-        onStep={(n) => ctrlRef.current?.step(n)}
+        onStep={(step) => controllerRef.current?.step(step)}
       >
         {FRAME}
       </StepsSection>

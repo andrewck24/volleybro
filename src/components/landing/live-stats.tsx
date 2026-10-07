@@ -42,18 +42,18 @@ export const LiveStats = () => {
       className="w-full max-lg:[&_.size-15]:size-10 max-lg:[&_.size-15]:text-2xl max-[23.75rem]:[&_.size-15]:size-8 max-[23.75rem]:[&_.size-15]:text-xl [&_.transition-all]:duration-700 [&_.transition-all]:ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:[&_.transition-all]:duration-0"
     >
       <section className="flex w-full flex-col gap-1 lg:gap-2">
-        {SCORING.map((s) => (
+        {SCORING.map((scoring) => (
           <StatsItem
-            key={s.type}
-            label={s.label}
-            type={s.type}
+            key={scoring.type}
+            label={scoring.label}
+            type={scoring.type}
             success={true}
             stats={stats}
           />
         ))}
         <TotalStatsItem
           label="總分"
-          types={SCORING.map((s) => s.type)}
+          types={SCORING.map((scoring) => scoring.type)}
           success={true}
           stats={stats}
         />

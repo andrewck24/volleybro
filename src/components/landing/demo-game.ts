@@ -1,4 +1,3 @@
-// The GameView the real recording components read, built from the demo set.
 import {
   AWAY_PLAYERS,
   AWAY_TEAM,
@@ -34,8 +33,8 @@ export const demoGame: GameView = {
             liberoReplaceMode: 0,
             liberoReplacePosition: Position.NONE,
           },
-          starting: HOME_PLAYERS.slice(0, 6).map((p) =>
-            lineupPlayer(p.id, p.position as Position),
+          starting: HOME_PLAYERS.slice(0, 6).map((player) =>
+            lineupPlayer(player.id, player.position as Position),
           ),
           liberos: [lineupPlayer("p7", Position.L)],
           substitutes: [],

@@ -79,7 +79,6 @@ export const RallyLayer = () => {
       data-rally
       className="pointer-events-none absolute inset-0"
     >
-      {/* running set score at the net post */}
       <div className="landing-net-post flex items-baseline rounded-lg bg-card px-3 py-1.5 text-card-foreground shadow-md">
         <span className="text-xl font-bold tabular-nums lg:text-2xl">
           {last?.homeScore ?? 0}
@@ -91,8 +90,8 @@ export const RallyLayer = () => {
       {spot && rally && (
         <div
           key={`${setNo}-${rallies}`}
-          data-live={isLive || undefined}
-          data-ours={!rally.win || undefined}
+          data-is-live={isLive || undefined}
+          data-lands-on-our-half={!rally.win || undefined}
           className="landing-mark text-court-foreground"
           style={
             {
@@ -123,9 +122,7 @@ export const RallyLayer = () => {
           } as CSSProperties
         }
       >
-        {/* card surface (rounded-xl, p-1.5) so the rows' own teal and
-            coral figures never sit on the coral court; inner rows keep
-            their rounded-md (12 - 6) */}
+        {/* a card surface, so the rows' own teal and coral figures never sit on the court */}
         <div className="rounded-xl bg-card p-1.5 text-card-foreground shadow-lg">
           <EntryRows />
         </div>

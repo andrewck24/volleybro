@@ -3,33 +3,58 @@ import { cn } from "@/lib/utils";
 // The regulation court plan in metres (FIVB rules 1.1-1.4), every line 5 cm
 // and inside the court's area.
 const LINE_WIDTH = 0.05;
+const COURT_LENGTH = 18;
+const COURT_WIDTH = 9;
+const ATTACK_LINE_FROM_END_LINE = 6;
 
 type Rect = [along: number, across: number, length: number, width: number];
 
-const RECTS: Rect[] = [
-  [0, 0, 18, LINE_WIDTH], // side lines
-  [0, 9 - LINE_WIDTH, 18, LINE_WIDTH],
-  [0, 0, LINE_WIDTH, 9], // end lines
-  [18 - LINE_WIDTH, 0, LINE_WIDTH, 9],
-  [9 - LINE_WIDTH / 2, 0, LINE_WIDTH, 9], // centre line
-  [6, 0, LINE_WIDTH, 9], // attack lines (rear edge 3 m from the centre axis)
-  [12 - LINE_WIDTH, 0, LINE_WIDTH, 9],
-  // service zone marks, 20 cm behind each end line, on the side-line axes
-  ...[0, 9 - LINE_WIDTH].flatMap((across): Rect[] => [
+const SIDE_LINES: Rect[] = [
+  [0, 0, COURT_LENGTH, LINE_WIDTH],
+  [0, COURT_WIDTH - LINE_WIDTH, COURT_LENGTH, LINE_WIDTH],
+];
+const END_LINES: Rect[] = [
+  [0, 0, LINE_WIDTH, COURT_WIDTH],
+  [COURT_LENGTH - LINE_WIDTH, 0, LINE_WIDTH, COURT_WIDTH],
+];
+const CENTRE_LINE: Rect = [
+  COURT_LENGTH / 2 - LINE_WIDTH / 2,
+  0,
+  LINE_WIDTH,
+  COURT_WIDTH,
+];
+// the rear edge of each attack line is 3 m from the centre line's axis
+const ATTACK_LINES: Rect[] = [
+  [ATTACK_LINE_FROM_END_LINE, 0, LINE_WIDTH, COURT_WIDTH],
+  [
+    COURT_LENGTH - ATTACK_LINE_FROM_END_LINE - LINE_WIDTH,
+    0,
+    LINE_WIDTH,
+    COURT_WIDTH,
+  ],
+];
+const SERVICE_ZONE_MARKS: Rect[] = [0, COURT_WIDTH - LINE_WIDTH].flatMap(
+  (across): Rect[] => [
     [-0.35, across, 0.15, LINE_WIDTH],
-    [18.2, across, 0.15, LINE_WIDTH],
+    [COURT_LENGTH + 0.2, across, 0.15, LINE_WIDTH],
+  ],
+);
+const ATTACK_LINE_EXTENSIONS: Rect[] = ATTACK_LINES.flatMap(([along]) =>
+  [0, 1, 2, 3, 4].flatMap((dash): Rect[] => [
+    [along, -(0.2 + dash * 0.35) - 0.15, LINE_WIDTH, 0.15],
+    [along, COURT_WIDTH + 0.2 + dash * 0.35, LINE_WIDTH, 0.15],
   ]),
-  // attack-line extensions: 5 × 15 cm dashes, 20 cm gaps, both sides
-  ...[6, 12 - LINE_WIDTH].flatMap((along) =>
-    [0, 1, 2, 3, 4].flatMap((i): Rect[] => [
-      [along, -(0.2 + i * 0.35) - 0.15, LINE_WIDTH, 0.15],
-      [along, 9 + 0.2 + i * 0.35, LINE_WIDTH, 0.15],
-    ]),
-  ),
+);
+
+const RECTS: Rect[] = [
+  ...SIDE_LINES,
+  ...END_LINES,
+  CENTRE_LINE,
+  ...ATTACK_LINES,
+  ...SERVICE_ZONE_MARKS,
+  ...ATTACK_LINE_EXTENSIONS,
 ];
 
-// the first `span` metres from our end line (9 = our half, 12 = plus their
-// attack zone), lines clipped at the cut
 const upTo = (span: number) =>
   RECTS.filter(([along]) => along < span).map(
     ([along, across, length, width]): Rect => [
@@ -40,10 +65,9 @@ const upTo = (span: number) =>
     ],
   );
 
-/** The court as one SVG at its box's size. `portrait` transposes it so the net runs horizontally. */
 export const CourtPlan = ({
   portrait = false,
-  span = 18,
+  span = COURT_LENGTH,
   className,
 }: {
   portrait?: boolean;
@@ -52,27 +76,30 @@ export const CourtPlan = ({
 }) => (
   <svg
     aria-hidden
-    viewBox={portrait ? `0 0 9 ${span}` : `0 0 ${span} 9`}
+    viewBox={
+      portrait ? `0 0 ${COURT_WIDTH} ${span}` : `0 0 ${span} ${COURT_WIDTH}`
+    }
     overflow="visible"
     className={cn("absolute inset-0 size-full", className)}
   >
     <g transform={portrait ? "matrix(0 1 1 0 0 0)" : undefined}>
-      <rect width={span} height={9} className="fill-court" />
-      {(span < 18 ? upTo(span) : RECTS).map(([x, y, w, h], i) => (
-        <rect
-          key={i}
-          x={x}
-          y={y}
-          width={w}
-          height={h}
-          className="fill-(--court-line)"
-        />
-      ))}
+      <rect width={span} height={COURT_WIDTH} className="fill-court" />
+      {(span < COURT_LENGTH ? upTo(span) : RECTS).map(
+        ([along, across, length, width], i) => (
+          <rect
+            key={i}
+            x={along}
+            y={across}
+            width={length}
+            height={width}
+            className="fill-(--court-line)"
+          />
+        ),
+      )}
     </g>
   </svg>
 );
 
-/** Both orientations: portrait below lg, landscape from lg. */
 export const Court = ({ className }: { className?: string }) => (
   <>
     <CourtPlan portrait className={cn("lg:hidden", className)} />

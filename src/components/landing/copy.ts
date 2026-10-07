@@ -2,7 +2,6 @@
 // so the hero side can read it without pulling anything else in.
 
 export const COPY = {
-  // two sentences; each breaks after its first word from lg
   heroTitle: [
     ["記下", "每一球，"],
     ["統計", "自己出來。"],
@@ -29,7 +28,6 @@ export const STEPS = [
 
 export type Feature = { title: string; body: string; dev?: boolean };
 
-/** Features that support recording, one roster row each; planned ones carry `dev`. */
 export const SUPPORTING_FEATURES: Feature[] = [
   { title: "建立球隊", body: "填隊名就建好。" },
   { title: "邀請隊友", body: "搜尋使用者，直接邀請加入球隊。" },
@@ -78,13 +76,10 @@ export const moveLabel = (num: number, win: boolean) =>
 // Actions are app objects: the app Button's own variants (rounded-md, shadow,
 // no outline), passed as classes over CTAButton's built-in outline look. Kept
 // here, not in a "use client" module, so server components import strings.
-/** Button `default` variant: teal fill, ivory label (5.81:1). On coral and in the header. */
+/** Button `default` variant: teal fill, ivory label (5.81:1). */
 export const BTN_PRIMARY =
   "bg-primary font-semibold text-primary-foreground shadow-md ring-transparent hover:bg-primary/90 dark:ring-transparent";
-/** The header CTA at rest, over the teal free zone: inverted ink, black on
- *  near-white in dark, near-white on black in light (foreground / background). */
 export const BTN_CARD =
   "bg-foreground font-semibold text-background shadow-md ring-transparent hover:bg-foreground/90 dark:ring-transparent";
-/** The app nav's glass, for the floating header and the footer's theme switch. */
 export const GLASS_PILL =
   "bg-background/94 text-foreground shadow-lg ring-foreground/10 backdrop-blur-sm";

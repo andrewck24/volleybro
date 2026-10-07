@@ -30,7 +30,12 @@ export type RallySpec = {
   win: boolean;
 };
 
-const r = (player: string, home: number, away: number, win: boolean) => ({
+const rallySpec = (
+  player: string,
+  home: number,
+  away: number,
+  win: boolean,
+) => ({
   player,
   home,
   away,
@@ -41,56 +46,55 @@ const r = (player: string, home: number, away: number, win: boolean) => ({
 // the opponent's attack points (home 7→away 4, home 3→away 4), so the ATTACK
 // bar is 2:2 and the sent rally visibly moves it to 3:2.
 const OPENING: RallySpec[] = [
-  r("p3", 4, 3, true),
-  r("p2", 5, 11, false),
-  r("p1", 0, 6, true),
-  r("p3", 4, 7, true),
-  r("p5", 1, 9, false),
-  r("p7", 7, 4, false),
-  r("p6", 2, 5, true),
-  r("p4", 9, 1, true),
-  r("p7", 6, 0, false),
-  r("p2", 3, 4, false),
-  r("p5", 13, 7, true),
-  r("p3", 11, 5, true),
+  rallySpec("p3", 4, 3, true),
+  rallySpec("p2", 5, 11, false),
+  rallySpec("p1", 0, 6, true),
+  rallySpec("p3", 4, 7, true),
+  rallySpec("p5", 1, 9, false),
+  rallySpec("p7", 7, 4, false),
+  rallySpec("p6", 2, 5, true),
+  rallySpec("p4", 9, 1, true),
+  rallySpec("p7", 6, 0, false),
+  rallySpec("p2", 3, 4, false),
+  rallySpec("p5", 13, 7, true),
+  rallySpec("p3", 11, 5, true),
 ];
 
 /** Rally 13 — the one the walkthrough records live and the stats count (+1 ATTACK). */
-export const SENT_RALLY: RallySpec = r("p3", 4, 7, true);
+export const SENT_RALLY: RallySpec = rallySpec("p3", 4, 7, true);
 
-// The rest of the set, as W/L; moves cycle through these templates.
 const TAIL = "LLLWLLWLLLWWWLWWLWLLWWLWWLWLWWLWW";
 const WINS = [
-  r("p2", 4, 3, true),
-  r("p6", 2, 5, true),
-  r("p4", 10, 3, true),
-  r("p1", 0, 6, true),
-  r("p5", 4, 7, true),
+  rallySpec("p2", 4, 3, true),
+  rallySpec("p6", 2, 5, true),
+  rallySpec("p4", 10, 3, true),
+  rallySpec("p1", 0, 6, true),
+  rallySpec("p5", 4, 7, true),
 ];
 const LOSSES = [
-  r("p7", 6, 0, false),
-  r("p3", 5, 2, false),
-  r("p7", 7, 4, false),
-  r("p2", 1, 9, false),
+  rallySpec("p7", 6, 0, false),
+  rallySpec("p3", 5, 2, false),
+  rallySpec("p7", 7, 4, false),
+  rallySpec("p2", 1, 9, false),
 ];
 
-let w = 0;
-let l = 0;
+let winIndex = 0;
+let lossIndex = 0;
 export const SET_RALLIES: RallySpec[] = [
   ...OPENING,
   SENT_RALLY,
-  ...[...TAIL].map((c) =>
-    c === "W" ? WINS[w++ % WINS.length]! : LOSSES[l++ % LOSSES.length]!,
+  ...[...TAIL].map((outcome) =>
+    outcome === "W"
+      ? WINS[winIndex++ % WINS.length]!
+      : LOSSES[lossIndex++ % LOSSES.length]!,
   ),
 ];
 
-/** How many rallies the recorded game holds before the walkthrough's live rally. */
 export const SEED_COUNT = OPENING.length;
 
-/** One rally beat in ms: the clock's interval, and `--rally-beat` for the animations tied to it. */
+/** One rally beat in ms; also set as --rally-beat. */
 export const INTERVAL = 2200;
 
-/** The set with the running score after each rally. */
 export const FOLDED_RALLIES = (() => {
   let home = 0;
   let away = 0;
@@ -106,5 +110,4 @@ const DIFF_SERIES = [
   ...FOLDED_RALLIES.map((rally) => rally.homeScore - rally.awayScore),
 ];
 
-/** Running point differential (home − away) from 0 after `rallies` rallies. */
 export const diffsAt = (rallies: number) => DIFF_SERIES.slice(0, rallies + 1);

@@ -8,7 +8,6 @@ const HeroEntries = dynamic(
   { ssr: false },
 );
 
-/** Whole rows only: the height rounds down to the container's. */
 export const EntryRows = () => (
   <div className="landing-entry-rows">
     <HeroEntries />
