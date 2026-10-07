@@ -67,8 +67,8 @@ const pairs: { fg: string; bg: string; min: number; themes?: Theme[] }[] = [
   { fg: "destructive-foreground", bg: "destructive", min: TEXT },
   { fg: "destructive-text", bg: "card", min: TEXT },
   { fg: "destructive-text", bg: "accent", min: TEXT },
-  { fg: "primary-text", bg: "card", min: ICON, themes: ["dark"] },
-  { fg: "primary-text", bg: "accent", min: ICON, themes: ["dark"] },
+  { fg: "primary-text", bg: "card", min: TEXT },
+  { fg: "primary-text", bg: "accent", min: TEXT },
   { fg: "primary-text", bg: "muted", min: ICON, themes: ["dark"] },
   { fg: "court-foreground", bg: "court", min: TEXT },
   { fg: "court-foreground", bg: "court-back-zone", min: TEXT },
@@ -100,7 +100,9 @@ describe("globals.css colour tokens", () => {
     const shared = Object.keys(blueprint[theme]).filter(
       (name) => name in app[theme],
     );
-    expect(shared).toEqual(expect.arrayContaining(pairs.map((p) => p.fg)));
+    expect(shared).toEqual(
+      expect.arrayContaining(pairs.flatMap((p) => [p.fg, p.bg])),
+    );
     for (const name of shared) {
       expect([name, blueprint[theme][name]]).toEqual([name, app[theme][name]]);
     }
