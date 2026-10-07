@@ -18,7 +18,16 @@ const cli =
   process.env.RELEASE_TEST_CLI ||
   fileURLToPath(new URL("../release-controls.js", import.meta.url));
 
-async function fixture(t) {
+async function fixture(
+  t,
+  {
+    persistedContract = false,
+    persistedContractPath = "src/infrastructure/db/schema.ts",
+    compatibilityTest = false,
+    baselineCompatibilityTest = false,
+    removeCompatibilityTest = false,
+  } = {},
+) {
   const root = await mkdtemp(path.join(os.tmpdir(), "release-cli-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = path.join(root, "repo"),
@@ -30,6 +39,17 @@ async function fixture(t) {
   git(["init", "-b", "main"]);
   git(["config", "user.email", "test@example.invalid"]);
   git(["config", "user.name", "Test"]);
+  const compatibilityPath = path.join(
+    repo,
+    "test/integration/persistence/release-compatibility.itest.ts",
+  );
+  if (removeCompatibilityTest) {
+    await mkdir(path.dirname(compatibilityPath), { recursive: true });
+    await writeFile(
+      compatibilityPath,
+      "// fixture: prior compatibility coverage removed by this source\n",
+    );
+  }
   await mkdir(path.join(repo, ".changeset"));
   await writeFile(
     path.join(repo, "package.json"),
@@ -40,10 +60,30 @@ async function fixture(t) {
     )}\n`,
   );
   await writeFile(path.join(repo, "CHANGELOG.md"), "# Changes\\n");
+  if (baselineCompatibilityTest) {
+    await mkdir(path.dirname(compatibilityPath), { recursive: true });
+    await writeFile(
+      compatibilityPath,
+      "// fixture: existing integration coverage in the deployed baseline\\n",
+    );
+  }
   git(["add", "."]);
   git(["commit", "-m", "deployed"]);
   const deployed = git(["rev-parse", "HEAD"]);
   git(["tag", "v1.0.0", deployed]);
+  if (persistedContract) {
+    const contractPath = path.join(repo, persistedContractPath);
+    await mkdir(path.dirname(contractPath), { recursive: true });
+    await writeFile(contractPath, "export const schemaRevision = 2;\n");
+  }
+  if (compatibilityTest) {
+    await mkdir(path.dirname(compatibilityPath), { recursive: true });
+    await writeFile(
+      compatibilityPath,
+      "// fixture: dedicated integration coverage in the release source\n",
+    );
+  }
+  if (removeCompatibilityTest) await rm(compatibilityPath);
   await writeFile(
     path.join(repo, ".changeset", "one.md"),
     "---\\nfixture: patch\\n---\\n",
@@ -254,8 +294,6 @@ globalThis.fetch=async(u,options={})=>{
   if(url.hostname==='api.github.com'&&artifact){const file=s.artifactArchives?.[artifact[1]];if(!file)return new Response('',{status:404});return new Response(fs.readFileSync(file));}
   if(options.method==='POST'){
     s.calls.push([url.pathname]);save();
-    const preview=url.pathname.match(/^\/v2\/deployments\/(dpl_preview)\/aliases$/);
-    if(preview){const body=JSON.parse(options.body);s.integrationAlias=preview[1];s.integrationAliasName=body.alias;save();return Response.json({alias:body.alias,deploymentId:preview[1]});}
     const match=url.pathname.match(/^\/v(10|1)\/projects\/test\/(promote|rollback)\/(dpl_cand|dpl_base)$/);
     if(!match)throw Error('Unexpected mutation '+url.pathname);
     if(s.mutationStatus)return new Response('',{status:s.mutationStatus});
@@ -264,14 +302,13 @@ globalThis.fetch=async(u,options={})=>{
   }
   if(url.pathname.includes('/v4/aliases/')){
     const requested=decodeURIComponent(url.pathname.split('/').at(-1));
-    if(requested!=='app.test')return Response.json({alias:requested,deploymentId:s.integrationAlias||'dpl_old_preview',updatedAt:'2'});
+    if(requested!=='app.test')throw Error('Unexpected alias '+requested);
     if(s.pendingAlias&&!s.neverTransition){if(s.remainingPolls>0)s.remainingPolls--;else{s.alias=s.pendingAlias;delete s.pendingAlias;}save();}
     return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});
   }
   if(url.pathname.includes('/v13/deployments/')){
     const id=url.pathname.split('/').at(-1);
     if(id==='dpl_cand')return Response.json({id,projectId:'test',readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});
-    if(id==='dpl_preview')return Response.json({id,projectId:'test',readyState:s.previewReadiness||'READY',target:s.previewTarget??'preview',meta:{releaseSha:process.env.RELEASE_SHA},...s.preview});
     return Response.json({id,projectId:'test',readyState:'READY',target:'production',meta:{releaseSha:(s.deploymentShas||{})[id]||s.baselineSha},...(s.deployments||{})[id]});
   }
   if(url.pathname==='/v9/projects/test')return Response.json(s.project||{id:'test',ssoProtection:{deploymentType:'all_except_custom_domains'}});
@@ -283,6 +320,10 @@ globalThis.fetch=async(u,options={})=>{
     root,
     repo,
     remote,
+    persistedContract,
+    persistedContractPath,
+    compatibilityTest,
+    removeCompatibilityTest,
     deployed,
     merge,
     head,
@@ -295,6 +336,8 @@ globalThis.fetch=async(u,options={})=>{
       PATH: bin + ":" + process.env.PATH,
       API_STATE: statePath,
       RELEASE_SHA: merge,
+      RELEASE_MODE: "normal",
+      PRODUCTION_DB_ACTIVE: "false",
       CONTROLLER_SHA: deployed,
       GITHUB_SHA: merge,
       VERCEL_TOKEN: "test",
@@ -303,12 +346,11 @@ globalThis.fetch=async(u,options={})=>{
       VERCEL_ORG_ID: "team_test",
       VERCEL_TEAM_SLUG: "test-team",
       PRODUCTION_ALIAS: "app.test",
-      INTEGRATION_ALIAS: "integration.test",
       RELEASE_STATE_FILE: path.join(root, "staged.json"),
       GITHUB_OUTPUT: path.join(root, "output"),
       GITHUB_RUN_ID: "9",
       GITHUB_RUN_ATTEMPT: "1",
-      GITHUB_JOB: "candidate-acceptance",
+      GITHUB_JOB: "recovery-evidence",
       GH_TOKEN: "test",
       GITHUB_EVENT_PATH: eventPath,
       GITHUB_REPOSITORY: "owner/repo",
@@ -337,6 +379,8 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
   const recorded = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
   assert.equal(recorded.sha, f.merge);
   assert.equal(recorded.candidateId, "dpl_cand");
+  assert.equal(recorded.releaseMode, "normal");
+  assert.equal(recorded.productionDatabaseActive, false);
   assert.deepEqual(recorded.baseline, {
     deploymentId: "dpl_base",
     updatedAt: "1",
@@ -353,6 +397,20 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
     const invalid = run(f, "stage");
     assert.notEqual(invalid.status, 0, JSON.stringify(candidate));
   }
+});
+
+test("stage stops before deployment when release mode or database lifecycle is unknown", async (t) => {
+  const f = await fixture(t);
+  for (const override of [
+    { RELEASE_MODE: "" },
+    { RELEASE_MODE: "preview" },
+    { PRODUCTION_DB_ACTIVE: "" },
+    { PRODUCTION_DB_ACTIVE: "yes" },
+  ]) {
+    const result = run(f, "stage", override);
+    assert.notEqual(result.status, 0, JSON.stringify(override));
+  }
+  assert.deepEqual(JSON.parse(await readFile(f.statePath, "utf8")).calls, []);
 });
 
 test("stage permits protected generated aliases but rejects production or unknown aliases", async (t) => {
@@ -410,6 +468,7 @@ test("normal retry preserves merged version SHA and binds owner authorization th
   assert.equal(authorized.version, "1.0.1");
   const bound = {
     ...env,
+    RELEASE_MODE: "normal-retry",
     RELEASE_AUTHORIZATION: JSON.stringify(authorized.authorization),
   };
   assert.equal(run(f, "stage", bound).status, 0);
@@ -434,13 +493,26 @@ test("normal retry preserves merged version SHA and binds owner authorization th
   assert.notEqual(run(f, "authorize-retry", env).status, 0);
 });
 
-test("rollback requires accepted run-bound evidence, not mutable environment values", async (t) => {
+test("rollback requires an intact run-bound receipt and ignores mutable evidence variables", async (t) => {
   const f = await fixture(t);
   const { accepted } = await prepareAcceptedRelease(f);
+  const corrupted = path.join(f.root, "corrupted.json");
+  const state = JSON.parse(await readFile(accepted, "utf8"));
+  state.recoveryEvidence.facts.candidate.deploymentId = "dpl_forged";
+  await writeFile(corrupted, JSON.stringify(state));
   await updateApi(f, { alias: "dpl_cand" });
+  const denied = run(f, "rollback-if-compatible", {
+    RELEASE_STATE_FILE: corrupted,
+  });
+  assert.notEqual(denied.status, 0);
+  assert.match(denied.stderr, /receipt no longer matches/);
+  assert.equal(
+    JSON.parse(await readFile(f.statePath, "utf8")).alias,
+    "dpl_cand",
+  );
   let result = run(f, "rollback-if-compatible", {
-    RELEASE_ACCEPTED_STATE_FILE: accepted,
     RELEASE_STATE_FILE: accepted,
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
     RELEASE_ROLLBACK_COMPATIBILITY: "forged",
     RELEASE_ROLLBACK_EVIDENCE: "https://attacker.example.test/claim",
   });
@@ -458,25 +530,99 @@ test("rollback requires accepted run-bound evidence, not mutable environment val
   assert.match(result.stderr, /health check returned HTTP 503/);
 });
 
+test("legacy release state cannot bypass a fresh owner-authorized release", async (t) => {
+  const f = await fixture(t);
+  const { accepted } = await prepareAcceptedRelease(f);
+  const state = JSON.parse(await readFile(accepted, "utf8"));
+  state.stateVersion = 2;
+  delete state.releaseMode;
+  delete state.productionDatabaseActive;
+  delete state.recoveryEvidence;
+  state.recovery = {
+    verified: true,
+    owner: "release-owner",
+    runId: "10",
+    runAttempt: "1",
+    originalRunId: "9",
+  };
+  const legacyState = path.join(f.root, "legacy-recovery.json");
+  await writeFile(legacyState, JSON.stringify(state));
+  await updateApi(f, { alias: "dpl_cand" });
+  const callsBeforeRollback = JSON.parse(
+    await readFile(f.statePath, "utf8"),
+  ).calls;
+  const recoveryEnv = {
+    RELEASE_STATE_FILE: legacyState,
+    GITHUB_RUN_ID: "10",
+    GITHUB_RUN_ATTEMPT: "1",
+    GITHUB_EVENT_NAME: "workflow_dispatch",
+    GITHUB_REF: "refs/heads/main",
+  };
+  const denied = run(f, "rollback-if-compatible", recoveryEnv);
+  assert.notEqual(denied.status, 0);
+  assert.match(
+    denied.stderr,
+    /Legacy release artifacts require a fresh authorized release run/,
+  );
+  const after = JSON.parse(await readFile(f.statePath, "utf8"));
+  assert.equal(after.alias, "dpl_cand");
+  assert.deepEqual(after.calls, callsBeforeRollback);
+});
+
 async function updateApi(f, values) {
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
   await writeFile(f.statePath, JSON.stringify({ ...current, ...values }));
 }
 
-async function githubOutputs(f) {
-  const values = {};
-  for (const line of (await readFile(f.env.GITHUB_OUTPUT, "utf8")).split(
-    "\n",
-  )) {
-    const separator = line.indexOf("=");
-    if (separator > 0)
-      values[line.slice(0, separator)] = line.slice(separator + 1);
-  }
-  return values;
+function workflowJob(
+  id,
+  name,
+  status = "completed",
+  conclusion = "success",
+  steps,
+) {
+  return {
+    id,
+    name,
+    status,
+    conclusion,
+    run_attempt: 1,
+    ...(steps && { steps }),
+  };
 }
 
-function workflowJob(id, name, status = "completed", conclusion = "success") {
-  return { id, name, status, conclusion, run_attempt: 1 };
+async function passingCompatibilityTestEnv(f, overrides = {}) {
+  const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, {
+    jobs: {
+      ...api.jobs,
+      9: [
+        workflowJob(
+          503,
+          "Verify release recovery evidence",
+          "in_progress",
+          null,
+          [
+            {
+              name: "Run and validate exact-baseline compatibility suite",
+              status: "completed",
+              conclusion: "success",
+            },
+          ],
+        ),
+      ],
+    },
+  });
+  return {
+    RELEASE_COMPATIBILITY_TEST_RESULT: "success",
+    RELEASE_COMPATIBILITY_BASELINE_SHA: f.deployed,
+    RELEASE_COMPATIBILITY_SOURCE_SHA: f.merge,
+    RELEASE_COMPATIBILITY_SOURCE_TREE: f.git([
+      "rev-parse",
+      `${f.merge}^{tree}`,
+    ]),
+    ...overrides,
+  };
 }
 
 function ciScopeJob(git, id, name, source) {
@@ -506,15 +652,7 @@ function approval(login = "reviewer") {
   };
 }
 
-async function prepareAcceptedRelease(
-  f,
-  {
-    env = {},
-    staged = false,
-    prebinding = f.head,
-    probeJobBinding = false,
-  } = {},
-) {
+async function prepareSourceRelease(f, { env = {}, staged = false } = {}) {
   if (!staged) assert.equal(run(f, "stage", env).status, 0);
   const sourceSha = env.RELEASE_SHA || f.merge;
   if (sourceSha !== f.merge) {
@@ -531,61 +669,23 @@ async function prepareAcceptedRelease(
       },
     });
   }
-  const evidence = "https://github.com/owner/repo/blob/main/docs/recovery.md";
-  let result = run(f, "inspect-source-qa", {
-    ...env,
-    RELEASE_ROLLBACK_COMPATIBILITY: `dpl_base:${prebinding}`,
-    RELEASE_ROLLBACK_EVIDENCE: evidence,
-  });
+  let result = run(f, "inspect-source-qa", env);
   assert.equal(result.status, 0, result.stderr);
   result = run(f, "record-source-qa", env);
   assert.equal(result.status, 0, result.stderr);
+  return { sourceSha, env };
+}
+
+async function prepareAcceptedRelease(f, options = {}) {
+  const { env = {} } = options;
+  const source = await prepareSourceRelease(f, options);
   const accepted = path.join(f.root, "accepted.json");
-  const withSource = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    jobs: {
-      ...withSource.jobs,
-      9: [workflowJob(503, "Accept candidate evidence", "in_progress", null)],
-    },
-    approvals: { ...withSource.approvals, 9: [approval()] },
-  });
-  const binding = `dpl_base:dpl_cand:${sourceSha}`;
-  if (probeJobBinding) {
-    const denied = run(f, "record-compatibility", {
-      ...env,
-      RELEASE_ACCEPTED_STATE_FILE: accepted,
-      RELEASE_ROLLBACK_COMPATIBILITY: binding,
-      RELEASE_ROLLBACK_EVIDENCE: evidence,
-      GITHUB_JOB: "source-receipt",
-    });
-    assert.notEqual(denied.status, 0);
-    assert.match(denied.stderr, /unexpected workflow job/);
-    assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
-  }
-  result = run(f, "record-compatibility", {
+  const result = run(f, "record-recovery-evidence", {
     ...env,
     RELEASE_ACCEPTED_STATE_FILE: accepted,
-    RELEASE_ROLLBACK_COMPATIBILITY: binding,
-    RELEASE_ROLLBACK_EVIDENCE: evidence,
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(
-    JSON.parse(await readFile(accepted, "utf8")).compatibility.approval
-      .githubJob,
-    "candidate-acceptance",
-  );
-  const protectedApi = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    jobs: {
-      ...protectedApi.jobs,
-      9: protectedApi.jobs[9].map((job) =>
-        job.id === 503
-          ? { ...job, status: "completed", conclusion: "success" }
-          : job,
-      ),
-    },
-  });
-  return { accepted, binding, evidence };
+  return { ...source, accepted };
 }
 
 async function prepareFinalRelease(f) {
@@ -617,13 +717,323 @@ async function prepareFinalRelease(f) {
   return { ...accepted, finalState };
 }
 
-test("candidate approval receipt is bound to its protected workflow job", async (t) => {
+test("recovery receipt binds the source run, attempt, baseline, candidate, and database policy", async (t) => {
   const f = await fixture(t);
+  const { accepted } = await prepareAcceptedRelease(f);
+  const state = JSON.parse(await readFile(accepted, "utf8"));
+  assert.equal(state.recoveryEvidence.schemaVersion, 2);
+  assert.equal(state.recoveryEvidence.runId, "9");
+  assert.equal(state.recoveryEvidence.runAttempt, "1");
+  assert.equal(state.recoveryEvidence.facts.release.sourceSha, f.merge);
+  assert.equal(state.recoveryEvidence.facts.baseline.deploymentId, "dpl_base");
+  assert.equal(state.recoveryEvidence.facts.candidate.deploymentId, "dpl_cand");
+  assert.equal(
+    state.recoveryEvidence.facts.database.policy,
+    "pre-production-forward-only",
+  );
+  assert.equal(state.recoveryEvidence.facts.database.rollbackAllowed, true);
+  assert.ok(Date.parse(state.recoveryEvidence.expiresAt) > Date.now());
+});
+
+test("pre-production contract changes may promote but cannot roll code back", async (t) => {
+  const f = await fixture(t, { persistedContract: true });
   const { accepted } = await prepareAcceptedRelease(f, {
-    probeJobBinding: true,
+    env: {},
   });
   const state = JSON.parse(await readFile(accepted, "utf8"));
-  assert.equal(state.compatibility.approval.githubJob, "candidate-acceptance");
+  assert.equal(
+    state.recoveryEvidence.facts.database.policy,
+    "pre-production-forward-only",
+  );
+  assert.equal(state.recoveryEvidence.facts.database.rollbackAllowed, false);
+
+  const promoted = run(f, "promote", {
+    RELEASE_STATE_FILE: accepted,
+    RELEASE_SHA: f.merge,
+  });
+  assert.equal(promoted.status, 0, promoted.stderr);
+  await updateApi(f, { alias: "dpl_cand" });
+  const rollback = run(f, "rollback-if-compatible", {
+    RELEASE_STATE_FILE: accepted,
+    RELEASE_SHA: f.merge,
+  });
+  assert.notEqual(rollback.status, 0);
+  assert.match(rollback.stderr, /forward-only contract change/);
+  assert.equal(
+    JSON.parse(await readFile(f.statePath, "utf8")).alias,
+    "dpl_cand",
+  );
+});
+
+test("active production data requires exact-source integration proof for persisted contract changes", async (t) => {
+  const f = await fixture(t, { persistedContract: true });
+  const env = { PRODUCTION_DB_ACTIVE: "true" };
+  const { env: sourceEnv } = await prepareSourceRelease(f, { env });
+  const accepted = path.join(f.root, "missing-proof.json");
+  const missing = run(f, "record-recovery-evidence", {
+    ...sourceEnv,
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /release-compatibility\.itest\.ts/);
+  assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
+
+  const proofFixture = await fixture(t, {
+    persistedContract: true,
+    persistedContractPath: "src/entities/game.ts",
+    compatibilityTest: true,
+  });
+  const compatibilityEnv = await passingCompatibilityTestEnv(proofFixture);
+  const proofRelease = await prepareAcceptedRelease(proofFixture, {
+    env: { PRODUCTION_DB_ACTIVE: "true", ...compatibilityEnv },
+  });
+  const proof = JSON.parse(await readFile(proofRelease.accepted, "utf8"));
+  assert.equal(
+    proof.recoveryEvidence.facts.database.policy,
+    "production-targeted-integration-proof",
+  );
+  assert.equal(
+    proof.recoveryEvidence.facts.database.compatibilityTest.path,
+    "test/integration/persistence/release-compatibility.itest.ts",
+  );
+  assert.deepEqual(proof.recoveryEvidence.facts.database.changedContractPaths, [
+    "src/entities/game.ts",
+  ]);
+  assert.equal(
+    proof.recoveryEvidence.facts.database.compatibilityTest.baselineSha,
+    proofFixture.deployed,
+  );
+  assert.equal(
+    proof.recoveryEvidence.facts.database.compatibilityTest.sourceSha,
+    proofFixture.merge,
+  );
+  assert.equal(proof.recoveryEvidence.facts.database.rollbackAllowed, true);
+  const lifecycleChanged = run(proofFixture, "promote", {
+    RELEASE_STATE_FILE: proofRelease.accepted,
+    RELEASE_SHA: proofFixture.merge,
+    PRODUCTION_DB_ACTIVE: "false",
+  });
+  assert.notEqual(lifecycleChanged.status, 0);
+  assert.match(lifecycleChanged.stderr, /database lifecycle changed/);
+});
+
+test("unclassified production source paths stop instead of implying compatibility", async (t) => {
+  const f = await fixture(t, {
+    persistedContract: true,
+    persistedContractPath: "src/app/(tabs)/teams/page.tsx",
+  });
+  const source = await prepareSourceRelease(f, {
+    env: { PRODUCTION_DB_ACTIVE: "true" },
+  });
+  const result = run(f, "record-recovery-evidence", {
+    ...source.env,
+    RELEASE_ACCEPTED_STATE_FILE: path.join(f.root, "unclassified.json"),
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Cannot classify changed paths/);
+  assert.match(result.stderr, /src\/app\/\(tabs\)\/teams\/page\.tsx/);
+});
+
+test("persisted application writers and dependency-lock changes require targeted proof", async (t) => {
+  for (const persistedContractPath of [
+    "src/applications/usecases/game/update-set.usecase.ts",
+    "pnpm-lock.yaml",
+  ]) {
+    const f = await fixture(t, {
+      persistedContract: true,
+      persistedContractPath,
+    });
+    const source = await prepareSourceRelease(f, {
+      env: { PRODUCTION_DB_ACTIVE: "true" },
+    });
+    const result = run(f, "record-recovery-evidence", {
+      ...source.env,
+      RELEASE_ACCEPTED_STATE_FILE: path.join(f.root, "missing-suite.json"),
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /release-compatibility\.itest\.ts must exist/);
+  }
+});
+
+test("production package version metadata alone is not a persisted contract change", async (t) => {
+  const f = await fixture(t);
+  const { accepted } = await prepareAcceptedRelease(f, {
+    env: { PRODUCTION_DB_ACTIVE: "true" },
+  });
+  const state = JSON.parse(await readFile(accepted, "utf8"));
+  assert.equal(
+    state.recoveryEvidence.facts.database.policy,
+    "production-contract-unchanged",
+  );
+  assert.equal(state.recoveryEvidence.facts.database.rollbackAllowed, true);
+});
+
+test("compatibility report requires both directional assertions to pass without skips", async (t) => {
+  const f = await fixture(t);
+  const suitePath =
+    "test/integration/persistence/release-compatibility.itest.ts";
+  const baselineAssertion = `production baseline ${f.deployed} reads candidate-written records`;
+  const reportPath = path.join(f.root, "compatibility-report.json");
+  const sourceTree = f.git(["rev-parse", `${f.merge}^{tree}`]);
+  const expectedAssertions = [
+    "candidate reads legacy persisted records",
+    baselineAssertion,
+  ];
+  const report = (assertionTitles, skipped = 0, assertionStatuses = []) => ({
+    numFailedTests: 0,
+    numPendingTests: skipped,
+    numTodoTests: 0,
+    numPassedTests: assertionTitles.length - skipped,
+    numTotalTests: assertionTitles.length,
+    testResults: [
+      {
+        name: path.join(f.repo, suitePath),
+        status: "passed",
+        assertionResults: assertionTitles.map((title, index) => ({
+          title,
+          status:
+            assertionStatuses[index] ??
+            (index < skipped ? "skipped" : "passed"),
+        })),
+      },
+    ],
+  });
+  const env = {
+    PRODUCTION_BASELINE_SHA: f.deployed,
+    RELEASE_CANDIDATE_SHA: f.merge,
+    RELEASE_CANDIDATE_TREE: sourceTree,
+    RELEASE_COMPATIBILITY_REPORT: reportPath,
+  };
+
+  await writeFile(reportPath, JSON.stringify(report(expectedAssertions)));
+  const passed = run(f, "verify-compatibility-report", env);
+  assert.equal(passed.status, 0, passed.stderr);
+  assert.match(await readFile(f.env.GITHUB_OUTPUT, "utf8"), /result=success/);
+
+  const wrongBaselineSha = `${f.deployed.slice(0, -1)}${f.deployed.endsWith("0") ? "1" : "0"}`;
+  const wrongBaselineAssertion = `production baseline ${wrongBaselineSha} reads candidate-written records`;
+  const invalidReports = [
+    report(expectedAssertions, 1),
+    report(expectedAssertions.slice(0, 1)),
+    report(["unrelated assertion one", "unrelated assertion two"]),
+    report([expectedAssertions[0], wrongBaselineAssertion]),
+    report([expectedAssertions[0], expectedAssertions[0]]),
+    report(expectedAssertions, 0, ["failed", "passed"]),
+    report(expectedAssertions, 0, ["passed", "skipped"]),
+  ];
+  for (const [index, invalidReport] of invalidReports.entries()) {
+    await writeFile(reportPath, JSON.stringify(invalidReport));
+    const rejected = run(f, "verify-compatibility-report", {
+      ...env,
+      GITHUB_OUTPUT: path.join(f.root, `invalid-${index}.out`),
+    });
+    assert.notEqual(rejected.status, 0);
+    assert.match(
+      rejected.stderr,
+      /Compatibility report|Compatibility report is missing/,
+    );
+  }
+});
+
+test("active production contract changes require a passing exact-baseline suite receipt", async (t) => {
+  const f = await fixture(t, {
+    persistedContract: true,
+    compatibilityTest: true,
+  });
+  const source = await prepareSourceRelease(f, {
+    env: { PRODUCTION_DB_ACTIVE: "true" },
+  });
+  const accepted = path.join(f.root, "missing-suite-receipt.json");
+  const missing = run(f, "record-recovery-evidence", {
+    ...source.env,
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /compatibility integration test did not pass/i);
+  assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
+
+  const mismatchEnv = await passingCompatibilityTestEnv(f, {
+    RELEASE_COMPATIBILITY_BASELINE_SHA: "b".repeat(40),
+  });
+  const mismatch = run(f, "record-recovery-evidence", {
+    ...source.env,
+    ...mismatchEnv,
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.notEqual(mismatch.status, 0);
+  assert.match(mismatch.stderr, /did not pass for this release/i);
+  assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
+});
+
+test("existing exact-source integration coverage may prove a persisted contract change", async (t) => {
+  const f = await fixture(t, {
+    persistedContract: true,
+    baselineCompatibilityTest: true,
+  });
+  const suitePath =
+    "test/integration/persistence/release-compatibility.itest.ts";
+  assert.equal(
+    f
+      .git(["diff", "--name-only", f.deployed + ".." + f.merge])
+      .split("\n")
+      .includes(suitePath),
+    false,
+  );
+  const compatibilityEnv = await passingCompatibilityTestEnv(f);
+  const release = await prepareAcceptedRelease(f, {
+    env: { PRODUCTION_DB_ACTIVE: "true", ...compatibilityEnv },
+  });
+  const proof = JSON.parse(await readFile(release.accepted, "utf8"));
+  assert.equal(
+    proof.recoveryEvidence.facts.database.compatibilityTest.path,
+    suitePath,
+  );
+});
+
+test("recovery revalidates the native compatibility test before rolling back", async (t) => {
+  const f = await fixture(t, {
+    persistedContract: true,
+    compatibilityTest: true,
+  });
+  const compatibilityEnv = await passingCompatibilityTestEnv(f);
+  const { accepted } = await prepareAcceptedRelease(f, {
+    env: { PRODUCTION_DB_ACTIVE: "true", ...compatibilityEnv },
+  });
+  await updateApi(f, { alias: "dpl_cand" });
+  let state = JSON.parse(await readFile(f.statePath, "utf8"));
+  const job = state.jobs[9][0];
+  job.steps[0].conclusion = "failure";
+  await updateApi(f, { jobs: state.jobs });
+  state = JSON.parse(await readFile(f.statePath, "utf8"));
+  const callsBeforeRollback = state.calls;
+
+  const denied = run(f, "rollback-if-compatible", {
+    RELEASE_STATE_FILE: accepted,
+    PRODUCTION_DB_ACTIVE: "true",
+  });
+  assert.notEqual(denied.status, 0);
+  assert.match(denied.stderr, /compatibility suite and report did not pass/i);
+  const after = JSON.parse(await readFile(f.statePath, "utf8"));
+  assert.equal(after.alias, "dpl_cand");
+  assert.deepEqual(after.calls, callsBeforeRollback);
+});
+
+test("active production data rejects compatibility coverage removed from the exact source", async (t) => {
+  const f = await fixture(t, {
+    persistedContract: true,
+    removeCompatibilityTest: true,
+  });
+  const source = await prepareSourceRelease(f, {
+    env: { PRODUCTION_DB_ACTIVE: "true" },
+  });
+  const accepted = path.join(f.root, "removed-test-proof.json");
+  const result = run(f, "record-recovery-evidence", {
+    ...source.env,
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must exist in the exact release source/);
+  assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
 });
 
 function hotfixAuthorization(f, current) {
@@ -788,6 +1198,7 @@ test("hotfix state rejects partial reruns by another actor before any release wr
   const env = {
     HOTFIX_PR_NUMBER: "2",
     RELEASE_SHA: f.hotfix,
+    RELEASE_MODE: "hotfix",
     GITHUB_EVENT_NAME: "workflow_dispatch",
   };
   const authorized = run(f, "authorize-hotfix", env);
@@ -807,7 +1218,7 @@ test("hotfix state rejects partial reruns by another actor before any release wr
   assert.deepEqual(state.authorization, authorization);
   const calls = JSON.parse(await readFile(f.statePath, "utf8")).calls;
   for (const action of [
-    "record-compatibility",
+    "record-recovery-evidence",
     "promote",
     "rollback-if-compatible",
     "finalize",
@@ -827,7 +1238,6 @@ test("hotfix state rejects partial reruns by another actor before any release wr
   const { accepted } = await prepareAcceptedRelease(f, {
     env,
     staged: true,
-    prebinding: f.hotfix,
   });
   const promoted = run(f, "promote", {
     ...env,
@@ -864,11 +1274,7 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
       ],
     },
   });
-  const evidence = "https://github.com/owner/repo/blob/main/docs/recovery.md";
-  let result = run(f, "inspect-source-qa", {
-    RELEASE_ROLLBACK_COMPATIBILITY: `dpl_base:${f.head}`,
-    RELEASE_ROLLBACK_EVIDENCE: evidence,
-  });
+  let result = run(f, "inspect-source-qa");
   assert.equal(result.status, 0, result.stderr);
   result = run(f, "record-source-qa");
   assert.equal(result.status, 0, result.stderr);
@@ -914,10 +1320,7 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
     workflowBlobs: { ...untrusted.workflowBlobs, [f.head]: "b".repeat(40) },
   });
   await writeFile(f.env.GITHUB_OUTPUT, "");
-  result = run(f, "inspect-source-qa", {
-    RELEASE_ROLLBACK_COMPATIBILITY: `dpl_base:${f.head}`,
-    RELEASE_ROLLBACK_EVIDENCE: evidence,
-  });
+  result = run(f, "inspect-source-qa");
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /trusted CI evidence/);
 });
@@ -966,98 +1369,6 @@ test("owner CI correction proves an unchanged old application tree with the trus
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /owner-dispatched/);
   }
-});
-
-test("explicit source gap binds a fixed-alias Preview and native approval", async (t) => {
-  const f = await fixture(t);
-  assert.equal(run(f, "stage").status, 0);
-  const evidence = "https://github.com/owner/repo/blob/main/docs/recovery.md";
-  let result = run(f, "inspect-source-qa", {
-    RELEASE_SOURCE_QA_GAP: "Google integration requires the fixed OAuth alias",
-    RELEASE_ROLLBACK_COMPATIBILITY: `dpl_base:${f.head}`,
-    RELEASE_ROLLBACK_EVIDENCE: evidence,
-  });
-  assert.equal(result.status, 0, result.stderr);
-  const sourcePlan = await readFile(f.env.RELEASE_STATE_FILE, "utf8");
-  await writeFile(f.env.GITHUB_OUTPUT, "");
-  result = run(f, "prepare-source-preview");
-  assert.equal(result.status, 0, result.stderr);
-  const outputs = await githubOutputs(f);
-  assert.equal(outputs.preview_id, "dpl_preview");
-  assert.equal(outputs.preview_url, "https://integration.test");
-
-  await writeFile(f.env.RELEASE_STATE_FILE, sourcePlan);
-  const api = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    previewTarget: "production",
-    jobs: {
-      ...api.jobs,
-      9: [workflowJob(613, "Accept source Preview")],
-    },
-    approvals: { ...api.approvals, 9: [approval()] },
-  });
-  result = run(f, "record-source-qa", { SOURCE_PREVIEW_ID: "dpl_preview" });
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Preview identity/);
-  await updateApi(f, { previewTarget: "preview" });
-  result = run(f, "record-source-qa", { SOURCE_PREVIEW_ID: "dpl_preview" });
-  assert.equal(result.status, 0, result.stderr);
-  const receipt = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
-  assert.deepEqual(
-    {
-      deploymentId: receipt.sourceQA.preview.deploymentId,
-      alias: receipt.sourceQA.preview.alias,
-      gap: receipt.sourceQA.preview.gap,
-      job: receipt.sourceQA.preview.approval.githubJob,
-      reviewer: receipt.sourceQA.preview.approval.reviewHistory[0].user.login,
-    },
-    {
-      deploymentId: "dpl_preview",
-      alias: "integration.test",
-      gap: "Google integration requires the fixed OAuth alias",
-      job: "source-preview-acceptance",
-      reviewer: "reviewer",
-    },
-  );
-  const accepted = path.join(f.root, "accepted-preview.json");
-  const sourceApi = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    jobs: {
-      ...sourceApi.jobs,
-      9: [
-        ...sourceApi.jobs[9],
-        workflowJob(614, "Accept candidate evidence", "in_progress", null),
-      ],
-    },
-  });
-  result = run(f, "record-compatibility", {
-    RELEASE_ACCEPTED_STATE_FILE: accepted,
-    RELEASE_ROLLBACK_COMPATIBILITY: `dpl_base:dpl_cand:${f.merge}`,
-    RELEASE_ROLLBACK_EVIDENCE: evidence,
-  });
-  assert.equal(result.status, 0, result.stderr);
-  const acceptedApi = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    integrationAlias: "dpl_other_preview",
-    jobs: {
-      ...acceptedApi.jobs,
-      9: acceptedApi.jobs[9].map((job) =>
-        job.id === 614
-          ? { ...job, status: "completed", conclusion: "success" }
-          : job,
-      ),
-    },
-  });
-  result = run(f, "promote", { RELEASE_STATE_FILE: accepted });
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /source Preview alias changed/);
-  assert.equal(
-    JSON.parse(await readFile(f.statePath, "utf8")).alias,
-    "dpl_base",
-  );
-  await updateApi(f, { integrationAlias: "dpl_preview" });
-  result = run(f, "promote", { RELEASE_STATE_FILE: accepted });
-  assert.equal(result.status, 0, result.stderr);
 });
 
 test("owner recovery accepts only the original nonexpired proven artifact", async (t) => {
@@ -1192,6 +1503,46 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /deployment|readiness|live alias/i);
   await updateApi(f, { candidate: undefined });
+
+  const currentBeforeLegacy = JSON.parse(await readFile(f.statePath, "utf8"));
+  const currentArtifact = currentBeforeLegacy.artifacts[9][0];
+  const currentState = await readFile(stateFile);
+  const legacyState = JSON.parse(currentState.toString("utf8"));
+  legacyState.stateVersion = 2;
+  delete legacyState.releaseMode;
+  delete legacyState.productionDatabaseActive;
+  delete legacyState.recoveryEvidence;
+  await writeFile(stateFile, JSON.stringify(legacyState));
+  await rm(archive, { force: true });
+  execFileSync("zip", ["-q", "-j", archive, stateFile]);
+  const legacyDigest = createHash("sha256")
+    .update(await readFile(archive))
+    .digest("hex");
+  await updateApi(f, {
+    artifacts: {
+      ...currentBeforeLegacy.artifacts,
+      9: [{ ...currentArtifact, digest: `sha256:${legacyDigest}` }],
+    },
+  });
+  result = run(f, "recover-verify", recoveryEnv);
+  assert.notEqual(result.status, 0);
+  assert.match(
+    result.stderr,
+    /Legacy release artifacts require a fresh authorized release run/,
+  );
+
+  await writeFile(stateFile, currentState);
+  await rm(archive, { force: true });
+  execFileSync("zip", ["-q", "-j", archive, stateFile]);
+  const restoredDigest = createHash("sha256")
+    .update(await readFile(archive))
+    .digest("hex");
+  await updateApi(f, {
+    artifacts: {
+      ...currentBeforeLegacy.artifacts,
+      9: [{ ...currentArtifact, digest: `sha256:${restoredDigest}` }],
+    },
+  });
   result = run(f, "recover-verify", recoveryEnv);
   assert.equal(result.status, 0, result.stderr);
   const recovered = JSON.parse(await readFile(recovery, "utf8"));
@@ -1201,7 +1552,6 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     runId: "10",
     runAttempt: "1",
     originalRunId: "9",
-    originalRunAttempt: "1",
   });
   result = run(f, "rollback-if-compatible", {
     ...recoveryEnv,
@@ -1431,8 +1781,16 @@ async function prepareMergeBackFixture(f, { conflict = false } = {}) {
   await writeFile(
     f.env.RELEASE_STATE_FILE,
     `${JSON.stringify({
+      stateVersion: 3,
       sha: f.hotfix,
+      controllerSha: f.deployed,
+      releaseRunId: "9",
+      releaseRunAttempt: "1",
+      releaseMode: "hotfix",
+      productionDatabaseActive: false,
       candidateId: "dpl_hotfix",
+      projectId: "test",
+      productionAlias: "app.test",
       baseline: {
         deploymentId: "dpl_base",
         updatedAt: "1",
@@ -1561,17 +1919,17 @@ test("finalize tags only the promoted exact SHA and repeats without duplicate Re
   assert.match(result.stderr, /different commit/);
 });
 
-test("candidate acceptance fails closed without recovery proof", async (t) => {
+test("recovery receipt cannot be created without trusted source CI receipts", async (t) => {
   const f = await fixture(t);
   assert.equal(run(f, "stage").status, 0);
   const accepted = path.join(f.root, "accepted.json");
-  const result = run(f, "record-compatibility", {
+  const result = run(f, "record-recovery-evidence", {
     RELEASE_ACCEPTED_STATE_FILE: accepted,
     RELEASE_ROLLBACK_COMPATIBILITY: "",
     RELEASE_ROLLBACK_EVIDENCE: "",
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /recovery evidence/i);
+  assert.match(result.stderr, /source QA receipt/i);
   assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
 });
 
@@ -1580,7 +1938,7 @@ test("promotion and publication require accepted receipts, not only a healthy al
   assert.equal(run(f, "stage").status, 0);
   const denied = run(f, "promote");
   assert.notEqual(denied.status, 0);
-  assert.match(denied.stderr, /compatibility evidence|recovery evidence/i);
+  assert.match(denied.stderr, /source QA receipt|recovery receipt/i);
   await updateApi(f, { alias: "dpl_cand" });
   const publication = run(f, "finalize");
   assert.notEqual(publication.status, 0);
