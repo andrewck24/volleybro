@@ -127,7 +127,7 @@ const TeamForm = ({
             )}
           />
           {form.formState.errors.root && (
-            <p className="text-sm text-destructive-text">
+            <p className="text-sm text-error-text">
               {form.formState.errors.root.message}
             </p>
           )}

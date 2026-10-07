@@ -55,7 +55,7 @@ const figuresOf = (facts: ChangeFacts): Figure[] => [
     text: (value) => `${value}`,
     Icon: Minus,
     srLabel: "lines removed",
-    className: "border-destructive/40 bg-destructive/10 text-destructive-text",
+    className: "border-error/40 bg-error/10 text-error-text",
   },
   {
     key: "src",

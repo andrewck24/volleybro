@@ -10,7 +10,7 @@ const meta = {
   tags: ["autodocs"],
   argTypes: {
     variant: {
-      options: ["default", "destructive"],
+      options: ["default", "error"],
       control: { type: "select" },
     },
   },
@@ -32,14 +32,14 @@ export const Default: Story = {
   ),
 };
 
-export const Destructive: Story = {
-  args: { variant: "destructive" },
+export const ErrorAlert: Story = {
+  args: { variant: "error" },
   render: (args) => (
     <Alert {...args}>
       <RiAlertLine />
       <AlertTitle>Error</AlertTitle>
       <AlertDescription>
-        This is a destructive alert message used to display errors or warnings.
+        This is an error alert message used to display errors or warnings.
       </AlertDescription>
     </Alert>
   ),

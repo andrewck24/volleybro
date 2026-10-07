@@ -13,7 +13,7 @@ export function ServerErrorState({
   className,
 }: ServerErrorStateProps) {
   return (
-    <Alert variant="destructive" className={className}>
+    <Alert variant="error" className={className}>
       <RiAlertLine />
       <AlertTitle>{ERROR_MESSAGES.SERVER_ERROR.title}</AlertTitle>
       <AlertDescription>

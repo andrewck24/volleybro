@@ -22,7 +22,7 @@ class MockupBoundary extends Component<
   render() {
     if (this.state.message === null) return this.props.children;
     return (
-      <p className="text-sm text-destructive-text">
+      <p className="text-sm text-error-text">
         此設計稿在此 checkout 中無法顯示：{this.state.message}
       </p>
     );

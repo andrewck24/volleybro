@@ -46,11 +46,11 @@ export const Scores = ({
         <SyncIndicator gameId={gameId} />
       </div>
       <SetTally won={setsWonAway} needed={setsNeeded} side="away" />
-      <Container className="border-destructive">
+      <Container className="border-away">
         <Figure
           value={scores.away}
           size="lg"
-          variant={isAwaySetPoint ? "destructive" : "default"}
+          variant={isAwaySetPoint ? "away" : "default"}
           className="h-14 w-16 font-bold"
         />
         <Team>{game?.teams?.away?.name || "對手"}</Team>

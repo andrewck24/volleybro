@@ -14,7 +14,7 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-sm ring-1 ring-transparent hover:bg-primary/90",
         destructive:
-          "bg-danger text-danger-foreground shadow-sm ring-1 ring-transparent hover:bg-danger/90",
+          "bg-destructive text-destructive-foreground shadow-sm ring-1 ring-transparent hover:bg-destructive/90",
         court:
           "bg-court text-court-foreground shadow-sm ring-1 ring-transparent hover:bg-court/90",
         outline:

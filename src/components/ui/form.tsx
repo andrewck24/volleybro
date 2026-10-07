@@ -166,7 +166,7 @@ const FormMessage = ({
       data-slot="FormMessage"
       id={formMessageId}
       className={cn(
-        "text-sm leading-none font-medium text-destructive-text",
+        "text-sm leading-none font-medium text-error-text",
         className,
       )}
       {...props}
@@ -223,8 +223,7 @@ const radioItemVariants = cva(
       variant: {
         default:
           "border-primary has-checked:bg-primary has-checked:text-primary-foreground",
-        destructive:
-          "border-destructive has-checked:bg-destructive has-checked:text-destructive-foreground",
+        away: "border-away has-checked:bg-away has-checked:text-away-foreground",
       },
     },
     defaultVariants: {

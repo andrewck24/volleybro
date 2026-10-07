@@ -27,7 +27,7 @@ const SignInError = () => {
 
   if (urlError)
     return (
-      <Alert variant="destructive">
+      <Alert variant="error">
         <RiAlertLine />
         <AlertTitle>登入失敗</AlertTitle>
         <AlertDescription>{errorMessage}</AlertDescription>

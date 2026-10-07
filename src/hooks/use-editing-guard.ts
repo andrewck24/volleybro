@@ -37,7 +37,7 @@ export function useEditingGuard() {
       toast({
         title: "編輯未儲存",
         description: "這筆逐球紀錄的修改沒有送出成功，之後可以在紀錄列表重試。",
-        variant: "destructive",
+        variant: "error",
       });
     }
     dispatch(gameActions.setGameMode("general"));

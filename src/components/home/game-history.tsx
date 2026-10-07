@@ -131,9 +131,7 @@ function Match({ match, ref, ...props }: MatchProps) {
 function MatchResultBadge({ win }: { win: boolean | null }) {
   if (win === null) return <Badge variant="secondary">進行中</Badge>;
   return (
-    <Badge variant={win ? "default" : "destructive"}>
-      {win ? "獲勝" : "落敗"}
-    </Badge>
+    <Badge variant={win ? "default" : "away"}>{win ? "獲勝" : "落敗"}</Badge>
   );
 }
 

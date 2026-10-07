@@ -52,7 +52,7 @@ export const LiberoReplaceTrigger = () => {
         <CardTitle>自由球員設定</CardTitle>
       </CardHeader>
       {!!liberoReplaceMode && !hasPairedReplacePosition && (
-        <Alert variant="destructive">
+        <Alert variant="error">
           <RiAlertLine />
           <AlertTitle>無對位 {liberoReplacePosition}</AlertTitle>
           <AlertDescription>
@@ -90,7 +90,7 @@ export const LiberoReplaceTrigger = () => {
             {liberoReplacePosition}。
           </AlertDescription>
           {liberoReplacePosition !== "OP" && (
-            <AlertDescription className="text-destructive-text">
+            <AlertDescription className="text-error-text">
               陣容中須有對位之 {liberoReplacePosition}。
             </AlertDescription>
           )}

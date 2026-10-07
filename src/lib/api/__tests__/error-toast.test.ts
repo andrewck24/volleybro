@@ -30,13 +30,13 @@ describe("handle401Redirect", () => {
     mockRouter = { push: jest.fn() };
   });
 
-  it("shows 登入逾期 destructive toast", () => {
+  it("shows 登入逾期 error toast", () => {
     handle401Redirect(mockRouter, mockToast);
 
     expect(mockToast).toHaveBeenCalledWith({
       title: "登入逾期",
       description: "請重新登入",
-      variant: "destructive",
+      variant: "error",
     });
   });
 
@@ -157,18 +157,18 @@ describe("showErrorToast", () => {
     showErrorToast(error, mockToast);
 
     const { description, variant } = mockToast.mock.calls[0][0];
-    expect(variant).toBe("destructive");
+    expect(variant).toBe("error");
     expect(description).not.toBe("Internal Server Error");
   });
 
-  it("shows a destructive toast for a 401 (SESSION_EXPIRED)", () => {
+  it("shows a error toast for a 401 (SESSION_EXPIRED)", () => {
     const error = makeApiClientError(401, "AUTHENTICATION", "unauthorized");
     showErrorToast(error, mockToast);
 
     expect(mockToast).toHaveBeenCalledWith({
       title: "登入逾期",
       description: "請重新登入",
-      variant: "destructive",
+      variant: "error",
     });
   });
 
@@ -178,7 +178,7 @@ describe("showErrorToast", () => {
     expect(mockToast).toHaveBeenCalledWith({
       title: "連線逾時",
       description: "請稍後再試，若問題持續請確認網路連線",
-      variant: "destructive",
+      variant: "error",
     });
   });
 
@@ -189,16 +189,16 @@ describe("showErrorToast", () => {
     );
 
     const { variant, description } = mockToast.mock.calls[0][0];
-    expect(variant).toBe("destructive");
+    expect(variant).toBe("error");
     expect(description).not.toContain("Cannot read properties");
   });
 
   it("shows fallback toast for non-Error values (string, null, etc.)", () => {
     showErrorToast("some string error", mockToast);
-    expect(mockToast.mock.calls[0][0].variant).toBe("destructive");
+    expect(mockToast.mock.calls[0][0].variant).toBe("error");
 
     mockToast.mockClear();
     showErrorToast(null, mockToast);
-    expect(mockToast.mock.calls[0][0].variant).toBe("destructive");
+    expect(mockToast.mock.calls[0][0].variant).toBe("error");
   });
 });

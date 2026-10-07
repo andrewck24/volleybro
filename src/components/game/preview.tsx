@@ -97,7 +97,7 @@ export const PreviewCard = ({
             "transition-colors duration-500",
             showSendAffordance && "bg-primary text-primary-foreground",
             flashing && "bg-primary/30",
-            failed && "ring-1 ring-destructive",
+            failed && "ring-1 ring-error",
           )}
         />
       </div>

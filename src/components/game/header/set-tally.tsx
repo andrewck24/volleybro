@@ -5,11 +5,11 @@ type Side = "home" | "away";
 const sideLabel: Record<Side, string> = { home: "我方", away: "對手" };
 const sideFillClass: Record<Side, string> = {
   home: "bg-primary",
-  away: "bg-destructive",
+  away: "bg-away",
 };
 const sideRingClass: Record<Side, string> = {
   home: "ring-primary/50",
-  away: "ring-destructive/50",
+  away: "ring-away/50",
 };
 
 /**

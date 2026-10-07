@@ -70,7 +70,7 @@ export const Destructive: Story = {
         variant="destructive"
         onClick={() =>
           toast({
-            variant: "destructive",
+            variant: "error",
             title: "Error",
             description: "Something went wrong",
           })

@@ -5,7 +5,7 @@ import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 type ToastFn = (opts: {
   title: string;
   description: string;
-  variant: "default" | "destructive";
+  variant: "default" | "error";
 }) => void;
 
 // Total: every input resolves to an entry, so no caller branches.
@@ -26,10 +26,10 @@ export function handle401Redirect(
   router: { push: (href: string) => void },
   toast: ToastFn,
 ): void {
-  toast({ ...ERROR_MESSAGES.SESSION_EXPIRED, variant: "destructive" });
+  toast({ ...ERROR_MESSAGES.SESSION_EXPIRED, variant: "error" });
   router.push("/auth/sign-in");
 }
 
 export function showErrorToast(error: unknown, toast: ToastFn): void {
-  toast({ ...resolveErrorDisplay(error), variant: "destructive" });
+  toast({ ...resolveErrorDisplay(error), variant: "error" });
 }
