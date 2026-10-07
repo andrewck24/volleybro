@@ -1,52 +1,82 @@
 ---
 title: Landing
-description: The public marketing page — hero, highlights, feature showcase, call to action, and footer.
+description: The public court-plan page at `/` — header, hero, record walkthrough, stats court, kit list, closing call to action, and footer.
 ---
 
 export const nodes = [
-  { id: "hero", label: "Hero", x: 80, y: 70 },
-  { id: "highlights", label: "Highlights", x: 250, y: 70, w: 130 },
-  { id: "features", label: "Features", x: 430, y: 70 },
-  { id: "cta", label: "CTA", x: 600, y: 70 },
-  { id: "footer", label: "Footer", x: 430, y: 180 },
+  { id: "header", label: "Header", x: 70, y: 70 },
+  { id: "hero", label: "Hero", x: 200, y: 70, w: 100 },
+  { id: "record", label: "Record walkthrough", x: 350, y: 70, w: 150 },
+  { id: "stats", label: "Stats court", x: 520, y: 70, w: 120 },
+  { id: "kit", label: "Kit list", x: 200, y: 180, w: 100 },
+  { id: "cta", label: "Closing CTA", x: 350, y: 180, w: 130 },
+  { id: "footer", label: "Footer", x: 520, y: 180 },
 ];
 
 export const edges = [
-  { from: "hero", to: "highlights" },
-  { from: "highlights", to: "features" },
-  { from: "features", to: "cta" },
+  { from: "header", to: "hero" },
+  { from: "hero", to: "record" },
+  { from: "record", to: "stats" },
+  { from: "stats", to: "kit" },
+  { from: "kit", to: "cta" },
   { from: "cta", to: "footer" },
 ];
 
 export const details = {
+  header: {
+    title: "Header",
+    body: "A floating bar with the wordmark, a Beta label and the primary call to action. Transparent at rest, it takes the app navigation's glass once the page scrolls.",
+  },
   hero: {
     title: "Hero",
-    body: "The opening pitch with the product image and primary call to action.",
+    body: "An 18 m court that replays a demo set: each rally lands as a mark and files into a real Entry list while the score moves. The title, a one-line description, the call to action and a helper line sit in our back zone.",
   },
-  highlights: {
-    title: "Highlights",
-    body: "Scroll-driven highlight cards covering the core value propositions.",
+  record: {
+    title: "Record walkthrough",
+    body: "Four pinned steps on the app's real recording components — pick a player, our move, their response, preview and send — with a finger dot that taps each target as you scroll.",
   },
-  features: {
-    title: "Feature Showcase",
-    body: "Alternating feature cards for recording, analysis, and team management, with live demo imagery.",
+  stats: {
+    title: "Stats court",
+    body: "A three-slide carousel on the net: live per-skill Points, the rally-by-rally Entry list, and a point-difference chart, all on the hero's rally clock.",
+  },
+  kit: {
+    title: "Kit list",
+    body: "Seven supporting capabilities as a numbered roster: team creation, invitations, roles, per-game lineups, install to Home Screen, and two planned ones marked as in development.",
   },
   cta: {
-    title: "Call to Action",
-    body: "The conversion section inviting the visitor into the app.",
+    title: "Closing call to action",
+    body: "The page ends on the court again — our half below lg, the full court from lg — with a heading, a line of copy and the call to action.",
   },
   footer: {
     title: "Footer",
-    body: "Closing navigation and links.",
+    body: "The wordmark, copyright and author credit, GitHub and feedback links, and the theme switcher.",
   },
 };
 
-The landing page is the public front door. Click a section for detail.
+The landing page is the public front door: one flat volleyball court plan carries every section. Click a section for detail. Each behavior-bearing section has its own sub-capability page.
 
 <InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
 
+## Current behavior
+
+- The page is `src/app/page.tsx`: it renders `StatusBarColor` with `--free-zone` and the `Landing` component from `src/components/landing/index.tsx`, and its `viewport.themeColor` supplies the light and dark teal for first paint.
+- One `RallyProvider` wraps hero, walkthrough and stats. The hero court and the stats carousel are its only clock consumers; the walkthrough between them is passed in server-rendered and never re-renders on a beat.
+- Every call-to-action button (header, hero, closing) is a `CTAButton` (`src/components/landing/cta-button.tsx`) labelled 開始記錄.
+- Page copy lives in `src/components/landing/copy.ts`, in Traditional Chinese.
+- The kit list renders seven rows from `KIT` in `copy.ts`; the two planned capabilities carry the 開發中 badge (`dev-badge.tsx`) and are otherwise styled like the rest.
+- The footer carries the theme switcher (see Visual design), GitHub and feedback links, and the author credit.
+
+## Known gaps
+
+- There is no end-to-end lane for the landing; behavior is held by component tests under `src/components/landing/__tests__/` and by manual browser checks.
+- The kit list's heading alignment uses `text-box` trim and a measured 0.17em offset for CJK ink; this is unverified on WebKit.
+
 ## Status
 
-| Capability                                             | Status                           |
-| ------------------------------------------------------ | -------------------------------- |
-| Landing page — hero, highlights, features, CTA, footer | <StatusBadge status="shipped" /> |
+| Capability                                                                     | Status                           |
+| ------------------------------------------------------------------------------ | -------------------------------- |
+| Landing page — header, hero, record walkthrough, stats court, kit, CTA, footer | <StatusBadge status="shipped" /> |
+
+## Implemented decisions
+
+<DecisionTimeline />

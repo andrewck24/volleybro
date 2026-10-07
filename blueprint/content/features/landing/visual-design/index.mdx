@@ -1,0 +1,35 @@
+---
+title: Visual design
+description: The landing's flat court-plan world — three layers, concentric radius, type floors, scoped tokens, header states, footer theme switcher and status-bar colour.
+---
+
+The landing is drawn as a regulation volleyball court plan rather than a generic template. Rules live in the header comment of `src/components/landing/landing.css`; this page records what they produce.
+
+## Current behavior
+
+- The page ground is the teal free zone and content sits on the coral court. White court-width lines (5 cm in a drawn court, 3 px elsewhere) are the only dividers. Everything is flat: no gradient, texture, glow or blur on the court.
+- Layers. L0 court: ground and rules, radius 0, no shadow, never interactive, lines never rounded. L1 objects: app surfaces on `--card` with a shadow, never outlined. L2 floating chrome: only the header and the footer theme switcher.
+- Radius is concentric: an inner radius equals the outer radius minus the padding (for example the Entry card `rounded-xl` with `p-1.5` holds `rounded-md` rows; the stats carousel `rounded-2xl` with `p-2` holds `rounded-lg` slides; the header pill `rounded-2xl` with `p-1.5` holds `rounded-[10px]` controls).
+- Type floors: body and description text is at least `text-sm`; any text set on the coral court or teal free zone is at least `text-base`; `text-xs` is only for badges, meta labels and Beta. App components keep their own sizes.
+- Tokens: the global tokens are only `--court` and `--court-foreground` (in `src/app/globals.css`, used by the court elsewhere in the app). Every other court token — `--court-line`, `--free-zone` and its foregrounds, `--rally-beat`, `--court-max-width`, `--landing-header-height` — is scoped to the landing (`.landing`, or `html:has(.landing)`), so landing colours do not leak into the app.
+- The header is transparent at rest over the teal and, once the page scrolls (a top sentinel observed by `IntersectionObserver`), takes the app navigation's glass (`bg-background/94`, shadow, ring, blur). Its call to action switches from inverted ink to the primary fill.
+- The theme switcher sits in the footer in the same glass pill, with three buttons (follow system, light, dark) and the chosen one on the primary fill; it is disabled until hydration.
+- `--free-zone` is set on `<html>` (light brand teal, deep teal in dark) so the canvas behind the page and the status bar share it. `page.tsx` renders `StatusBarColor` with `var(--free-zone)`, which re-reads it when the theme class flips; `viewport.themeColor` covers first paint.
+- Reduced motion: every landing animation and transition is turned off or made instant.
+
+## Constraints
+
+- Landing colours are scoped; only `--court` and `--court-foreground` are global.
+- Objects carry no line-width outlines and rules carry no radius.
+- The sticky walkthrough stage has an opaque free-zone ground so Safari's bottom toolbar tints to the page colour.
+
+## Known gaps
+
+- With a classic (non-overlay) scrollbar, the gutter cannot carry page content, so the full-bleed closing court stops at it; the thin transparent track reads as free zone beyond the court.
+- Reusable rules are not yet in the Design System pages; a later design-document migration would record them there.
+- Contrast of the app's recording panel as shown inside the walkthrough was not addressed here.
+- `text-box` trim on the kit list's titles is unverified on WebKit.
+
+## Implemented decisions
+
+<DecisionTimeline />
