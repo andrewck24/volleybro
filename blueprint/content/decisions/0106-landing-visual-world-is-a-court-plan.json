@@ -3,7 +3,7 @@
   "id": "0106",
   "title": "The landing's visual world is a flat volleyball court plan in three layers",
   "capabilities": ["landing/visual-design"],
-  "decision": "The page ground is the free zone (teal) and content sits on the court (coral). White 5 cm court lines are the only dividers. L0 court: rules and ground; radius 0, no shadow, never interactive, lines never rounded. L1 objects: app surfaces on --card with shadow, never outlined, radius concentric (inner = outer - padding). L2 floating chrome: only the header and the footer theme switcher; transparent at rest, the app nav's glass once scrolled. Type floors follow the design-system doc. Global tokens are only --court and --court-foreground; every other court token is scoped to the landing.",
+  "decision": "The page ground is the free zone (teal) and content sits on the court (coral). White 5 cm court lines are the only dividers. L0 court: rules and ground; radius 0, no shadow, never interactive, lines never rounded. L1 objects: app surfaces on --card with shadow, never outlined, radius concentric (inner = outer - padding). L2 floating chrome: only the header and the footer theme switcher; transparent at rest, the app nav's glass once scrolled. Type floors: body and description text at least 14px (text-sm); any text set on the court or the free zone at least 16px (text-base); text-xs only for badges, meta labels and Beta. Global tokens are only --court and --court-foreground; every other court token is scoped to the landing.",
   "alternatives": [
     {
       "option": "The earlier \"scoreboard\" direction (B1)",
