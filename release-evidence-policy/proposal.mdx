@@ -1,5 +1,5 @@
 export const scenarios = [
-  { id: "S1", given: "A release source has successful trusted CI receipts for the exact repository, commit tree, workflow run, and attempt", when: "The production release controller assembles source QA", then: "It reuses those receipts without rerunning functional tests or asking for a source-preview approval; missing or mismatched evidence stops before promotion" },
+  { id: "S1", given: "A release source has successful trusted CI receipts for the exact repository, commit tree, workflow run, and attempt", when: "The production release controller assembles source evidence", then: "It reuses those receipts without rerunning functional tests or creating a release-only source Preview; missing or mismatched evidence stops before promotion" },
   { id: "S2", given: "Recovery evidence is missing, stale, incompatible, or bound to another repository, source, run, baseline, or candidate", when: "The controller evaluates promotion eligibility", then: "It fails closed, explains the missing or mismatched proof, and does not promote or accept a manually entered assertion" },
   { id: "S3", given: "A candidate changes a persisted contract while production data is active", when: "Recovery compatibility is evaluated", then: "The evidence must show that the candidate reads extant legacy records and that the exact allowed production baseline can read candidate-written records; otherwise promotion stops" },
   { id: "S4", given: "The production database is not yet active and an accepted migration changes the shared test database", when: "The old application revision or its Preview is considered for reuse", then: "The workflow allows a complete forward migration, never restores old code against the changed test data, and requires a stale Preview to be refreshed before it is trusted" },
@@ -15,7 +15,7 @@ export const scenarios = [
 
 | 面向 | 現況 | 本次交付 |
 | --- | --- | --- |
-| Source Preview／candidate evidence | 條件式 source-preview approval、每次手填 recovery SHA/evidence，並經 candidate approval 才能 promote | 重用可信且同 source 的既有 CI／驗收證據；controller 自動綁定並判定，不設這兩道人工 gate；真實證據缺漏或不相容就停止並通知 |
+| Release evidence | 條件式 source Preview／approval、每次手填 recovery SHA/evidence，並經 candidate approval 才能 promote | 只重用可信且同 source 的 CI 收據；不建立 release-only Preview 或人工證據 gate；缺漏或不相容就停止並通知 |
 | Test DB | 遷移後舊程式可能失效，但預覽仍可能被誤認為可用 | v1.0 production DB 啟用前可完整 forward-migrate 共用 test DB；不回舊程式，舊 Preview 需重建與重驗 |
 | Production DB | 復原相容性容易被簡化成每次 release 的人工文字聲明 | v1.0 clean-DB cutover 作為相容性政策界線；啟用後依仍存在的資料格式與當次允許的 recovery baseline 證明，不倒退 production data |
 | Production QA | 正式站 authenticated smoke 後才可 tag／Release | 保留正式站 Google sign-in、session 與 team 唯讀 smoke；這個人工驗收不是 candidate evidence approval |
@@ -26,10 +26,10 @@ export const scenarios = [
 
 這是 `release-qa-layers` 後續的 release-controller／policy Change。它不重寫已接受的 `release-qa-layers` 或 `release-owner-hotfix` 頁面，也不把 ATE-248 所屬的完整 authenticated-smoke 自動化提前納入。
 
-1. 在 `.github/workflows/production-release.yml` 移除每次 release 的 `candidate-acceptance` 人工 evidence gate，以及只用 GitHub Environment approval 接受缺口、卻沒有執行真實功能測試的 `source-preview-acceptance` gate。Source Preview 只有在能產生機械功能證據時才可補缺口；只有 approval 或部署 READY 不算功能證據。保留 promote 後的 `production-acceptance`，也保留 hotfix owner authorization、production lock、Vercel protection、finalization 與 owner recovery。
+1. 在 `.github/workflows/production-release.yml` 移除每次 release 的 `candidate-acceptance`、`source-preview-acceptance` 與 release-only exact-source Preview lane。功能證據只來自可信、同 source 的 CI 收據；缺漏或不符就停止，等待 CI 補齊後再以新授權 run 重試，不以 Preview READY 或人工 approval 代替測試。保留 promote 後的 `production-acceptance`、日常 PR Preview、hotfix owner authorization、production lock、Vercel protection、finalization 與 owner recovery。
 2. 在既有 `scripts/release-controls.js` 以結構化 receipt 自動驗證 recovery proof，並在 `scripts/__tests__/release-controls.test.js` 覆蓋成功與拒絕路徑。Receipt 必須來自可信同 repo workflow／controller，綁定 run 與 attempt、來源 commit tree、release mode、production baseline、candidate deployment、持久資料契約證據與有效期限；逐項比對目前 Vercel project／alias 與 production state。移除每次 release 手填的 SHA／HTTPS evidence 變數，不以任意 URL、文字或「CI 綠燈」單獨宣告資料相容。
 3. 以持久化契約風險決定需要的既有驗證：沒有資料契約變更時重用可信 unit／integration receipts；有具體格式或 migration 風險時，要求最小且有辨識力的 integration proof，涵蓋候選讀取仍存在的舊資料，以及允許 recovery 的 exact baseline 讀取候選寫入。測試作者依 `test-audit` 指定 owning tier、檢查既有 coverage，避免常駐無風險的跨版本測試。路徑 diff、無關測試、或不能辨認的變更不會被當作相容證明；不確定就停止並告知缺什麼。
-4. 在 `WORKFLOW.md` 寫唯一規範，在 `docs/release-runbook.md` 寫日常操作；加入 ADR-0104 作為 production data compatibility policy 的永久決策紀錄。Archive 時評估並更新 `blueprint/content/features/platform/delivery-workflow/index.mdx` 的現況說明，不在 Proposal 階段把 Feature 當成已實作事實。
+4. 在 `WORKFLOW.md` 寫唯一規範，在 `docs/release-runbook.md` 寫日常操作；加入 ADR-0104 作為 production data compatibility policy 的永久決策紀錄。Archive 時評估並更新 `blueprint/content/features/platform/delivery-workflow/index.mdx`，移除不再適用的 release-only exact-source Preview 例外；不在 Proposal 階段把 Feature 當成已實作事實。
 5. 資料生命週期依 ADR-0104：v1.0 前 shared `test` DB 可完整 forward migration；失效的舊 SHA／Preview 不復原、不沿用，refresh 後再驗。v1.0 production 上線時同步啟用乾淨的 `production` DB，只保留開發者明確指定的資料；這個一次性 cutover 不在本 Change 執行。production DB 第一次可寫入後，legacy-read 與 recovery-baseline 相容性規則開始生效；Production DB 不做資料 rollback，只有受證明限制的程式碼復原。
 6. 一般 version PR、`normal-retry` 與 `hotfix` 共用相同 evidence 驗證；既有 run 保留原語意，更新後的 controller 不會改寫或補簽舊 artifact。Controller／政策修正不改 app runtime，不新增 Changeset；本 Change 不部署 production、不啟用 `production` DB、不移轉真實資料、不更改 auth／schema，也不移除正式站 QA。
 7. 在 `blueprint/src/components/InteractiveFlowchart.tsx` 增加可選的曲線 edge route，僅套用於 `正式站登入 smoke` 失敗至 `停止並通知` 的箭頭，繞開中間節點；未設定的既有圖表維持直線。
@@ -66,19 +66,12 @@ export const scenarios = [
     ["├── src/", null, null],
     ["│   ├── app/", null, null],
     ["│   │   └── api/", null, null],
-    ["│   │       └── auth/", null, null],
-    ["│   │           └── [...all]/", null, null],
-    ["│   │               └── route.ts", "read", "讀取"],
+    ["│   │       └── auth/[...all]/route.ts", "read", "讀取"],
     ["│   ├── infrastructure/", null, null],
     ["│   │   └── db/", null, null],
     ["│   │       └── mongoose/", null, null],
     ["│   │           ├── connect-to-mongodb.ts", "read", "讀取"],
-    ["│   │           └── schemas/", null, null],
-    ["│   │               ├── game.ts", "read", "讀取"],
-    ["│   │               ├── player.ts", "read", "讀取"],
-    ["│   │               ├── profile.ts", "read", "讀取"],
-    ["│   │               ├── team.ts", "read", "讀取"],
-    ["│   │               └── user.ts", "read", "讀取"],
+    ["│   │           └── schemas/{game,player,profile,team,user}.ts", "read", "讀取"],
     ["│   └── lib/", null, null],
     ["│       └── auth.ts", "read", "讀取"],
     ["└── WORKFLOW.md", "modify", "修改"],
@@ -162,7 +155,4 @@ promotion 或停止。
 <RiskTable risks={[
   { name: "移除候選人工 gate 後，機械 evidence 可能誤判為完整", severity: "critical", mitigation: "只接受可信 producer、精確 source tree/run/baseline/candidate 綁定；資料契約有變或不能分類時要求具體 integration proof，否則 fail closed。" },
   { name: "Post-promotion smoke 寫入的 auth/session 資料無法被 recovery baseline 讀取", severity: "critical", mitigation: "把 auth/session 寫入一併視為 candidate-write contract；證明缺失時不 promote，不用 team GET 的唯讀特性掩蓋登入副作用。" },
-  { name: "v1.0 前 test DB forward migration 使 PR Preview 過期", severity: "warning", mitigation: "不回舊程式或舊資料；變更 test DB 後重新部署並驗證 Preview 才可當證據。" },
-  { name: "資料生命週期規則被誤認為已執行 production cutover", severity: "critical", mitigation: "此 Change 只定規則與 release controller；v1.0 clean production DB 建立、資料選取與切換另行明確授權。" },
-  { name: "常態加入跨版本測試造成重複成本", severity: "warning", mitigation: "依實際持久資料格式風險及允許的 rollback baseline 補最小 proving test；legacy-read 覆蓋只在 legacy records 仍可能存在時保留。" },
 ]}/>
