@@ -19,6 +19,8 @@ import { scenarios } from "./proposal.mdx";
 
 沒有改變 G1 的行為範圍。為避免「沒有命中風險路徑」被錯當成安全，實作將變更路徑分為已知無關、持久契約風險與未分類；production DB 啟用後，未分類路徑直接停止。Compatibility report 依 Jest 原生 JSON 欄位驗證，要求恰好兩項指定的雙向 assertion 通過，且沒有 failed、pending 或 todo tests；不以手填欄位或字串證明代替。
 
+未新增 Changeset：本次只改 release tooling、workflow 與文件，不改 app runtime 或套件版本／公開介面。
+
 </Deviations>
 
 <ScenarioResults
