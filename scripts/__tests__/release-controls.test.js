@@ -879,7 +879,7 @@ test("compatibility report requires both directional assertions to pass without 
     "candidate reads legacy persisted records",
     baselineAssertion,
   ];
-  const report = (assertionTitles, skipped = 0) => ({
+  const report = (assertionTitles, skipped = 0, assertionStatuses = []) => ({
     numFailedTests: 0,
     numPendingTests: skipped,
     numTodoTests: 0,
@@ -891,7 +891,9 @@ test("compatibility report requires both directional assertions to pass without 
         status: "passed",
         assertionResults: assertionTitles.map((title, index) => ({
           title,
-          status: index < skipped ? "skipped" : "passed",
+          status:
+            assertionStatuses[index] ??
+            (index < skipped ? "skipped" : "passed"),
         })),
       },
     ],
@@ -908,10 +910,18 @@ test("compatibility report requires both directional assertions to pass without 
   assert.equal(passed.status, 0, passed.stderr);
   assert.match(await readFile(f.env.GITHUB_OUTPUT, "utf8"), /result=success/);
 
-  for (const [index, invalidReport] of [
+  const wrongBaselineSha = `${f.deployed.slice(0, -1)}${f.deployed.endsWith("0") ? "1" : "0"}`;
+  const wrongBaselineAssertion = `production baseline ${wrongBaselineSha} reads candidate-written records`;
+  const invalidReports = [
     report(expectedAssertions, 1),
     report(expectedAssertions.slice(0, 1)),
-  ].entries()) {
+    report(["unrelated assertion one", "unrelated assertion two"]),
+    report([expectedAssertions[0], wrongBaselineAssertion]),
+    report([expectedAssertions[0], expectedAssertions[0]]),
+    report(expectedAssertions, 0, ["failed", "passed"]),
+    report(expectedAssertions, 0, ["passed", "skipped"]),
+  ];
+  for (const [index, invalidReport] of invalidReports.entries()) {
     await writeFile(reportPath, JSON.stringify(invalidReport));
     const rejected = run(f, "verify-compatibility-report", {
       ...env,
