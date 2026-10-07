@@ -20,7 +20,7 @@ export const scenarios = [
 | Production DB | 復原相容性容易被簡化成每次 release 的人工文字聲明 | v1.0 clean-DB cutover 作為相容性政策界線；啟用後依仍存在的資料格式與當次允許的 recovery baseline 證明，不倒退 production data |
 | Production QA | 正式站 authenticated smoke 後才可 tag／Release | 保留正式站 Google sign-in、session 與 team 唯讀 smoke；這個人工驗收不是 candidate evidence approval |
 
-<DecisionCards ids={["0102", "0104"]} />
+<DecisionCards ids={["0102", "0107"]} />
 
 ## Scope
 
@@ -29,8 +29,8 @@ export const scenarios = [
 1. 在 `.github/workflows/production-release.yml` 移除每次 release 的 `candidate-acceptance`、`source-preview-acceptance` 與 release-only exact-source Preview lane。功能證據只來自可信、同 source 的 CI 收據；缺漏或不符就停止，等待 CI 補齊後再以新授權 run 重試，不以 Preview READY 或人工 approval 代替測試。保留 promote 後的 `production-acceptance`、日常 PR Preview、hotfix owner authorization、production lock、Vercel protection、finalization 與 owner recovery。
 2. 在既有 `scripts/release-controls.js` 以結構化 receipt 自動驗證 recovery proof，並在 `scripts/__tests__/release-controls.test.js` 覆蓋成功與拒絕路徑。Receipt 必須來自可信同 repo workflow／controller，綁定 run 與 attempt、來源 commit tree、release mode、production baseline、candidate deployment、持久資料契約證據與有效期限；逐項比對目前 Vercel project／alias 與 production state。移除每次 release 手填的 SHA／HTTPS evidence 變數，不以任意 URL、文字或「CI 綠燈」單獨宣告資料相容。
 3. 以持久化契約風險決定需要的既有驗證：沒有資料契約變更時重用可信 unit／integration receipts；有具體格式或 migration 風險時，要求最小且有辨識力的 integration proof，涵蓋候選讀取仍存在的舊資料，以及允許 recovery 的 exact baseline 讀取候選寫入。測試作者依 `test-audit` 指定 owning tier、檢查既有 coverage，避免常駐無風險的跨版本測試。路徑 diff、無關測試、或不能辨認的變更不會被當作相容證明；不確定就停止並告知缺什麼。
-4. 在 `WORKFLOW.md` 寫唯一規範，在 `docs/release-runbook.md` 寫日常操作；加入 ADR-0104 作為 production data compatibility policy 的永久決策紀錄。Archive 時評估並更新 `blueprint/content/features/platform/delivery-workflow/index.mdx`，移除不再適用的 release-only exact-source Preview 例外；不在 Proposal 階段把 Feature 當成已實作事實。
-5. 資料生命週期依 ADR-0104：v1.0 前 shared `test` DB 可完整 forward migration；失效的舊 SHA／Preview 不復原、不沿用，refresh 後再驗。v1.0 production 上線時同步啟用乾淨的 `production` DB，只保留開發者明確指定的資料；這個一次性 cutover 不在本 Change 執行。production DB 第一次可寫入後，legacy-read 與 recovery-baseline 相容性規則開始生效；Production DB 不做資料 rollback，只有受證明限制的程式碼復原。
+4. 在 `WORKFLOW.md` 寫唯一規範，在 `docs/release-runbook.md` 寫日常操作；加入 ADR-0107 作為 production data compatibility policy 的永久決策紀錄。Archive 時評估並更新 `blueprint/content/features/platform/delivery-workflow/index.mdx`，移除不再適用的 release-only exact-source Preview 例外；不在 Proposal 階段把 Feature 當成已實作事實。
+5. 資料生命週期依 ADR-0107：v1.0 前 shared `test` DB 可完整 forward migration；失效的舊 SHA／Preview 不復原、不沿用，refresh 後再驗。v1.0 production 上線時同步啟用乾淨的 `production` DB，只保留開發者明確指定的資料；這個一次性 cutover 不在本 Change 執行。production DB 第一次可寫入後，legacy-read 與 recovery-baseline 相容性規則開始生效；Production DB 不做資料 rollback，只有受證明限制的程式碼復原。
 6. 一般 version PR、`normal-retry` 與 `hotfix` 共用相同 evidence 驗證；既有 run 保留原語意，更新後的 controller 不會改寫或補簽舊 artifact。Controller／政策修正不改 app runtime，不新增 Changeset；本 Change 不部署 production、不啟用 `production` DB、不移轉真實資料、不更改 auth／schema，也不移除正式站 QA。
 7. 在 `blueprint/src/components/InteractiveFlowchart.tsx` 增加可選的曲線 edge route，僅套用於 `正式站登入 smoke` 失敗至 `停止並通知` 的箭頭，繞開中間節點；未設定的既有圖表維持直線。
 
@@ -47,13 +47,14 @@ export const scenarios = [
     ["├── blueprint/", null, null],
     ["│   ├── content/", null, null],
     ["│       ├── decisions/", null, null],
-    ["│       │   └── 0104-production-data-compatibility-follows-database-activation.json", "add", "新增"],
+    ["│       │   └── 0107-production-data-compatibility-follows-database-activation.json", "add", "新增"],
     ["│       └── features/", null, null],
     ["│           └── platform/", null, null],
     ["│               └── delivery-workflow/", null, null],
     ["│                   └── index.mdx", "archive", "Archive 評估"],
     ["│   └── src/", null, null],
     ["│       └── components/", null, null],
+    ["│           ├── InteractiveFlowchart.test.tsx", "modify", "驗證"],
     ["│           └── InteractiveFlowchart.tsx", "modify", "修改（曲線 route）"],
     ["├── docs/", null, null],
     ["│   ├── migrations/", null, null],

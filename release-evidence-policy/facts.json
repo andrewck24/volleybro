@@ -1,14 +1,14 @@
 {
-  "gate": "G2",
-  "publishedAt": "2026-10-07T12:06:10.152Z",
+  "gate": "G1",
+  "publishedAt": "2026-10-07T14:32:53.228Z",
   "scenarios": 6,
   "decisions": [
     "0102",
-    "0104"
+    "0107"
   ],
   "startedAt": "2026-10-06T08:56:31.000Z",
   "archivedAt": null,
-  "commits": 5,
+  "commits": 7,
   "filesChanged": 9,
   "insertions": 1282,
   "deletions": 655,
