@@ -65,6 +65,7 @@ const BOTH: Theme[] = ["light", "dark"];
 
 const pairs: { fg: string; bg: string; min: number; themes?: Theme[] }[] = [
   { fg: "destructive-foreground", bg: "destructive", min: TEXT },
+  { fg: "danger-foreground", bg: "danger", min: TEXT },
   { fg: "destructive-text", bg: "card", min: TEXT },
   { fg: "destructive-text", bg: "accent", min: TEXT },
   { fg: "primary-text", bg: "card", min: TEXT },

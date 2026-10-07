@@ -27,8 +27,10 @@
   --court: hsl(13.01, 96.51%, 66.27%);
   --court-foreground: hsl(192 70% 8%);
   --court-back-zone: hsl(12.93, 96.67%, 76.47%);
-  --destructive: hsl(13, 85%, 42%);
+  --destructive: hsl(13, 60%, 40%);
   --destructive-foreground: hsl(330, 10%, 96.08%);
+  --danger: hsl(13, 85%, 42%);
+  --danger-foreground: hsl(330, 10%, 96.08%);
   --destructive-text: var(--destructive);
   --primary-text: var(--primary);
   --success: hsl(152, 60%, 36%);
@@ -119,6 +121,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-destructive-text: var(--destructive-text);
   --color-primary-text: var(--primary-text);
   --color-court: var(--court);

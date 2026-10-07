@@ -46,7 +46,13 @@ const brand: TokenInfo[] = [
   },
   {
     name: "--destructive",
-    usage: "Darker coral derived from --court — destructive fills (white text)",
+    usage:
+      "Muted coral-red — destructive badges, toasts, figures and rows (white text)",
+  },
+  {
+    name: "--danger",
+    usage:
+      "Vivid red — danger actions such as the destructive Button (near-white text)",
   },
   {
     name: "--destructive-text",
