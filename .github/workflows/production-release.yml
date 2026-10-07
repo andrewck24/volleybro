@@ -222,6 +222,7 @@ jobs:
       needs.source-receipt.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    cache-mode: none
     permissions:
       contents: read
       actions: read
@@ -238,6 +239,7 @@ jobs:
         with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -258,7 +260,6 @@ jobs:
         if: steps.compatibility-plan.outputs.required == 'true'
         with:
           node-version-file: .nvmrc
-          cache: pnpm
       - name: Install dependencies for exact-baseline compatibility proof
         if: steps.compatibility-plan.outputs.required == 'true'
         run: pnpm install --frozen-lockfile
