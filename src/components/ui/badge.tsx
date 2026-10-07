@@ -13,6 +13,7 @@ const badgeVariants = cva(
           "bg-primary text-primary-foreground shadow-sm hover:bg-primary/80",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        court: "bg-court text-court-foreground shadow-sm hover:bg-court/80",
         away: "bg-away text-away-foreground shadow-sm hover:bg-away/80",
         outline: "text-foreground ring-1 ring-foreground/10",
       },

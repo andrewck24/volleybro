@@ -33,7 +33,7 @@ const ListBadge = ({ list }: { list: LineupListPlayer["list"] }) => {
   if (list === "substitutes") return null;
 
   return (
-    <Badge variant={list === "starting" ? "default" : "away"}>
+    <Badge variant={list === "starting" ? "default" : "court"}>
       {list === "starting" ? "先發" : "自由"}
     </Badge>
   );
