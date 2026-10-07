@@ -151,12 +151,11 @@ const Frame = () => {
   useCounter("frame");
   return (
     // The three app objects (court, panel, preview; rounded-xl, shadow) sit
-    // on one grey tray: the app's --muted surface (light 90%, dark 37.5%),
-    // a step off --card in both themes so each card still reads as its own
-    // object. Concentric: tray p-2 (8) + card 12 = rounded-[20px]. The
+    // on one tray in the page's free-zone teal (--v2-free, both themes), so
+    // the cards read as objects set on the court's ground. Concentric: tray p-2 (8) + card 12 = rounded-[20px]. The
     // court keeps its 11:9 box (its 35vh cap is lifted: the frame is zoomed
     // to fit instead); the panel takes the remaining height.
-    <div className="flex size-full flex-col gap-2 rounded-[20px] bg-muted p-2 shadow-lg [&_.max-h-\[35vh\]]:max-h-none">
+    <div className="flex size-full flex-col gap-2 rounded-[20px] bg-(--v2-free) p-2 shadow-lg [&_.max-h-\[35vh\]]:max-h-none">
       <div className="w-full shrink-0 overflow-hidden rounded-xl shadow-lg">
         <GameCourt gameId={DEMO_GAME_ID} mode="general" />
       </div>

@@ -86,13 +86,19 @@ const Hero = () => (
         style={zone(0, 6)}
       >
         <h1 className="v2-hero-title font-bold tracking-tight">
-          {COPY.heroTitle[0]}
+          {COPY.heroTitle[0][0]}
+          <br className="hidden lg:inline" />
+          {COPY.heroTitle[0][1]}
           <br />
-          {COPY.heroTitle[1]}
+          {COPY.heroTitle[1][0]}
+          <br className="hidden lg:inline" />
+          {COPY.heroTitle[1][1]}
         </h1>
-        <p className="v2-hero-desc max-w-[30ch] font-medium">{COPY.heroDesc}</p>
+        <p className="v2-hero-desc max-w-[30ch] font-medium lg:max-w-none">
+          {COPY.heroDesc}
+        </p>
         {/* lg: action + helper share the title's left edge */}
-        <div className="mt-[calc(0.3*var(--m))] hidden flex-col items-start gap-3 lg:flex">
+        <div className="mt-[calc(0.15*var(--m))] hidden flex-col items-start gap-3 lg:flex">
           <CTAButton size="lg" className={cn("h-14 px-8", BTN_PRIMARY)}>
             開始記錄
           </CTAButton>

@@ -2,7 +2,11 @@
 // so the hero side can read it without pulling anything else in.
 
 export const COPY = {
-  heroTitle: ["記下每一球，", "統計自己出來。"],
+  // two sentences; each breaks after its first word from lg
+  heroTitle: [
+    ["記下", "每一球，"],
+    ["統計", "自己出來。"],
+  ] as const,
   heroDesc: "每一球點三下就記完，送出不必等網路；比賽一結束，統計已經算好。",
   heroNote: "用瀏覽器打開就能記，不必下載 App",
   recordTitle: ["每球三步，", "送出不必等網路"],
@@ -87,10 +91,10 @@ export const moveLabel = (num: number, win: boolean) =>
 /** Button `default` variant: teal fill, ivory label (5.81:1). On coral and in the header. */
 export const BTN_PRIMARY =
   "bg-primary font-semibold text-primary-foreground shadow-md ring-transparent hover:bg-primary/90 dark:ring-transparent";
-/** The header CTA at rest, over the teal free zone: a card chip with a
- *  primary label (light: primary on card 6.14:1; dark: chart-1 on card). */
+/** The header CTA at rest, over the teal free zone: inverted ink, black on
+ *  near-white in dark, near-white on black in light (foreground / background). */
 export const BTN_CARD =
-  "bg-card font-semibold text-primary shadow-md ring-transparent hover:bg-card/90 dark:text-chart-1 dark:ring-transparent";
+  "bg-foreground font-semibold text-background shadow-md ring-transparent hover:bg-foreground/90 dark:ring-transparent";
 /** Button `secondary` variant: on the teal free zone (label 16:1 light, 9:1 dark). */
 export const BTN_SECONDARY =
   "bg-secondary font-semibold text-secondary-foreground shadow-md ring-transparent hover:bg-secondary/80 dark:ring-transparent";

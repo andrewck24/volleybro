@@ -89,7 +89,7 @@ export const RallyLayer = () => {
       )}
 
       <div
-        className="v2-z v2-entries p-[calc(0.3*var(--m))] lg:p-[calc(0.5*var(--m))]"
+        className="v2-z v2-entries p-[calc(0.3*var(--m))] lg:flex lg:flex-col lg:justify-center lg:p-[calc(0.5*var(--m))]"
         style={{ "--a0": 11.3, "--a1": 18 } as CSSProperties}
       >
         {/* card surface (rounded-xl, p-1.5) so the rows' own teal and

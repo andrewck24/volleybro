@@ -55,7 +55,7 @@ export const Header = () => {
           <CTAButton
             className={cn(
               "h-9 rounded-[10px] px-3 transition-[background-color,box-shadow,color] duration-300 md:px-3.5",
-              // at rest a card chip on the teal; with the glass, solid primary
+              // at rest inverted ink on the teal; with the glass, solid primary
               scrolled ? BTN_PRIMARY : BTN_CARD,
             )}
           >

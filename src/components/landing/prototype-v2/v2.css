@@ -26,8 +26,8 @@
    sizes (they are the product, not landing copy).
    Scale, mobile → lg:
      section heading   text-4xl → text-6xl (court-set: 0.55–0.8 m)
-     hero title        0.8 m → 0.64 m (≈31px → ≈49px)
-     lead / description text-base → text-lg (court-set: max(1rem, 0.25 m))
+     hero title        0.8 m → 0.95 m, four lines at lg (≈31px → ≈67px at 1440)
+     lead / description text-base → text-lg (court-set: max(1rem, 0.28 m) at lg)
      step caption      title text-xl → text-4xl, body text-base → text-xl
      roster            title text-lg → text-2xl, body text-base → text-lg
      mark label        max(1rem, 0.38 m) → max(1rem, 0.25 m) */
@@ -193,10 +193,11 @@ html.v2-snap {
 
 @media (min-width: 64rem) {
   .v2-hero-title {
-    font-size: calc(0.64 * var(--m));
+    font-size: calc(0.95 * var(--m));
+    line-height: 1.04;
   }
   .v2-hero-desc {
-    font-size: max(1rem, calc(0.25 * var(--m)));
+    font-size: max(1rem, calc(0.26 * var(--m)));
   }
 }
 
