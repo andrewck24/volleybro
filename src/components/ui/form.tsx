@@ -13,7 +13,6 @@ import {
   useFormContext,
   UseFormReturn,
 } from "react-hook-form";
-import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -216,36 +215,18 @@ const FormRadioGroup = ({
   );
 };
 
-const radioItemVariants = cva(
-  "flex h-9 flex-row items-center justify-center rounded-md border-2 text-lg font-medium transition-colors",
-  {
-    variants: {
-      variant: {
-        default:
-          "border-primary has-checked:bg-primary has-checked:text-primary-foreground",
-        away: "border-away has-checked:bg-away has-checked:text-away-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
-);
+const RADIO_ITEM_STYLE =
+  "flex h-9 flex-row items-center justify-center rounded-md border-2 border-primary text-lg font-medium transition-colors has-checked:bg-primary has-checked:text-primary-foreground";
 
 const FormRadioItem = ({
   children,
-  variant,
   className,
   value,
   id,
   ...props
-}: React.ComponentProps<typeof RadioGroupPrimitive.Item> &
-  VariantProps<typeof radioItemVariants>) => (
+}: React.ComponentProps<typeof RadioGroupPrimitive.Item>) => (
   <FormItem>
-    <Label
-      htmlFor={id}
-      className={cn(radioItemVariants({ variant }), className)}
-    >
+    <Label htmlFor={id} className={cn(RADIO_ITEM_STYLE, className)}>
       <FormControl>
         <RadioGroupPrimitive.Item
           data-slot="FormRadioItem"

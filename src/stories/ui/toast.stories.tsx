@@ -50,12 +50,11 @@ export const WithAction: Story = {
   },
 };
 
-export const Destructive: Story = {
-  render: function ShowDestructiveToast() {
+export const ErrorToast: Story = {
+  render: function ShowErrorToast() {
     const { toast } = useToast();
     return (
       <Button
-        variant="destructive"
         onClick={() =>
           toast({
             variant: "error",

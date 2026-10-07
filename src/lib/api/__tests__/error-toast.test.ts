@@ -161,7 +161,7 @@ describe("showErrorToast", () => {
     expect(description).not.toBe("Internal Server Error");
   });
 
-  it("shows a error toast for a 401 (SESSION_EXPIRED)", () => {
+  it("shows an error toast for a 401 (SESSION_EXPIRED)", () => {
     const error = makeApiClientError(401, "AUTHENTICATION", "unauthorized");
     showErrorToast(error, mockToast);
 

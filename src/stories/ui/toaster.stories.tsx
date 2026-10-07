@@ -25,7 +25,6 @@ export const MultipleToasts: Story = {
           Info Toast
         </Button>
         <Button
-          variant="destructive"
           onClick={() =>
             toast({
               variant: "error",
