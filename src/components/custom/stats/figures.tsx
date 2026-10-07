@@ -92,7 +92,7 @@ export const BarChart = ({
         style={{ transform: `scaleX(${leftScale})` }}
       />
       <div
-        className={cn("origin-right bg-destructive transition-all")}
+        className={cn("origin-right bg-court transition-all")}
         style={{ transform: `scaleX(${rightScale})` }}
       />
     </div>
