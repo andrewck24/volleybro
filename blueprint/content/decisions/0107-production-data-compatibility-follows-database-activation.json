@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0104",
+  "id": "0107",
   "title": "Production data compatibility follows database activation",
   "capabilities": ["platform/delivery-workflow"],
   "context": "Before the first stable release, deployments share the test database and its records are disposable. The v1.0 production cutover starts a separate clean database, while later production releases may write durable records that must survive recovery to the exact previous production deployment.",
