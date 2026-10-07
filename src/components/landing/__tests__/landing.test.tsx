@@ -1,5 +1,5 @@
 import { Landing } from "@/components/landing";
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { WINDOWS, setUserAgent } from "@test/support/dom/user-agent";
 
@@ -13,9 +13,8 @@ afterEach(() => {
 describe("Landing", () => {
   it("lays out one h1 and each section's h2, and every start button leads into the app", async () => {
     const { container } = render(<Landing />);
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
+    // the lazy stats panel (next/dynamic) loads after the first paint
+    await screen.findByText("總分");
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);

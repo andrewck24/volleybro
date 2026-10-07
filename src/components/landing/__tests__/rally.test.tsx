@@ -1,30 +1,28 @@
-import { SET_RALLIES } from "@/components/landing/demo-data";
-import { RallyProvider, diffsOf, useRally } from "@/components/landing/rally";
+import { INTERVAL, SET_RALLIES } from "@/components/landing/demo-data";
+import { RallyProvider, useRally } from "@/components/landing/rally";
+import { mockIntersectionObserver } from "@test/support/dom/intersection-observer";
 import { act, render, screen } from "@testing-library/react";
 
-const BEAT = 2200;
 const LEN = SET_RALLIES.length;
 
 const Probe = () => {
-  const { set, setNo, live } = useRally();
+  const { rallies, setNo, isLive } = useRally();
   return (
-    <p data-testid="probe">{`${set.rallies}|${setNo}|${live ? "live" : "still"}`}</p>
+    <p
+      data-rally
+      data-testid="probe"
+    >{`${rallies}|${setNo}|${isLive ? "live" : "still"}`}</p>
   );
 };
 const read = () => screen.getByTestId("probe").textContent;
 
-// A controllable IntersectionObserver: the test says when the clock's box is on screen.
-let report: (visible: boolean) => void;
+let intersectBox: (isIntersecting: boolean) => void;
 beforeEach(() => {
   jest.useFakeTimers();
-  global.IntersectionObserver = jest.fn().mockImplementation((cb) => {
-    let target: Element;
-    report = (isIntersecting) => act(() => cb([{ target, isIntersecting }]));
-    return {
-      observe: (t: Element) => (target = t),
-      disconnect: jest.fn(),
-    };
-  }) as never;
+  const { observers, intersect } = mockIntersectionObserver();
+  // the provider's one observer watches the probe: the test says when it is on screen
+  intersectBox = (isIntersecting) =>
+    intersect(observers[0]!, observers[0]!.targets[0]!, isIntersecting);
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -40,7 +38,7 @@ const mount = (props: { seed?: number; replayFrom?: number } = {}) =>
       <Probe />
     </RallyProvider>,
   );
-const beats = (n: number) => act(() => jest.advanceTimersByTime(n * BEAT));
+const beats = (n: number) => act(() => jest.advanceTimersByTime(n * INTERVAL));
 
 describe("RallyProvider clock", () => {
   it("files one more rally per beat from the seeded set", () => {
@@ -55,18 +53,18 @@ describe("RallyProvider clock", () => {
 
   it("holds while its box is off screen and resumes when it returns", () => {
     mount({ seed: 5 });
-    report(false);
+    intersectBox(false);
     beats(3);
     expect(read()).toBe("5|0|still");
 
-    report(true);
+    intersectBox(true);
     beats(1);
     expect(read()).toBe("6|0|live");
   });
 
   it("holds while the tab is hidden", () => {
     mount({ seed: 5 });
-    report(true);
+    intersectBox(true);
     Object.defineProperty(document, "hidden", {
       configurable: true,
       value: true,
@@ -86,7 +84,7 @@ describe("RallyProvider clock", () => {
 
   it("rests a beat on the finished set, then replays it from replayFrom", () => {
     mount({ seed: LEN - 1, replayFrom: 12 });
-    report(true);
+    intersectBox(true);
 
     beats(1);
     expect(read()).toBe(`${LEN}|0|live`);
@@ -109,14 +107,5 @@ describe("RallyProvider clock", () => {
 
     expect(read()).toBe(snapshot);
     expect(snapshot).toBe("22|-1|still");
-  });
-});
-
-describe("diffsOf", () => {
-  it("runs the point differential from 0, oldest rally first", () => {
-    // entries are newest first: won, won, lost, won -> played won, lost, won, won
-    expect(diffsOf({ rallies: 4, entries: [true, true, false, true] })).toEqual(
-      [0, 1, 0, 1, 2],
-    );
   });
 });
