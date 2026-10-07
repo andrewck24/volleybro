@@ -117,11 +117,16 @@ export const StepsSection = ({
       const locate = locateRef.current;
       if (!dotOn || !locate) return;
       const s = stage.getBoundingClientRect();
-      // Rest points sit off the grey tray that holds the app cards, on the
-      // coral field around it (centred in that margin), so a resting dot
-      // never covers a button, the preview or the result it just tapped.
+      // Off-tray points sit on the coral field beside the tray holding the
+      // app cards, on (x, y)'s side and level with it, covering nothing.
       const tray = (frame.firstElementChild ?? frame).getBoundingClientRect();
       const fl = (frame.parentElement ?? frame).getBoundingClientRect();
+      const beside = ([x, y]: [number, number]): [number, number] => [
+        x >= tray.left + tray.width / 2
+          ? (tray.right + fl.right) / 2
+          : (tray.left + fl.left) / 2,
+        y,
+      ];
       const pts: [number, number][] = [];
       for (let t = 1; t <= 3; t++) {
         const r = locate(t, frame)?.getBoundingClientRect();
@@ -130,32 +135,29 @@ export const StepsSection = ({
           placed = "";
           return;
         }
-        pts.push([r.left + r.width / 2, r.top + r.height / 2]);
+        // taps land, and rest, a quarter in from the target's right edge:
+        // on the target, clear of its centred label or number
+        pts.push([r.left + r.width * 0.75, r.top + r.height / 2]);
       }
-      // beside the tray on the target's side, level with the target
-      const beside = ([x, y]: [number, number]): [number, number] => [
-        x >= tray.left + tray.width / 2
-          ? (tray.right + fl.right) / 2
-          : (tray.left + fl.left) / 2,
-        y,
-      ];
-      // before the first tap: below the tray when the field has room for
-      // the dot there (lg), else beside it, level with the first target
+      // p0, before the first tap: off the tray, below it when the field has
+      // room there. r2: the move button tapped second leaves with its panel
+      // and the opponent moves (the next target among them) take its place,
+      // so that rest steps off the tray instead of onto another button.
       const p0: [number, number] =
         fl.bottom - tray.bottom >= 24
           ? [tray.left + tray.width / 2, (tray.bottom + fl.bottom) / 2]
           : beside(pts[0]!);
       const px = (v: number) => `${Math.round(v * 10) / 10}px`;
-      // --p0..3: start + the three tap targets; --r1..3: rest after each tap
-      const next = [p0, ...pts, ...pts.map(beside)].map(([x, y]) => [
+      const next = [p0, ...pts, beside(pts[1]!)].map(([x, y]) => [
         px(x - s.left),
         px(y - s.top),
       ]);
       const key = next.join();
       if (key === placed && "dot" in section.dataset) return;
       placed = key;
+      // --p0..3: start and the three taps; --r2: rest after the second
       next.forEach(([x, y], i) => {
-        const name = i < 4 ? `p${i}` : `r${i - 3}`;
+        const name = i < 4 ? `p${i}` : "r2";
         stage.style.setProperty(`--${name}x`, x!);
         stage.style.setProperty(`--${name}y`, y!);
       });

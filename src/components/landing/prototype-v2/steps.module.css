@@ -211,6 +211,9 @@
    components) and rests there. --pNx / --pNy are stage-relative, measured
    from the real buttons (steps-section.tsx). */
 .dot {
+  /* the resting dot's scale (14px) on the target it just tapped: measured
+     clear of the label ink, the 對方防守 "−" being the nearest at 390 */
+  --rest: 0.5;
   position: absolute;
   top: 0;
   left: 0;
@@ -263,20 +266,17 @@
 }
 
 /* Each segment k (k × 33.333%): arrive on the target at +13.333%, tap at
-   +16.667% (the switch flips the components there), then slide out of the
-   tray to the rest point --rN (measured: beside the tray on the target's
-   side) and shrink, so a resting dot never covers a button or the result. */
+   +16.667% (the switch flips the components there), then stay on that
+   point and shrink to --rest, so the dot marks what was just tapped
+   without covering its label. The second tap's button leaves with its
+   panel, so that rest is --r2, off the tray (steps-section.tsx). */
 @keyframes dot-path {
   0% {
     transform: translate(var(--p0x), var(--p0y));
   }
   13.333%,
-  16.667% {
-    transform: translate(var(--p1x), var(--p1y));
-  }
-  20%,
   33.333% {
-    transform: translate(var(--r1x), var(--r1y));
+    transform: translate(var(--p1x), var(--p1y));
   }
   46.667%,
   50% {
@@ -287,24 +287,22 @@
     transform: translate(var(--r2x), var(--r2y));
   }
   80%,
-  83.333% {
-    transform: translate(var(--p3x), var(--p3y));
-  }
-  86.667%,
   100% {
-    transform: translate(var(--r3x), var(--r3y));
+    transform: translate(var(--p3x), var(--p3y));
   }
 }
 
 @keyframes dot-press {
-  0%,
+  0% {
+    transform: scale(0.6);
+  }
   20%,
   33.333%,
   53.333%,
   66.667%,
   86.667%,
   100% {
-    transform: scale(0.6);
+    transform: scale(var(--rest));
   }
   13.333%,
   15%,
