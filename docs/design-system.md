@@ -4,14 +4,14 @@
 
 ### Brand Colors
 
-| Token              | Light                | Dark | Usage                                      |
-| ------------------ | -------------------- | ---- | ------------------------------------------ |
-| `primary`          | `hsl(192, 77%, 28%)` | same | Brand teal - buttons, links, active states |
-| `court`            | `hsl(13, 97%, 66%)`  | same | Brand coral - court surfaces, the V mark   |
-| `destructive`      | `hsl(13, 85%, 42%)`  | same | Danger actions (Button `destructive`)      |
-| `away`             | `hsl(13, 60%, 40%)`  | same | Opponent and loss data surfaces            |
-| `error`            | `hsl(13, 60%, 40%)`  | same | Error states; `error-text` for text        |
-| `court-foreground` | `hsl(192, 70%, 8%)`  | same | Text and icons on a `court` surface        |
+| Token              | Light                | Dark | Usage                                        |
+| ------------------ | -------------------- | ---- | -------------------------------------------- |
+| `primary`          | `hsl(192, 77%, 28%)` | same | Brand teal - buttons, links, active states   |
+| `court`            | `hsl(13, 97%, 66%)`  | same | Brand coral - court surfaces, the V mark     |
+| `destructive`      | `hsl(13, 85%, 42%)`  | same | Danger actions (Button `destructive`)        |
+| `away`             | `hsl(13, 60%, 40%)`  | same | Opponent and loss data; `away-text` for text |
+| `error`            | `hsl(13, 60%, 40%)`  | same | Error states; `error-text` for text          |
+| `court-foreground` | `hsl(192, 70%, 8%)`  | same | Text and icons on a `court` surface          |
 
 ### Court Colour Tokens
 

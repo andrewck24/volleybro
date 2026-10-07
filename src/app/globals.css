@@ -26,6 +26,7 @@
   --destructive-foreground: hsl(330, 10%, 96.08%);
   --away: hsl(13, 60%, 40%);
   --away-foreground: hsl(330, 10%, 96.08%);
+  --away-text: var(--away);
   --error: hsl(13, 60%, 40%);
   --error-foreground: hsl(330, 10%, 96.08%);
   --error-text: var(--error);
@@ -64,6 +65,7 @@
   --muted-foreground: hsl(215, 20.2%, 78%);
   --accent: hsl(192, 5%, 5.5%);
   --accent-foreground: hsl(330, 10%, 96.08%);
+  --away-text: var(--court);
   --error-text: var(--court);
   --primary-text: hsl(192, 70%, 50%);
   --success: hsl(152, 55%, 45%);
@@ -111,6 +113,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-away: var(--away);
   --color-away-foreground: var(--away-foreground);
+  --color-away-text: var(--away-text);
   --color-error: var(--error);
   --color-error-foreground: var(--error-foreground);
   --color-error-text: var(--error-text);

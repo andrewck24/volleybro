@@ -55,6 +55,10 @@ const brand: TokenInfo[] = [
       "Muted coral-red — opponent and loss data: set tally, scores, figures, badges",
   },
   {
+    name: "--away-text",
+    usage: "Opponent and loss text and icons on cards; brand coral on dark",
+  },
+  {
     name: "--error",
     usage: "Muted coral-red — error states: alerts, toasts, failed-write rings",
   },
