@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0104",
+  "title": "Landing scroll-linked animation runs on the compositor, with no JS animation library",
+  "capabilities": ["landing/record-demo"],
+  "context": "On an old iPhone (iOS 27, production build), the walkthrough's main-thread scrub (Motion useScroll/useTransform) lagged visibly behind compositor-threaded scrolling, and GSAP scrub smoothing only masked it. CSS scroll-driven animations stayed smooth. Motion was used only by the landing.",
+  "decision": "Scroll-linked landing movement (the walkthrough's finger-dot path) uses CSS scroll-driven animations on transform and opacity only, with no per-frame JavaScript. Step state changes discretely: an IntersectionObserver picks the step, and a time-based transition fades the outgoing caption out before the incoming one fades in, so no two steps ever show half-blended. While the walkthrough stage is pinned, the document uses mandatory scroll snap, and one mouse-wheel notch steps once via native smooth scrollTo. Without scroll-driven animation support, or under reduced motion, there is no dot and each rest shows its result. The landing uses no JavaScript animation library: the motion dependency is removed and GSAP is not added.",
+  "alternatives": [
+    {
+      "option": "Motion useScroll",
+      "reason": "Main-thread scrub lags behind scrolling on an old iPhone."
+    },
+    {
+      "option": "GSAP scrub",
+      "reason": "Smoothing masks the lag rather than removing it, and adds a dependency."
+    },
+    {
+      "option": "A crossfade scrubbed by scroll position",
+      "reason": "Captions are half-blended at any off-snap rest."
+    }
+  ],
+  "consequences": [
+    "Browsers without scroll-driven animations get no finger dot.",
+    "Snap applies only while the walkthrough is pinned.",
+    "A future layered 3D hero needing a coordinated multi-part timeline must re-evaluate GSAP."
+  ],
+  "originChange": "landing-court-redesign"
+}

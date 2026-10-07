@@ -1,0 +1,419 @@
+/* The walkthrough's pinned part. The stage sticks under the header and is one
+   track tall (the viewport minus the header); the section is 4 tracks, so the
+   pin lasts 3 tracks = steps 0..3. Captions are discrete, not scroll-scrubbed:
+   scroll only decides the step (use-walkthrough.ts writes data-step) and a
+   timed transition swaps the captions, so a rest between two step positions
+   never shows two half-transparent ones. */
+.section {
+  --walkthrough-track-height: calc(100svh - var(--landing-header-height));
+  position: relative;
+  /* the lazy placeholder shares this height, so loading never shifts the page */
+  height: calc(4 * var(--walkthrough-track-height));
+  /* drives only the finger dot: contain 0%..100% spans step 0's rest
+     (section top under the header) to step 3's rest */
+  view-timeline: --steps block;
+  view-timeline-inset: var(--landing-header-height) 0px;
+}
+
+@media (max-height: 500px) {
+  .section {
+    height: 42rem;
+  }
+}
+
+.stage {
+  position: sticky;
+  top: var(--landing-header-height);
+  height: var(--walkthrough-track-height);
+  /* the frame scales from the stage's height (see .frame) */
+  container-type: size;
+  /* an opaque free-zone ground: Safari tints its bottom toolbar from the
+     sticky element at the edge, so that edge is the page colour */
+  background: var(--free-zone);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-inline: auto;
+  max-width: 80rem;
+}
+
+@media (min-width: 64rem) {
+  .stage {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0;
+    padding: 2rem;
+  }
+}
+
+.introColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(22rem, 100%);
+  flex-shrink: 0;
+}
+
+@media (min-width: 64rem) {
+  .introColumn {
+    /* up to 34rem, and it gives way first: the field keeps its 37rem (the
+       app cards their 22rem) from 1024px up, inside the stage padding */
+    flex: 0 1 34rem;
+    width: auto;
+    min-width: 0;
+    padding-inline-end: 2rem;
+    gap: 3rem;
+  }
+}
+
+.captions {
+  position: relative;
+  display: grid;
+}
+
+/* A piece of the court plan 9 m wide: white side lines, the attack line right
+   across it (--walkthrough-attack-line-y, measured) and the centre line 3 m
+   further on. The field fills the stage height; the frame fills the field,
+   zoomed down by --walkthrough-zoom on short stages so the content keeps room. */
+.field {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  /* the same cap as the other courts below lg (landing.css --court-max-width) */
+  width: min(100%, var(--court-max-width));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  background: var(--court);
+  border-inline: var(--court-line-width) solid var(--court-line);
+  overflow: clip;
+}
+
+.field::before,
+.field::after {
+  content: "";
+  position: absolute;
+  translate: 0 -50%;
+}
+
+.field::before {
+  inset-inline: 0;
+  top: var(--walkthrough-attack-line-y, 30%);
+  border-top: var(--court-line-width) solid var(--court-line);
+}
+
+/* The centre line: a box a third of the field's width tall (3 m of 9) hangs
+   from the attack line and its bottom border is the line. It spans the
+   field's border box, so its width is the whole 9 m. */
+.field::after {
+  inset-inline: calc(var(--court-line-width) * -1);
+  top: var(--walkthrough-attack-line-y, 30%);
+  aspect-ratio: 3 / 1;
+  border-bottom: var(--court-line-width) solid var(--court-line);
+  translate: 0 calc(var(--court-line-width) / 2);
+}
+
+.frame {
+  --walkthrough-zoom: 1;
+  position: relative;
+  z-index: 2;
+  flex: none;
+  /* the app cards keep their 22rem; the grey tray adds p-2 each side */
+  width: calc(22rem + 1rem);
+  /* a zoomed box still resolves % against its parent: it fills the field */
+  height: 100%;
+  zoom: var(--walkthrough-zoom);
+}
+
+@media (max-width: 63.99rem) {
+  /* below lg the intro and captions sit above the field */
+  @container (max-height: 51rem) {
+    .frame {
+      --walkthrough-zoom: 0.85;
+    }
+  }
+  @container (max-height: 46rem) {
+    .frame {
+      --walkthrough-zoom: 0.72;
+    }
+  }
+  @container (max-height: 41rem) {
+    .frame {
+      --walkthrough-zoom: 0.6;
+    }
+  }
+  @container (max-height: 36rem) {
+    .frame {
+      --walkthrough-zoom: 0.5;
+    }
+  }
+  @container (max-height: 33rem) {
+    .frame {
+      --walkthrough-zoom: 0.42;
+    }
+  }
+}
+
+@media (min-width: 64rem) {
+  /* the field spans the stage height from the captions column's right
+     edge, 9 m = frame (22rem cards + tray padding) + 2 × 7rem wide */
+  .field {
+    flex: none;
+    width: 37rem;
+    align-self: stretch;
+    margin-block: -2rem;
+    padding: 2rem 7rem;
+  }
+  @container (max-height: 44rem) {
+    .frame {
+      --walkthrough-zoom: 0.85;
+    }
+  }
+  @container (max-height: 39rem) {
+    .frame {
+      --walkthrough-zoom: 0.72;
+    }
+  }
+}
+
+.stepRails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stepRail {
+  height: var(--walkthrough-track-height);
+}
+
+.stepRails > .stepRail {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* the switch sentinels: the rails shifted up half a header */
+.stepSwitches {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--landing-header-height) / -2);
+  pointer-events: none;
+}
+
+/* The finger dot: one scroll-driven path over the walkthrough, transform and
+   opacity only. Each segment moves to the next target in its first 40% and
+   taps at 50%, where the step flips. */
+.fingerDot {
+  /* the resting dot's scale (14px) on the target it just tapped: measured
+     clear of the label ink, the 對方防守 "−" being the nearest at 390 */
+  --finger-dot-rest-scale: 0.5;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.fingerDotCore,
+.fingerDotRing {
+  position: absolute;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.875rem 0 0 -0.875rem;
+  border-radius: 50%;
+}
+
+.fingerDotCore {
+  background: #fff;
+  box-shadow:
+    0 2px 6px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.fingerDotRing {
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12);
+  opacity: 0;
+}
+
+@supports (animation-timeline: view()) {
+  .section[data-has-finger-dot] .fingerDot {
+    display: block;
+    animation: finger-dot-path linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  .section[data-has-finger-dot] .fingerDotCore {
+    animation: finger-dot-press linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  .section[data-has-finger-dot] .fingerDotRing {
+    animation: finger-dot-ring linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+}
+
+@keyframes finger-dot-path {
+  0% {
+    transform: translate(var(--finger-dot-start-x), var(--finger-dot-start-y));
+  }
+  13.333%,
+  33.333% {
+    transform: translate(var(--finger-dot-tap-1-x), var(--finger-dot-tap-1-y));
+  }
+  46.667%,
+  66.667% {
+    transform: translate(var(--finger-dot-tap-2-x), var(--finger-dot-tap-2-y));
+  }
+  80%,
+  100% {
+    transform: translate(var(--finger-dot-tap-3-x), var(--finger-dot-tap-3-y));
+  }
+}
+
+@keyframes finger-dot-press {
+  0% {
+    transform: scale(0.6);
+  }
+  20%,
+  33.333%,
+  53.333%,
+  66.667%,
+  86.667%,
+  100% {
+    transform: scale(var(--finger-dot-rest-scale));
+  }
+  13.333%,
+  15%,
+  46.667%,
+  48.333%,
+  80%,
+  81.667% {
+    transform: scale(1);
+  }
+  16.667%,
+  50%,
+  83.333% {
+    transform: scale(0.72);
+  }
+}
+
+@keyframes finger-dot-ring {
+  0%,
+  15%,
+  48.333%,
+  81.667% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  16.667%,
+  50%,
+  83.333% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  21%,
+  54.333%,
+  87.667%,
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* In sequence, never two captions visible together: the leaving caption fades
+   out in 180ms, the entering one waits 200ms before fading in. */
+.caption {
+  --caption-fade-out-duration: 180ms;
+  --caption-fade-in-delay: 200ms;
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity var(--caption-fade-out-duration) ease-out;
+}
+
+.section[data-step="0"] .caption:nth-child(1),
+.section[data-step="1"] .caption:nth-child(2),
+.section[data-step="2"] .caption:nth-child(3),
+.section[data-step="3"] .caption:nth-child(4) {
+  opacity: 1;
+  transition-delay: var(--caption-fade-in-delay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caption {
+    transition: none;
+  }
+}
+
+/* the real components carry their own enter animations and transitions;
+   reduced motion turns those into instant swaps too */
+@media (prefers-reduced-motion: reduce) {
+  .frame *,
+  .frame *::before,
+  .frame *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* landscape phones: no pin, no scrub — captions listed beside a frame frozen
+   on the finished rally (the driver is sent to the last step) */
+@media (max-height: 500px) {
+  .stage {
+    position: static;
+    height: 100%;
+    flex-direction: row;
+    justify-content: center;
+    gap: 2rem;
+    padding-block: 3rem;
+  }
+  .captions {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .stepRails,
+  .stepSwitches {
+    display: none !important;
+  }
+  .caption {
+    transition: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* lg: the attack line runs at the step chip's centre, dashed outside the court
+   from the page's left edge to the chip. The section clips the overrun without
+   becoming a scroll container, so the sticky stage keeps working. */
+@media (min-width: 64rem) and (min-height: 500.02px) {
+  .section {
+    overflow-x: clip;
+  }
+  .captions::before {
+    content: "";
+    position: absolute;
+    top: 3rem;
+    translate: 0 -50%;
+    border-top: var(--court-line-width) dashed var(--court-line);
+  }
+  .captions::before {
+    right: 100%;
+    width: 50vw;
+  }
+}
+
+/* the demo shows a trimmed panel so every button fits the frame with no
+   scroll or squeeze on phones — three opponent errors, the first two skill
+   rows (the demo rally's 攻擊 is among them). Landing-only; the app is not
+   changed. */
+.frame :global([class*="slide-in-from"] > .auto-rows-fr > :nth-child(n + 4)),
+.frame :global([class*="slide-in-from"] > .grid-cols-2 > :nth-child(n + 5)) {
+  display: none;
+}

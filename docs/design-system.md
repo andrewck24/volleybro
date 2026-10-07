@@ -4,10 +4,18 @@
 
 ### Brand Colors
 
-| Token         | Light                | Dark | Usage                                      |
-| ------------- | -------------------- | ---- | ------------------------------------------ |
-| `primary`     | `hsl(192, 77%, 28%)` | same | Brand teal - buttons, links, active states |
-| `destructive` | `hsl(13, 97%, 66%)`  | same | Error, delete, danger actions              |
+| Token              | Light                | Dark | Usage                                      |
+| ------------------ | -------------------- | ---- | ------------------------------------------ |
+| `primary`          | `hsl(192, 77%, 28%)` | same | Brand teal - buttons, links, active states |
+| `destructive`      | `hsl(13, 97%, 66%)`  | same | Error, delete, danger actions              |
+| `court`            | `var(--destructive)` | same | Coral court surface (landing, recording)   |
+| `court-foreground` | `hsl(192, 70%, 8%)`  | same | Text and icons on a `court` surface        |
+
+### Court Colour Tokens
+
+`court` is the flat coral of a volleyball court and aliases `destructive`; `court-foreground` is a near-black teal. Use them as a pair for any surface that depicts the court (`bg-court text-court-foreground`).
+
+Text on a `court` surface is always `court-foreground` (6.67:1). Near-white on coral fails AA at 2.38:1, so `destructive-foreground` is never used on it. Keep `court` for surfaces that depict the court; error and danger states keep using `destructive`.
 
 ### Feedback Colors
 
@@ -105,6 +113,16 @@ This creates concentric (parallel) curves. Equal radii on nested elements looks 
 | `rounded-lg` | 8px (`--radius`)        | Cards, dialogs                     |
 | `rounded-xl` | 12px (`--radius + 4px`) | Outer wrappers                     |
 
+### Landing Instances
+
+| Element                     | Outer      | Padding   | Inner |
+| --------------------------- | ---------- | --------- | ----- |
+| Floating header shell → CTA | 16         | 6         | 10    |
+| Theme switcher              | 10         | 4         | 6     |
+| Entry card → rows           | 12         | 6         | 6     |
+| Demo tray → app cards       | 20         | 8         | 12    |
+| Stats carousel → slide      | 16 / lg 24 | 8 / lg 16 | 8     |
+
 ## Item-First Data Surface
 
 As `Item` gradually replaces table-heavy presentation, preserve scanability on neutral page backgrounds:
@@ -181,6 +199,8 @@ The PWA manifest `background_color` must match the brand `--primary` teal (`#106
 The rendered scale in the blueprint `design-system` section stops at `text-xs` (0.75rem / 12px). Take sizes from that scale and do not go under it.
 
 Never reach for an arbitrary `text-[Npx]`. A px literal ignores the reader's own font-size preference; a rem value from the scale follows it.
+
+Body and description text is at least `text-sm` (14px). Text set directly on a coloured court or free-zone surface is at least `text-base` (16px). `text-xs` is only for badges, meta labels and the Beta mark. App components keep their own sizes.
 
 One exception: a digit inside a fixed-size badge may be smaller, because the badge cannot grow with it. It must never be the only place that number appears.
 

@@ -1,69 +1,56 @@
 "use client";
 import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
-import { Badge } from "@/components/ui/badge";
+import { BTN_CARD, BTN_PRIMARY, GLASS_PILL } from "@/components/landing/copy";
+import { useInView } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useRef } from "react";
 
 export const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  const SCROLL_THRESHOLD = 0;
-
-  // 使用原生 Web API 和 throttle 機制避免性能問題
-  useEffect(() => {
-    let ticking = false;
-
-    const updateScrollState = () => {
-      const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > SCROLL_THRESHOLD);
-      ticking = false;
-    };
-
-    const handleScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(updateScrollState);
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const isAtTop = useInView(sentinel, { initial: true });
+  const isScrolled = !isAtTop;
 
   return (
-    <header
-      data-testid="header"
-      className="sticky top-0 left-0 z-50 flex w-full flex-row"
-    >
+    <>
       <div
-        data-testid="header-glassmorphism-container"
-        className={cn(
-          "mx-2 mt-1 flex flex-1 items-center justify-between p-3 text-foreground md:mx-4 md:mt-2",
-          "rounded-2xl border border-transparent",
-          "transition-all duration-300 ease-out",
-          isScrolled && [
-            "border border-white/20 bg-white/10 backdrop-blur-sm",
-            "shadow-lg shadow-black/5",
-            "dark:border-white/10 dark:bg-black/10",
-          ],
-        )}
-      >
+        ref={sentinel}
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+      />
+      <header className="fixed inset-x-0 top-0 z-50 h-(--landing-header-height) px-2 pt-2 md:px-4">
         <div
-          className="flex h-8 items-center justify-start gap-3 rounded-full bg-radial from-muted/40 via-muted/10 to-transparent pl-4 md:h-9"
-          data-testid="logo-container"
+          className={cn(
+            "mx-auto flex h-12 max-w-[92rem] items-center justify-between gap-2 rounded-2xl p-1.5 pl-3 ring-1 transition-[background-color,box-shadow,color] duration-300 md:pl-4",
+            isScrolled
+              ? GLASS_PILL
+              : "text-(--free-zone-foreground) ring-transparent",
+          )}
         >
-          <LogoType
-            data-testid="logo-image"
-            className="h-5 w-auto md:h-[30px]"
-          />
-          <Badge variant="outline" data-testid="preview-badge">
-            Preview
-          </Badge>
+          <div className="flex min-w-0 items-center gap-2">
+            <LogoType className="h-5 shrink-0 md:h-6" />
+            <span
+              className={cn(
+                "text-xs leading-5 font-semibold tracking-wide",
+                isScrolled
+                  ? "text-muted-foreground"
+                  : "text-(--free-zone-muted-foreground)",
+              )}
+            >
+              Beta
+            </span>
+          </div>
+          <CTAButton
+            className={cn(
+              "h-9 rounded-[10px] px-3 transition-[background-color,box-shadow,color] duration-300 md:px-3.5",
+              // inner radius = the pill's 16px - its 6px padding
+              isScrolled ? BTN_PRIMARY : BTN_CARD,
+            )}
+          >
+            開始記錄
+          </CTAButton>
         </div>
-        <CTAButton data-testid="cta-button" className="h-8 md:h-9" />
-      </div>
-    </header>
+      </header>
+    </>
   );
 };
