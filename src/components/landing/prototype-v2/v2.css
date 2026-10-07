@@ -455,12 +455,12 @@ html.v2-snap {
   inset: calc(9 * var(--m) + var(--ph) / 2 + var(--shift, 0px)) 0 0;
 }
 
-/* narrow phones (320): smaller figures, and the panel rides 0.75rem above
-   the net so the list keeps its lines */
+/* narrow phones (320): smaller figures, and the panel sits on
+   the net so the three-line lead clears its top edge */
 @media (max-width: 23.74rem) {
   .v2-stats {
     --ph: 16rem;
-    --shift: -0.75rem;
+    --shift: 0px;
   }
 }
 

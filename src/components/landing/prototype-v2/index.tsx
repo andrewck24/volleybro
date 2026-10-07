@@ -133,7 +133,7 @@ const Stats = () => (
   >
     <div className="v2-stats mx-auto max-w-(--v2-court-max) lg:max-w-[80rem]">
       <Court />
-      <div className="v2-stats-head flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.35*var(--m))] text-(--v2-ink) lg:p-[calc(0.5*var(--m))]">
+      <div className="v2-stats-head flex flex-col gap-[calc(0.3*var(--m))] p-[calc(0.35*var(--m))] text-(--v2-ink) max-[23.75rem]:p-2 lg:p-[calc(0.5*var(--m))]">
         <h2 className="text-[max(1.5rem,calc(0.7*var(--m)))] leading-tight font-bold text-balance lg:text-[calc(0.55*var(--m))]">
           {COPY.statsTitle[0]}
           <br />
