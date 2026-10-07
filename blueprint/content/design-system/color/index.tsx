@@ -47,16 +47,20 @@ const brand: TokenInfo[] = [
   {
     name: "--destructive",
     usage:
-      "Muted coral-red — destructive badges, toasts, figures and rows (white text)",
-  },
-  {
-    name: "--danger",
-    usage:
       "Vivid red — danger actions such as the destructive Button (near-white text)",
   },
   {
-    name: "--destructive-text",
-    usage: "Destructive text and icons on cards; brand coral on dark",
+    name: "--away",
+    usage:
+      "Muted coral-red — opponent and loss data: set tally, scores, figures, badges",
+  },
+  {
+    name: "--error",
+    usage: "Muted coral-red — error states: alerts, toasts, failed-write rings",
+  },
+  {
+    name: "--error-text",
+    usage: "Error text and icons on cards; brand coral on dark",
   },
 ];
 

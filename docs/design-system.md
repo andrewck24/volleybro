@@ -8,15 +8,16 @@
 | ------------------ | -------------------- | ---- | ------------------------------------------ |
 | `primary`          | `hsl(192, 77%, 28%)` | same | Brand teal - buttons, links, active states |
 | `court`            | `hsl(13, 97%, 66%)`  | same | Brand coral - court surfaces, the V mark   |
-| `destructive`      | `hsl(13, 60%, 40%)`  | same | Error and loss surfaces that carry text    |
-| `danger`           | `hsl(13, 85%, 42%)`  | same | Danger actions (Button `destructive`)      |
+| `destructive`      | `hsl(13, 85%, 42%)`  | same | Danger actions (Button `destructive`)      |
+| `away`             | `hsl(13, 60%, 40%)`  | same | Opponent and loss data surfaces            |
+| `error`            | `hsl(13, 60%, 40%)`  | same | Error states; `error-text` for text        |
 | `court-foreground` | `hsl(192, 70%, 8%)`  | same | Text and icons on a `court` surface        |
 
 ### Court Colour Tokens
 
 `court` is the flat coral of a volleyball court and the brand mark colour; `court-foreground` is a near-black teal. Use them as a pair for any surface that depicts the court (`bg-court text-court-foreground`).
 
-Text on a `court` surface is always `court-foreground` (6.67:1). Near-white on coral fails AA at 2.38:1, so `destructive-foreground` is never used on it. Keep `court` for surfaces that depict the court; error surfaces use `destructive` and danger actions use `danger`.
+Text on a `court` surface is always `court-foreground` (6.67:1). Near-white on coral fails AA at 2.38:1, so `destructive-foreground` is never used on it. Keep `court` for surfaces that depict the court; error states use `error`, opponent and loss data uses `away`, and danger actions use `destructive`.
 
 ### Feedback Colors
 
