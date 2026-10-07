@@ -148,18 +148,17 @@ export const StepsSection = ({
           ? [tray.left + tray.width / 2, (tray.bottom + fl.bottom) / 2]
           : beside(pts[0]!);
       const px = (v: number) => `${Math.round(v * 10) / 10}px`;
-      const next = [p0, ...pts, beside(pts[1]!)].map(([x, y]) => [
+      const next = [p0, ...pts].map(([x, y]) => [
         px(x - s.left),
         px(y - s.top),
       ]);
       const key = next.join();
       if (key === placed && "dot" in section.dataset) return;
       placed = key;
-      // --p0..3: start and the three taps; --r2: rest after the second
+      // --p0..3: start and the three taps
       next.forEach(([x, y], i) => {
-        const name = i < 4 ? `p${i}` : "r2";
-        stage.style.setProperty(`--${name}x`, x!);
-        stage.style.setProperty(`--${name}y`, y!);
+        stage.style.setProperty(`--p${i}x`, x!);
+        stage.style.setProperty(`--p${i}y`, y!);
       });
       section.dataset.dot = "";
       // A running scroll-driven animation on the compositor keeps the
