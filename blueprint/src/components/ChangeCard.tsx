@@ -13,7 +13,7 @@ import type { ChangeStatus, ChangeSummary } from "@/lib/changes-index";
 
 const STATUS_CLASS: Record<ChangeStatus, string> = {
   archived:
-    "border-[color-mix(in_oklch,var(--primary)_35%,transparent)] bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-primary",
+    "border-[color-mix(in_oklch,var(--primary)_35%,transparent)] bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-primary-text",
   "in-progress":
     "border-[color-mix(in_oklch,var(--warning)_40%,transparent)] bg-[color-mix(in_oklch,var(--warning)_12%,transparent)] text-warning",
   draft: "border-dashed bg-transparent text-muted-foreground",

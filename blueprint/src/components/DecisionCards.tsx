@@ -19,7 +19,7 @@ function VerdictBadge({ isAdopted }: { isAdopted: boolean }) {
       className={cn(
         "mt-0.5",
         isAdopted
-          ? "bg-primary/10 text-primary dark:bg-primary/20"
+          ? "bg-primary/10 text-primary-text dark:bg-primary/20"
           : "bg-destructive/10 text-destructive-text dark:bg-destructive/20",
       )}
     >
