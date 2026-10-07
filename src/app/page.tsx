@@ -1,22 +1,23 @@
-import { CTASection } from "@/components/landing/cta-section";
-import { Features } from "@/components/landing/features";
-import { Footer } from "@/components/landing/footer";
-import { Header } from "@/components/landing/header";
-import { Hero } from "@/components/landing/hero";
-import { Highlights } from "@/components/landing/highlights";
-import "@/styles/landing.css";
+import { Landing } from "@/components/landing";
+import { StatusBarColor } from "@/components/layout/status-bar-color";
+import type { Viewport } from "next";
 
-const LandingPage = () => {
-  return (
-    <main className="min-h-full w-full bg-background select-text">
-      <Header />
-      <Hero />
-      <Highlights />
-      <Features />
-      <CTASection />
-      <Footer />
-    </main>
-  );
+// Browser chrome matches the teal free zone: theme-color for first paint
+// (light #10687e / dark #0a2f38), then StatusBarColor (the app's own
+// mechanism, ADR-0068) paints <html>/<body> and the theme-color meta from the
+// resolved theme class.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#10687e" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a2f38" },
+  ],
 };
+
+const LandingPage = () => (
+  <>
+    <StatusBarColor color="var(--free-zone)" />
+    <Landing />
+  </>
+);
 
 export default LandingPage;
