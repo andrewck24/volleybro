@@ -37,8 +37,8 @@ import { scenarios } from "./proposal.mdx";
 
 <TestPlan
   items={[
-    { id: "T1", checks: "完整 controller 測試", method: "`node --test scripts/__tests__/release-controls.test.js`", executor: "agent", environment: "隔離 Git repositories 與 API fixtures", result: "pass", evidence: "32 tests passed，0 failed、skipped 或 todo。" },
-    { id: "T2", checks: "整個 repository 驗證", method: "`pnpm verify:all`", executor: "agent", environment: "release-evidence-policy worktree", result: "pass", evidence: "static、workflow 249 tests、Blueprint 19 suites／84 tests 通過；integration、app-build、app-test 由 diff planner 因本次未改 backend/app 而略過。" },
+    { id: "T1", checks: "完整 controller 測試與 test-audit", method: "`node --test scripts/__tests__/release-controls.test.js`", executor: "agent", environment: "隔離 Git repositories 與 API fixtures", result: "pass", evidence: "32 tests passed；Sol test-audit 指出的 report assertion-level 缺口已補，移除 controller admission gates 的 disposable mutant 會被測試拒絕。" },
+    { id: "T2", checks: "整個 repository 驗證", method: "`CI=true pnpm verify:all`", executor: "agent", environment: "release-evidence-policy worktree", result: "pass", evidence: "static、workflow 249 tests、Blueprint 19 suites／84 tests 通過；integration、app-build、app-test 由 diff planner 因本次未改 backend/app 而略過。" },
     { id: "T3", checks: "原生 Jest report acceptance", method: "將 Jest 30.5.2 原生 JSON report 傳入 `verify-compatibility-report`", executor: "agent", environment: "本機 controller 與 disposable report", result: "pass", evidence: "真實 report 含兩項 required assertions 且皆 passed；controller exit 0，輸出 result、baseline SHA、candidate SHA 與 tree。" },
     { id: "T4", checks: "獨立 Spec review", method: "複審 fail-closed classifier 與 compatibility report verifier", executor: "agent", environment: "獨立 reviewer context", result: "pass", evidence: "先發現 Jest 不提供 `numSkippedTests` 的 P1；改用原生 counters 並固定兩項 assertions 後，複審以原生 report 重跑確認 blocker 關閉，未發現其他 blocker。" },
     { id: "T5", checks: "production OAuth／session／team 唯讀 smoke", method: "真實正式站登入與唯讀驗收", executor: "developer", environment: "production，合併與正式 release 後", result: "pending", evidence: "保留為唯一固定人工 release QA；本次未部署 production，也未宣稱已完成。" },
@@ -58,6 +58,12 @@ import { scenarios } from "./proposal.mdx";
 獨立複審先發現兩個 fail-closed 缺口：未分類路徑可能被當成沒有資料風險；Jest 全部 skip 可能仍被字串型檢查誤認成功。前者改為三類路徑分類，production DB 啟用時未分類即停止；後者改驗證 Jest 原生 report 的 totals、passed／failed／pending／todo 與恰好兩項指定 assertion。
 
 複審亦以真實 Jest 30.5.2 report 重現並確認：原實作會拒絕有效 report，因 Jest 沒有 `numSkippedTests` 欄位。修正後同一 native report 由 controller 接受，產生綁定輸出。測試只證明 report admission 邏輯；真正跨版本資料讀寫語義仍須由未來有 persisted-contract risk 的 Change 提供 integration suite。本 repo 目前沒有這種 suite，所以任何相關 release 會 fail closed，不會被本次測試假裝成已證明。
+
+### Sol test-audit
+
+獨立 audit 發現舊的拒絕案例只改 aggregate counters，沒有保護 assertion title、baseline SHA、雙向 assertion 唯一性與每項 assertion status。現有測試新增無關 title、錯 baseline、重複方向，以及 aggregate summary 顯示成功但單項 assertion failed／skipped 的負向案例；wrong-baseline fixture 會改變最後一個 hex 字元，保證仍是合法且不同的 SHA。以移除 controller title/status/baseline guards 的 disposable mutant 驗證時，預期拒絕斷言轉紅；Sol 複查確認 fixture 修正後 finding 關閉。此測試證明 report admission，不代表已證明實際 DB 相容性。
+
+首次預設並行 `verify:all` 有一個 Jest worker 以 `SIGSEGV` 結束；以 `CI=true` 重跑整體 gate 通過，且 Blueprint 單 worker 重跑亦為 19 suites／84 tests 全過。
 
 ### 未解的執行前置
 
