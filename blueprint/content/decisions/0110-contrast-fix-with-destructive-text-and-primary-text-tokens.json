@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0109",
+  "id": "0110",
   "title": "Contrast is fixed with a darker destructive fill and role tokens for text and icons",
   "capabilities": ["platform/design-system"],
   "context": "Teal primary icons and coral destructive text fell below AA on dark cards, and selected GamePanel buttons put near-white text on coral.",

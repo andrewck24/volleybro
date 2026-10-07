@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "0111",
+  "id": "0112",
   "title": "The No-Ring rule governs container elevation only",
   "capabilities": ["platform/design-system"],
   "context": "The rule was written as a ban on all rings, yet buttons and item media already used rings for edges, and state rings had no sanctioned place.",
