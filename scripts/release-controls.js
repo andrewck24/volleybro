@@ -652,8 +652,9 @@ async function recoveryCompatibilityPlan(state) {
     fail(
       `Cannot classify changed paths for production-data compatibility: ${unclassifiedPaths.join(", ")}`,
     );
-  const required = state.productionDatabaseActive && contractPaths.length > 0;
-  if (required) {
+  const isCompatibilityRequired =
+    state.productionDatabaseActive && contractPaths.length > 0;
+  if (isCompatibilityRequired) {
     if (!(await sourcePathExists(state.sha, RECOVERY_COMPATIBILITY_TEST)))
       fail(
         `Persisted contract changed after production DB activation; ${RECOVERY_COMPATIBILITY_TEST} must exist in the exact release source`,
@@ -667,7 +668,12 @@ async function recoveryCompatibilityPlan(state) {
         "Compatibility test source tree does not match trusted integration CI",
       );
   }
-  return { changedPaths, contractPaths, unclassifiedPaths, required };
+  return {
+    changedPaths,
+    contractPaths,
+    unclassifiedPaths,
+    required: isCompatibilityRequired,
+  };
 }
 
 async function verifyCompatibilityTestStep(state, receipt) {
@@ -847,7 +853,7 @@ async function recoveryReceiptFacts(state) {
   const {
     contractPaths,
     unclassifiedPaths,
-    required: compatibilityRequired,
+    required: isCompatibilityRequired,
   } = await recoveryCompatibilityPlan(state);
   const integration = state.sourceQA?.scopes?.integration;
   if (
@@ -858,18 +864,17 @@ async function recoveryReceiptFacts(state) {
       "Recovery proof requires unit and integration receipts for one source tree",
     );
 
-  let policy, rollbackAllowed, compatibilityTest;
+  let policy, canRollback, compatibilityTest;
   if (!state.productionDatabaseActive) {
     policy = "pre-production-forward-only";
-    rollbackAllowed =
-      contractPaths.length === 0 && unclassifiedPaths.length === 0;
+    canRollback = contractPaths.length === 0 && unclassifiedPaths.length === 0;
   } else if (contractPaths.length === 0) {
     policy = "production-contract-unchanged";
-    rollbackAllowed = true;
+    canRollback = true;
   } else {
     policy = "production-targeted-integration-proof";
-    rollbackAllowed = true;
-    if (!compatibilityRequired)
+    canRollback = true;
+    if (!isCompatibilityRequired)
       fail(
         "Production compatibility test is required for this contract change",
       );
@@ -919,7 +924,7 @@ async function recoveryReceiptFacts(state) {
       unclassifiedPaths,
       compatibilityTest,
       integration: scope(integration),
-      rollbackAllowed,
+      rollbackAllowed: canRollback,
     },
     ci: {
       unit: scope(state.sourceQA.scopes.unit),
