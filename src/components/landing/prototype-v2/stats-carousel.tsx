@@ -68,55 +68,58 @@ export const StatsCarousel = () => {
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="上一個"
-            onClick={() => go(active - 1)}
-          >
-            <RiArrowLeftSLine />
-          </Button>
-          <div className="flex items-center">
-            {SLIDES.map((sl, i) => (
-              <button
-                key={sl.title}
-                type="button"
-                aria-label={`${i + 1} / ${n}：${sl.title}`}
-                aria-current={i === active}
-                onClick={() => go(i)}
-                className="grid size-8 place-items-center rounded-md focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
-              >
-                <span
-                  className={cn(
-                    "size-2 rounded-full bg-muted-foreground/40 transition-colors",
-                    i === active && "bg-foreground",
-                  )}
-                />
-              </button>
-            ))}
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="下一個"
-            onClick={() => go(active + 1)}
-          >
-            <RiArrowRightSLine />
-          </Button>
+        {/* prev/next straddle the card's side edges, centred on it: 8px (the
+            card's padding) inside, the rest in the court margin */}
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label="上一個"
+          className="absolute top-1/2 -left-5 size-7 -translate-y-1/2"
+          onClick={() => go(active - 1)}
+        >
+          <RiArrowLeftSLine />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label="下一個"
+          className="absolute top-1/2 -right-5 size-7 -translate-y-1/2"
+          onClick={() => go(active + 1)}
+        >
+          <RiArrowRightSLine />
+        </Button>
+        {/* position dots sit under the card, on the court */}
+        <div className="absolute top-full left-1/2 mt-1 flex -translate-x-1/2 items-center">
+          {SLIDES.map((sl, i) => (
+            <button
+              key={sl.title}
+              type="button"
+              aria-label={`${i + 1} / ${n}：${sl.title}`}
+              aria-current={i === active}
+              onClick={() => go(i)}
+              className="grid size-8 place-items-center rounded-md focus-visible:ring-2 focus-visible:ring-(--v2-ink) focus-visible:outline-hidden"
+            >
+              <span
+                className={cn(
+                  "size-2.5 rounded-full bg-(--v2-ink)/35 transition-colors",
+                  i === active && "bg-(--v2-ink)",
+                )}
+              />
+            </button>
+          ))}
         </div>
       </div>
-      <div className="v2-stats-list flex flex-col justify-center gap-[calc(0.15*var(--m))] p-[calc(0.3*var(--m))] text-(--v2-ink) max-[23.75rem]:p-2 lg:p-[calc(0.5*var(--m))]">
+      <div className="v2-stats-list flex flex-col justify-start p-[calc(0.3*var(--m))] pt-[calc(2.5rem+0.1*var(--m))] text-(--v2-ink) max-[23.75rem]:p-2 max-[23.75rem]:pt-10 lg:justify-center lg:p-[calc(0.5*var(--m))]">
         <div
           aria-live="polite"
           data-out={active !== shown || undefined}
-          className="v2-desc flex flex-col gap-1 lg:gap-2"
+          className="v2-desc flex flex-col gap-1.5 lg:gap-3"
         >
-          <h3 className="flex flex-wrap items-center gap-1 text-lg leading-snug font-bold lg:gap-2 lg:text-[max(1.125rem,calc(0.3*var(--m)))]">
+          <h3 className="flex flex-wrap items-center gap-1.5 text-2xl leading-snug font-bold lg:gap-2 lg:text-[max(1.5rem,calc(0.4*var(--m)))]">
             {s.title}
             {s.dev && <DevBadge />}
           </h3>
-          <p className="text-base leading-snug font-medium lg:text-[max(1rem,calc(0.22*var(--m)))]">
+          <p className="text-lg leading-snug font-medium lg:text-[max(1.125rem,calc(0.27*var(--m)))]">
             {s.body}
           </p>
         </div>

@@ -431,7 +431,7 @@ html.v2-snap {
   container-type: inline-size;
   aspect-ratio: 1 / 2;
   --m: calc(100cqw / 9);
-  --ph: 21.5rem;
+  --ph: 19rem;
 }
 
 .v2-stats-head,
@@ -459,7 +459,7 @@ html.v2-snap {
    the net so the list keeps its lines */
 @media (max-width: 23.74rem) {
   .v2-stats {
-    --ph: 18.5rem;
+    --ph: 16rem;
     --shift: -0.75rem;
   }
 }
