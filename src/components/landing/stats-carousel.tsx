@@ -1,30 +1,37 @@
 "use client";
-// The stats court's carousel: the centre attack zone
-// is an object-layer card holding one slide at a time (native scroll-snap, so
-// touch swipe is free), the opponent zone shows the active slide's
-// description. Slides mount lazily (active and its neighbours). The
-// description swaps with a discrete fade: out, then in, never two at once.
+// The centre attack zone is an object-layer card holding one slide at a time
+// (native scroll-snap, so touch swipe is free); the opponent zone shows the
+// active slide's description, swapped by a fade-out then fade-in, never both.
 import { DevBadge } from "@/components/landing/dev-badge";
 import { SLIDES } from "@/components/landing/stats-slides";
 import { Button } from "@/components/ui/button";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 
 const FADE_MS = 160;
 
+const STEP_BUTTONS = [
+  { label: "上一個", step: -1, Icon: RiArrowLeftSLine, edge: "-left-5" },
+  { label: "下一個", step: 1, Icon: RiArrowRightSLine, edge: "-right-5" },
+];
+
 export const StatsCarousel = () => {
   const track = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [shown, setShown] = useState(0);
   const n = SLIDES.length;
+  const isReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (active === shown) return;
-    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(() => setShown(active), still ? 0 : FADE_MS);
-    return () => clearTimeout(t);
-  }, [active, shown]);
+    const timer = setTimeout(
+      () => setShown(active),
+      isReducedMotion ? 0 : FADE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [active, shown, isReducedMotion]);
 
   const go = (i: number) => {
     const el = track.current!;
@@ -68,26 +75,19 @@ export const StatsCarousel = () => {
             </div>
           ))}
         </div>
-        {/* prev/next straddle the card's side edges, centred on it: 8px (the
-            card's padding) inside, the rest in the court margin */}
-        <Button
-          variant="secondary"
-          size="icon"
-          aria-label="上一個"
-          className="absolute top-1/2 -left-5 size-7 -translate-y-1/2"
-          onClick={() => go(active - 1)}
-        >
-          <RiArrowLeftSLine />
-        </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          aria-label="下一個"
-          className="absolute top-1/2 -right-5 size-7 -translate-y-1/2"
-          onClick={() => go(active + 1)}
-        >
-          <RiArrowRightSLine />
-        </Button>
+        {/* the buttons straddle the card's side edges: 8px (its padding) inside, the rest in the court margin */}
+        {STEP_BUTTONS.map(({ label, step, Icon, edge }) => (
+          <Button
+            key={label}
+            variant="secondary"
+            size="icon"
+            aria-label={label}
+            className={cn("absolute top-1/2 size-7 -translate-y-1/2", edge)}
+            onClick={() => go(active + step)}
+          >
+            <Icon />
+          </Button>
+        ))}
         {/* position dots sit under the card, on the court */}
         <div className="absolute top-full left-1/2 mt-1 flex -translate-x-1/2 items-center">
           {SLIDES.map((sl, i) => (

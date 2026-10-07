@@ -1,78 +1,76 @@
 "use client";
-import { SET_RALLIES, foldRallies } from "@/components/landing/demo-data";
-import { useRally } from "@/components/landing/rally";
 import { moveLabel } from "@/components/landing/copy";
-import dynamic from "next/dynamic";
+import { FOLDED_RALLIES } from "@/components/landing/demo-data";
+import { EntryRows } from "@/components/landing/entry-rows";
+import { useRally } from "@/components/landing/rally";
 import { useEffect, useRef, type CSSProperties } from "react";
 
-// the app's real EntryRow list, lazy so entry/game modules stay out of the
-// first load; it reads the same clock
-const HeroEntries = dynamic(
-  () => import("@/components/landing/hero-entries").then((m) => m.HeroEntries),
-  { ssr: false },
-);
+// Metres on the court plan. A won rally lands on their front zone, a lost one
+// on ours, clear of the action on our attack line.
+const LANDING_ACROSS = [1.4, 3.9, 6.4];
+const THEIR_FRONT_ZONE = 9.9;
+const OUR_FRONT_ZONE = 8.1;
+// portrait keeps lost rallies left of the score chip at the right net post
+const OUR_FRONT_ZONE_PORTRAIT = 8.6;
+const OUR_FRONT_SIDE_PORTRAIT = 1.2;
+const ENTRY_ZONE_START = 11.3;
 
-// The hero's moving layer, driven by the rally clock (one beat = 2.2s, paused
-// off-screen / hidden tab, a fixed mid-set snapshot under reduced motion) and
-// the demo fixture. Each beat, rally n lands as a mark where the
-// play ended — our points on their front zone, their points on ours — then
-// files into the Entry list in the opponent back zone; the row it becomes
-// slides in on the next beat, and the score at the net post moves with it.
-// Layers: the mark is court (a ball's landing spot); the score and the Entry
-// list are app objects (card surfaces, rounded, shadow) the court positions.
-
-const RALLIES = foldRallies(SET_RALLIES);
-const ACROSS = [1.4, 3.9, 6.4];
-
-const spotOf = (n: number) => {
-  const r = RALLIES[n - 1]!;
-  return r.win
-    ? { a: 9.9, ap: 9.9, c: ACROSS[(n * 2) % 3]!, cp: ACROSS[(n * 2) % 3]! }
-    : // our front zone, clear of the action on the attack line; portrait
-      // (cp) keeps them left, away from the score chip at the right post
-      { a: 8.1, ap: 8.6, c: ACROSS[n % 2]!, cp: 1.2 };
+const spotOf = (rally: number) => {
+  const { win } = FOLDED_RALLIES[rally - 1]!;
+  if (win) {
+    const across = LANDING_ACROSS[(rally * 2) % 3]!;
+    return {
+      distanceFromEndLine: THEIR_FRONT_ZONE,
+      distanceFromEndLinePortrait: THEIR_FRONT_ZONE,
+      distanceFromSideLine: across,
+      distanceFromSideLinePortrait: across,
+    };
+  }
+  return {
+    distanceFromEndLine: OUR_FRONT_ZONE,
+    distanceFromEndLinePortrait: OUR_FRONT_ZONE_PORTRAIT,
+    distanceFromSideLine: LANDING_ACROSS[rally % 2]!,
+    distanceFromSideLinePortrait: OUR_FRONT_SIDE_PORTRAIT,
+  };
 };
 
 export const RallyLayer = () => {
-  const { set, setNo, live } = useRally();
-  const n = set.rallies;
+  const { rallies, setNo, isLive, filedRallies } = useRally();
   const layer = useRef<HTMLDivElement>(null);
 
-  // the landing mark files into the first row's first score badge; measure it
-  // (px, layer coordinates) once per beat and on resize, never per frame. Row 0
-  // sits at the rows' top, so its badge offset holds while the row slides in.
+  // The mark files into the first row's first score badge: measure it once
+  // per beat (the lazy list only has a first row after its chunk lands) and on
+  // resize. Row 0 sits at the rows' top, so the offset holds while it slides in.
   useEffect(() => {
-    const el = layer.current!;
-    const rows = el.querySelector(".landing-entry-rows")!;
+    const layerEl = layer.current!;
+    const rows = layerEl.querySelector(".landing-entry-rows")!;
     const measure = () => {
       const row = rows.querySelector(".landing-entry-row");
       const badge = row?.querySelector(".size-8");
       if (!row || !badge) return;
-      const l = el.getBoundingClientRect();
-      const o = rows.getBoundingClientRect();
-      const r = row.getBoundingClientRect();
-      const b = badge.getBoundingClientRect();
-      el.style.setProperty(
+      const layerBox = layerEl.getBoundingClientRect();
+      const rowsBox = rows.getBoundingClientRect();
+      const rowBox = row.getBoundingClientRect();
+      const badgeBox = badge.getBoundingClientRect();
+      layerEl.style.setProperty(
         "--mark-target-x",
-        `${o.left + (b.left + b.width / 2 - r.left) - l.left}px`,
+        `${rowsBox.left + (badgeBox.left + badgeBox.width / 2 - rowBox.left) - layerBox.left}px`,
       );
-      el.style.setProperty(
+      layerEl.style.setProperty(
         "--mark-target-y",
-        `${o.top + (b.top + b.height / 2 - r.top) - l.top}px`,
+        `${rowsBox.top + (badgeBox.top + badgeBox.height / 2 - rowBox.top) - layerBox.top}px`,
       );
     };
     measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    ro.observe(rows);
-    return () => ro.disconnect();
-  }, [n, setNo]);
-  // while live, the list trails the mark by one beat: rally n is still in the
-  // air and becomes a row on the next tick
-  const shown = live ? n - 1 : n;
-  const last = shown > 0 ? RALLIES[shown - 1]! : null;
-  const spot = n > 0 ? spotOf(n) : null;
-  const r = n > 0 ? RALLIES[n - 1]! : null;
+    const observer = new ResizeObserver(measure);
+    observer.observe(layerEl);
+    observer.observe(rows);
+    return () => observer.disconnect();
+  }, [rallies, setNo]);
+
+  const last = filedRallies > 0 ? FOLDED_RALLIES[filedRallies - 1]! : null;
+  const spot = rallies > 0 ? spotOf(rallies) : null;
+  const rally = rallies > 0 ? FOLDED_RALLIES[rallies - 1]! : null;
 
   return (
     <div
@@ -90,18 +88,20 @@ export const RallyLayer = () => {
         </span>
       </div>
 
-      {spot && r && (
+      {spot && rally && (
         <div
-          key={`${setNo}-${n}`}
-          data-live={live || undefined}
-          data-ours={!r.win || undefined}
+          key={`${setNo}-${rallies}`}
+          data-live={isLive || undefined}
+          data-ours={!rally.win || undefined}
           className="landing-mark text-court-foreground"
           style={
             {
-              "--distance-from-end-line": spot.a,
-              "--distance-from-end-line-portrait": spot.ap,
-              "--distance-from-side-line": spot.c,
-              "--distance-from-side-line-portrait": spot.cp,
+              "--distance-from-end-line": spot.distanceFromEndLine,
+              "--distance-from-end-line-portrait":
+                spot.distanceFromEndLinePortrait,
+              "--distance-from-side-line": spot.distanceFromSideLine,
+              "--distance-from-side-line-portrait":
+                spot.distanceFromSideLinePortrait,
             } as CSSProperties
           }
         >
@@ -109,7 +109,7 @@ export const RallyLayer = () => {
             <span className="landing-mark-ring" />
           </span>
           <span className="landing-mark-label font-bold">
-            {moveLabel(r.home, r.win)}
+            {moveLabel(rally.home, rally.win)}
           </span>
         </div>
       )}
@@ -118,7 +118,7 @@ export const RallyLayer = () => {
         className="landing-zone landing-entries p-[calc(0.3*var(--court-meter))] lg:flex lg:flex-col lg:justify-center lg:p-[calc(0.5*var(--court-meter))]"
         style={
           {
-            "--zone-start-from-end-line": 11.3,
+            "--zone-start-from-end-line": ENTRY_ZONE_START,
             "--zone-end-from-end-line": 18,
           } as CSSProperties
         }
@@ -127,9 +127,7 @@ export const RallyLayer = () => {
             coral figures never sit on the coral court; inner rows keep
             their rounded-md (12 - 6) */}
         <div className="rounded-xl bg-card p-1.5 text-card-foreground shadow-lg">
-          <div className="landing-entry-rows">
-            <HeroEntries />
-          </div>
+          <EntryRows />
         </div>
       </div>
     </div>

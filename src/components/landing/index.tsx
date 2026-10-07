@@ -1,12 +1,15 @@
-// The landing: one flat regulation court plan — coral in-bounds, teal free
-// zone, white 5 cm lines — carries every section. One RallyProvider wraps
-// hero → stats: the hero court and the live stats panel are its only
-// consumers; the walkthrough between them is a server-passed child and never
-// re-renders on a beat.
+// One RallyProvider wraps hero → stats; the walkthrough between them is a
+// server-passed child, so it never re-renders on a beat.
 import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
+import { INTERVAL, SEED_COUNT } from "@/components/landing/demo-data";
 import { RallyProvider } from "@/components/landing/rally";
-import { BTN_PRIMARY, COPY, KIT, LINKS } from "@/components/landing/copy";
+import {
+  BTN_PRIMARY,
+  COPY,
+  LINKS,
+  SUPPORTING_FEATURES,
+} from "@/components/landing/copy";
 import { Court, CourtPlan } from "@/components/landing/court";
 import { DevBadge } from "@/components/landing/dev-badge";
 import { Header } from "@/components/landing/header";
@@ -28,23 +31,28 @@ import {
   RiUserAddLine,
 } from "react-icons/ri";
 
-/** One icon per roster row, in KIT order. */
-const KIT_ICONS: IconType[] = [
-  RiGroupLine, // 建立球隊
-  RiUserAddLine, // 邀請隊友
-  RiShieldKeyholeLine, // 角色權限
-  BsGrid3X2Gap, // 每場陣容
-  RiAddBoxLine, // 安裝到主畫面
-  RiLineChartLine, // 球員數據與進階圖表
-  RiDeviceLine, // 多裝置同時記錄
+/** One icon per roster row, in SUPPORTING_FEATURES order. */
+const FEATURE_ICONS: IconType[] = [
+  RiGroupLine,
+  RiUserAddLine,
+  RiShieldKeyholeLine,
+  BsGrid3X2Gap,
+  RiAddBoxLine,
+  RiLineChartLine,
+  RiDeviceLine,
 ];
 
-const zone = (a0: number, a1: number, c0 = 0, c1 = 9) =>
+const zone = (
+  startFromEndLine: number,
+  endFromEndLine: number,
+  startFromSideLine = 0,
+  endFromSideLine = 9,
+) =>
   ({
-    "--zone-start-from-end-line": a0,
-    "--zone-end-from-end-line": a1,
-    "--zone-start-from-side-line": c0,
-    "--zone-end-from-side-line": c1,
+    "--zone-start-from-end-line": startFromEndLine,
+    "--zone-end-from-end-line": endFromEndLine,
+    "--zone-start-from-side-line": startFromSideLine,
+    "--zone-end-from-side-line": endFromSideLine,
   }) as CSSProperties;
 
 const GUTTER = "px-4 md:px-8 lg:px-[clamp(2rem,5vw,6rem)]";
@@ -100,8 +108,7 @@ const Hero = () => (
   </section>
 );
 
-/** The intro rides in the walkthrough's sticky stage (server-rendered here,
- *  placed by StepsSection), so stepping in never skips it. */
+/** The intro is server-rendered here but placed inside the walkthrough's sticky stage. */
 const Record = () => (
   <section id="record" className="pt-16 md:pt-24">
     <LazyRecordDemo
@@ -121,9 +128,7 @@ const Record = () => (
   </section>
 );
 
-/** A court at every width (portrait below lg): heading on our half, the stats
- *  carousel across the net (live Points rows, the Entry list, the point-diff
- *  chart, all on the hero's rally clock), its description on the opponent half. */
+/** Heading on our half, the carousel across the net, its description on the opponent half. */
 const Stats = () => (
   <section
     className={cn(
@@ -131,27 +136,22 @@ const Stats = () => (
       GUTTER,
     )}
   >
-    <div className="landing-stats mx-auto max-w-(--court-max-width) lg:max-w-[80rem]">
+    <div className="landing-court landing-stats mx-auto max-w-(--court-max-width) lg:max-w-[80rem]">
       <Court />
       <div className="landing-stats-head flex flex-col gap-[calc(0.3*var(--court-meter))] p-[calc(0.35*var(--court-meter))] text-court-foreground max-[23.75rem]:p-2 lg:p-[calc(0.5*var(--court-meter))]">
-        <h2 className="text-[max(1.5rem,calc(0.7*var(--court-meter)))] leading-tight font-bold text-balance lg:text-[calc(0.55*var(--court-meter))]">
+        <h2 className="landing-stats-heading leading-tight font-bold text-balance">
           {COPY.statsTitle[0]}
           <br />
           {COPY.statsTitle[1]}
         </h2>
-        <p className="text-base font-medium lg:text-[max(1rem,calc(0.25*var(--court-meter)))]">
-          {COPY.statsLead}
-        </p>
+        <p className="landing-stats-lead font-medium">{COPY.statsLead}</p>
       </div>
       <StatsCarousel />
     </div>
   </section>
 );
 
-/** Supporting features in the walkthrough steps' layout: a number figure
- *  (the same object as the step chips, numbered like a jersey) beside the
- *  title and description, one column, on the teal free zone. */
-const Kit = () => (
+const SupportingFeatures = () => (
   <section
     className={cn(
       "mx-auto grid max-w-[92rem] grid-cols-1 gap-12 py-24 md:py-32 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-16",
@@ -159,14 +159,14 @@ const Kit = () => (
     )}
   >
     <div className="flex flex-col gap-5">
-      <h2 className={H2}>{COPY.kitTitle}</h2>
+      <h2 className={H2}>{COPY.supportTitle}</h2>
       <p className="max-w-lg text-lg text-(--free-zone-muted-foreground)">
-        {COPY.kitLead}
+        {COPY.supportLead}
       </p>
     </div>
     <ol className="flex flex-col gap-6 md:gap-8">
-      {KIT.map((k, i) => {
-        const Icon = KIT_ICONS[i]!;
+      {SUPPORTING_FEATURES.map((k, i) => {
+        const Icon = FEATURE_ICONS[i]!;
         return (
           <li key={k.title} className="flex items-start gap-4 lg:gap-6">
             <span
@@ -175,10 +175,8 @@ const Kit = () => (
             >
               <Icon className="size-6 lg:size-8" />
             </span>
-            {/* the title's cap height starts level with the icon tile's top
-                edge: text-box trims the line box to Saira's cap / alphabetic, and the
-                CJK ideographs rise 0.17em above that cap line (measured), so a
-                0.17em top margin lands their ink on the tile edge */}
+            {/* CJK ideographs rise 0.17em above the cap line text-box trims to
+                (measured); the margin lands their ink on the tile's top edge */}
             <div className="flex flex-col gap-2">
               <h3 className="mt-[0.17em] text-lg font-bold [text-box:trim-both_cap_alphabetic] md:text-2xl">
                 {k.title}
@@ -200,12 +198,7 @@ const Kit = () => (
   </section>
 );
 
-/** The page closes on the court in the hero's grammar. Below lg our 9 × 9
- *  half (net at the bottom), heading in the back zone, the action on our
- *  attack line. From lg the whole court runs from the gutter out past the
- *  viewport's right edge (full bleed; 1 m = 5.5vw, so the 18 m court always
- *  reaches it): heading and lead centred in our back zone, the action at its
- *  foot on the copy's left edge. */
+/** Below lg our 9 × 9 half; from lg the whole court bleeds past the viewport's right edge. */
 const Closing = () => (
   <section
     className={cn(
@@ -223,14 +216,12 @@ const Closing = () => (
         style={zone(0, 6)}
       >
         <div className="flex flex-col gap-[calc(0.3*var(--court-meter))] lg:my-auto">
-          <h2 className="text-[max(1.625rem,calc(0.75*var(--court-meter)))] leading-tight font-bold text-balance lg:text-[calc(0.62*var(--court-meter))]">
+          <h2 className="landing-closing-heading leading-tight font-bold text-balance">
             {COPY.ctaTitle[0]}
             <br />
             {COPY.ctaTitle[1]}
           </h2>
-          <p className="text-base font-medium lg:text-[max(1rem,calc(0.24*var(--court-meter)))]">
-            {COPY.ctaLead}
-          </p>
+          <p className="landing-closing-lead font-medium">{COPY.ctaLead}</p>
         </div>
         <CTAButton
           size="lg"
@@ -297,16 +288,17 @@ const Footer = () => (
 );
 
 export const Landing = () => (
-  <main className="landing min-h-full w-full select-text">
+  <main
+    className="landing min-h-full w-full select-text"
+    style={{ "--rally-beat": `${INTERVAL}ms` } as CSSProperties}
+  >
     <Header />
-    {/* seed 12: the Entry card is full on the first frame; a replayed set
-        restarts there too */}
-    <RallyProvider seed={12} replayFrom={12}>
+    <RallyProvider seed={SEED_COUNT} replayFrom={SEED_COUNT}>
       <Hero />
       <Record />
       <Stats />
     </RallyProvider>
-    <Kit />
+    <SupportingFeatures />
     <Closing />
     <Footer />
   </main>

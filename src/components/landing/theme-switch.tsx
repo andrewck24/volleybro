@@ -1,14 +1,10 @@
 "use client";
+import { GLASS_PILL } from "@/components/landing/copy";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { RiComputerLine, RiMoonLine, RiSunLine } from "react-icons/ri";
 
-// The footer's theme switch in the header's language (LAYERS L2
-// chrome): the app nav's glass pill (bg-background/94, shadow-lg,
-// ring-1 ring-foreground/10, backdrop-blur-sm), rounded-2xl (16) with p-1.5
-// (6), so the buttons inside are rounded-[10px]; the chosen one takes the
-// header CTA's primary fill.
 const THEMES = [
   { value: "system", label: "跟隨系統", Icon: RiComputerLine },
   { value: "light", label: "淺色", Icon: RiSunLine },
@@ -16,27 +12,30 @@ const THEMES = [
 ] as const;
 
 export const ThemeSwitch = () => {
-  const mounted = useHydrated();
+  const isHydrated = useHydrated();
   const { theme, setTheme } = useTheme();
   return (
     <div
       role="group"
       aria-label="色彩主題"
-      className="flex items-center gap-1 rounded-2xl bg-background/94 p-1.5 text-foreground shadow-lg ring-1 ring-foreground/10 backdrop-blur-sm"
+      className={cn(
+        "flex items-center gap-1 rounded-2xl p-1.5 ring-1",
+        GLASS_PILL,
+      )}
     >
       {THEMES.map(({ value, label, Icon }) => {
-        const on = mounted && theme === value;
+        const isSelected = isHydrated && theme === value;
         return (
           <button
             key={value}
             type="button"
             aria-label={label}
-            aria-pressed={on}
-            disabled={!mounted}
+            aria-pressed={isSelected}
+            disabled={!isHydrated}
             onClick={() => setTheme(value)}
             className={cn(
               "grid size-9 place-items-center rounded-[10px] transition-colors",
-              on
+              isSelected
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
             )}

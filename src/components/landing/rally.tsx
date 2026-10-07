@@ -1,9 +1,6 @@
 "use client";
-import {
-  SET_RALLIES,
-  setAt,
-  type SetState,
-} from "@/components/landing/demo-data";
+import { INTERVAL, SET_RALLIES } from "@/components/landing/demo-data";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import {
   createContext,
   useContext,
@@ -13,128 +10,103 @@ import {
   type ReactNode,
 } from "react";
 
-// One rally clock for the landing. The hero's moving layer, the stats panel
-// and the point-diff chart all advance on the same beat. The clock pauses
-// while no consumer is on screen or the tab is hidden; reduced motion renders
-// a fixed mid-set snapshot. The set is the shared demo fixture (demo-data.ts),
-// replayed from `replayFrom` after a pause once it ends.
-
-// keep equal to --rally-beat in landing.css
-const INTERVAL = 2200;
 const PAUSE_TICKS = 1;
 const SEED_RALLIES = 5;
 const STATIC_RALLIES = 22;
-
-const STATIC_SET = setAt(STATIC_RALLIES);
-const SET_LEN = SET_RALLIES.length;
+const SET_LENGTH = SET_RALLIES.length;
 
 type Rally = {
-  set: SetState;
+  /** rallies played so far in the current set */
+  rallies: number;
+  /** which replay of the set this is */
   setNo: number;
-  /** true once the clock has ticked — gates enter/exit motion */
-  live: boolean;
+  /** true once the clock has ticked, which gates enter/exit motion */
+  isLive: boolean;
+  /** rallies already filed into the list: the newest is still in the air while live */
+  filedRallies: number;
 };
 
-const RallyCtx = createContext<Rally | null>(null);
-export const useRally = () => useContext(RallyCtx)!;
+const toRally = (rallies: number, setNo: number, isLive: boolean): Rally => ({
+  rallies,
+  setNo,
+  isLive,
+  filedRallies: isLive ? rallies - 1 : rallies,
+});
 
-/** Running point differential (home − away), oldest rally first, from 0. */
-export const diffsOf = (set: SetState) => {
-  const out = [0];
-  for (const win of [...set.entries].reverse())
-    out.push(out.at(-1)! + (win ? 1 : -1));
-  return out;
-};
+const STATIC_RALLY = toRally(STATIC_RALLIES, -1, false);
 
+const RallyContext = createContext<Rally | null>(null);
+export const useRally = () => useContext(RallyContext)!;
+
+/**
+ * One clock for everything animated by the demo set. It runs only while a
+ * `[data-rally]` consumer is on screen and the tab is visible; reduced motion
+ * shows a fixed mid-set snapshot instead.
+ */
 export const RallyProvider = ({
   children,
-  className,
   seed = SEED_RALLIES,
   replayFrom = 1,
 }: {
   children: ReactNode;
-  className?: string;
   /** rallies already played at load, so the Entry card is full on the first frame */
   seed?: number;
   /** rally a replayed set restarts from */
   replayFrom?: number;
 }) => {
-  const [state, setState] = useState<Rally>(() => ({
-    set: setAt(seed),
-    setNo: 0,
-    live: false,
-  }));
-  const [reduced, setReduced] = useState(false);
-  const [active, setActive] = useState(true);
+  const [state, setState] = useState(() => toRally(seed, 0, false));
+  const [isActive, setIsActive] = useState(true);
+  const isReducedMotion = useReducedMotion();
   const box = useRef<HTMLDivElement>(null);
-  const pause = useRef(0);
-  const live = useRef(state);
+  const pauseTicks = useRef(0);
+  const clock = useRef(state);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduced(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
-  // clock runs while any [data-rally] consumer (hero list, CTA visual) is on
-  // screen and the tab is visible
   useEffect(() => {
     const targets = [...box.current!.querySelectorAll("[data-rally]")];
-    if (!targets.length) targets.push(box.current!);
-    const seen = new Set<Element>();
-    let shown = !document.hidden;
-    const update = () => setActive(seen.size > 0 && shown);
-    const io = new IntersectionObserver((es) => {
-      for (const e of es) {
-        if (e.isIntersecting) seen.add(e.target);
-        else seen.delete(e.target);
+    const visible = new Set<Element>();
+    let isTabVisible = !document.hidden;
+    const update = () => setIsActive(visible.size > 0 && isTabVisible);
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visible.add(entry.target);
+        else visible.delete(entry.target);
       }
       update();
     });
-    targets.forEach((t) => io.observe(t));
-    const onVis = () => {
-      shown = !document.hidden;
+    targets.forEach((target) => observer.observe(target));
+    const onVisibilityChange = () => {
+      isTabVisible = !document.hidden;
       update();
     };
-    document.addEventListener("visibilitychange", onVis);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
-      io.disconnect();
-      document.removeEventListener("visibilitychange", onVis);
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
   useEffect(() => {
-    if (reduced || !active) return;
+    if (isReducedMotion || !isActive) return;
     const id = setInterval(() => {
-      const cur = live.current;
-      if (cur.set.rallies >= SET_LEN) {
-        if (pause.current > 0) {
-          pause.current--;
+      const current = clock.current;
+      if (current.rallies >= SET_LENGTH) {
+        if (pauseTicks.current > 0) {
+          pauseTicks.current--;
           return;
         }
-        live.current = {
-          set: setAt(replayFrom),
-          setNo: cur.setNo + 1,
-          live: true,
-        };
+        clock.current = toRally(replayFrom, current.setNo + 1, true);
       } else {
-        live.current = { ...cur, set: setAt(cur.set.rallies + 1), live: true };
-        if (cur.set.rallies + 1 >= SET_LEN) pause.current = PAUSE_TICKS;
+        clock.current = toRally(current.rallies + 1, current.setNo, true);
+        if (current.rallies + 1 >= SET_LENGTH) pauseTicks.current = PAUSE_TICKS;
       }
-      setState(live.current);
+      setState(clock.current);
     }, INTERVAL);
     return () => clearInterval(id);
-  }, [reduced, active, replayFrom]);
-
-  const value = reduced ? { set: STATIC_SET, setNo: -1, live: false } : state;
+  }, [isReducedMotion, isActive, replayFrom]);
 
   return (
-    <RallyCtx.Provider value={value}>
-      <div ref={box} className={className}>
-        {children}
-      </div>
-    </RallyCtx.Provider>
+    <RallyContext.Provider value={isReducedMotion ? STATIC_RALLY : state}>
+      <div ref={box}>{children}</div>
+    </RallyContext.Provider>
   );
 };

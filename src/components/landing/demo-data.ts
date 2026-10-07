@@ -1,8 +1,5 @@
-// The one fixture behind the whole landing: the hero's entry list, the
-// point-diff chart and the live stats (rally clock), and the walkthrough (real
-// components on the demo store). One set, 25:21. Pure literals plus pure folds
-// and no app imports, so the hero side can load it without pulling the
-// recording components into the first bundle.
+// The one demo set (25:21) behind the hero, stats and walkthrough. It imports
+// nothing from the app, so the hero side loads it without the recording code.
 export const DEMO_GAME_ID = "demo-game";
 
 export const HOME_TEAM = { id: "demo-home", name: "海豚隊" };
@@ -90,21 +87,24 @@ export const SET_RALLIES: RallySpec[] = [
 /** How many rallies the recorded game holds before the walkthrough's live rally. */
 export const SEED_COUNT = OPENING.length;
 
-export const foldRallies = (specs: RallySpec[]) => {
+/** One rally beat in ms: the clock's interval, and `--rally-beat` for the animations tied to it. */
+export const INTERVAL = 2200;
+
+/** The set with the running score after each rally. */
+export const FOLDED_RALLIES = (() => {
   let home = 0;
   let away = 0;
-  return specs.map((s) => {
-    if (s.win) home++;
+  return SET_RALLIES.map((rally) => {
+    if (rally.win) home++;
     else away++;
-    return { ...s, homeScore: home, awayScore: away };
+    return { ...rally, homeScore: home, awayScore: away };
   });
-};
+})();
 
-/** Hero / chart view of the set after `n` rallies; entries newest first. */
-export type SetState = { rallies: number; entries: boolean[] };
-export const setAt = (n: number): SetState => ({
-  rallies: n,
-  entries: SET_RALLIES.slice(0, n)
-    .map((s) => s.win)
-    .reverse(),
-});
+const DIFF_SERIES = [
+  0,
+  ...FOLDED_RALLIES.map((rally) => rally.homeScore - rally.awayScore),
+];
+
+/** Running point differential (home − away) from 0 after `rallies` rallies. */
+export const diffsAt = (rallies: number) => DIFF_SERIES.slice(0, rallies + 1);

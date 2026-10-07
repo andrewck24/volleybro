@@ -1,36 +1,5 @@
-/* The landing's court-plan world.
-   Teal free zone = page ground; coral in-court = where content and action
-   live; white 5 cm lines = the only dividers. Flat: no gradient, texture,
-   glow or blur. Light: the brand teal free zone. Dark: a night-session free
-   zone (deep teal), coral unchanged, lines a touch softer.
-   Contrast (WCAG): ink on coral 6.67, ivory on teal 5.81 (dark 12.97),
-   teal-tint secondary on teal 4.83 (dark 8.86), ivory on teal CTA 5.81.
-
-   LAYERS — elevation, radius and spacing (concentric: inner = outer − padding)
-   L0 court    ground + rules. Radius 0, no shadow, never interactive.
-   L1 object   in-flow app surfaces the court positions: --card + shadow-md/lg.
-               Entry card rounded-xl (12) p-1.5 (6) → app rows rounded-md (6).
-               Stats carousel rounded-2xl (16) p-2 (8) → slides rounded-lg (8);
-               lg:rounded-3xl (24) p-4 (16). Score chip, step chip, demo
-               frame: standalone, rounded-lg / rounded-xl / rounded-2xl.
-               Buttons keep the app's rounded-md.
-   L2 chrome   the floating header only: inset 8px from the viewport,
-               rounded-2xl (16) p-1.5 (6) → inner CTA rounded-[10px];
-               transparent at rest, the app nav's glass once the page scrolls.
-   Objects never carry line-width outlines; rules never carry radius.
-
-   TYPE
-   Floors: body and description text ≥ text-sm (14px); any text set on the
-   coral court or the teal free zone ≥ text-base (16px). text-xs only for
-   badges (開發中), meta labels and Beta. App components keep their own
-   sizes (they are the product, not landing copy).
-   Scale, mobile → lg:
-     section heading   text-4xl → text-6xl (court-set: 0.55–0.8 m)
-     hero title        0.8 m → 0.95 m, four lines at lg (≈31px → ≈67px at 1440)
-     lead / description text-base → text-lg (court-set: max(1rem, 0.28 m) at lg)
-     step caption      title text-xl → text-4xl, body text-base → text-xl
-     roster            title text-lg → text-2xl, body text-base → text-lg
-     mark label        max(1rem, 0.38 m) → max(1rem, 0.25 m) */
+/* The landing's court-plan world: tokens, layers, type floors and contrast
+   are specified in docs/design-system.md and ADR-0106. */
 
 .landing {
   --court-line: #fff;
@@ -40,10 +9,6 @@
      a court drawn in metres overrides it with 0.05 m */
   --court-line-width: 3px;
   --ease-landing: cubic-bezier(0.2, 0.8, 0.2, 1);
-  /* one rally beat, shared by every animated element; equals INTERVAL in
-     rally.tsx */
-  --rally-beat: 2200ms;
-  --landing-header-height: 4rem;
   /* below lg every drawn court (hero, walkthrough field, stats, closing)
      shares this width cap, so their side lines line up */
   --court-max-width: 30rem;
@@ -63,6 +28,7 @@
    full-bleed closing court stops at it; the bar is thin and its track
    transparent, so the gutter reads as free zone beyond the court. */
 html:has(.landing) {
+  --landing-header-height: 4rem;
   --free-zone: hsl(192 77.46% 27.84%);
   background: var(--free-zone);
   scrollbar-color: hsl(192 45% 86% / 0.6) transparent;
@@ -76,7 +42,7 @@ html.dark:has(.landing) {
 /* the walkthrough turns mandatory snap on only while its stage is pinned
    (steps-section.tsx); snap points sit under the floating header */
 html:has(.landing) {
-  scroll-padding-top: 4rem;
+  scroll-padding-top: var(--landing-header-height);
 }
 
 html.landing-snap {
@@ -136,8 +102,7 @@ html.landing-snap {
   }
 }
 
-/* a zone of the court: --zone-start-from-end-line..--zone-end-from-end-line along (from our end line), --zone-start-from-side-line..--zone-end-from-side-line
-   across */
+/* A zone of the court, in metres: along it from our end line, across it from a side line. */
 .landing-zone {
   position: absolute;
   top: calc(var(--zone-start-from-end-line) * var(--court-meter));
@@ -316,24 +281,16 @@ html.landing-snap {
     var(--distance-from-side-line-portrait, var(--distance-from-side-line)) *
       var(--court-meter)
   );
-  /* where it files: the first Entry row's first score badge. RallyLayer
-     measures it into --mark-target-x/--mark-target-y (px, layer coordinates); --mark-target-from-side-line-fallback/--mark-target-from-end-line-fallback (m) are the
-     fallback until the first row exists */
-  --mark-target-from-end-line-fallback: 11.9;
-  --mark-target-from-side-line-fallback: 1;
+  /* Where it files: the first Entry row's first score badge. RallyLayer
+     measures it into --mark-target-x/-y (px, layer coordinates); the
+     fallbacks (metres) hold until the first row exists. */
   --mark-offset-x: calc(
-    var(
-        --mark-target-x,
-        calc(var(--mark-target-from-side-line-fallback) * var(--court-meter))
-      ) -
+    var(--mark-target-x, calc(1 * var(--court-meter))) -
       var(--distance-from-side-line-portrait, var(--distance-from-side-line)) *
       var(--court-meter)
   );
   --mark-offset-y: calc(
-    var(
-        --mark-target-y,
-        calc(var(--mark-target-from-end-line-fallback) * var(--court-meter))
-      ) -
+    var(--mark-target-y, calc(11.9 * var(--court-meter))) -
       var(--distance-from-end-line-portrait, var(--distance-from-end-line)) *
       var(--court-meter)
   );
@@ -345,20 +302,12 @@ html.landing-snap {
   .landing-mark {
     top: calc(var(--distance-from-side-line) * var(--court-meter));
     left: calc(var(--distance-from-end-line) * var(--court-meter));
-    --mark-target-from-end-line-fallback: 12.4;
-    --mark-target-from-side-line-fallback: 0.9;
     --mark-offset-x: calc(
-      var(
-          --mark-target-x,
-          calc(var(--mark-target-from-end-line-fallback) * var(--court-meter))
-        ) -
+      var(--mark-target-x, calc(12.4 * var(--court-meter))) -
         var(--distance-from-end-line) * var(--court-meter)
     );
     --mark-offset-y: calc(
-      var(
-          --mark-target-y,
-          calc(var(--mark-target-from-side-line-fallback) * var(--court-meter))
-        ) -
+      var(--mark-target-y, calc(0.9 * var(--court-meter))) -
         var(--distance-from-side-line) * var(--court-meter)
     );
     font-size: max(1rem, calc(0.25 * var(--court-meter)));
@@ -445,31 +394,18 @@ html.landing-snap {
   }
 }
 
-/* ---------- 每球三步 (lazy): the placeholder and the loaded section share
-   this height so loading never shifts the page ---------- */
-
-.landing-walkthrough-height {
-  height: calc(4 * (100svh - var(--landing-header-height)));
-}
-
-@media (max-height: 500px) {
-  .landing-walkthrough-height {
-    height: 42rem;
-  }
-}
-
 /* ---------- stats court: portrait below lg, landscape from lg ----------
-   Below lg the Points panel has a fixed height (--stats-card-height: five compact rows) and
-   sits centred on the net; our half above it holds the heading, the
-   opponent half below it the list. From lg the zones follow the court:
-   back zone / between the attack lines / their back zone. */
+   Composes with .landing-court. Below lg the Points card has a fixed height
+   and sits centred on the net; our half above it holds the heading, the
+   opponent half below it the list. From lg the zones follow the court: back
+   zone / between the attack lines / their back zone. */
 
 .landing-stats {
-  position: relative;
-  container-type: inline-size;
-  aspect-ratio: 1 / 2;
-  --court-meter: calc(100cqw / 9);
   --stats-card-height: 19rem;
+  --stats-card-top: calc(9 * var(--court-meter) - var(--stats-card-height) / 2);
+  --stats-card-bottom: calc(
+    9 * var(--court-meter) + var(--stats-card-height) / 2
+  );
 }
 
 .landing-stats-head,
@@ -480,43 +416,28 @@ html.landing-snap {
 
 .landing-stats-head {
   inset: 0 0 auto;
-  height: calc(
-    9 * var(--court-meter) - var(--stats-card-height) / 2 +
-      var(--stats-card-offset, 0px)
-  );
+  height: var(--stats-card-top);
 }
 
 .landing-stats-points {
-  top: calc(
-    9 * var(--court-meter) - var(--stats-card-height) / 2 +
-      var(--stats-card-offset, 0px)
-  );
+  top: var(--stats-card-top);
   height: var(--stats-card-height);
   inset-inline: calc(0.3 * var(--court-meter));
 }
 
 .landing-stats-list {
-  inset: calc(
-      9 * var(--court-meter) + var(--stats-card-height) / 2 +
-        var(--stats-card-offset, 0px)
-    )
-    0 0;
+  inset: var(--stats-card-bottom) 0 0;
 }
 
-/* narrow phones (320): smaller figures, and the panel sits on
-   the net so the three-line lead clears its top edge */
+/* narrow phones (320): smaller figures, and the card sits on the net so the
+   three-line lead clears its top edge */
 @media (max-width: 23.74rem) {
   .landing-stats {
     --stats-card-height: 16rem;
-    --stats-card-offset: 0px;
   }
 }
 
 @media (min-width: 64rem) {
-  .landing-stats {
-    aspect-ratio: 2 / 1;
-    --court-meter: calc(100cqw / 18);
-  }
   .landing-stats-head {
     inset: 0 auto 0 0;
     width: calc(6 * var(--court-meter));
@@ -554,52 +475,36 @@ html.landing-snap {
   opacity: 0;
 }
 
-/* ---------- point-diff chart (diff-chart.tsx) ----------
-   A new set fades in. The plot group re-mounts once per rally and plays one
-   of two animations: while the set is growing, it squeezes the old spacing to
-   the new; once the window is full, it slides one step left. */
+/* ---------- court-set type: sizes follow the court's metre ---------- */
 
-.landing-fade {
-  animation: landing-fade 500ms ease-out both;
+.landing-stats-heading {
+  font-size: max(1.5rem, calc(0.7 * var(--court-meter)));
 }
 
-.landing-plot {
-  transform-box: view-box;
-  transform-origin: 0 0;
+.landing-stats-lead {
+  font-size: 1rem;
 }
 
-.landing-squeeze {
-  animation: landing-squeeze 500ms var(--ease-landing) both;
+.landing-closing-heading {
+  font-size: max(1.625rem, calc(0.75 * var(--court-meter)));
 }
 
-.landing-slide {
-  animation: landing-slide 500ms var(--ease-landing) both;
+.landing-closing-lead {
+  font-size: 1rem;
 }
 
-@keyframes landing-fade {
-  from {
-    opacity: 0;
+@media (min-width: 64rem) {
+  .landing-stats-heading {
+    font-size: calc(0.55 * var(--court-meter));
   }
-  to {
-    opacity: 1;
+  .landing-stats-lead {
+    font-size: max(1rem, calc(0.25 * var(--court-meter)));
   }
-}
-
-@keyframes landing-squeeze {
-  from {
-    transform: scaleX(var(--squeeze-ratio));
+  .landing-closing-heading {
+    font-size: calc(0.62 * var(--court-meter));
   }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes landing-slide {
-  from {
-    transform: translateX(calc(var(--slide-step) * 1px));
-  }
-  to {
-    transform: translateX(0);
+  .landing-closing-lead {
+    font-size: max(1rem, calc(0.24 * var(--court-meter)));
   }
 }
 
@@ -612,9 +517,6 @@ html.landing-snap {
   .landing-desc {
     transition: none;
   }
-  .landing-fade,
-  .landing-squeeze,
-  .landing-slide,
   .landing-mark[data-live],
   .landing-mark[data-live] .landing-mark-ring,
   .landing-entry-row[data-animate] {

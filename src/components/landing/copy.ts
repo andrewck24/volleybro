@@ -14,8 +14,8 @@ export const COPY = {
     "就是 App 裡的那片球場。點選、確認、送出；訊號不好，也不會卡住下一球。",
   statsTitle: ["不用另外整理，", "記完就是統計"],
   statsLead: "上面每記一球，這裡的數字就跟著動；比賽一結束，統計已經在那裡。",
-  kitTitle: "一支手機，整支球隊",
-  kitLead: "建隊、邀請、分權限、排陣容，都在同一支手機上完成。",
+  supportTitle: "一支手機，整支球隊",
+  supportLead: "建隊、邀請、分權限、排陣容，都在同一支手機上完成。",
   ctaTitle: ["下一場比賽，", "從發球就開始記"],
   ctaLead: "先建好球隊，哨聲一響就能記。",
 };
@@ -29,9 +29,8 @@ export const STEPS = [
 
 export type Feature = { title: string; body: string; dev?: boolean };
 
-/** Supporting features, one roster row each (PRODUCT.md capabilities only;
- *  planned ones carry 開發中 and are otherwise styled the same). */
-export const KIT: Feature[] = [
+/** Features that support recording, one roster row each; planned ones carry `dev`. */
+export const SUPPORTING_FEATURES: Feature[] = [
   { title: "建立球隊", body: "填隊名就建好。" },
   { title: "邀請隊友", body: "搜尋使用者，直接邀請加入球隊。" },
   { title: "角色權限", body: "擁有者、管理員、成員，各自能做的事分開管。" },
@@ -86,6 +85,6 @@ export const BTN_PRIMARY =
  *  near-white in dark, near-white on black in light (foreground / background). */
 export const BTN_CARD =
   "bg-foreground font-semibold text-background shadow-md ring-transparent hover:bg-foreground/90 dark:ring-transparent";
-/** Button `secondary` variant: on the teal free zone (label 16:1 light, 9:1 dark). */
-export const BTN_SECONDARY =
-  "bg-secondary font-semibold text-secondary-foreground shadow-md ring-transparent hover:bg-secondary/80 dark:ring-transparent";
+/** The app nav's glass, for the floating header and the footer's theme switch. */
+export const GLASS_PILL =
+  "bg-background/94 text-foreground shadow-lg ring-foreground/10 backdrop-blur-sm";

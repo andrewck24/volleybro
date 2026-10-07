@@ -1,20 +1,24 @@
-/* The walkthrough's pinned part. Geometry: the stage sticks at top:
-   --landing-header-height and is one --walkthrough-track-height tall (the
-   viewport minus the header); the section is 4 tracks, so the pin lasts 3
-   tracks = steps 0..3. The captions are discrete, not scroll-scrubbed: scroll
-   only decides the step index (IntersectionObserver writes data-step) and a
-   time-based transition swaps the captions, so a rest between two step
-   positions never shows two half-transparent captions; snap and wheelstep
-   just carry the scroll to a step position. The section's height comes from
-   the global `.landing-walkthrough-height` (landing.css) so the lazy
-   placeholder matches. */
+/* The walkthrough's pinned part. The stage sticks under the header and is one
+   track tall (the viewport minus the header); the section is 4 tracks, so the
+   pin lasts 3 tracks = steps 0..3. Captions are discrete, not scroll-scrubbed:
+   scroll only decides the step (use-walkthrough.ts writes data-step) and a
+   timed transition swaps the captions, so a rest between two step positions
+   never shows two half-transparent ones. */
 .section {
   --walkthrough-track-height: calc(100svh - var(--landing-header-height));
   position: relative;
+  /* the lazy placeholder shares this height, so loading never shifts the page */
+  height: calc(4 * var(--walkthrough-track-height));
   /* drives only the finger dot: contain 0%..100% spans step 0's rest
      (section top under the header) to step 3's rest */
   view-timeline: --steps block;
   view-timeline-inset: var(--landing-header-height) 0px;
+}
+
+@media (max-height: 500px) {
+  .section {
+    height: 42rem;
+  }
 }
 
 .stage {
@@ -71,17 +75,10 @@
   display: grid;
 }
 
-.caption {
-  grid-area: 1 / 1;
-}
-
-/* the court continues through the walkthrough. The field is a piece
-   of the court plan 9 m wide (its width): white side lines, the attack line
-   right across it at the step chip's centre (--walkthrough-attack-line-y, measured) and the
-   centre line 3 m further on — the same 5 cm rules as the other courts.
-   The app's court, panel and preview stand on it as separate L1 objects
-   (record-demo.tsx). The field fills the stage height; the frame fills the
-   field (zoomed down by --walkthrough-zoom on short stages so the content keeps room). */
+/* A piece of the court plan 9 m wide: white side lines, the attack line right
+   across it (--walkthrough-attack-line-y, measured) and the centre line 3 m
+   further on. The field fills the stage height; the frame fills the field,
+   zoomed down by --walkthrough-zoom on short stages so the content keeps room. */
 .field {
   position: relative;
   flex: 1 1 0;
@@ -101,21 +98,24 @@
 .field::after {
   content: "";
   position: absolute;
-  inset-inline: 0;
-  border-top: var(--court-line-width) solid var(--court-line);
   translate: 0 -50%;
 }
 
-/* attack line, then the centre line 3 m (a third of the width) further */
 .field::before {
+  inset-inline: 0;
   top: var(--walkthrough-attack-line-y, 30%);
+  border-top: var(--court-line-width) solid var(--court-line);
 }
 
+/* The centre line: a box a third of the field's width tall (3 m of 9) hangs
+   from the attack line and its bottom border is the line. It spans the
+   field's border box, so its width is the whole 9 m. */
 .field::after {
-  top: calc(
-    var(--walkthrough-attack-line-y, 30%) +
-      var(--walkthrough-field-width, 0px) / 3
-  );
+  inset-inline: calc(var(--court-line-width) * -1);
+  top: var(--walkthrough-attack-line-y, 30%);
+  aspect-ratio: 3 / 1;
+  border-bottom: var(--court-line-width) solid var(--court-line);
+  translate: 0 calc(var(--court-line-width) / 2);
 }
 
 .frame {
@@ -210,8 +210,8 @@
    One scroll-driven path over the whole walkthrough (transform / opacity
    only, compositor): rest i sits at tap point Pi; each segment moves to the
    next target in its first 40%, taps at 50% (where the switch flips the real
-   components) and rests there. --pNx / --pNy are stage-relative, measured
-   from the real buttons (steps-section.tsx). */
+   components) and rests there. The --finger-dot-* points are stage-relative,
+   measured from the real buttons (use-walkthrough.ts). */
 .dot {
   /* the resting dot's scale (14px) on the target it just tapped: measured
      clear of the label ink, the 對方防守 "−" being the nearest at 390 */
@@ -339,39 +339,26 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .section .dot {
-    display: none !important;
-  }
-}
-
-/* IntersectionObserver writes data-step on the section; the captions switch
-   to that step's value on time, never on scroll position, and in sequence:
-   the leaving caption fades out in 180ms, the entering one waits 200ms (its
-   --vN is 1, so its delay is 1 × 200ms) before fading in, so at no moment
-   are two captions visible together. */
-.layer {
+/* In sequence, never two captions visible together: the leaving caption fades
+   out in 180ms, the entering one waits 200ms before fading in. */
+.caption {
   --caption-fade-out-duration: 180ms;
   --caption-fade-in-delay: 200ms;
-  transition: opacity var(--caption-fade-out-duration) ease-out
-    calc(var(--step-visible-0) * var(--caption-fade-in-delay));
-  opacity: var(--step-visible-0);
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity var(--caption-fade-out-duration) ease-out;
 }
-.section[data-step="1"] .layer {
-  opacity: var(--step-visible-1);
-  transition-delay: calc(var(--step-visible-1) * var(--caption-fade-in-delay));
-}
-.section[data-step="2"] .layer {
-  opacity: var(--step-visible-2);
-  transition-delay: calc(var(--step-visible-2) * var(--caption-fade-in-delay));
-}
-.section[data-step="3"] .layer {
-  opacity: var(--step-visible-3);
-  transition-delay: calc(var(--step-visible-3) * var(--caption-fade-in-delay));
+
+.section[data-step="0"] .caption:nth-child(1),
+.section[data-step="1"] .caption:nth-child(2),
+.section[data-step="2"] .caption:nth-child(3),
+.section[data-step="3"] .caption:nth-child(4) {
+  opacity: 1;
+  transition-delay: var(--caption-fade-in-delay);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .layer {
+  .caption {
     transition: none;
   }
 }
@@ -404,18 +391,12 @@
     gap: 1.5rem;
   }
   .rails,
-  .switches,
-  .dot {
+  .switches {
     display: none !important;
   }
-  .layer {
-    animation: none !important;
+  .caption {
     transition: none !important;
     opacity: 1 !important;
-  }
-  .frame {
-    flex: none;
-    height: 100%;
   }
 }
 
@@ -428,8 +409,7 @@
   .section {
     overflow-x: clip;
   }
-  .captions::before,
-  .captions::after {
+  .captions::before {
     content: "";
     position: absolute;
     top: 3rem;
@@ -439,10 +419,6 @@
   .captions::before {
     right: 100%;
     width: 50vw;
-  }
-  /* the field draws the in-court part of the line itself */
-  .captions::after {
-    display: none;
   }
 }
 

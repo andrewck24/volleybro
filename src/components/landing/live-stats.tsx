@@ -1,23 +1,17 @@
 "use client";
-// The stats section's live panel: the app's `Points`
-// rows (StatsItem / TotalStatsItem, same order and props as
-// src/components/game/stats/teams-stats/points.tsx) with zh-TW labels —
-// `Points` hard-codes English labels and takes no label prop, so the app
-// component stays untouched. The numbers follow the hero's rally clock: each
-// beat the counts are derived from the rallies the hero has filed so far in
-// the current set (reset with the set), and the bars run their own scaleX
-// transition. Off-screen / hidden tab / reduced motion come from the clock.
-// Loaded lazily (lazy-stats.tsx); only this panel subscribes to the clock.
+// The app's `Points` rows (same order and props as
+// src/components/game/stats/teams-stats/points.tsx) with zh-TW labels: `Points`
+// hard-codes English and takes no label prop, and the app component stays
+// untouched.
 import {
   StatsItem,
   TotalStatsItem,
 } from "@/components/game/stats/teams-stats/item";
-import { SET_RALLIES, foldRallies } from "@/components/landing/demo-data";
+import { entriesOf } from "@/components/landing/demo-entries";
 import { useRally } from "@/components/landing/rally";
-import { EntryType, MoveType } from "@/entities/game";
+import { MoveType } from "@/entities/game";
 import { getTeamsStats } from "@/lib/features/game/helpers/queries/team-stats.helper";
 import type { GameView, ITeamsStats } from "@/lib/features/game/types";
-import { scoringMoves } from "@/lib/scoring-moves";
 import { useMemo } from "react";
 
 const SCORING = [
@@ -27,39 +21,20 @@ const SCORING = [
   { label: "對方失誤", type: MoveType.UNFORCED },
 ];
 
-type Entries = GameView["sets"][number]["entries"];
-
-// every prefix of the demo set as Entries, folded once
-const ALL: Entries = foldRallies(SET_RALLIES).map((r, seq) => ({
-  type: EntryType.RALLY,
-  id: `live-${seq}`,
-  seq,
-  win: r.win,
-  home: {
-    score: r.homeScore,
-    type: scoringMoves[r.home]!.type,
-    num: r.home,
-    player: { id: r.player, zone: 4 },
-  },
-  away: {
-    score: r.awayScore,
-    type: scoringMoves[r.away]!.type,
-    num: r.away,
-  },
-}));
+const ENTRIES = entriesOf("live");
 
 const statsAt = (n: number): ITeamsStats =>
   getTeamsStats(
-    { sets: [{ entries: ALL.slice(0, n) }] as GameView["sets"] },
+    { sets: [{ entries: ENTRIES.slice(0, n) }] as GameView["sets"] },
     0,
   );
 
 export const LiveStats = () => {
-  const { set, live } = useRally();
-  // the hero files rally n into its list one beat after it lands; the panel
-  // counts what the list (and the net-post score) shows
-  const shown = live ? set.rallies - 1 : set.rallies;
-  const stats = useMemo(() => statsAt(Math.max(0, shown)), [shown]);
+  const { filedRallies } = useRally();
+  const stats = useMemo(
+    () => statsAt(Math.max(0, filedRallies)),
+    [filedRallies],
+  );
 
   return (
     <div

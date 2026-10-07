@@ -1,5 +1,4 @@
-// The GameView the real recording components read,
-// built from the shared demo fixture. Loaded only with the walkthrough.
+// The GameView the real recording components read, built from the demo set.
 import {
   AWAY_PLAYERS,
   AWAY_TEAM,
@@ -7,35 +6,12 @@ import {
   HOME_PLAYERS,
   HOME_TEAM,
   SEED_COUNT,
-  SET_RALLIES,
-  foldRallies,
 } from "@/components/landing/demo-data";
-import { EntryType } from "@/entities/game";
+import { entriesOf } from "@/components/landing/demo-entries";
 import { Position } from "@/entities/team";
 import type { GameView } from "@/lib/features/game/types";
-import { scoringMoves } from "@/lib/scoring-moves";
 
 const side = (name: string, id: string) => ({ id, name, staffs: [] });
-
-const entries: GameView["sets"][number]["entries"] = foldRallies(
-  SET_RALLIES.slice(0, SEED_COUNT),
-).map((r, seq) => ({
-  type: EntryType.RALLY,
-  id: `seed-${seq}`,
-  seq,
-  win: r.win,
-  home: {
-    score: r.homeScore,
-    type: scoringMoves[r.home]!.type,
-    num: r.home,
-    player: { id: r.player, zone: 4 },
-  },
-  away: {
-    score: r.awayScore,
-    type: scoringMoves[r.away]!.type,
-    num: r.away,
-  },
-}));
 
 const lineupPlayer = (id: string, position: Position) => ({ id, position });
 
@@ -65,7 +41,7 @@ export const demoGame: GameView = {
           substitutes: [],
         },
       },
-      entries,
+      entries: entriesOf("seed", SEED_COUNT),
     },
   ],
 };
