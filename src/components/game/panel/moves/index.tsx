@@ -85,11 +85,14 @@ const WIN_STYLE =
 const LOSE_STYLE =
   "bg-destructive/30 text-foreground [&>svg]:text-destructive-text shadow-sm hover:bg-destructive/80";
 
-const moveLook = (win: boolean, toggled: boolean) => {
-  if (toggled) return { variant: win ? "default" : "court" } as const;
+const moveLook = (
+  win: boolean,
+  toggled: boolean,
+): { variant: "default" | "court" | "destructive"; tint?: string } => {
+  if (toggled) return { variant: win ? "default" : "court" };
   return win
-    ? ({ variant: "default", tint: WIN_STYLE } as const)
-    : ({ variant: "destructive", tint: LOSE_STYLE } as const);
+    ? { variant: "default", tint: WIN_STYLE }
+    : { variant: "destructive", tint: LOSE_STYLE };
 };
 
 export const MoveButton = ({
@@ -115,7 +118,7 @@ export const MoveButton = ({
         // auto-rows-fr grid (opponent errors) can fit every row with no scroll;
         // a grid/flex item defaults to min-height:auto and would overflow.
         "h-full min-h-0 pr-1 text-[1.5rem] transition-colors duration-200",
-        "tint" in look && look.tint,
+        look.tint,
       )}
       onClick={() => onClick(move)}
     >
