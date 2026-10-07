@@ -3,21 +3,16 @@
   "id": "0111",
   "title": "Text and icons take role tokens that pass contrast in both themes",
   "capabilities": ["platform/design-system"],
-  "context": "Teal primary icons and coral destructive text fell below AA on dark cards, and selected GamePanel buttons put near-white text on coral.",
-  "decision": "A new `--destructive-text` colours destructive text and icons on card and accent surfaces: in light mode it is the destructive fill, in dark mode brand coral (6.04:1 on the dark card). Dark mode gets a lighter primary variant, `--primary-text`, for icons and text on dark surfaces; in light mode it equals primary. The app court in-zone uses `bg-court`, and the back zone is extracted to `--court-back-zone`. A token contrast check pins every pair at 4.5:1 for text and 3:1 for icons.",
+  "context": "Teal primary icons and coral destructive text fell below AA on dark cards.",
+  "decision": "A new `--destructive-text` colours destructive text and icons on card and accent surfaces: in light mode it is the destructive fill, in dark mode brand coral (6.04:1 on the dark card). A new `--primary-text` colours teal text and icons; in light mode it equals primary, in dark mode it is a lighter teal that passes on dark surfaces.",
   "alternatives": [
     {
       "option": "Lighten or darken the single tokens in place",
       "reason": "One value cannot pass on both the light card and the dark card; the fill and the text need separate roles."
-    },
-    {
-      "option": "Check contrast by hand in review",
-      "reason": "Regressions return silently the next time a token is edited."
     }
   ],
   "consequences": [
-    "Components choose between the destructive fill and destructive-text by role.",
-    "The contrast check fails when a token edit breaks a listed pair."
+    "Components choose between the destructive fill and destructive-text by role."
   ],
   "originChange": "design-authority"
 }
