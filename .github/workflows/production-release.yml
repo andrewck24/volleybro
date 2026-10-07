@@ -30,6 +30,7 @@ cache-mode: read
 
 env:
   RELEASE_OWNER_LOGIN: ${{ vars.RELEASE_OWNER_LOGIN }}
+  PRODUCTION_DB_ACTIVE: ${{ vars.PRODUCTION_DB_ACTIVE }}
 
 jobs:
   candidate:
@@ -135,6 +136,7 @@ jobs:
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_SHA: ${{ steps.authorize.outputs.sha }}
+          RELEASE_MODE: ${{ steps.controller.outputs.mode }}
           RELEASE_AUTHORIZATION: ${{ steps.authorize.outputs.release_authorization }}
           CONTROLLER_SHA: ${{ steps.controller.outputs.controller_sha }}
           EXPECTED_BASELINE_DEPLOYMENT: ${{ steps.authorize.outputs.baseline_deployment }}
@@ -153,10 +155,6 @@ jobs:
     name: Inspect source QA
     needs: candidate
     runs-on: ubuntu-latest
-    outputs:
-      source_preview_needed: ${{ steps.inspect.outputs.source_preview_needed }}
-      recovery_binding: ${{ steps.inspect.outputs.recovery_binding }}
-      recovery_evidence: ${{ steps.inspect.outputs.recovery_evidence }}
     permissions:
       contents: read
       actions: read
@@ -169,16 +167,12 @@ jobs:
         with:
           name: production-release-state
           path: ${{ runner.temp }}
-      - name: Reuse trusted source evidence and snapshot reviewed recovery proof
-        id: inspect
+      - name: Reuse trusted source evidence
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-          RELEASE_SOURCE_QA_GAP: ${{ vars.RELEASE_SOURCE_QA_GAP }}
-          RELEASE_ROLLBACK_COMPATIBILITY: ${{ vars.RELEASE_ROLLBACK_COMPATIBILITY }}
-          RELEASE_ROLLBACK_EVIDENCE: ${{ vars.RELEASE_ROLLBACK_EVIDENCE }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" inspect-source-qa
       - uses: actions/upload-artifact@v7
         with:
@@ -187,74 +181,12 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  source-preview:
-    name: Prepare source Preview
-    needs: [candidate, source-inspection]
-    if: needs.source-inspection.outputs.source_preview_needed == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    concurrency:
-      group: integration-preview
-      cancel-in-progress: false
-      queue: max
-    permissions:
-      contents: read
-    environment: integration
-    outputs:
-      preview_id: ${{ steps.preview.outputs.preview_id }}
-      preview_url: ${{ steps.preview.outputs.preview_url }}
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: trusted-release-controller
-          path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v8
-        with:
-          name: production-release-source-plan
-          path: ${{ runner.temp }}
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.candidate.outputs.sha }}
-          fetch-depth: 0
-      - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
-        with:
-          install: false
-          node-version-file: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-      - name: Prepare only the uncovered browser flow
-        id: preview
-        env:
-          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ vars.VERCEL_TEAM_ID }}
-          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
-          INTEGRATION_ALIAS: ${{ vars.INTEGRATION_ALIAS }}
-          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-        run: node "$RUNNER_TEMP/release-controls.js" prepare-source-preview
-
-  source-preview-acceptance:
-    name: Accept source Preview
-    needs: [source-preview]
-    runs-on: ubuntu-latest
-    permissions: {}
-    environment:
-      name: production-release-review
-      url: ${{ needs.source-preview.outputs.preview_url }}
-    steps:
-      - run: echo 'Only the documented source QA gap was accepted; this is not production OAuth evidence.'
-
   source-receipt:
     name: Record source QA
-    needs:
-      [candidate, source-inspection, source-preview, source-preview-acceptance]
+    needs: [candidate, source-inspection]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.source-inspection.result == 'success' &&
-      ((needs.source-inspection.outputs.source_preview_needed == 'true' && needs.source-preview-acceptance.result == 'success') ||
-       (needs.source-inspection.outputs.source_preview_needed == 'false' && needs.source-preview-acceptance.result == 'skipped'))
+      needs.source-inspection.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -271,13 +203,9 @@ jobs:
       - name: Bind passing source evidence to this release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
-          SOURCE_PREVIEW_ID: ${{ needs.source-preview.outputs.preview_id }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
-          INTEGRATION_ALIAS: ${{ vars.INTEGRATION_ALIAS }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" record-source-qa
       - uses: actions/upload-artifact@v7
         with:
@@ -286,78 +214,79 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  candidate-summary:
-    needs: [candidate, source-inspection, source-receipt]
+  recovery-evidence:
+    name: Verify release recovery evidence
+    needs: [candidate, source-receipt]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.source-inspection.result == 'success' &&
       needs.source-receipt.result == 'success'
     runs-on: ubuntu-latest
-    permissions: {}
-    steps:
-      - name: Explain candidate API and accepted evidence boundaries
-        env:
-          CANDIDATE_ID: ${{ needs.candidate.outputs.candidate_id }}
-          CANDIDATE_URL: ${{ needs.candidate.outputs.candidate_url }}
-          BASELINE: ${{ needs.candidate.outputs.baseline }}
-          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
-          RELEASE_MODE: ${{ needs.candidate.outputs.mode }}
-          ROLLBACK_COMPATIBILITY: ${{ needs.source-inspection.outputs.recovery_binding }}
-          ROLLBACK_EVIDENCE: ${{ needs.source-inspection.outputs.recovery_evidence }}
-        run: |
-          binding="$BASELINE:$CANDIDATE_ID:$RELEASE_SHA"
-          if [ "$ROLLBACK_COMPATIBILITY" = "$binding" ] && [ -n "$ROLLBACK_EVIDENCE" ]; then
-            test -n "$ROLLBACK_EVIDENCE"
-          fi
-          {
-            echo '### Production candidate acceptance'
-            echo "- Candidate: \`$CANDIDATE_ID\` ($CANDIDATE_URL)"
-            echo "- Authorized source SHA: \`$RELEASE_SHA\`"
-            echo "- Production baseline: \`$BASELINE\`"
-            if [ "$ROLLBACK_COMPATIBILITY" = "$binding" ] && [ -n "$ROLLBACK_EVIDENCE" ]; then
-              echo "- Required recovery binding: $binding"
-              echo "- Compatibility source evidence: $ROLLBACK_EVIDENCE"
-              echo 'The controller reused source proof; approval accepts the reviewed recovery evidence for this exact deployment.'
-            else
-              echo 'Required recovery evidence is missing; candidate acceptance will stop without promotion.'
-            fi
-            echo "Source functionality is proven separately. Candidate readiness, production configuration, protection and baseline use Vercel API read-back; no Google login or unauthenticated HTTP probe on this random host is required. The exact $RELEASE_MODE source remains the release authorization."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  candidate-acceptance:
-    name: Accept candidate evidence
-    needs: [candidate, candidate-summary, source-inspection, source-receipt]
-    if: >-
-      always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.candidate-summary.result == 'success' &&
-      needs.source-inspection.result == 'success' &&
-      needs.source-receipt.result == 'success'
-    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    cache-mode: none
     permissions:
       contents: read
       actions: read
-    environment:
-      name: production-release-review
-      url: ${{ needs.candidate.outputs.candidate_url }}
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: production-release-source-state
-          path: ${{ runner.temp }}/staged
+          name: trusted-release-controller
+          path: ${{ runner.temp }}/trusted
       - uses: actions/download-artifact@v8
         with:
-          name: trusted-release-controller
-          path: ${{ runner.temp }}
-      - name: Record reviewer-approved compatibility evidence
+          name: production-release-source-state
+          path: ${{ runner.temp }}/source
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - id: compatibility-plan
+        name: Plan exact-baseline compatibility proof
         env:
-          RELEASE_STATE_FILE: ${{ runner.temp }}/staged/release-state.json
+          GH_TOKEN: ${{ github.token }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
+        run: node "$RUNNER_TEMP/trusted/release-controls.js" plan-recovery-compatibility
+      - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3
+        if: steps.compatibility-plan.outputs.required == 'true'
+        with:
+          install: false
+          node-version-file: false
+      - uses: actions/setup-node@v7
+        if: steps.compatibility-plan.outputs.required == 'true'
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies for exact-baseline compatibility proof
+        if: steps.compatibility-plan.outputs.required == 'true'
+        run: pnpm install --frozen-lockfile
+      - id: compatibility
+        name: Run and validate exact-baseline compatibility suite
+        if: steps.compatibility-plan.outputs.required == 'true'
+        env:
+          PRODUCTION_BASELINE_SHA: ${{ steps.compatibility-plan.outputs.baseline_sha }}
+          RELEASE_CANDIDATE_SHA: ${{ steps.compatibility-plan.outputs.source_sha }}
+          RELEASE_CANDIDATE_TREE: ${{ steps.compatibility-plan.outputs.source_tree }}
+          RELEASE_COMPATIBILITY_REPORT: ${{ runner.temp }}/release-compatibility-report.json
+        run: |
+          pnpm test:integration --runTestsByPath test/integration/persistence/release-compatibility.itest.ts --json --outputFile="$RELEASE_COMPATIBILITY_REPORT"
+          node "$RUNNER_TEMP/trusted/release-controls.js" verify-compatibility-report
+      - name: Create run-bound machine-verified recovery receipt
+        env:
+          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
           RELEASE_ACCEPTED_STATE_FILE: ${{ runner.temp }}/release-state.json
           GH_TOKEN: ${{ github.token }}
-          RELEASE_ROLLBACK_COMPATIBILITY: ${{ needs.source-inspection.outputs.recovery_binding }}
-          RELEASE_ROLLBACK_EVIDENCE: ${{ needs.source-inspection.outputs.recovery_evidence }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_COMPATIBILITY_TEST_RESULT: ${{ steps.compatibility.outputs.result }}
+          RELEASE_COMPATIBILITY_BASELINE_SHA: ${{ steps.compatibility-plan.outputs.baseline_sha }}
+          RELEASE_COMPATIBILITY_SOURCE_SHA: ${{ steps.compatibility-plan.outputs.source_sha }}
+          RELEASE_COMPATIBILITY_SOURCE_TREE: ${{ steps.compatibility-plan.outputs.source_tree }}
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
-        run: node "$RUNNER_TEMP/release-controls.js" record-compatibility
+        run: node "$RUNNER_TEMP/trusted/release-controls.js" record-recovery-evidence
       - uses: actions/upload-artifact@v7
         with:
           name: production-release-accepted-state
@@ -370,10 +299,10 @@ jobs:
       group: production-release
       cancel-in-progress: false
       queue: max
-    needs: [candidate, candidate-acceptance]
+    needs: [candidate, recovery-evidence]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.candidate-acceptance.result == 'success'
+      needs.recovery-evidence.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -477,6 +406,13 @@ jobs:
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
       - name: Record exact production QA approval
         env:
           GH_TOKEN: ${{ github.token }}
@@ -648,7 +584,7 @@ jobs:
   failure-summary:
     needs:
       - candidate
-      - candidate-acceptance
+      - recovery-evidence
       - promote-and-smoke
       - production-acceptance
       - recover-after-production-qa-failure
@@ -656,8 +592,6 @@ jobs:
       - merge-back
       - recover
       - source-inspection
-      - source-preview
-      - source-preview-acceptance
       - source-receipt
     if: always() && contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
