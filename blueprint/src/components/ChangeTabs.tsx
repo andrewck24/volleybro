@@ -86,7 +86,7 @@ function renderTab(
   } catch (error) {
     console.error(`Change tab "${label}" failed to render:`, error);
     const content = (
-      <p className="text-sm text-destructive">
+      <p className="text-sm text-destructive-text">
         此分頁（{label}）在此 checkout 中無法顯示：
         {error instanceof Error ? error.message : String(error)}
       </p>

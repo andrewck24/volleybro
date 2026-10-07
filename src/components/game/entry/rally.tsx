@@ -70,6 +70,6 @@ export const Rally = ({
   );
 };
 
-const IconWin = () => <FiPlus className="text-primary" />;
+const IconWin = () => <FiPlus className="text-primary-text" />;
 
-const IconLose = () => <FiMinus className="text-destructive" />;
+const IconLose = () => <FiMinus className="text-destructive-text" />;

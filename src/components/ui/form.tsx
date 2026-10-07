@@ -166,7 +166,7 @@ const FormMessage = ({
       data-slot="FormMessage"
       id={formMessageId}
       className={cn(
-        "text-sm leading-none font-medium text-destructive",
+        "text-sm leading-none font-medium text-destructive-text",
         className,
       )}
       {...props}

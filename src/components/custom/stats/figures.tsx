@@ -48,8 +48,8 @@ export const figureVariants = cva(
         destructive: "bg-destructive text-destructive-foreground",
         secondary: "bg-secondary text-muted-foreground",
         outline: "border text-foreground",
-        primaryText: "bg-accent text-primary",
-        destructiveText: "bg-accent text-destructive",
+        primaryText: "bg-accent text-primary-text",
+        destructiveText: "bg-accent text-destructive-text",
       },
       size: {
         sm: "size-8 text-[1.5rem] font-normal",

@@ -23,12 +23,12 @@ export const Substitution = ({
       <EntryText>
         <EntryPlayerNumber>{outPlayer?.number}</EntryPlayerNumber>
         OUT
-        <RiArrowDownWideLine className="text-destructive" />
+        <RiArrowDownWideLine className="text-destructive-text" />
       </EntryText>
       <EntryText>
         <EntryPlayerNumber>{inPlayer?.number}</EntryPlayerNumber>
         IN
-        <RiArrowUpWideLine className="text-primary" />
+        <RiArrowUpWideLine className="text-primary-text" />
       </EntryText>
     </>
   );

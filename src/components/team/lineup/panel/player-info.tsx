@@ -47,7 +47,7 @@ export const PlayerInfo = ({
         <CardTitle>球員資訊</CardTitle>
         <Button
           variant="ghost"
-          className="h-7 text-lg text-primary [&>svg]:size-5"
+          className="h-7 text-lg text-primary-text [&>svg]:size-5"
           onClick={() =>
             dispatch(lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES))
           }

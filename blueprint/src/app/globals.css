@@ -6,9 +6,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* VolleyBro design tokens — frozen copy of the app's src/app/globals.css
-   token blocks (elevation-depth-system, finalized 2026-07-16). Re-copy only
-   if the app's tokens ever change. */
+/* VolleyBro design tokens — copy of the app's src/app/globals.css token
+   blocks. Re-copy when the app's tokens change. */
 :root,
 .light {
   --background: hsl(230, 20%, 95.6%);
@@ -25,8 +24,13 @@
   --muted-foreground: hsl(0, 0%, 38.43%);
   --accent: hsl(230, 20%, 95.6%);
   --accent-foreground: hsl(0, 2.04%, 9.61%);
-  --destructive: hsl(13.01, 96.51%, 66.27%);
+  --court: hsl(13.01, 96.51%, 66.27%);
+  --court-foreground: hsl(192 70% 8%);
+  --court-back-zone: hsl(12.93, 96.67%, 76.47%);
+  --destructive: hsl(13, 85%, 42%);
   --destructive-foreground: hsl(330, 10%, 96.08%);
+  --destructive-text: var(--destructive);
+  --primary-text: var(--primary);
   --success: hsl(152, 60%, 36%);
   --success-foreground: hsl(330, 10%, 96.08%);
   --warning: hsl(38, 92%, 50%);
@@ -61,8 +65,13 @@
   --muted-foreground: hsl(215, 20.2%, 65.1%);
   --accent: hsl(192, 5%, 5.5%);
   --accent-foreground: hsl(330, 10%, 96.08%);
-  --destructive: hsl(13.01, 96.51%, 66.27%);
+  --court: hsl(13.01, 96.51%, 66.27%);
+  --court-foreground: hsl(192 70% 8%);
+  --court-back-zone: hsl(12.93, 96.67%, 76.47%);
+  --destructive: hsl(13, 85%, 42%);
   --destructive-foreground: hsl(330, 10%, 96.08%);
+  --destructive-text: var(--court);
+  --primary-text: hsl(192, 70%, 45%);
   --success: hsl(152, 55%, 45%);
   --success-foreground: hsl(217.2, 10%, 96.08%);
   --warning: hsl(38, 90%, 55%);
@@ -117,6 +126,11 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-primary-text: var(--primary-text);
+  --color-court: var(--court);
+  --color-court-foreground: var(--court-foreground);
+  --color-court-back-zone: var(--court-back-zone);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-info: var(--info);
@@ -148,11 +162,6 @@
   --color-success-text: color-mix(
     in oklch,
     var(--success) 65%,
-    var(--foreground)
-  );
-  --color-destructive-text: color-mix(
-    in oklch,
-    var(--destructive) 65%,
     var(--foreground)
   );
   --color-warning-text: color-mix(

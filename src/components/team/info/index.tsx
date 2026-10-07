@@ -117,7 +117,9 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
         <>
           <Separator />
           <div className="space-y-2 p-4">
-            <h3 className="text-sm font-medium text-destructive">離開隊伍</h3>
+            <h3 className="text-sm font-medium text-destructive-text">
+              離開隊伍
+            </h3>
             <AlertDialog
               open={leaveOpen}
               onOpenChange={(open) => {

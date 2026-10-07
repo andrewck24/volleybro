@@ -92,9 +92,10 @@ export const MoveButton = ({
   children?: React.ReactNode;
 }) => {
   const WIN_STYLE =
-    "bg-primary/30 text-foreground [&>svg]:text-primary shadow-sm hover:bg-primary/80";
+    "bg-primary/30 text-foreground [&>svg]:text-primary-text shadow-sm hover:bg-primary/80";
   const LOSE_STYLE =
-    "bg-destructive/30 text-foreground [&>svg]:text-destructive shadow-sm hover:bg-destructive/80";
+    "bg-destructive/30 text-foreground [&>svg]:text-destructive-text shadow-sm hover:bg-destructive/80";
+  const TOGGLED_LOSE_STYLE = "bg-court text-court-foreground hover:bg-court/90";
 
   return (
     <Button
@@ -106,7 +107,11 @@ export const MoveButton = ({
         // auto-rows-fr grid (opponent errors) can fit every row with no scroll;
         // a grid/flex item defaults to min-height:auto and would overflow.
         "h-full min-h-0 pr-1 text-[1.5rem] transition-colors duration-200",
-        toggled || (move.win ? WIN_STYLE : LOSE_STYLE),
+        move.win
+          ? !toggled && WIN_STYLE
+          : toggled
+            ? TOGGLED_LOSE_STYLE
+            : LOSE_STYLE,
       )}
       onClick={() => onClick(move)}
     >

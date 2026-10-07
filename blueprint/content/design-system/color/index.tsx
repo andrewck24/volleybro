@@ -33,8 +33,24 @@ const brand: TokenInfo[] = [
     usage: "Teal — primary actions, brand accent (theme-stable)",
   },
   {
+    name: "--primary-text",
+    usage: "Teal for icons and text on cards; lighter on dark surfaces",
+  },
+  {
+    name: "--court",
+    usage: "Brand coral — the mark, the recording court and the landing court",
+  },
+  {
+    name: "--court-back-zone",
+    usage: "Lighter coral — the back zone of the recording court",
+  },
+  {
     name: "--destructive",
-    usage: "Coral — destructive actions + the logo's right arm (theme-stable)",
+    usage: "Darker coral derived from --court — destructive fills (white text)",
+  },
+  {
+    name: "--destructive-text",
+    usage: "Destructive text and icons on cards; brand coral on dark",
   },
 ];
 
@@ -46,7 +62,7 @@ const feedback: TokenInfo[] = [
 
 const chart: TokenInfo[] = [
   { name: "--chart-1", usage: "Series 1 — teal (tracks --primary)" },
-  { name: "--chart-2", usage: "Series 2 — coral (tracks --destructive)" },
+  { name: "--chart-2", usage: "Series 2 — coral (tracks --court)" },
   { name: "--chart-3", usage: "Series 3 — blue" },
   { name: "--chart-4", usage: "Series 4 — amber" },
   { name: "--chart-5", usage: "Series 5 — violet" },

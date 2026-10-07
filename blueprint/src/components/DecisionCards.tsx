@@ -20,7 +20,7 @@ function VerdictBadge({ isAdopted }: { isAdopted: boolean }) {
         "mt-0.5",
         isAdopted
           ? "bg-primary/10 text-primary dark:bg-primary/20"
-          : "bg-destructive/10 text-destructive dark:bg-destructive/20",
+          : "bg-destructive/10 text-destructive-text dark:bg-destructive/20",
       )}
     >
       {isAdopted ? "採用" : "棄用"}

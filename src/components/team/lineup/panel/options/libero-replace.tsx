@@ -64,7 +64,7 @@ export const LiberoReplaceTrigger = () => {
       <DialogTrigger asChild>
         <Button variant="outline" size="wide">
           替換模式
-          <span className="flex-1 text-left text-primary">
+          <span className="flex-1 text-left text-primary-text">
             {liberoReplaceMode === 0 ? "手動替換" : "自動替換"}{" "}
             {liberoReplaceMode ? liberoReplacePosition : ""}
           </span>
@@ -90,7 +90,7 @@ export const LiberoReplaceTrigger = () => {
             {liberoReplacePosition}。
           </AlertDescription>
           {liberoReplacePosition !== "OP" && (
-            <AlertDescription className="text-destructive">
+            <AlertDescription className="text-destructive-text">
               陣容中須有對位之 {liberoReplacePosition}。
             </AlertDescription>
           )}

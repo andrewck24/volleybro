@@ -124,7 +124,9 @@ export function MembershipSection({
         <>
           <Separator />
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-destructive">刪除球員</h3>
+            <h3 className="text-sm font-medium text-destructive-text">
+              刪除球員
+            </h3>
             <AlertDialog
               open={removeOpen}
               onOpenChange={(open) => {
@@ -171,7 +173,9 @@ export function MembershipSection({
         <>
           <Separator />
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-destructive">移轉所有權</h3>
+            <h3 className="text-sm font-medium text-destructive-text">
+              移轉所有權
+            </h3>
             <AlertDialog
               open={transferOpen}
               onOpenChange={(open) => {
