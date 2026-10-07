@@ -50,6 +50,10 @@ const brand: TokenInfo[] = [
       "Vivid red — danger actions such as the destructive Button (near-white text)",
   },
   {
+    name: "--destructive-text",
+    usage: "Danger-zone text and icons on cards; brand coral on dark",
+  },
+  {
     name: "--away",
     usage:
       "Muted coral-red — opponent and loss data: set tally, scores, figures, badges",

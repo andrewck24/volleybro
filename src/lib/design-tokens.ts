@@ -16,6 +16,8 @@ export const feedbackColors = {
   warning: "var(--warning)",
   info: "var(--info)",
   destructive: "var(--destructive)",
+  error: "var(--error)",
+  away: "var(--away)",
 } as const;
 
 export const semanticColors = {

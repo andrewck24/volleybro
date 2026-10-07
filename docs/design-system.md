@@ -8,7 +8,7 @@
 | ------------------ | -------------------- | ---- | -------------------------------------------- |
 | `primary`          | `hsl(192, 77%, 28%)` | same | Brand teal - buttons, links, active states   |
 | `court`            | `hsl(13, 97%, 66%)`  | same | Brand coral - court surfaces, the V mark     |
-| `destructive`      | `hsl(13, 85%, 42%)`  | same | Danger actions (Button `destructive`)        |
+| `destructive`      | `hsl(13, 85%, 42%)`  | same | Danger actions; `destructive-text` for text  |
 | `away`             | `hsl(13, 60%, 40%)`  | same | Opponent and loss data; `away-text` for text |
 | `error`            | `hsl(13, 60%, 40%)`  | same | Error states; `error-text` for text          |
 | `court-foreground` | `hsl(192, 70%, 8%)`  | same | Text and icons on a `court` surface          |
@@ -29,7 +29,7 @@ Text on a `court` surface is always `court-foreground` (6.67:1). Near-white on c
 
 ### Chart Palette
 
-Derived from brand colors. `chart-1` (primary teal) and `chart-2` (destructive orange) anchor the palette; `chart-3`-`chart-5` extend the hue range.
+Derived from brand colors. `chart-1` (primary teal) and `chart-2` (coral) anchor the palette; `chart-3`-`chart-5` extend the hue range.
 
 | Token     | Light                | Dark                 | Role                |
 | --------- | -------------------- | -------------------- | ------------------- |
