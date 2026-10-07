@@ -88,11 +88,11 @@ const LOSE_STYLE =
 const moveLook = (
   win: boolean,
   toggled: boolean,
-): { variant: "default" | "court" | "destructive"; tint?: string } => {
+): { variant: "default" | "court" | "secondary"; tint?: string } => {
   if (toggled) return { variant: win ? "default" : "court" };
   return win
     ? { variant: "default", tint: WIN_STYLE }
-    : { variant: "destructive", tint: LOSE_STYLE };
+    : { variant: "secondary", tint: LOSE_STYLE };
 };
 
 export const MoveButton = ({
