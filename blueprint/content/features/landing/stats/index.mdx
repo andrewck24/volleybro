@@ -1,0 +1,31 @@
+---
+title: Stats court
+description: A three-slide carousel on the net showing live per-skill points, the rally-by-rally Entry list and a point-difference chart.
+---
+
+The stats section is a second court in the page's grammar. Code is in `src/components/landing/` (`stats-carousel.tsx`, `stats-slides.tsx`, `live-stats.tsx`, `diff-chart.tsx`, `landing.css`).
+
+## Current behavior
+
+- The court is portrait below `lg` and landscape from `lg`. Our zone holds the heading and lead, the centre holds the carousel card, and the opponent zone holds the active slide's description.
+- Three slides, in order: 技術類別統計 (the app's real `StatsItem` / `TotalStatsItem` Points rows with Chinese labels, counts derived from the rallies the hero has filed so far in the current set), 逐球記錄 (the same real `EntryRow` list as the hero), and 分差折線圖 (a point-difference line chart). The chart slide carries the 開發中 badge.
+- All three read the hero's rally clock, so the numbers, rows and chart move on the same beat and pause with it; under reduced motion they show the fixed snapshot.
+- The track is native horizontal scroll-snap, so swipe works; a horizontal swipe stays inside the track while vertical scrolling still scrolls the page. Previous and next buttons straddle the card, wrapping at the ends; position dots under the card jump to a slide. ArrowLeft and ArrowRight work when the carousel is focused. The group and each slide carry carousel and slide roles and labels.
+- The active slide's title, body and badge show in the opponent zone as a polite live region. A change fades the old description out (160 ms) before the new one fades in, never two at once; reduced motion swaps instantly.
+- Slides mount lazily: only the active slide and its neighbours render, and each slide's component is a dynamic import outside first-load JS.
+- Equal height: below `lg` the card has a fixed height (five compact Points rows, smaller on narrow phones); from `lg` the track has a fixed 24.5 rem height. Every slide centres in that box, and the Entry slide shows whole rows only, so switching slides never resizes the card.
+
+## Constraints
+
+- The Points rows mirror the order and props of `src/components/game/stats/teams-stats/points.tsx`, but carry their own Chinese labels because that component hard-codes English and takes no label prop; the app component is untouched.
+- Adding a slide is adding an entry to `SLIDES` in `stats-slides.tsx`.
+
+## Known gaps
+
+- The Entry slide's `zoom`-based row scaling is unverified on WebKit.
+- The point-difference chart is illustrative only; it is a planned capability and is badged as in development.
+- There is no end-to-end lane covering the carousel.
+
+## Implemented decisions
+
+<DecisionTimeline />

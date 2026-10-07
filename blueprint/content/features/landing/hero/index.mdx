@@ -1,0 +1,33 @@
+---
+title: Hero
+description: The opening 18 m court — a rally clock replaying a demo set into a real Entry list, with the title, call to action and helper line.
+---
+
+The hero is the first section under the header: a regulation court plan on which a demo set plays itself. Code is in `src/components/landing/` (`index.tsx`, `rally.tsx`, `rally-layer.tsx`, `hero-entries.tsx`, `landing.css`).
+
+## Current behavior
+
+- The court is drawn in metres (`court.tsx`, 18 × 9, 5 cm white lines). Below `lg` it is portrait with the net horizontal; from `lg` it is landscape, capped by the viewport height.
+- The title sits in our back zone with a one-line description. From `lg` the title breaks into four lines (each of its two sentences breaks after its first word), and the call to action plus the helper line ("open in the browser, no app to download") share its left edge. Below `lg` the call to action sits on our attack line with the helper beneath it.
+- The rally clock (`rally.tsx`) advances one beat every 2.2 s (`INTERVAL`, equal to `--rally-beat` in `landing.css`). It runs only while a `[data-rally]` consumer is on screen and the tab is visible; otherwise it pauses. After the demo set ends it holds one beat and replays from rally 12.
+- Under `prefers-reduced-motion: reduce` the clock never ticks: the court shows a fixed mid-set snapshot and the mark and row animations are off.
+- Each beat, the latest rally lands as a mark on the court — our points on their front zone, theirs on ours — labelled with the move (`moveLabel`), then files into the first row of the Entry list; the row slides in on the next beat, so the list trails the mark by one beat. The score chip at the net post follows the list.
+- The mark's target is the first row's first score badge, measured into `--mark-target-x/y` once per beat and on resize, never per frame; it falls back to a fixed court position until a row exists.
+- The Entry list is the app's real `EntryRow` fed by the shared demo fixture (`demo-data.ts`), loaded lazily so the entry and game modules stay out of first-load JS. It is inert and read-only.
+- The list shows whole rows only: its height rounds down to a multiple of the row pitch (capped at ten rows) so no half row shows. Where the card is narrow it zooms the rows down (0.85, 0.72, 0.62) instead of dropping a column, so both columns of every row stay on one line.
+- The first frame already shows a full list (the provider is seeded at rally 12); a screen-reader-only paragraph describes the animation and the court is `aria-hidden`.
+
+## Constraints
+
+- The hero reads the clock and fixture only; it makes no network request.
+- `INTERVAL` in `rally.tsx` and `--rally-beat` in `landing.css` must stay equal.
+- Row zoom relies on the CSS `zoom` property and container queries on the list's card.
+
+## Known gaps
+
+- The `zoom`-based row scaling and the mark-target measurement are unverified on WebKit.
+- There is no end-to-end lane covering the hero.
+
+## Implemented decisions
+
+<DecisionTimeline />

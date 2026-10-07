@@ -69,3 +69,10 @@ package-lock.json
 /blueprint/public/blueprint-build.json
 /blueprint/public/blueprint-build.json.tmp
 .scratch/
+
+# Impeccable keeps durable design context in surface briefs, the shared
+# config and the DESIGN.md sidecar; captures, mocks and sessions are local
+.impeccable/*
+!.impeccable/surfaces/
+!.impeccable/config.json
+!.impeccable/design.json

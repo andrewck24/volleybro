@@ -1,0 +1,37 @@
+---
+title: Record walkthrough
+description: Four pinned steps on the app's real recording components, with snap, wheel stepping, sequenced captions and a scroll-driven finger dot.
+---
+
+The walkthrough shows how one rally is recorded. Code is in `src/components/landing/` (`lazy-demo.tsx`, `record-demo.tsx`, `steps-section.tsx`, `steps.module.css`, `demo-data.ts`).
+
+## Current behavior
+
+- The four steps are pick a player, our move, their response, preview and send (`STEPS` in `copy.ts`). Each step drives the real `GameCourt`, `GamePanel` and `GamePreview` by dispatching the demo rally's taps onto a store used only by the landing; each step resets the demo game first, so stepping back is exact.
+- The demo store is a separate `makeStore` with a no-op storage, the SWR cache is private and paused (`isPaused`, no revalidation) and preloaded with the demo game, and the pending-writes queue is a stub. Nothing is fetched or written. The frame is `inert`; a screen-reader-only list carries the steps.
+- The code loads lazily: a placeholder with the section's exact height (`.landing-walkthrough-height`) renders the intro until it is within one viewport of the screen, so loading never shifts the page and the heading is in the HTML before JavaScript runs.
+- The stage is sticky under the header and one track tall; the section is four tracks, so the pin lasts three tracks. The intro and the layered step captions share the stage's text column; the app frame stands on a coral field with the court's attack and centre lines.
+- Step state is discrete. An `IntersectionObserver` on switch sentinels (rails shifted up half a header) picks the step at the viewport centre, so a step flips exactly midway between two rests. The captions swap by a time-based transition: the outgoing caption fades out in 180 ms and the incoming one fades in after 200 ms, so two captions are never visible together.
+- While the stage is pinned, `html.landing-snap` enables mandatory scroll snap on the step rails. The class is removed when the section is not pinned, so the rest of the page scrolls freely and a fling past the first or last step is not pulled back. PageDown, PageUp, Home, End, Space and Tab drop snap when they would leave the section.
+- A mouse-wheel notch (judged per gesture: line units, or one large vertical pixel delta) moves exactly one step with a native smooth `scrollTo`; trackpad and touch scroll natively and snap settles them on a step. At the first or last step the gesture passes through to scroll the page.
+- The finger dot is a CSS scroll-driven animation (`animation-timeline`, transform and opacity only, no per-frame JavaScript). It taps at 50% of each segment, where the step flips, and rests on the target. Targets are measured live: tap one in the visible court, taps two and three in hidden mirror panels held at the previous step on stores of their own, so the visible store is never touched. Rest and tap points sit 75% across the target, clear of its label; the start point is off the tray. It re-measures on resize and after enter animations, and is hidden if any target is missing.
+- Without `animation-timeline: view()` support, under reduced motion, or on landscape phones (`max-height: 500px`) there is no dot; landscape phones also drop the pin and show the captions beside a frame frozen on the finished rally. Reduced motion also turns the real components' own animations into instant swaps.
+- Nothing autoplays: the step follows scroll position, including after a reload.
+
+## Constraints
+
+- The demo fixture must stay valid against the app store's shape (`demo-data.ts`, `demo-game.ts`); changes to the app's game components show on the landing automatically.
+- Two extra hidden `GamePanel` trees exist solely to measure the finger's targets.
+- Snap applies only while the stage is pinned.
+- The wheel-notch test is a heuristic: a hard trackpad flick can open as a notch (it still steps once), and a mouse that sends small smoothed deltas scrubs instead.
+
+## Known gaps
+
+- The frame's `zoom` scaling and the target measurements are unverified on WebKit.
+- The real `GamePanel`'s own text contrast on the landing's surfaces was not reviewed here; improving it belongs to the app's recording panel, not the landing.
+- There is no end-to-end lane covering the walkthrough.
+- Browsers without scroll-driven animations get no finger dot.
+
+## Implemented decisions
+
+<DecisionTimeline />
