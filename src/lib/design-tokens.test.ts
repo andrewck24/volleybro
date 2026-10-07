@@ -70,6 +70,9 @@ const pairs: [string, string, number, (keyof typeof themes)[]][] = [
   ["court-foreground", "court", TEXT, ["light", "dark"]],
   ["court-foreground", "court-back-zone", TEXT, ["light", "dark"]],
   ["primary-foreground", "primary", TEXT, ["light", "dark"]],
+  ["muted-foreground", "muted", TEXT, ["light", "dark"]],
+  ["muted-foreground", "card", TEXT, ["light", "dark"]],
+  ["muted-foreground", "background", TEXT, ["light", "dark"]],
 ];
 
 describe("design token contrast", () => {
