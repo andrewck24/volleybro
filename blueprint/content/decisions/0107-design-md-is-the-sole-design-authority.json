@@ -4,7 +4,7 @@
   "title": "DESIGN.md is the sole design authority; Blueprint presents it",
   "capabilities": ["platform/blueprint"],
   "context": "The design rules lived in docs/design-system.md, the Blueprint design-system section and the landing decision records, and they drifted apart. Contrast and button-size defects went unnoticed because no one document owned the tokens.",
-  "decision": "A root DESIGN.md in the impeccable format is the only authority for the design system. docs/design-system.md is migrated into it and deleted; the Blueprint design-system section becomes a presentation layer over it. .impeccable/design.json is a committed, generated artefact (the sidecar), regenerated from DESIGN.md.",
+  "decision": "A root DESIGN.md in the impeccable format is the only authority for the design system. docs/design-system.md is migrated into it and deleted; the Blueprint design-system section becomes a presentation layer over it.",
   "alternatives": [
     {
       "option": "Keep docs/design-system.md and the Blueprint section as parallel sources",
@@ -17,7 +17,7 @@
   ],
   "consequences": [
     "A later shard migrates the document and removes docs/design-system.md.",
-    "The sidecar is regenerated from DESIGN.md and committed, so a stale sidecar is a review finding."
+    ".impeccable/design.json, the sidecar design tooling reads, is generated from DESIGN.md and committed, so a stale sidecar is a review finding."
   ],
   "originChange": "design-authority"
 }
