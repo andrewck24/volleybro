@@ -1,0 +1,64 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+1. GitHub repository variable `PRODUCTION_DB_ACTIVE` is currently absent while `RELEASE_AUTOMATION_ENABLED=true`. Before the next release, set it explicitly to `false`; set it to `true` only when the clean production DB cutover is complete and the production DB has become writable. The new controller intentionally stops before deployment while this value is missing.
+2. After merge, remove the now-unused repository variables `RELEASE_ROLLBACK_COMPATIBILITY` and `RELEASE_ROLLBACK_EVIDENCE`. The updated workflow and controller no longer read them; they do not authorize or prove recovery.
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `.github/workflows/production-release.yml`: release-only source Preview and candidate/source evidence approvals are gone; production authenticated QA, Vercel protection and finalization remain. Verify the new job dependencies stop on missing receipt.
+2. `scripts/release-controls.js`: recovery receipts bind the current run, source, baseline, candidate and DB lifecycle. Persisted-contract paths require targeted proof after production DB activation; unclassified paths fail closed.
+3. `scripts/__tests__/release-controls.test.js`: inspect the fail-closed cases for unknown paths, unavailable exact-baseline proof, stale release state, and pre-production forward-only behavior.
+
+</ReviewFocus>
+
+<Deviations>
+
+沒有改變 G1 的行為範圍。為避免「沒有命中風險路徑」被錯當成安全，實作將變更路徑分為已知無關、持久契約風險與未分類；production DB 啟用後，未分類路徑直接停止。Compatibility report 依 Jest 原生 JSON 欄位驗證，要求恰好兩項指定的雙向 assertion 通過，且沒有 failed、pending 或 todo tests；不以手填欄位或字串證明代替。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "production-release workflow 移除 release-only Preview／approval lanes；`source QA reuses successful PR CI on equal full trees, not equal commit SHAs` 驗證只重用相同完整 source tree 的可信 CI receipts。" },
+    { id: "S2", result: "pass", evidence: "`recovery receipt binds the source run, attempt, baseline, candidate, and database policy` 與拒絕缺少可信 source receipts 的測試驗證；不使用舊變數或人工文字補證。" },
+    { id: "S3", result: "pass", evidence: "`active production data requires exact-source integration proof for persisted contract changes`、`unclassified production source paths stop instead of implying compatibility`，以及 no-skip 雙向 report 測試通過。另以真實 Jest 30.5.2 原生 report 執行 controller，接受兩個 passed directional assertions。" },
+    { id: "S4", result: "pass", evidence: "`pre-production contract changes may promote but cannot roll code back` 驗證共享 test DB 採 forward-only；production-release 不再把 Preview 當 source proof，source receipt 只接受可信 exact-tree CI。" },
+    { id: "S5", result: "pass", evidence: "`promotion and publication require accepted receipts, not only a healthy alias` 驗證正式站 QA receipt 缺漏時不得 finalize/tag；正式站 smoke lane 保留。" },
+    { id: "S6", result: "pass", evidence: "`legacy release state cannot bypass a fresh owner-authorized release` 與 staging 的 release mode／DB lifecycle 必填檢查，拒絕用新 controller 重新解讀舊 run。" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "完整 controller 測試", method: "`node --test scripts/__tests__/release-controls.test.js`", executor: "agent", environment: "隔離 Git repositories 與 API fixtures", result: "pass", evidence: "32 tests passed，0 failed、skipped 或 todo。" },
+    { id: "T2", checks: "整個 repository 驗證", method: "`pnpm verify:all`", executor: "agent", environment: "release-evidence-policy worktree", result: "pass", evidence: "static、workflow 249 tests、Blueprint 19 suites／84 tests 通過；integration、app-build、app-test 由 diff planner 因本次未改 backend/app 而略過。" },
+    { id: "T3", checks: "原生 Jest report acceptance", method: "將 Jest 30.5.2 原生 JSON report 傳入 `verify-compatibility-report`", executor: "agent", environment: "本機 controller 與 disposable report", result: "pass", evidence: "真實 report 含兩項 required assertions 且皆 passed；controller exit 0，輸出 result、baseline SHA、candidate SHA 與 tree。" },
+    { id: "T4", checks: "獨立 Spec review", method: "複審 fail-closed classifier 與 compatibility report verifier", executor: "agent", environment: "獨立 reviewer context", result: "pass", evidence: "先發現 Jest 不提供 `numSkippedTests` 的 P1；改用原生 counters 並固定兩項 assertions 後，複審以原生 report 重跑確認 blocker 關閉，未發現其他 blocker。" },
+    { id: "T5", checks: "production OAuth／session／team 唯讀 smoke", method: "真實正式站登入與唯讀驗收", executor: "developer", environment: "production，合併與正式 release 後", result: "pending", evidence: "保留為唯一固定人工 release QA；本次未部署 production，也未宣稱已完成。" },
+  ]}
+/>
+
+<AfterRelease>
+
+合併前先明確設定 `PRODUCTION_DB_ACTIVE=false`，讓 v1.0 前的共享 `test` DB 套用 forward-only policy。僅在已授權的 v1.0 clean production DB cutover 完成並首次可寫入後，才改成 `true`。合併後刪除兩個不再讀取的 `RELEASE_ROLLBACK_*` repository variables。這次 Change 不執行 DB cutover、不移轉真實資料，也不執行 production release。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+### 複審修正
+
+獨立複審先發現兩個 fail-closed 缺口：未分類路徑可能被當成沒有資料風險；Jest 全部 skip 可能仍被字串型檢查誤認成功。前者改為三類路徑分類，production DB 啟用時未分類即停止；後者改驗證 Jest 原生 report 的 totals、passed／failed／pending／todo 與恰好兩項指定 assertion。
+
+複審亦以真實 Jest 30.5.2 report 重現並確認：原實作會拒絕有效 report，因 Jest 沒有 `numSkippedTests` 欄位。修正後同一 native report 由 controller 接受，產生綁定輸出。測試只證明 report admission 邏輯；真正跨版本資料讀寫語義仍須由未來有 persisted-contract risk 的 Change 提供 integration suite。本 repo 目前沒有這種 suite，所以任何相關 release 會 fail closed，不會被本次測試假裝成已證明。
+
+### 未解的執行前置
+
+`PRODUCTION_DB_ACTIVE` 尚未設定，但 release automation 已啟用。這是新的必要明確狀態；缺值會安全停止而非猜測。舊的兩個 `RELEASE_ROLLBACK_*` 變數仍存在於 GitHub，但新程式完全不讀取，建議合併後移除。
+
+</ReviewDetails>
