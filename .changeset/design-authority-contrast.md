@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Make error text readable in light and dark mode, and show error alerts and toasts on a light tint with red text.
+- Make error text and the leave-team, remove-player and transfer-ownership headings readable in light and dark mode, and show error alerts and toasts on a light tint with red text.
 - Keep destructive buttons a vivid red, and draw opponent and loss marks and badges in a muted red with legible white text.
 - Make teal text and icons readable on dark cards, including the rally list plus and minus icons, navigation labels, tabs and links.
 - Make secondary grey text readable on muted backgrounds in dark mode.

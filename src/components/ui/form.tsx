@@ -215,9 +215,6 @@ const FormRadioGroup = ({
   );
 };
 
-const RADIO_ITEM_STYLE =
-  "flex h-9 flex-row items-center justify-center rounded-md border-2 border-primary text-lg font-medium transition-colors has-checked:bg-primary has-checked:text-primary-foreground";
-
 const FormRadioItem = ({
   children,
   className,
@@ -226,7 +223,13 @@ const FormRadioItem = ({
   ...props
 }: React.ComponentProps<typeof RadioGroupPrimitive.Item>) => (
   <FormItem>
-    <Label htmlFor={id} className={cn(RADIO_ITEM_STYLE, className)}>
+    <Label
+      htmlFor={id}
+      className={cn(
+        "flex h-9 flex-row items-center justify-center rounded-md border-2 border-primary text-lg font-medium transition-colors has-checked:bg-primary has-checked:text-primary-foreground",
+        className,
+      )}
+    >
       <FormControl>
         <RadioGroupPrimitive.Item
           data-slot="FormRadioItem"
