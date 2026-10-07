@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFile as execFileCallback } from "node:child_process";
 import { createHash } from "node:crypto";
+import { appendFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -10,10 +11,44 @@ const execFile = promisify(execFileCallback);
 const api = "https://api.vercel.com";
 const shaPattern = /^[0-9a-f]{40}$/;
 const digestPattern = /^sha256:([0-9a-f]{64})$/;
-const releaseStateVersion = 2;
+const releaseStateVersion = 3;
 const productionWorkflow = ".github/workflows/production-release.yml";
 const ciWorkflow = ".github/workflows/ci.yml";
 const reviewEnvironment = "production-release-review";
+const RECOVERY_RECEIPT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const RECOVERY_COMPATIBILITY_TEST =
+  "test/integration/persistence/release-compatibility.itest.ts";
+const PERSISTED_CONTRACT_PATTERNS = [
+  /^src\/infrastructure\/db\//,
+  /^src\/infrastructure\/services\/auth\//,
+  /^src\/applications\/(?:usecases|repositories)\//,
+  /^src\/app\/api\/auth\//,
+  /^src\/app\/api\//,
+  /^src\/entities\//,
+  /^src\/interface\//,
+  /^src\/lib\/auth\.ts$/,
+  /^docs\/migrations\//,
+  /^scripts\/migrations\//,
+  /^(?:pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)$/,
+];
+const KNOWN_UNRELATED_PATTERNS = [
+  /^\.changeset\//,
+  /^\.github\//,
+  /^blueprint\//,
+  /^docs\/(?!migrations\/)/,
+  /^scripts\/(?!migrations\/)/,
+  /^test\//,
+  /^public\//,
+  /^src\/.*(?:__tests__|\.(?:test|spec)\.)/,
+  /^src\/(?:components|stories|styles)\//,
+  /^CHANGELOG\.md$/,
+  /^(?:README|CONTRIBUTING|CODING_STANDARDS|WORKFLOW|LICENSE)(?:\.|$)/,
+  /^(?:eslint|jest|next|postcss|prettier|tailwind|tsconfig)[^.]*\.config\./,
+  /^\.?(?:editorconfig|gitignore|prettierignore)$/,
+];
+const CANDIDATE_LEGACY_ASSERTION = "candidate reads legacy persisted records";
+const BASELINE_CANDIDATE_ASSERTION = (baselineSha) =>
+  `production baseline ${baselineSha} reads candidate-written records`;
 const sourceQAScopes = [
   ["unit", "Test"],
   ["integration", "Integration"],
@@ -132,26 +167,6 @@ function workflowFile(run) {
   return String(run?.path || "").split("@")[0];
 }
 
-function httpsEvidence(value, label) {
-  const raw = String(value || "");
-  if (!raw || raw.trim() !== raw || /[\r\n]/.test(raw))
-    fail(`${label} must be one HTTPS URL`);
-  let url;
-  try {
-    url = new URL(raw);
-  } catch {
-    fail(`${label} must be one HTTPS URL`);
-  }
-  if (
-    url.protocol !== "https:" ||
-    url.username ||
-    url.password ||
-    !url.hostname
-  )
-    fail(`${label} must be one HTTPS URL`);
-  return url.href;
-}
-
 function hostname(value, label) {
   const raw = String(value || "").toLowerCase();
   let url;
@@ -183,6 +198,24 @@ function validateStateSchema(state) {
     fail("Release state is missing deployment identity");
   if (!state.projectId || !state.productionAlias)
     fail("Release state is missing its platform binding");
+  if (!["normal", "normal-retry", "hotfix"].includes(state.releaseMode))
+    fail("Release state has no trusted release mode");
+  if (typeof state.productionDatabaseActive !== "boolean")
+    fail("Release state has no production database lifecycle marker");
+}
+
+function configuredProductionDatabaseMode() {
+  const value = process.env.PRODUCTION_DB_ACTIVE;
+  if (value !== "true" && value !== "false")
+    fail("PRODUCTION_DB_ACTIVE must be explicitly set to true or false");
+  return value === "true";
+}
+
+function assertProductionDatabaseMode(state) {
+  if (state.productionDatabaseActive !== configuredProductionDatabaseMode())
+    fail(
+      "Production database lifecycle changed; start a fresh authorized release",
+    );
 }
 
 function validateConfiguredPlatform(state) {
@@ -290,8 +323,6 @@ async function nativeApprovalHistory(runId, environment) {
 
 function protectedJobKey(name) {
   const key = {
-    "Accept source Preview": "source-preview-acceptance",
-    "Accept candidate evidence": "candidate-acceptance",
     "Accept production QA": "production-acceptance",
   }[name];
   if (!key) fail(`Unknown protected workflow job: ${name}`);
@@ -538,27 +569,406 @@ function assertBaseline(actual, expected) {
     fail("Production baseline changed while candidate was being reviewed");
 }
 
-async function assertRollbackEvidence(
+async function persistedContractChanges(state) {
+  const changedPaths = (
+    await command("git", [
+      "diff",
+      "--name-only",
+      "--no-renames",
+      `${exactSha(state.baseline.sha, "Production baseline SHA")}..${exactSha(state.sha, "Release source SHA")}`,
+    ])
+  )
+    .split("\n")
+    .filter(Boolean)
+    .sort();
+  const contractPaths = changedPaths.filter((file) =>
+    PERSISTED_CONTRACT_PATTERNS.some((pattern) => pattern.test(file)),
+  );
+  let packageManifestClass = "unrelated";
+  if (changedPaths.includes("package.json")) {
+    try {
+      const manifests = await Promise.all(
+        [state.baseline.sha, state.sha].map(async (sha) =>
+          JSON.parse(await command("git", ["show", `${sha}:package.json`])),
+        ),
+      );
+      const [baseline, candidate] = manifests;
+      const keys = new Set([
+        ...Object.keys(baseline),
+        ...Object.keys(candidate),
+      ]);
+      let hasDependencyChange = false;
+      let hasUnknownChange = false;
+      for (const key of keys) {
+        if (
+          JSON.stringify(baseline[key]) === JSON.stringify(candidate[key]) ||
+          key === "version" ||
+          key === "devDependencies"
+        )
+          continue;
+        if (
+          [
+            "dependencies",
+            "optionalDependencies",
+            "peerDependencies",
+            "pnpm",
+          ].includes(key)
+        )
+          hasDependencyChange = true;
+        else hasUnknownChange = true;
+      }
+      packageManifestClass = hasUnknownChange
+        ? "unclassified"
+        : hasDependencyChange
+          ? "contract"
+          : "unrelated";
+    } catch {
+      packageManifestClass = "unclassified";
+    }
+  }
+  if (packageManifestClass === "contract") contractPaths.push("package.json");
+  const unclassifiedPaths = changedPaths.filter(
+    (file) =>
+      !(file === "package.json" && packageManifestClass !== "unclassified") &&
+      !contractPaths.includes(file) &&
+      !KNOWN_UNRELATED_PATTERNS.some((pattern) => pattern.test(file)),
+  );
+  return { changedPaths, contractPaths, unclassifiedPaths };
+}
+
+async function sourcePathExists(sha, sourcePath) {
+  try {
+    await command("git", ["cat-file", "-e", `${sha}:${sourcePath}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function recoveryCompatibilityPlan(state) {
+  const { changedPaths, contractPaths, unclassifiedPaths } =
+    await persistedContractChanges(state);
+  if (state.productionDatabaseActive && unclassifiedPaths.length > 0)
+    fail(
+      `Cannot classify changed paths for production-data compatibility: ${unclassifiedPaths.join(", ")}`,
+    );
+  const required = state.productionDatabaseActive && contractPaths.length > 0;
+  if (required) {
+    if (!(await sourcePathExists(state.sha, RECOVERY_COMPATIBILITY_TEST)))
+      fail(
+        `Persisted contract changed after production DB activation; ${RECOVERY_COMPATIBILITY_TEST} must exist in the exact release source`,
+      );
+    const sourceTree = await command("git", [
+      "rev-parse",
+      `${exactSha(state.sha, "Release source SHA")}^{tree}`,
+    ]);
+    if (sourceTree !== state.sourceQA?.scopes?.integration?.testedTree)
+      fail(
+        "Compatibility test source tree does not match trusted integration CI",
+      );
+  }
+  return { changedPaths, contractPaths, unclassifiedPaths, required };
+}
+
+async function verifyCompatibilityTestStep(state, receipt) {
+  if (
+    !receipt ||
+    receipt.runId !== String(state.releaseRunId) ||
+    receipt.runAttempt !== String(state.releaseRunAttempt) ||
+    receipt.baselineSha !== state.baseline.sha ||
+    receipt.sourceSha !== state.sha ||
+    receipt.sourceTree !== state.sourceQA?.scopes?.integration?.testedTree ||
+    receipt.path !== RECOVERY_COMPATIBILITY_TEST ||
+    receipt.result !== "success"
+  )
+    fail("Exact-baseline compatibility test receipt is missing or mismatched");
+  const [run, jobs] = await Promise.all([
+    workflowRun(receipt.runId),
+    workflowJobs(receipt.runId),
+  ]);
+  validateWorkflowRun(run, {
+    id: receipt.runId,
+    path: productionWorkflow,
+    repository: required("GITHUB_REPOSITORY"),
+    attempt: receipt.runAttempt,
+  });
+  const matches = jobs.filter(
+    (job) =>
+      job.name === "Verify release recovery evidence" &&
+      (!job.run_attempt || String(job.run_attempt) === receipt.runAttempt),
+  );
+  if (
+    matches.length !== 1 ||
+    !["in_progress", "completed"].includes(matches[0].status)
+  )
+    fail("Compatibility test is not from the current trusted recovery job");
+  const steps = (matches[0].steps || []).filter(
+    (step) =>
+      step.name === "Run and validate exact-baseline compatibility suite",
+  );
+  if (
+    steps.length !== 1 ||
+    steps[0].status !== "completed" ||
+    steps[0].conclusion !== "success" ||
+    String(matches[0].id) !== receipt.jobId
+  )
+    fail("Exact-baseline compatibility suite and report did not pass natively");
+  return receipt;
+}
+
+async function recordCompatibilityTest(state, plan) {
+  if (!plan.required) {
+    if (process.env.RELEASE_COMPATIBILITY_TEST_RESULT)
+      fail(
+        "Unexpected compatibility test result for a release without a data risk",
+      );
+    return null;
+  }
+  if (
+    process.env.RELEASE_COMPATIBILITY_TEST_RESULT !== "success" ||
+    exactSha(
+      process.env.RELEASE_COMPATIBILITY_BASELINE_SHA,
+      "Compatibility test baseline SHA",
+    ) !== state.baseline.sha ||
+    exactSha(
+      process.env.RELEASE_COMPATIBILITY_SOURCE_SHA,
+      "Compatibility test source SHA",
+    ) !== state.sha ||
+    exactSha(
+      process.env.RELEASE_COMPATIBILITY_SOURCE_TREE,
+      "Compatibility test source tree",
+    ) !== state.sourceQA.scopes.integration.testedTree ||
+    required("GITHUB_JOB") !== "recovery-evidence"
+  )
+    fail(
+      "Exact-baseline compatibility integration test did not pass for this release",
+    );
+  const [run, jobs] = await Promise.all([
+    workflowRun(state.releaseRunId),
+    workflowJobs(state.releaseRunId),
+  ]);
+  validateWorkflowRun(run, {
+    id: state.releaseRunId,
+    path: productionWorkflow,
+    repository: required("GITHUB_REPOSITORY"),
+    attempt: state.releaseRunAttempt,
+  });
+  if (run.status !== "in_progress")
+    fail("Compatibility proof must be recorded inside its active release run");
+  const matches = jobs.filter(
+    (item) =>
+      item.name === "Verify release recovery evidence" &&
+      (!item.run_attempt ||
+        String(item.run_attempt) === String(state.releaseRunAttempt)),
+  );
+  const job = matches.length === 1 ? matches[0] : undefined;
+  const step = job?.steps?.find(
+    (item) =>
+      item.name === "Run and validate exact-baseline compatibility suite",
+  );
+  const receipt = {
+    runId: String(state.releaseRunId),
+    runAttempt: String(state.releaseRunAttempt),
+    jobId: String(job?.id || ""),
+    path: RECOVERY_COMPATIBILITY_TEST,
+    baselineSha: state.baseline.sha,
+    sourceSha: state.sha,
+    sourceTree: state.sourceQA.scopes.integration.testedTree,
+    result: process.env.RELEASE_COMPATIBILITY_TEST_RESULT,
+  };
+  if (
+    !job ||
+    !["in_progress", "completed"].includes(job.status) ||
+    step?.status !== "completed" ||
+    step?.conclusion !== "success"
+  )
+    fail(
+      "Exact-baseline compatibility test has no successful native workflow step",
+    );
+  return receipt;
+}
+
+async function verifyCompatibilityReport() {
+  const baselineSha = exactSha(
+    required("PRODUCTION_BASELINE_SHA"),
+    "Compatibility test baseline SHA",
+  );
+  exactSha(required("RELEASE_CANDIDATE_SHA"), "Compatibility candidate SHA");
+  exactSha(required("RELEASE_CANDIDATE_TREE"), "Compatibility candidate tree");
+  const report = json(
+    await readFile(required("RELEASE_COMPATIBILITY_REPORT"), "utf8"),
+    "Jest compatibility report",
+  );
+  const suites = report.testResults;
+  if (!Array.isArray(suites) || suites.length !== 1)
+    fail("Compatibility report must contain exactly one suite");
+  const actualSuitePath = String(suites[0].name || "").replaceAll("\\", "/");
+  if (
+    actualSuitePath !== RECOVERY_COMPATIBILITY_TEST &&
+    !actualSuitePath.endsWith(`/${RECOVERY_COMPATIBILITY_TEST}`)
+  )
+    fail("Compatibility report does not match the exact-source suite path");
+  if (suites[0].status !== "passed") fail("Compatibility suite did not pass");
+  if (
+    !Number.isInteger(report.numPassedTests) ||
+    report.numPassedTests !== 2 ||
+    report.numTotalTests !== 2 ||
+    report.numFailedTests !== 0 ||
+    report.numPendingTests !== 0 ||
+    report.numTodoTests !== 0
+  )
+    fail("Compatibility report contains missing, failing or skipped tests");
+
+  const assertionResults = suites[0].assertionResults;
+  const requiredAssertions = [
+    CANDIDATE_LEGACY_ASSERTION,
+    BASELINE_CANDIDATE_ASSERTION(baselineSha),
+  ];
+  if (
+    !Array.isArray(assertionResults) ||
+    assertionResults.length !== requiredAssertions.length
+  )
+    fail(
+      "Compatibility report must contain exactly the two required assertions",
+    );
+  for (const title of requiredAssertions) {
+    const matches = assertionResults?.filter((item) => item.title === title);
+    if (matches?.length !== 1 || matches[0].status !== "passed")
+      fail(`Compatibility report is missing a passing assertion: ${title}`);
+  }
+
+  await appendFile(
+    required("GITHUB_OUTPUT"),
+    `result=success\nbaseline_sha=${baselineSha}\nsource_sha=${process.env.RELEASE_CANDIDATE_SHA}\nsource_tree=${process.env.RELEASE_CANDIDATE_TREE}\n`,
+  );
+}
+
+async function recoveryReceiptFacts(state) {
+  const {
+    contractPaths,
+    unclassifiedPaths,
+    required: compatibilityRequired,
+  } = await recoveryCompatibilityPlan(state);
+  const integration = state.sourceQA?.scopes?.integration;
+  if (
+    !integration ||
+    integration.testedTree !== state.sourceQA.scopes.unit?.testedTree
+  )
+    fail(
+      "Recovery proof requires unit and integration receipts for one source tree",
+    );
+
+  let policy, rollbackAllowed, compatibilityTest;
+  if (!state.productionDatabaseActive) {
+    policy = "pre-production-forward-only";
+    rollbackAllowed =
+      contractPaths.length === 0 && unclassifiedPaths.length === 0;
+  } else if (contractPaths.length === 0) {
+    policy = "production-contract-unchanged";
+    rollbackAllowed = true;
+  } else {
+    policy = "production-targeted-integration-proof";
+    rollbackAllowed = true;
+    if (!compatibilityRequired)
+      fail(
+        "Production compatibility test is required for this contract change",
+      );
+    compatibilityTest = await verifyCompatibilityTestStep(
+      state,
+      state.compatibilityTest,
+    );
+  }
+
+  const scope = (evidence) => ({
+    scope: evidence.scope,
+    sourceSha: evidence.sourceSha,
+    testedSha: evidence.testedSha,
+    testedTree: evidence.testedTree,
+    producerSha: evidence.producerSha,
+    producerRunId: evidence.producerRunId,
+    producerRunAttempt: evidence.producerRunAttempt,
+    workflowId: evidence.workflowId,
+    workflowPath: evidence.workflowPath,
+    workflowBlob: evidence.workflowBlob,
+    job: {
+      id: evidence.job?.id,
+      name: evidence.job?.name,
+      conclusion: evidence.job?.conclusion,
+    },
+  });
+  return {
+    repository: required("GITHUB_REPOSITORY"),
+    release: {
+      runId: String(state.releaseRunId),
+      runAttempt: String(state.releaseRunAttempt),
+      controllerSha: state.controllerSha,
+      mode: state.releaseMode,
+      sourceSha: state.sha,
+      sourceTree: integration.testedTree,
+    },
+    baseline: state.baseline,
+    candidate: {
+      deploymentId: state.candidateId,
+      sourceSha: state.sha,
+      projectId: state.projectId,
+    },
+    database: {
+      productionActive: state.productionDatabaseActive,
+      policy,
+      changedContractPaths: contractPaths,
+      unclassifiedPaths,
+      compatibilityTest,
+      integration: scope(integration),
+      rollbackAllowed,
+    },
+    ci: {
+      unit: scope(state.sourceQA.scopes.unit),
+      integration: scope(integration),
+    },
+  };
+}
+
+async function verifyRecoveryEvidence(
   state,
   expectedRunId = state.releaseRunId,
 ) {
-  const binding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
-  const receipt = state.compatibility;
+  assertProductionDatabaseMode(state);
+  assertSourceQAReceipt(state, expectedRunId);
+  const receipt = state.recoveryEvidence;
   if (
     !receipt ||
-    receipt.binding !== binding ||
+    receipt.schemaVersion !== 2 ||
     receipt.runId !== String(expectedRunId) ||
-    httpsEvidence(receipt.evidence, "Accepted recovery evidence") !==
-      receipt.evidence
+    !Number.isFinite(Date.parse(receipt.issuedAt)) ||
+    !Number.isFinite(Date.parse(receipt.expiresAt)) ||
+    Date.parse(receipt.issuedAt) > Date.now() + 5 * 60 * 1000 ||
+    Date.parse(receipt.expiresAt) <= Date.now() ||
+    Date.parse(receipt.expiresAt) - Date.parse(receipt.issuedAt) >
+      RECOVERY_RECEIPT_TTL_MS
   )
     fail(
-      "No accepted recovery evidence is bound to baseline, candidate, source, and release run",
+      "Recovery receipt is missing, expired, or bound to another release run",
     );
-  await verifyProtectedJobReceipt(
-    receipt.approval,
-    expectedRunId,
-    "Accept candidate evidence",
-  );
+  const facts = await recoveryReceiptFacts(state);
+  if (JSON.stringify(receipt.facts) !== JSON.stringify(facts))
+    fail(
+      "Recovery receipt no longer matches the trusted source, baseline, candidate, or data contract",
+    );
+  for (const [scope, name] of sourceQAScopes) {
+    await verifyReusableSourceQA(state, state.sourceQA.scopes[scope], name);
+  }
+  return receipt;
+}
+
+async function assertRollbackAllowed(
+  state,
+  expectedRunId = state.releaseRunId,
+) {
+  const receipt = await verifyRecoveryEvidence(state, expectedRunId);
+  if (!receipt.facts.database.rollbackAllowed)
+    fail(
+      "The pre-production database has a forward-only contract change; do not restore old code against it. Use a forward fix",
+    );
 }
 
 function assertTagSha(actual, expected, tag) {
@@ -1018,6 +1428,10 @@ async function reviewedSourceMapping(sha, authorization) {
 
 async function stage() {
   const sha = exactSha(required("RELEASE_SHA"), "Release SHA");
+  const releaseMode = required("RELEASE_MODE");
+  if (!["normal", "normal-retry", "hotfix"].includes(releaseMode))
+    fail("Unsupported release mode");
+  const productionDatabaseActive = configuredProductionDatabaseMode();
   const authorization = process.env.RELEASE_AUTHORIZATION
     ? json(process.env.RELEASE_AUTHORIZATION, "manual release authorization")
     : undefined;
@@ -1096,6 +1510,8 @@ async function stage() {
       process.env.GITHUB_RUN_ATTEMPT || "1",
       "Release run attempt",
     ),
+    releaseMode,
+    productionDatabaseActive,
     baseline,
     ...(reviewedSource && { reviewedSource }),
     ...(authorization && { authorization }),
@@ -1329,29 +1745,6 @@ async function verifyReusableSourceQA(state, receipt, expectedName) {
     fail("Reusable source QA native job receipt changed");
 }
 
-function normalizedRecoveryInput(state) {
-  const binding = process.env.RELEASE_ROLLBACK_COMPATIBILITY || "";
-  const evidence = process.env.RELEASE_ROLLBACK_EVIDENCE || "";
-  if (!binding && !evidence) return null;
-  if (!binding || !evidence)
-    fail("Required recovery evidence must include binding and HTTPS proof");
-  const exactBinding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
-  const directPrebinding = `${state.baseline.deploymentId}:${state.sha}`;
-  const reviewedPrebinding = state.reviewedSource
-    ? `${state.baseline.deploymentId}:${state.reviewedSource.reviewedSha}`
-    : "";
-  if (![exactBinding, directPrebinding, reviewedPrebinding].includes(binding))
-    fail("Required recovery evidence does not match this baseline and source");
-  return {
-    binding: exactBinding,
-    evidence: httpsEvidence(evidence, "Recovery evidence"),
-    suppliedBinding: binding,
-    ...(binding === reviewedPrebinding && {
-      sourceMapping: state.reviewedSource,
-    }),
-  };
-}
-
 async function inspectSourceQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
@@ -1360,138 +1753,9 @@ async function inspectSourceQA() {
     fail(
       "Missing trusted CI evidence for this source tree; complete CI before retrying release",
     );
-  const sourceQAGapInput = process.env.RELEASE_SOURCE_QA_GAP || "";
-  if (
-    sourceQAGapInput !== sourceQAGapInput.trim() ||
-    /[\r\n]/.test(sourceQAGapInput)
-  )
-    fail("Source QA gap must be one trimmed line");
-  const sourceQAGap = sourceQAGapInput;
   state.sourceQA = null;
   state.sourceQAPlan = sourceQAPlan;
-  state.sourceQAGap = sourceQAGap || null;
-  state.recoveryInput = normalizedRecoveryInput(state);
   await writeState(required("RELEASE_STATE_FILE"), state);
-  await appendOutputs({
-    source_preview_needed: sourceQAGap ? "true" : "false",
-    recovery_binding: state.recoveryInput?.binding || "",
-    recovery_evidence: state.recoveryInput?.evidence || "",
-  });
-}
-
-function validatePreview(deploymentValue, id, state) {
-  if (
-    deploymentValue.id !== id ||
-    deploymentValue.readyState !== "READY" ||
-    ![null, "preview"].includes(deploymentValue.target ?? null) ||
-    deploymentValue.projectId !== state.projectId ||
-    deploymentSourceSha(deploymentValue, "Source Preview") !== state.sha
-  )
-    fail(
-      "Source Preview identity, readiness, project, target, or SHA is invalid",
-    );
-}
-
-async function aliasDeployment(alias) {
-  const result = await vercel(`/v4/aliases/${encodeURIComponent(alias)}`);
-  if (result.alias !== alias || !result.deploymentId)
-    fail("Alias lookup returned unexpected data");
-  return result.deploymentId;
-}
-
-async function setPreviewAlias(deploymentId, alias) {
-  let requestError;
-  try {
-    await vercel(
-      `/v2/deployments/${encodeURIComponent(deploymentId)}/aliases`,
-      {
-        method: "POST",
-        body: JSON.stringify({ alias }),
-      },
-    );
-  } catch (error) {
-    requestError = error;
-  }
-  const deadline = Date.now() + 120_000;
-  do {
-    if ((await aliasDeployment(alias)) === deploymentId) return;
-    if (requestError) throw requestError;
-    await new Promise((resolve) => setTimeout(resolve, 2_000));
-  } while (Date.now() < deadline);
-  fail("Source Preview alias transition was not confirmed");
-}
-
-async function prepareSourcePreview() {
-  const state = await loadState();
-  validateConfiguredPlatform(state);
-  if (!state.sourceQAGap) fail("No explicit source QA gap requires a Preview");
-  if ((await command("git", ["rev-parse", "HEAD"])) !== state.sha)
-    fail("Source Preview checkout does not match the authorized release SHA");
-  const alias = hostname(required("INTEGRATION_ALIAS"), "Integration alias");
-  if (alias === state.productionAlias)
-    fail("Integration alias must not be the production alias");
-  const domains = await stagingDomains();
-  if (domains.has(alias))
-    fail("Integration alias must not be a production project domain");
-  const result = json(
-    await command(
-      "pnpm",
-      [
-        "dlx",
-        "vercel@61.1.0",
-        "deploy",
-        "--yes",
-        "--json",
-        "--token",
-        required("VERCEL_TOKEN"),
-        "--meta",
-        `releaseSha=${state.sha}`,
-        "--meta",
-        `releaseRun=${state.releaseRunId}`,
-      ],
-      {
-        env: {
-          ...process.env,
-          VERCEL_PROJECT_ID: state.projectId,
-          VERCEL_ORG_ID: required("VERCEL_ORG_ID"),
-        },
-      },
-    ),
-    "Vercel Preview deploy output",
-  );
-  const id = result.id || result.deployment?.id;
-  if (!id) fail("Vercel Preview deploy output did not include an ID");
-  validatePreview(await deployment(id), id, state);
-  await setPreviewAlias(id, alias);
-  validatePreview(await deployment(id), id, state);
-  if ((await aliasDeployment(alias)) !== id)
-    fail("Fixed integration alias does not point to the source Preview");
-  await appendOutputs({ preview_id: id, preview_url: `https://${alias}` });
-}
-
-async function completedProtectedJobReceipt(name, runId, runAttempt) {
-  const repository = required("GITHUB_REPOSITORY");
-  const [run, jobs, reviews] = await Promise.all([
-    workflowRun(runId),
-    workflowJobs(runId),
-    nativeApprovalHistory(runId, reviewEnvironment),
-  ]);
-  validateWorkflowRun(run, {
-    id: runId,
-    path: productionWorkflow,
-    repository,
-    attempt: runAttempt,
-  });
-  const job = successfulJob(jobs, name, runAttempt);
-  return {
-    runId: String(runId),
-    runAttempt: String(runAttempt),
-    githubJob: protectedJobKey(name),
-    jobId: String(job.id),
-    jobName: name,
-    environment: reviewEnvironment,
-    reviewHistory: reviews,
-  };
 }
 
 function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
@@ -1515,13 +1779,8 @@ function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
     })
   )
     fail("No exact-source QA receipt is bound to this release run");
-  if (
-    state.sourceQAGap &&
-    (!receipt.preview ||
-      receipt.preview.gap !== state.sourceQAGap ||
-      receipt.preview.sourceSha !== state.sha)
-  )
-    fail("Source QA gap has no accepted exact-source Preview receipt");
+  if (state.sourceQAGap || receipt.preview)
+    fail("Current release state cannot contain release-only Preview evidence");
 }
 
 async function recordSourceQA() {
@@ -1541,29 +1800,6 @@ async function recordSourceQA() {
     boundRunAttempt: state.releaseRunAttempt,
     scopes,
   };
-  if (state.sourceQAGap) {
-    const previewId = required("SOURCE_PREVIEW_ID");
-    validatePreview(await deployment(previewId), previewId, state);
-    const alias = hostname(required("INTEGRATION_ALIAS"), "Integration alias");
-    if (
-      alias === state.productionAlias ||
-      (await aliasDeployment(alias)) !== previewId
-    )
-      fail("Accepted source Preview is not on the fixed integration alias");
-    state.sourceQA.preview = {
-      deploymentId: previewId,
-      alias,
-      gap: state.sourceQAGap,
-      sourceSha: state.sha,
-      approval: await completedProtectedJobReceipt(
-        "Accept source Preview",
-        state.releaseRunId,
-        state.releaseRunAttempt,
-      ),
-    };
-  } else if (process.env.SOURCE_PREVIEW_ID) {
-    fail("Unexpected source Preview supplied without a recorded QA gap");
-  }
   assertSourceQAReceipt(state);
   delete state.sourceQAPlan;
   await writeState(required("RELEASE_STATE_FILE"), state);
@@ -1588,17 +1824,21 @@ async function loadState({ allowRecovery = false } = {}) {
     ).readFile(required("RELEASE_STATE_FILE"), "utf8"),
     "release state",
   );
-  if (state.stateVersion === releaseStateVersion) {
+  if (state.recovery) {
+    if (!allowRecovery) fail("Recovery state is not valid for this action");
+    validateRecoveryMarker(state);
+    if (state.stateVersion !== releaseStateVersion)
+      fail("Legacy release artifacts require a fresh authorized release run");
     validateStateSchema(state);
-    if (state.recovery) {
-      if (!allowRecovery) fail("Recovery state is not valid for this action");
-      validateRecoveryMarker(state);
-    } else if (
+  } else if (state.stateVersion === releaseStateVersion) {
+    validateStateSchema(state);
+    if (
       state.releaseRunId !== required("GITHUB_RUN_ID") ||
       state.releaseRunAttempt !== (process.env.GITHUB_RUN_ATTEMPT || "1")
-    ) {
+    )
       fail("Release state belongs to a different workflow run or attempt");
-    }
+  } else {
+    fail("Legacy release artifacts require a fresh authorized release run");
   }
   if (
     !state.recovery &&
@@ -1613,8 +1853,7 @@ async function promote() {
   const state = await loadState();
   validateConfiguredPlatform(state);
   if (state.sha !== required("RELEASE_SHA")) fail("Release state SHA mismatch");
-  await assertRollbackEvidence(state);
-  await verifySourceQANative(state);
+  await verifyRecoveryEvidence(state);
   assertBaseline(await currentAlias(), state.baseline);
   const candidate = await deployment(state.candidateId);
   validateCandidate(
@@ -1633,14 +1872,13 @@ async function promote() {
 async function rollbackIfCompatible() {
   const state = await loadState({ allowRecovery: true });
   validateConfiguredPlatform(state);
-  assertSourceQAReceipt(state);
   const candidate = await currentAlias();
   if (
     candidate.deploymentId !== state.candidateId ||
     candidate.sha !== state.sha
   )
     fail("Production alias changed; refusing rollback");
-  await assertRollbackEvidence(state, state.recovery?.originalRunId);
+  await assertRollbackAllowed(state, state.recovery?.originalRunId);
   await moveProduction(
     `/v1/projects/${required("VERCEL_PROJECT_ID")}/rollback/${state.baseline.deploymentId}`,
     state.baseline,
@@ -1652,44 +1890,50 @@ async function rollbackIfCompatible() {
   assertHealthySmoke(response.status, "Rolled-back production baseline");
 }
 
-async function recordCompatibility() {
+async function recordRecoveryEvidence() {
   const state = await loadState();
-  validateStateSchema(state);
-  const binding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
-  if (
-    !process.env.RELEASE_ROLLBACK_EVIDENCE ||
-    !process.env.RELEASE_ROLLBACK_COMPATIBILITY
-  )
-    fail("Required recovery evidence is missing");
-  const evidence = httpsEvidence(
-    required("RELEASE_ROLLBACK_EVIDENCE"),
-    "Required recovery evidence",
-  );
-  if (
-    !state.recoveryInput ||
-    state.recoveryInput.binding !== binding ||
-    state.recoveryInput.evidence !== evidence ||
-    required("RELEASE_ROLLBACK_COMPATIBILITY") !== binding
-  )
-    fail("Required recovery evidence was not frozen for this exact release");
-  assertSourceQAReceipt(state);
-  state.compatibility = {
-    binding,
-    evidence,
+  validateConfiguredPlatform(state);
+  assertProductionDatabaseMode(state);
+  await verifySourceQANative(state);
+  const plan = await recoveryCompatibilityPlan(state);
+  state.compatibilityTest = await recordCompatibilityTest(state, plan);
+  const facts = await recoveryReceiptFacts(state);
+  const issuedAt = new Date().toISOString();
+  state.recoveryEvidence = {
+    schemaVersion: 2,
     runId: state.releaseRunId,
     runAttempt: state.releaseRunAttempt,
-    approval: await protectedJobReceipt(
-      "Accept candidate evidence",
-      reviewEnvironment,
-    ),
+    facts,
+    issuedAt,
+    expiresAt: new Date(
+      Date.parse(issuedAt) + RECOVERY_RECEIPT_TTL_MS,
+    ).toISOString(),
   };
   await writeState(required("RELEASE_ACCEPTED_STATE_FILE"), state);
-  const summary = `Required recovery evidence recorded for ${binding}: ${evidence}`;
+  const summary =
+    `Machine-verified recovery receipt created for ${facts.repository} ` +
+    `run ${facts.release.runId}/${facts.release.runAttempt}, source ${facts.release.sourceSha}, ` +
+    `baseline ${facts.baseline.deploymentId}, candidate ${facts.candidate.deploymentId}; ` +
+    `database policy ${facts.database.policy}, valid until ${state.recoveryEvidence.expiresAt}.`;
   if (process.env.GITHUB_STEP_SUMMARY)
     await (
       await import("node:fs/promises")
     ).appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
   process.stdout.write(`${summary}\n`);
+}
+
+async function planRecoveryCompatibility() {
+  const state = await loadState();
+  validateConfiguredPlatform(state);
+  assertProductionDatabaseMode(state);
+  const plan = await recoveryCompatibilityPlan(state);
+  await appendOutputs({
+    required: String(plan.required),
+    baseline_sha: state.baseline.sha,
+    source_sha: state.sha,
+    source_tree: state.sourceQA?.scopes?.integration?.testedTree || "",
+    unclassified_paths: plan.unclassifiedPaths.join(","),
+  });
 }
 
 function assertProductionQAReceipt(state) {
@@ -1707,8 +1951,7 @@ function assertProductionQAReceipt(state) {
 async function recordProductionQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
-  assertSourceQAReceipt(state);
-  await assertRollbackEvidence(state);
+  await verifyRecoveryEvidence(state);
   const production = await currentAlias();
   if (
     production.deploymentId !== state.candidateId ||
@@ -1731,8 +1974,7 @@ async function finalize() {
   const state = await loadState();
   validateConfiguredPlatform(state);
   assertProductionQAReceipt(state);
-  assertSourceQAReceipt(state);
-  await assertRollbackEvidence(state);
+  await verifyRecoveryEvidence(state);
   await verifyProtectedJobReceipt(
     state.productionQA.approval,
     state.releaseRunId,
@@ -1798,23 +2040,6 @@ async function verifySourceQANative(state) {
   for (const [scope, reusedName] of sourceQAScopes) {
     const evidence = state.sourceQA.scopes[scope];
     await verifyReusableSourceQA(state, evidence, reusedName);
-  }
-  if (state.sourceQA.preview) {
-    const preview = state.sourceQA.preview;
-    if ((await aliasDeployment(preview.alias)) !== preview.deploymentId)
-      fail(
-        "Accepted source Preview alias changed; fresh source QA is required",
-      );
-    validatePreview(
-      await deployment(preview.deploymentId),
-      preview.deploymentId,
-      state,
-    );
-    await verifyProtectedJobReceipt(
-      preview.approval,
-      state.releaseRunId,
-      "Accept source Preview",
-    );
   }
 }
 
@@ -1944,6 +2169,8 @@ async function recoverVerify() {
   )
     fail("Original accepted artifact is expired or has invalid provenance");
   const state = await downloadAcceptedState(artifact, repository);
+  if (state.stateVersion !== releaseStateVersion)
+    fail("Legacy release artifacts require a fresh authorized release run");
   validateConfiguredPlatform(state);
   if (
     state.releaseRunId !== originalRunId ||
@@ -1951,8 +2178,7 @@ async function recoverVerify() {
   )
     fail("Accepted state does not belong to the original run and attempt");
   validateOriginalAuthorization(state, originalRun);
-  await verifySourceQANative(state);
-  await assertRollbackEvidence(state, originalRunId);
+  await assertRollbackAllowed(state, originalRunId);
   const [candidate, baseline, production] = await Promise.all([
     deployment(state.candidateId),
     deployment(state.baseline.deploymentId),
@@ -1981,7 +2207,6 @@ async function recoverVerify() {
     runId,
     runAttempt,
     originalRunId,
-    originalRunAttempt: state.releaseRunAttempt,
   };
   await writeState(required("RELEASE_RECOVERY_STATE_FILE"), state);
   await appendOutputs({
@@ -2263,11 +2488,12 @@ const actions = {
   "validate-version-pr": validateOpenVersionPr,
   stage,
   "inspect-source-qa": inspectSourceQA,
-  "prepare-source-preview": prepareSourcePreview,
   "record-source-qa": recordSourceQA,
+  "plan-recovery-compatibility": planRecoveryCompatibility,
+  "verify-compatibility-report": verifyCompatibilityReport,
   promote,
   "rollback-if-compatible": rollbackIfCompatible,
-  "record-compatibility": recordCompatibility,
+  "record-recovery-evidence": recordRecoveryEvidence,
   "record-production-qa": recordProductionQA,
   "recover-verify": recoverVerify,
   finalize,
