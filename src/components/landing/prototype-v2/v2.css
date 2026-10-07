@@ -10,7 +10,7 @@
    L0 court    ground + rules. Radius 0, no shadow, never interactive.
    L1 object   in-flow app surfaces the court positions: --card + shadow-md/lg.
                Entry card rounded-xl (12) p-1.5 (6) → app rows rounded-md (6).
-               Stats panel rounded-2xl (16) p-2 (8) → figures rounded-lg (8);
+               Stats carousel rounded-2xl (16) p-2 (8) → slides rounded-lg (8);
                lg:rounded-3xl (24) p-4 (16). Score chip, step chip, demo
                frame: standalone, rounded-lg / rounded-xl / rounded-2xl.
                Buttons keep the app's rounded-md.
@@ -300,11 +300,17 @@ html.v2-snap {
   position: absolute;
   top: calc(var(--ap, var(--a)) * var(--m));
   left: calc(var(--cp, var(--c)) * var(--m));
-  /* where it files: the first Entry row in the opponent back zone */
+  /* where it files: the first Entry row's first score badge. RallyLayer
+     measures it into --tx/--ty (px, layer coordinates); --tc/--ta (m) are the
+     fallback until the first row exists */
   --ta: 11.9;
   --tc: 1;
-  --dx: calc((var(--tc) - var(--cp, var(--c))) * var(--m));
-  --dy: calc((var(--ta) - var(--ap, var(--a))) * var(--m));
+  --dx: calc(
+    var(--tx, calc(var(--tc) * var(--m))) - var(--cp, var(--c)) * var(--m)
+  );
+  --dy: calc(
+    var(--ty, calc(var(--ta) * var(--m))) - var(--ap, var(--a)) * var(--m)
+  );
   font-size: max(1rem, calc(0.38 * var(--m)));
   transform-origin: 0 0;
 }
@@ -315,8 +321,8 @@ html.v2-snap {
     left: calc(var(--a) * var(--m));
     --ta: 12.4;
     --tc: 0.9;
-    --dx: calc((var(--ta) - var(--a)) * var(--m));
-    --dy: calc((var(--tc) - var(--c)) * var(--m));
+    --dx: calc(var(--tx, calc(var(--ta) * var(--m))) - var(--a) * var(--m));
+    --dy: calc(var(--ty, calc(var(--tc) * var(--m))) - var(--c) * var(--m));
     font-size: max(1rem, calc(0.25 * var(--m)));
   }
 }
@@ -425,7 +431,7 @@ html.v2-snap {
   container-type: inline-size;
   aspect-ratio: 1 / 2;
   --m: calc(100cqw / 9);
-  --ph: 19rem;
+  --ph: 21.5rem;
 }
 
 .v2-stats-head,
@@ -453,7 +459,7 @@ html.v2-snap {
    the net so the list keeps its lines */
 @media (max-width: 23.74rem) {
   .v2-stats {
-    --ph: 16rem;
+    --ph: 18.5rem;
     --shift: -0.75rem;
   }
 }
@@ -477,15 +483,38 @@ html.v2-snap {
   .v2-stats-list {
     inset: 0 0 0 calc(12.05 * var(--m));
   }
-  /* the real Points block is 5 fixed-height rows */
-  .v2-points-h {
-    min-height: 24.5rem;
-  }
+}
+
+/* the carousel track: native scroll-snap, horizontal only; a horizontal swipe
+   stays inside it, a vertical wheel or drag still scrolls the page */
+.v2-slides {
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.v2-slides::-webkit-scrollbar {
+  display: none;
+}
+
+/* the description swaps with a discrete fade: out, then in */
+.v2-desc {
+  transition: opacity 160ms ease-out;
+}
+
+.v2-desc[data-out] {
+  opacity: 0;
 }
 
 /* ---------- reduced motion: a still court ---------- */
 
 @media (prefers-reduced-motion: reduce) {
+  .v2-slides {
+    scroll-behavior: auto;
+  }
+  .v2-desc {
+    transition: none;
+  }
   .v2-mark[data-live],
   .v2-mark[data-live] .v2-ring,
   .v2-row[data-animate] {

@@ -14,16 +14,14 @@ import {
   COPY,
   KIT,
   LINKS,
-  STATS,
-  type Feature,
 } from "@/components/landing/prototype-v2/copy";
 import { Court, CourtPlan } from "@/components/landing/prototype-v2/court";
+import { DevBadge } from "@/components/landing/prototype-v2/dev-badge";
 import { Header } from "@/components/landing/prototype-v2/header";
 import { LazyRecordDemo } from "@/components/landing/prototype-v2/lazy-demo";
-import { LazyLiveStats } from "@/components/landing/prototype-v2/lazy-stats";
+import { StatsCarousel } from "@/components/landing/prototype-v2/stats-carousel";
 import { RallyLayer } from "@/components/landing/prototype-v2/rally-layer";
 import { ThemeSwitch } from "@/components/landing/prototype-v2/theme-switch";
-import { Badge } from "@/components/ui/badge";
 import "@/components/landing/prototype-v2/v2.css";
 import { cn } from "@/lib/utils";
 import type { CSSProperties } from "react";
@@ -54,20 +52,6 @@ const zone = (a0: number, a1: number, c0 = 0, c1 = 9) =>
 
 const GUTTER = "px-4 md:px-8 lg:px-[clamp(2rem,5vw,6rem)]";
 const H2 = "text-4xl leading-tight font-bold text-balance md:text-6xl";
-
-/** Planned features: the app's Badge (secondary), same as shipped otherwise. */
-export const DevBadge = () => (
-  <Badge variant="secondary" className="px-1.5 py-0 text-xs">
-    開發中
-  </Badge>
-);
-
-const FeatureTitle = ({ f, className }: { f: Feature; className?: string }) => (
-  <h3 className={cn("flex flex-wrap items-center gap-2 font-bold", className)}>
-    {f.title}
-    {f.dev && <DevBadge />}
-  </h3>
-);
 
 const Hero = () => (
   <section
@@ -140,9 +124,9 @@ const Record = () => (
   </section>
 );
 
-/** A court at every width (portrait below lg): heading on our half, the
- *  app's Points rows across the net (home values on our side, away on
- *  theirs, following the hero's rally clock), the list on the opponent half. */
+/** A court at every width (portrait below lg): heading on our half, the stats
+ *  carousel across the net (live Points rows, the Entry list, the point-diff
+ *  chart, all on the hero's rally clock), its description on the opponent half. */
 const Stats = () => (
   <section
     className={cn("v2-snap-point mx-auto max-w-[92rem] py-24 md:py-32", GUTTER)}
@@ -159,32 +143,7 @@ const Stats = () => (
           {COPY.statsLead}
         </p>
       </div>
-      <div
-        data-rally
-        className="v2-stats-points flex items-center rounded-2xl bg-card p-2 text-card-foreground shadow-lg lg:rounded-3xl lg:p-4"
-      >
-        <p className="sr-only">
-          團隊數據統計（示意動畫）：跟著上方的示範比賽逐球更新。
-        </p>
-        <div className="v2-points-h flex w-full items-center">
-          <LazyLiveStats />
-        </div>
-      </div>
-      <ul className="v2-stats-list grid grid-cols-2 content-center gap-x-[calc(0.3*var(--m))] gap-y-[calc(0.15*var(--m))] p-[calc(0.3*var(--m))] text-(--v2-ink) max-[23.75rem]:p-2 lg:grid-cols-1 lg:gap-[calc(0.3*var(--m))] lg:p-[calc(0.5*var(--m))]">
-        {STATS.map((s) => (
-          <li key={s.title} className="flex flex-col gap-0.5 lg:gap-1">
-            <FeatureTitle
-              f={s}
-              className="gap-1 text-base leading-snug lg:gap-2 lg:text-[max(1rem,calc(0.3*var(--m)))]"
-            />
-            {/* below lg the portrait court's opponent zone holds the titles only
-                (bodies at the 16px floor do not fit); from lg the bodies */}
-            <p className="hidden leading-snug font-medium lg:block lg:text-[max(1rem,calc(0.22*var(--m)))]">
-              {s.body}
-            </p>
-          </li>
-        ))}
-      </ul>
+      <StatsCarousel />
     </div>
   </section>
 );

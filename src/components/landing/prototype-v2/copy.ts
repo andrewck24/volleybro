@@ -29,15 +29,6 @@ export const STEPS = [
 
 export type Feature = { title: string; body: string; dev?: boolean };
 
-export const STATS: Feature[] = [
-  {
-    title: "技術類別統計",
-    body: "發球、攻擊、攔網、接發、防守，各自累計得失分。",
-  },
-  { title: "每局比分", body: "每一局打到幾比幾，局末自動結算。" },
-  { title: "逐球時間軸", body: "每一分怎麼來的，照順序一球一球排好。" },
-];
-
 /** Supporting features, one roster row each (PRODUCT.md capabilities only;
  *  planned ones carry 開發中 and are otherwise styled the same). */
 export const KIT: Feature[] = [

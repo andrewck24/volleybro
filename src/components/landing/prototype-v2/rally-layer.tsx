@@ -6,7 +6,7 @@ import {
 import { useRally } from "@/components/landing/prototype-v1/rally";
 import { moveLabel } from "@/components/landing/prototype-v2/copy";
 import dynamic from "next/dynamic";
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 // the app's real EntryRow list, lazy so entry/game modules stay out of the
 // first load; it reads the same clock
@@ -42,6 +42,37 @@ const spotOf = (n: number) => {
 export const RallyLayer = () => {
   const { set, setNo, live } = useRally();
   const n = set.rallies;
+  const layer = useRef<HTMLDivElement>(null);
+
+  // the landing mark files into the first row's first score badge; measure it
+  // (px, layer coordinates) once per beat and on resize, never per frame. Row 0
+  // sits at the rows' top, so its badge offset holds while the row slides in.
+  useEffect(() => {
+    const el = layer.current!;
+    const rows = el.querySelector(".v2-rows")!;
+    const measure = () => {
+      const row = rows.querySelector(".v2-row");
+      const badge = row?.querySelector(".size-8");
+      if (!row || !badge) return;
+      const l = el.getBoundingClientRect();
+      const o = rows.getBoundingClientRect();
+      const r = row.getBoundingClientRect();
+      const b = badge.getBoundingClientRect();
+      el.style.setProperty(
+        "--tx",
+        `${o.left + (b.left + b.width / 2 - r.left) - l.left}px`,
+      );
+      el.style.setProperty(
+        "--ty",
+        `${o.top + (b.top + b.height / 2 - r.top) - l.top}px`,
+      );
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    ro.observe(rows);
+    return () => ro.disconnect();
+  }, [n, setNo]);
   // while live, the list trails the mark by one beat: rally n is still in the
   // air and becomes a row on the next tick
   const shown = live ? n - 1 : n;
@@ -51,6 +82,7 @@ export const RallyLayer = () => {
 
   return (
     <div
+      ref={layer}
       aria-hidden
       data-rally
       className="pointer-events-none absolute inset-0"
