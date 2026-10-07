@@ -60,13 +60,8 @@
   --muted-foreground: hsl(215, 20.2%, 78%);
   --accent: hsl(192, 5%, 5.5%);
   --accent-foreground: hsl(330, 10%, 96.08%);
-  --court: hsl(13.01, 96.51%, 66.27%);
-  --court-foreground: hsl(192 70% 8%);
-  --court-back-zone: hsl(12.93, 96.67%, 76.47%);
-  --destructive: hsl(13, 85%, 42%);
-  --destructive-foreground: hsl(330, 10%, 96.08%);
   --destructive-text: var(--court);
-  --primary-text: hsl(192, 70%, 45%);
+  --primary-text: hsl(192, 70%, 50%);
   --success: hsl(152, 55%, 45%);
   --success-foreground: hsl(217.2, 10%, 96.08%);
   --warning: hsl(38, 90%, 55%);

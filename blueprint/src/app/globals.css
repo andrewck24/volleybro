@@ -65,13 +65,8 @@
   --muted-foreground: hsl(215, 20.2%, 78%);
   --accent: hsl(192, 5%, 5.5%);
   --accent-foreground: hsl(330, 10%, 96.08%);
-  --court: hsl(13.01, 96.51%, 66.27%);
-  --court-foreground: hsl(192 70% 8%);
-  --court-back-zone: hsl(12.93, 96.67%, 76.47%);
-  --destructive: hsl(13, 85%, 42%);
-  --destructive-foreground: hsl(330, 10%, 96.08%);
   --destructive-text: var(--court);
-  --primary-text: hsl(192, 70%, 45%);
+  --primary-text: hsl(192, 70%, 50%);
   --success: hsl(152, 55%, 45%);
   --success-foreground: hsl(217.2, 10%, 96.08%);
   --warning: hsl(38, 90%, 55%);
@@ -89,10 +84,8 @@
   --chart-5: hsl(270, 45%, 65%);
 }
 
-/* VolleyBro shared design tokens — app, landing, and blueprint all consume
-   the app's globals.css token blocks so the docs render the real design
-   system, not a
-   parallel palette. Blueprint-only tokens are derived from the shared set. */
+/* Blueprint-only tokens below are derived from the shared set copied from
+   the app above. */
 
 :root,
 .dark {
