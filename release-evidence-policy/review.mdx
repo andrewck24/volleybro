@@ -38,7 +38,7 @@ import { scenarios } from "./proposal.mdx";
 <TestPlan
   items={[
     { id: "T1", checks: "完整 controller 測試與 test-audit", method: "`node --test scripts/__tests__/release-controls.test.js`", executor: "agent", environment: "隔離 Git repositories 與 API fixtures", result: "pass", evidence: "32 tests passed；Sol test-audit 指出的 report assertion-level 缺口已補，移除 controller admission gates 的 disposable mutant 會被測試拒絕。" },
-    { id: "T2", checks: "整個 repository 驗證", method: "`CI=true pnpm verify:all`", executor: "agent", environment: "release-evidence-policy worktree", result: "pass", evidence: "static、workflow 249 tests、Blueprint 19 suites／84 tests 通過；integration、app-build、app-test 由 diff planner 因本次未改 backend/app 而略過。" },
+    { id: "T2", checks: "整個 repository 驗證", method: "`CI=true npm_config_manage_package_manager_versions=false pnpm verify:all`", executor: "agent", environment: "release-evidence-policy worktree", result: "pass", evidence: "static、workflow 251 tests、Blueprint 19 suites／84 tests 通過；integration、app-build、app-test 由 diff planner 因本次只改 workflow 而略過。" },
     { id: "T3", checks: "原生 Jest report acceptance", method: "將 Jest 30.5.2 原生 JSON report 傳入 `verify-compatibility-report`", executor: "agent", environment: "本機 controller 與 disposable report", result: "pass", evidence: "真實 report 含兩項 required assertions 且皆 passed；controller exit 0，輸出 result、baseline SHA、candidate SHA 與 tree。" },
     { id: "T4", checks: "獨立 Spec review", method: "複審 fail-closed classifier 與 compatibility report verifier", executor: "agent", environment: "獨立 reviewer context", result: "pass", evidence: "先發現 Jest 不提供 `numSkippedTests` 的 P1；改用原生 counters 並固定兩項 assertions 後，複審以原生 report 重跑確認 blocker 關閉，未發現其他 blocker。" },
     { id: "T5", checks: "production OAuth／session／team 唯讀 smoke", method: "真實正式站登入與唯讀驗收", executor: "developer", environment: "production，合併與正式 release 後", result: "pending", evidence: "保留為唯一固定人工 release QA；本次未部署 production，也未宣稱已完成。" },
@@ -47,7 +47,7 @@ import { scenarios } from "./proposal.mdx";
 
 <AfterRelease>
 
-合併前先明確設定 `PRODUCTION_DB_ACTIVE=false`，讓 v1.0 前的共享 `test` DB 套用 forward-only policy。僅在已授權的 v1.0 clean production DB cutover 完成並首次可寫入後，才改成 `true`。合併後刪除兩個不再讀取的 `RELEASE_ROLLBACK_*` repository variables。這次 Change 不執行 DB cutover、不移轉真實資料，也不執行 production release。
+下次 release 前，明確設定 `PRODUCTION_DB_ACTIVE=false`，讓 v1.0 前的共享 `test` DB 套用 forward-only policy。僅在已授權的 v1.0 clean production DB cutover 完成並首次可寫入後，才改成 `true`。合併後刪除兩個不再讀取的 `RELEASE_ROLLBACK_*` repository variables。這次 Change 不執行 DB cutover、不移轉真實資料，也不執行 production release。
 
 </AfterRelease>
 
@@ -63,7 +63,13 @@ import { scenarios } from "./proposal.mdx";
 
 獨立 audit 發現舊的拒絕案例只改 aggregate counters，沒有保護 assertion title、baseline SHA、雙向 assertion 唯一性與每項 assertion status。現有測試新增無關 title、錯 baseline、重複方向，以及 aggregate summary 顯示成功但單項 assertion failed／skipped 的負向案例；wrong-baseline fixture 會改變最後一個 hex 字元，保證仍是合法且不同的 SHA。以移除 controller title/status/baseline guards 的 disposable mutant 驗證時，預期拒絕斷言轉紅；Sol 複查確認 fixture 修正後 finding 關閉。此測試證明 report admission，不代表已證明實際 DB 相容性。
 
-首次預設並行 `verify:all` 有一個 Jest worker 以 `SIGSEGV` 結束；以 `CI=true` 重跑整體 gate 通過，且 Blueprint 單 worker 重跑亦為 19 suites／84 tests 全過。
+本輪第一次全量驗證有一個 Jest 子程序以 `SIGSEGV` 結束；Blueprint 單獨重跑為 19 suites／84 tests 全過，之後以 `CI=true` 重跑全量 gate 通過：static、workflow 251 tests、Blueprint 19 suites／84 tests 均通過。integration、app-build、app-test 因本次只改 workflow，由 diff planner 略過。
+
+### CodeQL cache-poisoning triage
+
+最新 `actions` analysis 對 `33a6e44` 回報 0 results；原先在 `73b9b2c` 上同一規則的 alerts #11–14，已在 GitHub 以 false positive 關閉並附上理由。`recovery-evidence` job 現在明確使用 `cache-mode: none`、移除 pnpm cache，且候選 checkout 不保留 Git credentials；candidate SHA 的既有可信驗證與 compatibility proof 不變。GitHub 文件確認 `cache-mode: none` 會以 scoped token 禁止 restore 與 save（[dependency caching](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching#controlling-cache-access-with-cache-mode)）。
+
+PR 的 aggregate `CodeQL` check 為 neutral，不是 failure；GitHub 說明無法比對 main 上的 `Default setup /language:actions` configuration。此次 `Analyze (actions)` 與 `Analyze (javascript-typescript)` jobs 均成功；此 configuration warning 留作平台狀態記錄，不宣稱該 aggregate check 為 pass。
 
 ### 未解的執行前置
 
