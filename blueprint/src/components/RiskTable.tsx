@@ -34,7 +34,7 @@ const SEVERITY_BADGE: Record<
   Severity,
   { variant: React.ComponentProps<typeof Badge>["variant"]; className?: string }
 > = {
-  critical: { variant: "destructive" },
+  critical: { variant: "error" },
   warning: {
     variant: "outline",
     className: "border-warning/40 bg-warning/10 text-warning",

@@ -94,7 +94,7 @@ export const UnconfirmedSetDialog = ({
             <EmptyMedia
               variant="icon"
               className={
-                !attempting ? "bg-destructive/10 text-destructive" : undefined
+                !attempting ? "bg-error/10 text-error-text" : undefined
               }
             >
               {attempting ? (

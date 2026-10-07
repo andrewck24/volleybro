@@ -28,7 +28,7 @@ export const Rally = ({
           <Figure
             value={away.score}
             size="sm"
-            variant={win ? "secondary" : "destructive"}
+            variant={win ? "secondary" : "away"}
           />
         </>
       ) : (
@@ -52,11 +52,11 @@ export const Rally = ({
           <EntryPlayerNumber>{playerNumber}</EntryPlayerNumber>
         )}
       </EntryText>
-      <EntryText className="border-destructive">
+      <EntryText className="border-away">
         {away.type &&
           (away.type !== MoveType.UNFORCED ? (
             <>
-              <span className="flex size-6 items-center justify-center rounded-full bg-destructive text-primary-foreground">
+              <span className="flex size-6 items-center justify-center rounded-full bg-away text-away-foreground">
                 <RiUserLine />
               </span>
               {scoringMoves[away.num]?.text}
@@ -70,6 +70,6 @@ export const Rally = ({
   );
 };
 
-const IconWin = () => <FiPlus className="text-primary" />;
+const IconWin = () => <FiPlus className="text-primary-text" />;
 
-const IconLose = () => <FiMinus className="text-destructive" />;
+const IconLose = () => <FiMinus className="text-away-text" />;

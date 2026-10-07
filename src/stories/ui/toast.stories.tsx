@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/toaster";
+import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 
@@ -7,14 +7,6 @@ const meta = {
   title: "Design System/Molecules/Toast",
   parameters: { layout: "centered" },
   tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <div>
-        <Story />
-        <Toaster />
-      </div>
-    ),
-  ],
 } satisfies Meta;
 
 export default meta;
@@ -48,11 +40,7 @@ export const WithAction: Story = {
           toast({
             title: "Update Available",
             description: "A new version is ready to install",
-            action: (
-              <Button variant="outline" size="sm">
-                Update Now
-              </Button>
-            ),
+            action: <ToastAction altText="Update Now">Update Now</ToastAction>,
           })
         }
       >
@@ -62,15 +50,14 @@ export const WithAction: Story = {
   },
 };
 
-export const Destructive: Story = {
-  render: function ShowDestructiveToast() {
+export const ErrorToast: Story = {
+  render: function ShowErrorToast() {
     const { toast } = useToast();
     return (
       <Button
-        variant="destructive"
         onClick={() =>
           toast({
-            variant: "destructive",
+            variant: "error",
             title: "Error",
             description: "Something went wrong",
           })

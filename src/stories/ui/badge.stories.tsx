@@ -10,7 +10,7 @@ const meta = {
   tags: ["autodocs"],
   argTypes: {
     variant: {
-      options: ["default", "secondary", "destructive", "outline"],
+      options: ["default", "secondary", "court", "away", "outline"],
       control: { type: "select" },
     },
   },
@@ -22,7 +22,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { args: { variant: "default" } };
 export const Secondary: Story = { args: { variant: "secondary" } };
-export const Destructive: Story = { args: { variant: "destructive" } };
+export const Court: Story = { args: { variant: "court" } };
+export const Away: Story = { args: { variant: "away" } };
 export const Outline: Story = { args: { variant: "outline" } };
 
 export const WithIcon: Story = {

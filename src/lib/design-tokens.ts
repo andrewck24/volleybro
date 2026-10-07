@@ -5,7 +5,7 @@
 
 export const chartColors = {
   1: "var(--chart-1)", // primary teal
-  2: "var(--chart-2)", // destructive orange (contrast)
+  2: "var(--chart-2)", // coral (contrast)
   3: "var(--chart-3)", // cool blue
   4: "var(--chart-4)", // warm yellow
   5: "var(--chart-5)", // neutral purple
@@ -16,6 +16,8 @@ export const feedbackColors = {
   warning: "var(--warning)",
   info: "var(--info)",
   destructive: "var(--destructive)",
+  error: "var(--error)",
+  away: "var(--away)",
 } as const;
 
 export const semanticColors = {

@@ -1003,7 +1003,7 @@ The system SHALL intercept 401 responses from `apiClient` via a DOM custom event
 
 A `SWRProvider` client component SHALL mount in the root layout (`src/app/layout.tsx`) wrapping all routes. It SHALL register a `window` event listener for `'api:unauthorized'` via `useEffect`. The listener SHALL call `handle401Redirect(router, toast)`. The effect cleanup SHALL remove the listener on unmount. The `SWRConfig` `onError` in `SWRProvider` SHALL delegate all errors to `showErrorToast` — the 401 early-return in `showErrorToast` prevents double-toasting.
 
-A `handle401Redirect(router, toast)` utility function SHALL be exported from `src/lib/api/error-toast.ts`. It SHALL show a destructive toast with title `"登入已逾期"` and description `"請重新登入"`, then call `router.push('/auth/sign-in')` in the same synchronous block.
+A `handle401Redirect(router, toast)` utility function SHALL be exported from `src/lib/api/error-toast.ts`. It SHALL show an error toast with title `"登入已逾期"` and description `"請重新登入"`, then call `router.push('/auth/sign-in')` in the same synchronous block.
 
 `showErrorToast` SHALL NOT produce a toast for errors with `status === 401` — it SHALL return early, since `handle401Redirect` is responsible for the 401 user experience.
 
@@ -1018,7 +1018,7 @@ A `handle401Redirect(router, toast)` utility function SHALL be exported from `sr
 - **WHEN** a SWR hook's fetcher receives a 401 response
 - **THEN** the `'api:unauthorized'` event is dispatched by `apiClient`
 - **THEN** `SWRProvider`'s event listener SHALL call `handle401Redirect`
-- **THEN** a destructive toast with title `"登入已逾期"` SHALL appear
+- **THEN** an error toast with title `"登入已逾期"` SHALL appear
 - **THEN** `router.push('/auth/sign-in')` SHALL be called
 
 #### Scenario: Mutation receives 401 — toast and redirect without component changes

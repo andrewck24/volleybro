@@ -22,7 +22,7 @@ function Tile({ href, title, description, figure, Icon }: Section) {
       className="group flex flex-col gap-3 rounded-xl border bg-card p-5 text-inherit no-underline! transition-colors duration-200 hover:border-primary/60 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       <div className="flex items-center justify-between gap-3">
-        <Icon aria-hidden="true" className="size-5 text-primary" />
+        <Icon aria-hidden="true" className="size-5 text-primary-text" />
         <span className="text-xs text-muted-foreground tabular-nums">
           {figure}
         </span>
@@ -71,7 +71,7 @@ export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-14 px-4 py-16 md:py-24">
       <header className="flex max-w-2xl flex-col gap-4">
-        <p className="m-0 text-sm font-medium text-primary">
+        <p className="m-0 text-sm font-medium text-primary-text">
           VolleyBro Blueprint
         </p>
         <h1 className="m-0 text-3xl font-semibold break-keep md:text-4xl">
@@ -101,7 +101,7 @@ export default function Home() {
             </h2>
             <Link
               href="/changes"
-              className="text-sm text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="text-sm text-primary-text underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               全部 Change
             </Link>

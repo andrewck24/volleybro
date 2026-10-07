@@ -221,7 +221,7 @@ export const EntryRow = ({
           <Entry
             entry={entry}
             players={players}
-            className={cn(failed && "ring-1 ring-destructive")}
+            className={cn(failed && "ring-1 ring-error")}
           />
           {failed && (
             <FailedWriteRetry

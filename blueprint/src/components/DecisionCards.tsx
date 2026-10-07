@@ -19,8 +19,8 @@ function VerdictBadge({ isAdopted }: { isAdopted: boolean }) {
       className={cn(
         "mt-0.5",
         isAdopted
-          ? "bg-primary/10 text-primary dark:bg-primary/20"
-          : "bg-destructive/10 text-destructive dark:bg-destructive/20",
+          ? "bg-primary/10 text-primary-text dark:bg-primary/20"
+          : "bg-error/10 text-error-text dark:bg-error/20",
       )}
     >
       {isAdopted ? "採用" : "棄用"}

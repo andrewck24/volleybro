@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "id": "0115",
+  "title": "Danger actions keep the vivid destructive red; away data and error states take a muted red",
+  "capabilities": ["platform/design-system"],
+  "context": "Once error colours stopped reusing brand coral, one red had to serve both badges and rows that carry text and buttons that confirm a destructive action. A vivid red clashes with the muted teal and court palette on dense surfaces, yet a muted red is too weak on a danger button.",
+  "decision": "`--destructive` stays shadcn's danger-action colour, a vivid red, hsl(13 85% 42%) (4.83:1 against its near-white foreground), used by the Button `destructive` variant, with `--destructive-text` for danger-zone headings on cards. `--away` is a muted coral-red, hsl(13 60% 40%) (5.63:1), for opponent and loss data: the away set tally, score border and figures, the rally lose marker and the move buttons for lost points, with `--away-text` for their text and icons on cards. `--error` is the same muted red for error states, with `--error-text` for error text on cards: alerts, toasts, failed-write rings and form messages.",
+  "alternatives": [
+    {
+      "option": "One vivid red for every destructive surface",
+      "reason": "Clashes with the muted teal and court palette on badges and rows."
+    },
+    {
+      "option": "One muted red for every destructive surface",
+      "reason": "Too weak on a button that confirms a destructive action."
+    }
+  ],
+  "consequences": [
+    "A destructive action takes --destructive; opponent or loss data takes --away; an error state takes --error.",
+    "Away and error share a value today but are separate tokens, so either can change on its own."
+  ],
+  "originChange": "design-authority"
+}

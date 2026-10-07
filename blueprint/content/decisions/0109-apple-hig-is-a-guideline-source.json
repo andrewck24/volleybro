@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "id": "0109",
+  "title": "Apple HIG is a guideline source, applied as pages are redesigned",
+  "capabilities": ["platform/design-system"],
+  "context": "Control sizes and contrast were chosen page by page, with no external guideline to settle disagreements.",
+  "decision": "Apple HIG is adopted as a guideline source for the app's design and applied gradually, as each page is redesigned, not in one sweep.",
+  "alternatives": [
+    {
+      "option": "Apply HIG to every page at once",
+      "reason": "A sweeping redesign with no per-page review."
+    },
+    {
+      "option": "Keep per-page choices",
+      "reason": "Nothing settles a disagreement about size, contrast or motion."
+    }
+  ],
+  "consequences": [
+    "HIG rules reach a page only when that page is redesigned, so the app stays mixed for a while."
+  ],
+  "revisitTriggers": ["HIG adoption proves too broad to apply page by page."],
+  "originChange": "design-authority"
+}

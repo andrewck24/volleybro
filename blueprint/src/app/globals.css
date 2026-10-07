@@ -6,9 +6,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* VolleyBro design tokens — frozen copy of the app's src/app/globals.css
-   token blocks (elevation-depth-system, finalized 2026-07-16). Re-copy only
-   if the app's tokens ever change. */
+/* VolleyBro design tokens — copy of the app's src/app/globals.css token
+   blocks. Re-copy when the app's tokens change. */
 :root,
 .light {
   --background: hsl(230, 20%, 95.6%);
@@ -25,8 +24,19 @@
   --muted-foreground: hsl(0, 0%, 38.43%);
   --accent: hsl(230, 20%, 95.6%);
   --accent-foreground: hsl(0, 2.04%, 9.61%);
-  --destructive: hsl(13.01, 96.51%, 66.27%);
+  --court: hsl(13.01, 96.51%, 66.27%);
+  --court-foreground: hsl(192 70% 8%);
+  --court-back-zone: hsl(12.93, 96.67%, 76.47%);
+  --destructive: hsl(13, 85%, 42%);
   --destructive-foreground: hsl(330, 10%, 96.08%);
+  --destructive-text: var(--destructive);
+  --away: hsl(13, 60%, 40%);
+  --away-foreground: hsl(330, 10%, 96.08%);
+  --away-text: var(--away);
+  --error: hsl(13, 60%, 40%);
+  --error-foreground: hsl(330, 10%, 96.08%);
+  --error-text: var(--error);
+  --primary-text: var(--primary);
   --success: hsl(152, 60%, 36%);
   --success-foreground: hsl(330, 10%, 96.08%);
   --warning: hsl(38, 92%, 50%);
@@ -57,12 +67,14 @@
   --primary-foreground: hsl(330, 10%, 96.08%);
   --secondary: hsl(217.2, 32.6%, 27.5%);
   --secondary-foreground: hsl(330, 10%, 96.08%);
-  --muted: hsl(217.2, 10.6%, 37.5%);
-  --muted-foreground: hsl(215, 20.2%, 65.1%);
+  --muted: hsl(217.2, 10.6%, 32%);
+  --muted-foreground: hsl(215, 20.2%, 78%);
   --accent: hsl(192, 5%, 5.5%);
   --accent-foreground: hsl(330, 10%, 96.08%);
-  --destructive: hsl(13.01, 96.51%, 66.27%);
-  --destructive-foreground: hsl(330, 10%, 96.08%);
+  --destructive-text: var(--court);
+  --away-text: var(--court);
+  --error-text: var(--court);
+  --primary-text: hsl(192, 70%, 50%);
   --success: hsl(152, 55%, 45%);
   --success-foreground: hsl(217.2, 10%, 96.08%);
   --warning: hsl(38, 90%, 55%);
@@ -80,10 +92,8 @@
   --chart-5: hsl(270, 45%, 65%);
 }
 
-/* VolleyBro shared design tokens — app, landing, and blueprint all consume
-   the app's globals.css token blocks so the docs render the real design
-   system, not a
-   parallel palette. Blueprint-only tokens are derived from the shared set. */
+/* Blueprint-only tokens below are derived from the shared set copied from
+   the app above. */
 
 :root,
 .dark {
@@ -117,6 +127,17 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-away: var(--away);
+  --color-away-foreground: var(--away-foreground);
+  --color-away-text: var(--away-text);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-error-text: var(--error-text);
+  --color-primary-text: var(--primary-text);
+  --color-court: var(--court);
+  --color-court-foreground: var(--court-foreground);
+  --color-court-back-zone: var(--court-back-zone);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-info: var(--info);
@@ -148,11 +169,6 @@
   --color-success-text: color-mix(
     in oklch,
     var(--success) 65%,
-    var(--foreground)
-  );
-  --color-destructive-text: color-mix(
-    in oklch,
-    var(--destructive) 65%,
     var(--foreground)
   );
   --color-warning-text: color-mix(

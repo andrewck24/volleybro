@@ -3,8 +3,8 @@ import Link from "next/link";
 import { SwatchGrid, type TokenInfo } from "../_shared";
 
 // Token groups only name the CSS custom property and its role — the rendered
-// color and the displayed values come straight from the shared tokens.css
-// (src/styles/tokens.css) that the app, landing, and blueprint all import.
+// color and the displayed values come straight from the token blocks in
+// blueprint/src/app/globals.css, a copy of the app's.
 
 const surface: TokenInfo[] = [
   {
@@ -33,8 +33,42 @@ const brand: TokenInfo[] = [
     usage: "Teal — primary actions, brand accent (theme-stable)",
   },
   {
+    name: "--primary-text",
+    usage: "Teal for icons and text on cards; lighter on dark surfaces",
+  },
+  {
+    name: "--court",
+    usage: "Brand coral — the mark, the recording court and the landing court",
+  },
+  {
+    name: "--court-back-zone",
+    usage: "Lighter coral — the back zone of the recording court",
+  },
+  {
     name: "--destructive",
-    usage: "Coral — destructive actions + the logo's right arm (theme-stable)",
+    usage:
+      "Vivid red — danger actions such as the destructive Button (near-white text)",
+  },
+  {
+    name: "--destructive-text",
+    usage: "Danger-zone text and icons on cards; brand coral on dark",
+  },
+  {
+    name: "--away",
+    usage:
+      "Muted coral-red — opponent and loss data: set tally, scores, figures, badges",
+  },
+  {
+    name: "--away-text",
+    usage: "Opponent and loss text and icons on cards; brand coral on dark",
+  },
+  {
+    name: "--error",
+    usage: "Muted coral-red — error states: alerts, toasts, failed-write rings",
+  },
+  {
+    name: "--error-text",
+    usage: "Error text and icons on cards; brand coral on dark",
   },
 ];
 
@@ -46,7 +80,7 @@ const feedback: TokenInfo[] = [
 
 const chart: TokenInfo[] = [
   { name: "--chart-1", usage: "Series 1 — teal (tracks --primary)" },
-  { name: "--chart-2", usage: "Series 2 — coral (tracks --destructive)" },
+  { name: "--chart-2", usage: "Series 2 — coral (tracks --court)" },
   { name: "--chart-3", usage: "Series 3 — blue" },
   { name: "--chart-4", usage: "Series 4 — amber" },
   { name: "--chart-5", usage: "Series 5 — violet" },
@@ -69,12 +103,11 @@ export default function ColorPage() {
       <h1>Color</h1>
       <p>
         Every surface, brand, feedback, and chart token, rendered live from a
-        frozen copy of the app&apos;s <code>globals.css</code> token blocks
-        (finalized by the elevation-depth-system change). Each swatch is split —
-        left half is the light-theme value, right half the dark-theme value —
-        and the color strings underneath are resolved from the stylesheet at
-        runtime, so this page always shows what the stylesheet actually
-        resolves.
+        copy of the app&apos;s <code>globals.css</code> token blocks, kept equal
+        to the app&apos;s by a test. Each swatch is split — left half is the
+        light-theme value, right half the dark-theme value — and the color
+        strings underneath are resolved from the stylesheet at runtime, so this
+        page always shows what the stylesheet actually resolves.
       </p>
 
       <h2 id="surface">Surface &amp; elevation</h2>

@@ -55,7 +55,11 @@ export const TotalStatsItem = ({
       };
 
   return (
-    <Figures label={label} values={values} className="font-bold text-primary" />
+    <Figures
+      label={label}
+      values={values}
+      className="font-bold text-primary-text"
+    />
   );
 };
 

@@ -1,6 +1,8 @@
 import type { Preview } from "@storybook/nextjs";
 import "../src/app/globals.css";
 
+import { Toaster } from "@/components/ui/toaster";
+
 import { withThemeByClassName } from "@storybook/addon-themes";
 import { Noto_Sans_TC, Saira } from "next/font/google";
 
@@ -39,6 +41,12 @@ const preview: Preview = {
     },
   },
   decorators: [
+    (Story) => (
+      <>
+        <Story />
+        <Toaster />
+      </>
+    ),
     withThemeByClassName({
       themes: {
         // nameOfTheme: 'classNameForTheme',

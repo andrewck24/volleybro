@@ -30,7 +30,7 @@ export const Figures = ({
         <span className="flex flex-1 items-center justify-center">{label}</span>
         <Figure
           value={values.right}
-          variant={isRightLarger ? "destructiveText" : "secondary"}
+          variant={isRightLarger ? "awayText" : "secondary"}
         />
       </div>
       {disableBarChart || <BarChart values={values} />}
@@ -45,11 +45,11 @@ export const figureVariants = cva(
       variant: {
         default: "text-foreground",
         primary: "bg-primary text-primary-foreground",
-        destructive: "bg-destructive text-destructive-foreground",
+        away: "bg-away text-away-foreground",
         secondary: "bg-secondary text-muted-foreground",
         outline: "border text-foreground",
-        primaryText: "bg-accent text-primary",
-        destructiveText: "bg-accent text-destructive",
+        primaryText: "bg-accent text-primary-text",
+        awayText: "bg-accent text-away-text",
       },
       size: {
         sm: "size-8 text-[1.5rem] font-normal",
@@ -92,7 +92,7 @@ export const BarChart = ({
         style={{ transform: `scaleX(${leftScale})` }}
       />
       <div
-        className={cn("origin-right bg-destructive transition-all")}
+        className={cn("origin-right bg-court transition-all")}
         style={{ transform: `scaleX(${rightScale})` }}
       />
     </div>

@@ -60,7 +60,7 @@ const SetScore = ({
       <Figure
         value={awaySetsWon}
         size="lg"
-        variant={isAwayWin ? "destructiveText" : "secondary"}
+        variant={isAwayWin ? "awayText" : "secondary"}
       />
     </div>
   );

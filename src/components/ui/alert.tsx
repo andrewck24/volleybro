@@ -10,8 +10,8 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-card text-foreground ring-foreground/5",
-        destructive:
-          "bg-destructive/10 text-destructive ring-destructive/30 dark:ring-destructive/50 [&>svg]:text-destructive",
+        error:
+          "bg-[color-mix(in_oklch,var(--error)_6%,var(--card))] text-error-text ring-error/30 dark:ring-error/50 [&>svg]:text-error-text",
       },
     },
     defaultVariants: {

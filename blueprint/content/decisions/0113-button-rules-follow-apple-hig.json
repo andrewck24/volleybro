@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "0113",
+  "title": "Button size, shape and placement follow Apple HIG",
+  "capabilities": ["platform/design-system/components"],
+  "context": "Header and dialog controls were 32px and each page picked its own size, below HIG's 44pt touch target.",
+  "decision": "Button `icon` size is 44x44 (36 under `pointer: fine`) with no outline and a glass shell. Back is RiArrowLeftSLine and close is RiCloseLine. A page's primary action and a form submit use `lg`; an in-section action and a dialog footer action use `default`; list rows use `wide`. Chips take the segmented chip style with a 44px hit area. The recording panel's move buttons are a known exception, to be measured first; the nav FAB and the landing CTAButton own their sizes.",
+  "alternatives": [
+    {
+      "option": "Keep per-page sizes",
+      "reason": "Controls stay under the touch target and inconsistent across pages."
+    },
+    {
+      "option": "Enlarge every button to 44px",
+      "reason": "Dense desktop layouts and the recording panel need smaller hit areas, hence the pointer: fine rule and the exceptions."
+    }
+  ],
+  "consequences": [
+    "A later shard implements this; the record only fixes the rules.",
+    "Dialog header controls and page layouts need re-checking at the new size."
+  ],
+  "revisitTriggers": [
+    "The recording panel measurement shows the move buttons can meet 44px."
+  ],
+  "originChange": "design-authority"
+}

@@ -107,7 +107,7 @@ const NavButton = ({
       "text-xs text-muted-foreground no-underline [&>svg]:size-6",
       "transition-all duration-200 ease-in-out",
       "md:w-full md:flex-none md:flex-row md:rounded-xl md:pt-0",
-      active && "bg-muted/60 font-semibold text-primary",
+      active && "bg-muted/60 font-semibold text-primary-text",
       className,
     )}
   >

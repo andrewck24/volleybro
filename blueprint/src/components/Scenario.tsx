@@ -12,7 +12,7 @@ type ScenarioProps = {
 
 const LABEL_COLOR: Record<string, string> = {
   GIVEN: "text-muted-foreground",
-  WHEN: "text-primary",
+  WHEN: "text-primary-text",
   THEN: "text-warning",
 };
 

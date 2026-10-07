@@ -41,7 +41,7 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
 
 const OUTCOME_CLASS: Record<Outcome, string> = {
   pass: "bg-success/10 text-success dark:bg-success/20",
-  fail: "bg-destructive/10 text-destructive dark:bg-destructive/20",
+  fail: "bg-error/10 text-error-text dark:bg-error/20",
   pending: "bg-muted text-muted-foreground",
   unverified: "border-warning/40 bg-warning/10 text-warning",
 };
@@ -100,7 +100,7 @@ export function ScenarioResults({
                   then={scenario.then}
                 />
               ) : (
-                <p className="m-0 text-sm text-destructive">
+                <p className="m-0 text-sm text-error-text">
                   這個結果對應的 scenario {item.id} 不存在
                 </p>
               )}

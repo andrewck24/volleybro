@@ -203,7 +203,7 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
       buttons.find(
         (button) =>
           button.textContent?.trim() === move.text &&
-          button.className.includes(move.win ? "bg-primary" : "bg-destructive"),
+          button.className.includes(move.win ? "bg-primary" : "bg-away"),
       ) ?? null
     );
   }
