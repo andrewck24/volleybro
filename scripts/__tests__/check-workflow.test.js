@@ -338,6 +338,52 @@ test("accepts a snippet written as an escaped string", async () => {
   );
 });
 
+test("reports SVG text whose content starts on the following line", async () => {
+  const report = (
+    await messages(
+      inChange(
+        "c",
+        changePage({
+          proposal:
+            "<TLDR>x</TLDR>\n\n<svg>\n  <text>\n    visible label\n  </text>\n</svg>",
+        }),
+      ),
+    )
+  ).join("\n");
+
+  assert.match(
+    report,
+    /blueprint\/content\/changes\/c\/proposal\.mdx \[blueprint-svg-text\].*<text>.*same line/i,
+  );
+});
+
+test("accepts SVG text when content follows the opening tag", async () => {
+  const report = await messages(
+    inChange(
+      "c",
+      changePage({
+        proposal: "<TLDR>x</TLDR>\n\n<svg><text>visible label</text></svg>",
+      }),
+    ),
+  );
+
+  assert.deepEqual(report, []);
+});
+
+test("does not inspect SVG examples inside fenced code blocks", async () => {
+  const report = await messages(
+    inChange(
+      "c",
+      changePage({
+        proposal:
+          "<TLDR>x</TLDR>\n\n```svg\n<text>\n  visible label\n</text>\n```",
+      }),
+    ),
+  );
+
+  assert.deepEqual(report, []);
+});
+
 test("checkChangeScope is silent outside a git repository", async () => {
   const root = await makeRepository();
   assert.deepEqual(await checkChangeScope(root), []);

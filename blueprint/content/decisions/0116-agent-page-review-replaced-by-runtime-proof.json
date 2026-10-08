@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0116",
+  "title": "Automated proof replaces routine agent page inspection",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "ADR-0060 requires a complete published Proposal before G1 and a Review before G2. Routine Agent inspection of every rendered section repeats shared component behavior and has found layout defects that belong at the component boundary. Static export receipt and HTML identity checks do not prove a hook-bearing design.tsx mounted in the browser. The developer chose a single trusted Preview route proof for each mockup-bearing G1 and G2 snapshot.",
+  "decision": "Keep developer-owned G1 and G2 acceptance and allow the developer to inspect a dev-server page. Remove routine Agent page-by-page browser inspection at G1, Archive, and G2. Preserve build, render-error, freshness, and deployment identity checks. When a G1 or G2 snapshot includes design.tsx, the trusted Preview workflow runs one headless Chromium check for that Change route against the exact source SHA, integration SHA, store SHA, and input hash in the validated receipt. The static export must contain the MockupFrame loading marker; the route must return successfully, its identity must match the receipt, and hydration must remove the loading marker. The check fails on missing proof, pageerror, console error, or MockupFrame error fallback. Missing proof fails closed; no full-site screenshot matrix is added.",
+  "alternatives": [
+    {
+      "option": "Keep routine Agent browser inspection at every gate",
+      "reason": "It repeats shared component checks and makes each Change pay the same manual review cost."
+    },
+    {
+      "option": "Remove all client runtime verification",
+      "reason": "Static build and receipt checks do not prove a hook-bearing mockup mounts or renders without a client error."
+    }
+  ],
+  "consequences": [
+    "Shared layout behavior must have component-owned regression coverage so routine page inspection is not the only way to detect clipping, collisions, or unreadable output.",
+    "Chromium startup is paid only for mockup-bearing G1 and G2 snapshots; the Change page records measured cost and whether the successful path was measured.",
+    "A client error in a mockup-bearing route blocks its gate until the source is understood and corrected; broad suppression or an exception list would weaken the proof."
+  ],
+  "revisitTriggers": [
+    "The workflow framework or deployment model prevents the Preview proof from binding one route to the validated source, store, integration, and input snapshots.",
+    "Measured Chromium cost or flakiness becomes material enough to outweigh the route proof for hook-bearing mockups."
+  ],
+  "originChange": "replace-agent-visual-review"
+}

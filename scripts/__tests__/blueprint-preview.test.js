@@ -15,6 +15,8 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { hasDesignMockup } from "../blueprint-preview.js";
+
 const CLI = fileURLToPath(new URL("../blueprint-preview.js", import.meta.url));
 const SOURCE_SHA = "1".repeat(40);
 const STORE_SHA = "2".repeat(40);
@@ -68,10 +70,11 @@ async function fixture() {
   return { root, artifact, env };
 }
 
-function run(command, env) {
+function run(command, env, cwd = process.cwd()) {
   return spawnSync(process.execPath, [CLI, command], {
     env,
     encoding: "utf8",
+    cwd,
   });
 }
 
@@ -149,6 +152,63 @@ test("artifact CLI accepts the matching receipt and rejects mismatched snapshots
   });
   assert.notEqual(mismatched.status, 0);
   assert.match(mismatched.stderr, /receipt does not match/);
+});
+
+test("detects a regular design.tsx only in the requested Change", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "blueprint-mockup-test-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const changeDirectory = path.join(root, "blueprint/content/changes", SLUG);
+  await mkdir(changeDirectory, { recursive: true });
+
+  assert.equal(await hasDesignMockup(root, SLUG), false);
+  await writeFile(path.join(changeDirectory, "design.tsx"), "export {}\n");
+  assert.equal(await hasDesignMockup(root, SLUG), true);
+  await assert.rejects(hasDesignMockup(root, "../outside"), /kebab-case/);
+  await rm(path.join(changeDirectory, "design.tsx"));
+  await symlink(
+    path.join(root, "outside.tsx"),
+    path.join(changeDirectory, "design.tsx"),
+  );
+  await assert.rejects(hasDesignMockup(root, SLUG), /regular design\.tsx/);
+});
+
+test("detect-mockup writes its conditional output only from trusted main", async (t) => {
+  const f = await fixture();
+  t.after(() => rm(f.root, { recursive: true, force: true }));
+  const source = path.join(f.root, "candidate");
+  await mkdir(path.join(source, "blueprint/content/changes", SLUG), {
+    recursive: true,
+  });
+
+  const output = path.join(f.root, "github-output");
+  const absent = run(
+    "detect-mockup",
+    { ...f.env, GITHUB_OUTPUT: output },
+    source,
+  );
+  assert.equal(absent.status, 0, absent.stderr);
+  assert.equal(await readFile(output, "utf8"), "has_mockup=false\n");
+
+  await writeFile(
+    path.join(source, "blueprint/content/changes", SLUG, "design.tsx"),
+    "export {}\n",
+  );
+  const presentOutput = path.join(f.root, "github-output-present");
+  const present = run(
+    "detect-mockup",
+    { ...f.env, GITHUB_OUTPUT: presentOutput },
+    source,
+  );
+  assert.equal(present.status, 0, present.stderr);
+  assert.equal(await readFile(presentOutput, "utf8"), "has_mockup=true\n");
+
+  const untrusted = run(
+    "detect-mockup",
+    { ...f.env, GITHUB_REF: "refs/heads/attacker", GITHUB_OUTPUT: output },
+    source,
+  );
+  assert.notEqual(untrusted.status, 0);
+  assert.match(untrusted.stderr, /trusted main/);
 });
 
 test("artifact CLI rejects symlinks and special files from the real filesystem", async (t) => {
