@@ -24,7 +24,7 @@ import { scenarios } from "./proposal.mdx";
   scenarios={scenarios}
   results={[
     { id: "S1", result: "fail", evidence: "workflow tests 證明有 `design.tsx` 時會在 artifact upload 前呼叫 proof；最終 proof script 也在本機既有 `game-positional-writes` mockup route 成功：receipt identity 相符、loader 消失、mount 存在且無 fallback／JS／console error。但 trusted `main` workflow 尚未執行此分支新增的正向路徑，故此 scenario 的 trusted end-to-end 證據未完成。" },
-    { id: "S2", result: "pass", evidence: "目前 G2 snapshot 不含 `design.tsx`；`hasDesignMockup`／`detect-mockup` 的有無檔案回歸與 workflow 條件確認不要求 Proposal 新增 mockup。Branch Preview 將核對此 snapshot 的 hosted static receipt。" },
+    { id: "S2", result: "pass", evidence: "目前 G2 snapshot 不含 `design.tsx`；`hasDesignMockup`／`detect-mockup` 的有無檔案回歸與 workflow 條件確認不要求 Proposal 新增 mockup。trusted Preview 的成功 run 驗證靜態 receipt 與 hosted route，並依條件跳過 Chromium route check。" },
     { id: "S3", result: "pass", evidence: "Blueprint 19 suites／93 tests 通過；InteractiveFlowchart 回歸涵蓋 CJK／secret／英文換行、node 與 viewBox 範圍、非端點及密集佈局避碰、diamond、click 與 keyboard details。" },
     { id: "S4", result: "pass", evidence: "workflow 256 tests 通過；真實 content guard 的 SVG `<text>` 換行負例與 fenced-code 正例均通過。" },
     { id: "S5", result: "pass", evidence: "WORKFLOW 與 Blueprint adapter 已移除常態逐頁 browser review；Impeccable critique／distill 只審文字，G1／G2 human acceptance 與開發者 dev preview 保留。" },
@@ -37,7 +37,7 @@ import { scenarios } from "./proposal.mdx";
     { id: "T1", checks: "Blueprint 元件與 route-proof 回歸", method: "`pnpm --filter blueprint exec jest --runInBand`", executor: "agent", environment: "ATE-274 worktree", result: "pass", evidence: "19 suites passed；93 tests passed。" },
     { id: "T2", checks: "Repository aggregate verification", method: "`pnpm verify:all`", executor: "agent", environment: "本機 placeholder MongoDB/Auth build env；臨時 NODE_OPTIONS preload 將 availableParallelism 固定為 2，讓 Jest 使用單 worker", result: "pass", evidence: "六個 lanes 全 pass；app-test 154 suites／1074 tests。未限 worker 的兩次嘗試在不同、未修改的 suite 出現 SIGSEGV；serial 測試全數通過。" },
     { id: "T3", checks: "Mockup 正向 route proof", method: "`node scripts/blueprint-mockup-proof.mjs`", executor: "agent", environment: "最終 clean build receipt；既有 `game-positional-writes` mockup；localhost HTTP 與 headless Chromium", result: "pass", evidence: "source `2068578`、store、integration 與 input hash 一致；`/changes/game-positional-writes` mounted，無 loader、fallback、pageerror 或 console error。" },
-    { id: "T4", checks: "G2 hosted Preview identity 與頁面", method: "`pnpm blueprint:gate replace-agent-visual-review --preview`", executor: "agent", environment: "trusted main Preview controller", result: "pending", evidence: "待實際 gate 完成；目前 snapshot 不含 `design.tsx`，預期按 S2 驗證靜態 receipt 與 route，不啟動 Chromium。" },
+    { id: "T4", checks: "G2 hosted Preview identity 與頁面", method: "`pnpm blueprint:gate replace-agent-visual-review --preview`", executor: "agent", environment: "trusted main Preview controller", result: "pass", evidence: "成功 run 的 hosted receipt 與頁面符合同一 source/store/integration/input hash，HTTP route 載入且無 render error。此 snapshot 無 `design.tsx`，因此依條件未啟動 Chromium。" },
     { id: "T5", checks: "獨立 Spec／Standards 複審", method: "完整 diff 的雙軸固定點複審", executor: "agent", environment: "獨立 reviewer contexts", result: "pass", evidence: "最新 Spec 0 finding；Standards 0 hard finding、0 smell。" },
   ]}
 />
