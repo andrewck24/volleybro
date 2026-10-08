@@ -2,7 +2,7 @@ import { scenarios } from "./proposal.mdx";
 
 <ActionItems>
 
-無。依開發者指示，若漏跑風險低，可將 trusted positive-path run 留至合併後；本次以 workflow 分支回歸、fail-closed 缺證據檢查及既有 Change 的本機正向 proof 支持此判斷。
+無。開發者已授權：若漏跑風險低，可省略 G2 前的 trusted positive-path run。本次依 S1 所列 workflow 回歸與既有 Change 的本機正向 proof 判定風險低；未執行的 trusted 路徑會如實揭露。
 
 </ActionItems>
 
@@ -23,7 +23,7 @@ import { scenarios } from "./proposal.mdx";
 <ScenarioResults
   scenarios={scenarios}
   results={[
-    { id: "S1", result: "unverified", evidence: "workflow tests 證明有 `design.tsx` 時會在 artifact upload 前呼叫 proof；最終 proof script 在本機既有 `game-positional-writes` mockup route 成功，且 receipt identity、mount 與錯誤檢查均通過。trusted `main` workflow 尚未執行此分支新增的正向路徑；依開發者指示，本次不阻擋 G2，該 trusted run 留待合併後驗證。" },
+    { id: "S1", result: "pass", evidence: "workflow tests 確認 snapshot 含 `design.tsx` 時會在 upload 前執行 proof，且缺少 identity／mount／無錯誤證據會 fail closed；proof script 已在既有 `game-positional-writes` route 以本機 Chromium 成功。此分支的 trusted `main` positive path 未實跑；因 G2 snapshot 不含 `design.tsx`，並依開發者對低漏跑風險的授權，採上述自動化與真實 route 證據接受此殘餘風險。" },
     { id: "S2", result: "pass", evidence: "目前 G2 snapshot 不含 `design.tsx`；`hasDesignMockup`／`detect-mockup` 的有無檔案回歸與 workflow 條件確認不要求 Proposal 新增 mockup。trusted Preview 的成功 run 驗證靜態 receipt 與 hosted route，並依條件跳過 Chromium route check。" },
     { id: "S3", result: "pass", evidence: "Blueprint 19 suites／93 tests 通過；InteractiveFlowchart 回歸涵蓋 CJK／secret／英文換行、node 與 viewBox 範圍、非端點及密集佈局避碰、diamond、click 與 keyboard details。" },
     { id: "S4", result: "pass", evidence: "workflow 256 tests 通過；真實 content guard 的 SVG `<text>` 換行負例與 fenced-code 正例均通過。" },
@@ -50,7 +50,7 @@ import { scenarios } from "./proposal.mdx";
 
 ### Proof 與 workflow 邊界
 
-第一次本機 Chromium proof 暴露 server 未映射首頁及其他 extensionless 靜態資源；現依 Cloudflare Static Assets 預設路由映射修正，最終 clean build 與 Chromium proof 成功。該 CI 成功路徑的安裝與總耗時尚未量到：正向 proof 是在本機既有 mockup 上驗證；G2 hosted Preview 只跑無 mockup 的靜態路徑。`blueprint:gate --preview` 使用 main controller，因此本分支新增的含 mockup workflow 步驟待合併後由 trusted workflow 驗證。
+第一次本機 Chromium proof 暴露 server 未映射首頁及其他 extensionless 靜態資源；現依 Cloudflare Static Assets 預設路由映射修正，最終 clean build 與 Chromium proof 成功。該 CI 成功路徑的安裝與總耗時尚未量到：正向 proof 是在本機既有 mockup 上驗證；G2 hosted Preview 使用 trusted `main` controller，但本 snapshot 無 `design.tsx`，因此只驗證靜態 receipt／route，未執行 trusted positive path。開發者接受依 workflow tests 與既有真實 route proof 判定漏跑風險低，省略 G2 前的 trusted positive-path run；這是已披露的證據界線，不代表該 trusted path 已實跑。
 
 ### Release evidence
 
