@@ -22,5 +22,6 @@
   "revisitTriggers": [
     "A Pre-PR spec review finds the Proposal page disagreeing with what the developer confirmed."
   ],
-  "originChange": "reviewer-standards-split"
+  "originChange": "reviewer-standards-split",
+  "supersededBy": "0116"
 }
