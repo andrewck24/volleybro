@@ -44,6 +44,7 @@ const NODE_CONTENT_GAP = 4;
 const NODE_COLLISION_GAP = 12;
 const NODE_VERTICAL_PADDING = 12;
 const NODE_HORIZONTAL_PADDING = 16;
+const EDGE_ROUTE_GAP = 2;
 
 function characterWidth(character: string, fontSize: number) {
   if (
@@ -121,28 +122,37 @@ function wrapText(text: string, maxWidth: number, fontSize: number) {
 
 function layoutNode(node: Node) {
   const w = node.w ?? DEFAULT_W;
-  const labelLines = wrapText(
-    node.label,
-    w - NODE_HORIZONTAL_PADDING,
-    NODE_LABEL_FONT_SIZE,
-  );
+  const shape = node.shape ?? "box";
+  const maxTextWidth =
+    shape === "diamond"
+      ? Math.max(1, w * 0.65 - NODE_HORIZONTAL_PADDING)
+      : w - NODE_HORIZONTAL_PADDING;
+  const labelLines = wrapText(node.label, maxTextWidth, NODE_LABEL_FONT_SIZE);
   const sublabelLines = node.sublabel
-    ? wrapText(
-        node.sublabel,
-        w - NODE_HORIZONTAL_PADDING,
-        NODE_SUBLABEL_FONT_SIZE,
-      )
+    ? wrapText(node.sublabel, maxTextWidth, NODE_SUBLABEL_FONT_SIZE)
     : [];
   const textHeight =
     labelLines.length * NODE_LABEL_LINE_HEIGHT +
     (sublabelLines.length
       ? NODE_CONTENT_GAP + sublabelLines.length * NODE_SUBLABEL_LINE_HEIGHT
       : 0);
+  const widestLine = Math.max(
+    ...labelLines.map((line) => measureText(line, NODE_LABEL_FONT_SIZE)),
+    ...sublabelLines.map((line) => measureText(line, NODE_SUBLABEL_FONT_SIZE)),
+  );
+  const diamondHeight =
+    shape === "diamond"
+      ? textHeight / (1 - (widestLine + NODE_HORIZONTAL_PADDING) / w)
+      : 0;
 
   return {
     ...node,
     w,
-    h: Math.max(node.h ?? DEFAULT_H, textHeight + NODE_VERTICAL_PADDING),
+    h: Math.max(
+      node.h ?? DEFAULT_H,
+      textHeight + NODE_VERTICAL_PADDING,
+      diamondHeight,
+    ),
     textHeight,
     labelLines,
     sublabelLines,
@@ -190,6 +200,279 @@ function rectEdgePoint(node: Node, towardX: number, towardY: number) {
   return { x: node.x + dx * t, y: node.y + dy * t };
 }
 
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Rect {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+function nodeRect(node: Node, gap = 0): Rect {
+  const hw = ((node.w ?? DEFAULT_W) + gap * 2) / 2;
+  const hh = ((node.h ?? DEFAULT_H) + gap * 2) / 2;
+  return {
+    left: node.x - hw,
+    right: node.x + hw,
+    top: node.y - hh,
+    bottom: node.y + hh,
+  };
+}
+
+function segmentIntersectsRect(start: Point, end: Point, rect: Rect) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  let tMin = 0;
+  let tMax = 1;
+
+  const intervals: [number, number, number, number][] = [
+    [start.x, dx, rect.left, rect.right],
+    [start.y, dy, rect.top, rect.bottom],
+  ];
+
+  for (const [origin, delta, min, max] of intervals) {
+    if (delta === 0) {
+      if (origin <= min || origin >= max) return false;
+      continue;
+    }
+
+    const first = (min - origin) / delta;
+    const second = (max - origin) / delta;
+    tMin = Math.max(tMin, Math.min(first, second));
+    tMax = Math.min(tMax, Math.max(first, second));
+    if (tMin >= tMax) return false;
+  }
+
+  return tMax > 0 && tMin < 1 && tMin < tMax;
+}
+
+function pathIntersectsRects(points: Point[], rects: Rect[]) {
+  return points.some((point, index) => {
+    const next = points[index + 1];
+    return (
+      next !== undefined &&
+      rects.some((rect) => segmentIntersectsRect(point, next, rect))
+    );
+  });
+}
+
+function bezierPoints(
+  start: Point,
+  control1: Point,
+  control2: Point,
+  end: Point,
+) {
+  const points = [start];
+  const steps = 32;
+
+  for (let index = 1; index <= steps; index += 1) {
+    const t = index / steps;
+    const inverseT = 1 - t;
+    points.push({
+      x:
+        inverseT ** 3 * start.x +
+        3 * inverseT ** 2 * t * control1.x +
+        3 * inverseT * t ** 2 * control2.x +
+        t ** 3 * end.x,
+      y:
+        inverseT ** 3 * start.y +
+        3 * inverseT ** 2 * t * control1.y +
+        3 * inverseT * t ** 2 * control2.y +
+        t ** 3 * end.y,
+    });
+  }
+
+  return points;
+}
+
+function portPoints(node: Node, gap: number) {
+  const bounds = nodeRect(node);
+  const ports = [
+    { anchor: { x: bounds.left, y: node.y }, side: "left" },
+    { anchor: { x: bounds.right, y: node.y }, side: "right" },
+    { anchor: { x: node.x, y: bounds.top }, side: "top" },
+    { anchor: { x: node.x, y: bounds.bottom }, side: "bottom" },
+  ] as const;
+
+  return ports.map(({ anchor, side }) => {
+    const escape = { ...anchor };
+    if (side === "left") escape.x -= gap;
+    if (side === "right") escape.x += gap;
+    if (side === "top") escape.y -= gap;
+    if (side === "bottom") escape.y += gap;
+    return { anchor, escape };
+  });
+}
+
+function shortestOrthogonalPath(start: Point, end: Point, obstacles: Rect[]) {
+  const xs = [
+    ...new Set([
+      start.x,
+      end.x,
+      ...obstacles.flatMap((r) => [r.left, r.right]),
+    ]),
+  ].sort((a, b) => a - b);
+  const ys = [
+    ...new Set([
+      start.y,
+      end.y,
+      ...obstacles.flatMap((r) => [r.top, r.bottom]),
+    ]),
+  ].sort((a, b) => a - b);
+  const points: (Point & { xIndex: number; yIndex: number })[] = [];
+  const pointIds = new Map<string, number>();
+  const pointKey = (x: number, y: number) => `${x},${y}`;
+
+  for (const [yIndex, y] of ys.entries()) {
+    for (const [xIndex, x] of xs.entries()) {
+      if (
+        obstacles.some(
+          (rect) =>
+            x > rect.left && x < rect.right && y > rect.top && y < rect.bottom,
+        )
+      ) {
+        continue;
+      }
+      pointIds.set(pointKey(x, y), points.length);
+      points.push({ x, y, xIndex, yIndex });
+    }
+  }
+
+  const startId = pointIds.get(pointKey(start.x, start.y));
+  const endId = pointIds.get(pointKey(end.x, end.y));
+  if (startId === undefined || endId === undefined) return null;
+
+  const previous = Array(points.length).fill(-1) as number[];
+  const queue = [startId];
+  previous[startId] = startId;
+
+  for (
+    let cursor = 0;
+    cursor < queue.length && previous[endId] === -1;
+    cursor += 1
+  ) {
+    const currentId = queue[cursor]!;
+    const current = points[currentId]!;
+    const candidates = [
+      [current.xIndex - 1, current.yIndex],
+      [current.xIndex + 1, current.yIndex],
+      [current.xIndex, current.yIndex - 1],
+      [current.xIndex, current.yIndex + 1],
+    ];
+
+    for (const [xIndex, yIndex] of candidates) {
+      const nextId = pointIds.get(pointKey(xs[xIndex]!, ys[yIndex]!));
+      if (nextId === undefined || previous[nextId] !== -1) continue;
+      if (pathIntersectsRects([current, points[nextId]!], obstacles)) continue;
+      previous[nextId] = currentId;
+      queue.push(nextId);
+    }
+  }
+
+  if (previous[endId] === -1) return null;
+  const route: Point[] = [];
+  for (let pointId = endId; pointId !== startId; pointId = previous[pointId]!) {
+    route.push(points[pointId]!);
+  }
+  route.push(points[startId]!);
+  route.reverse();
+
+  return route.filter(
+    (point, index) =>
+      index === 0 ||
+      index === route.length - 1 ||
+      !(
+        (route[index - 1]!.x === point.x && point.x === route[index + 1]!.x) ||
+        (route[index - 1]!.y === point.y && point.y === route[index + 1]!.y)
+      ),
+  );
+}
+
+function routeAroundNodes(from: Node, to: Node, nodes: Node[], gap: number) {
+  const obstacles = nodes.map((node) => nodeRect(node, gap));
+  const fromPorts = portPoints(from, gap);
+  const toPorts = portPoints(to, gap);
+  let bestRoute: Point[] | null = null;
+  let bestCost = Infinity;
+
+  for (const fromPort of fromPorts) {
+    const isFromBlocked = nodes.some(
+      (node) =>
+        node.id !== from.id &&
+        node.id !== to.id &&
+        segmentIntersectsRect(
+          fromPort.anchor,
+          fromPort.escape,
+          nodeRect(node, gap),
+        ),
+    );
+    if (isFromBlocked) continue;
+
+    for (const toPort of toPorts) {
+      const isToBlocked = nodes.some(
+        (node) =>
+          node.id !== from.id &&
+          node.id !== to.id &&
+          segmentIntersectsRect(
+            toPort.anchor,
+            toPort.escape,
+            nodeRect(node, gap),
+          ),
+      );
+      if (isToBlocked) continue;
+
+      const middle = shortestOrthogonalPath(
+        fromPort.escape,
+        toPort.escape,
+        obstacles,
+      );
+      if (!middle) continue;
+
+      const route = [fromPort.anchor, ...middle, toPort.anchor];
+      const distance = route.reduce((total, point, index) => {
+        const next = route[index + 1];
+        return next
+          ? total + Math.abs(next.x - point.x) + Math.abs(next.y - point.y)
+          : total;
+      }, 0);
+      if (distance >= bestCost) continue;
+      bestRoute = route;
+      bestCost = distance;
+    }
+  }
+
+  return bestRoute;
+}
+
+function midPointOnPath(points: Point[]) {
+  const lengths = points.slice(1).map((point, index) => {
+    const previous = points[index]!;
+    return Math.hypot(point.x - previous.x, point.y - previous.y);
+  });
+  const halfLength = lengths.reduce((sum, length) => sum + length, 0) / 2;
+  let traveled = 0;
+
+  for (let index = 0; index < lengths.length; index += 1) {
+    const length = lengths[index]!;
+    if (traveled + length >= halfLength) {
+      const start = points[index]!;
+      const end = points[index + 1]!;
+      const ratio = length ? (halfLength - traveled) / length : 0;
+      return {
+        x: start.x + (end.x - start.x) * ratio,
+        y: start.y + (end.y - start.y) * ratio,
+      };
+    }
+    traveled += length;
+  }
+
+  return points[0] ?? { x: 0, y: 0 };
+}
+
 export function InteractiveFlowchart({
   nodes,
   edges = [],
@@ -209,15 +492,80 @@ export function InteractiveFlowchart({
     ...layoutNodes.map((node) => node.x + node.w / 2),
   );
   const curveRailX = rightmostNode + CURVE_GAP;
-  const curveLabelHalfWidth =
-    Math.max(
-      0,
-      ...edges
-        .filter((edge) => edge.route === "curve" && edge.label)
-        .map((edge) => edge.label!.length * 6.8 + 8),
-    ) / 2;
+  const edgeLayouts = edges.map((edge) => {
+    const from = nodeById.get(edge.from);
+    const to = nodeById.get(edge.to);
+    if (!from || !to) return null;
 
-  // Fit viewBox to all node rects with padding.
+    const obstacles = layoutNodes
+      .filter((node) => node.id !== from.id && node.id !== to.id)
+      .map((node) => nodeRect(node, EDGE_ROUTE_GAP));
+    const curveStart = {
+      x: from.x + from.w / 2,
+      y: from.y,
+    };
+    const curveEnd = {
+      x: to.x + to.w / 2,
+      y: to.y,
+    };
+    const curveControl1 = { x: curveRailX, y: curveStart.y };
+    const curveControl2 = { x: curveRailX, y: curveEnd.y };
+
+    if (edge.route === "curve") {
+      const points = bezierPoints(
+        curveStart,
+        curveControl1,
+        curveControl2,
+        curveEnd,
+      );
+      if (!pathIntersectsRects(points, obstacles)) {
+        return {
+          mode: "curve" as const,
+          start: curveStart,
+          end: curveEnd,
+          points: [curveStart, curveControl1, curveControl2, curveEnd],
+          path: `M ${curveStart.x} ${curveStart.y} C ${curveRailX} ${curveStart.y}, ${curveRailX} ${curveEnd.y}, ${curveEnd.x} ${curveEnd.y}`,
+          labelPoint: { x: curveRailX, y: (curveStart.y + curveEnd.y) / 2 },
+        };
+      }
+    } else {
+      const start = rectEdgePoint(from, to.x, to.y);
+      const end = rectEdgePoint(to, from.x, from.y);
+      if (!pathIntersectsRects([start, end], obstacles)) {
+        return {
+          mode: "straight" as const,
+          start,
+          end,
+          points: [start, end],
+          path: null,
+          labelPoint: { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 },
+        };
+      }
+    }
+
+    const points =
+      routeAroundNodes(from, to, layoutNodes, EDGE_ROUTE_GAP) ??
+      routeAroundNodes(from, to, layoutNodes, 0);
+    if (!points) {
+      throw new Error(
+        "Flowchart edge cannot be routed around the current nodes",
+      );
+    }
+    return {
+      mode: "routed" as const,
+      start: points[0]!,
+      end: points.at(-1)!,
+      points,
+      path: points
+        .map(
+          (point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`,
+        )
+        .join(" "),
+      labelPoint: midPointOnPath(points),
+    };
+  });
+
+  // Fit the viewBox to node and edge geometry with padding.
   const pad = 24;
   const xs = layoutNodes.flatMap((n) => {
     const hw = n.w / 2;
@@ -227,11 +575,24 @@ export function InteractiveFlowchart({
     const hh = n.h / 2;
     return [n.y - hh, n.y + hh];
   });
-  const minX = Math.min(0, ...xs) - pad;
-  const minY = Math.min(0, ...ys) - pad;
-  const maxX =
-    Math.max(0, ...xs) + Math.max(pad, CURVE_GAP + curveLabelHalfWidth);
-  const maxY = Math.max(0, ...ys) + pad;
+  const edgeXs = edgeLayouts.flatMap((layout, index) => {
+    if (!layout) return [];
+    const labelWidth = edges[index]?.label
+      ? edges[index]!.label!.length * 6.8 + 8
+      : 0;
+    return [
+      ...layout.points.map((point) => point.x),
+      layout.labelPoint.x - labelWidth / 2,
+      layout.labelPoint.x + labelWidth / 2,
+    ];
+  });
+  const edgeYs = edgeLayouts.flatMap((layout) =>
+    layout ? layout.points.map((point) => point.y) : [],
+  );
+  const minX = Math.min(0, ...xs, ...edgeXs) - pad;
+  const minY = Math.min(0, ...ys, ...edgeYs) - pad;
+  const maxX = Math.max(0, ...xs, ...edgeXs) + pad;
+  const maxY = Math.max(0, ...ys, ...edgeYs) + pad;
   const vbW = maxX - minX;
   const vbH = maxY - minY;
 
@@ -275,21 +636,8 @@ export function InteractiveFlowchart({
 
           {/* Edges first, behind nodes */}
           {edges.map((edge, i) => {
-            const from = nodeById.get(edge.from);
-            const to = nodeById.get(edge.to);
-            if (!from || !to) return null;
-            const start =
-              edge.route === "curve"
-                ? { x: from.x + (from.w ?? DEFAULT_W) / 2, y: from.y }
-                : rectEdgePoint(from, to.x, to.y);
-            const end =
-              edge.route === "curve"
-                ? { x: to.x + (to.w ?? DEFAULT_W) / 2, y: to.y }
-                : rectEdgePoint(to, from.x, from.y);
-            const midX =
-              edge.route === "curve" ? curveRailX : (start.x + end.x) / 2;
-            const midY = (start.y + end.y) / 2;
-            const path = `M ${start.x} ${start.y} C ${curveRailX} ${start.y}, ${curveRailX} ${end.y}, ${end.x} ${end.y}`;
+            const layout = edgeLayouts[i];
+            if (!layout) return null;
             const stroke = edge.dashed
               ? "var(--warning)"
               : "var(--muted-foreground)";
@@ -297,11 +645,13 @@ export function InteractiveFlowchart({
 
             return (
               <g key={i}>
-                {edge.route === "curve" ? (
-                  <path
+                {layout.mode === "straight" ? (
+                  <line
                     role="presentation"
-                    d={path}
-                    fill="none"
+                    x1={layout.start.x}
+                    y1={layout.start.y}
+                    x2={layout.end.x}
+                    y2={layout.end.y}
                     stroke={stroke}
                     strokeWidth={1.5}
                     strokeOpacity={edge.dashed ? 1 : 0.7}
@@ -313,12 +663,10 @@ export function InteractiveFlowchart({
                     }
                   />
                 ) : (
-                  <line
+                  <path
                     role="presentation"
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
+                    d={layout.path ?? undefined}
+                    fill="none"
                     stroke={stroke}
                     strokeWidth={1.5}
                     strokeOpacity={edge.dashed ? 1 : 0.7}
@@ -333,16 +681,16 @@ export function InteractiveFlowchart({
                 {edge.label && (
                   <g>
                     <rect
-                      x={midX - labelWidth / 2}
-                      y={midY - 10}
+                      x={layout.labelPoint.x - labelWidth / 2}
+                      y={layout.labelPoint.y - 10}
                       width={labelWidth}
                       height={18}
                       rx={3}
                       fill="var(--background)"
                     />
                     <text
-                      x={midX}
-                      y={midY}
+                      x={layout.labelPoint.x}
+                      y={layout.labelPoint.y}
                       textAnchor="middle"
                       dominantBaseline="central"
                       fontSize={11}

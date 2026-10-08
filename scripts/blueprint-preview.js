@@ -335,10 +335,10 @@ async function upload(input, env = process.env) {
 
 async function detectMockup(input, env = process.env) {
   requireTrustedDispatch(env);
-  const present = await hasDesignMockup(process.cwd(), input.slug);
-  await writeGitHubOutput({ has_mockup: String(present) }, env);
+  const hasMockup = await hasDesignMockup(process.cwd(), input.slug);
+  await writeGitHubOutput({ has_mockup: String(hasMockup) }, env);
   console.log(
-    present
+    hasMockup
       ? "Mockup source found; runtime proof is required"
       : "No mockup source; Chromium runtime proof is skipped",
   );

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { createServer } from "node:http";
 import path from "node:path";
 
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { hasDesignMockup, validateArtifact } from "./blueprint-preview.js";
 
 const input = {
@@ -40,11 +41,6 @@ assert.ok(candidatePath, "CANDIDATE_SOURCE_DIR is required");
 const artifactDirectory = path.resolve(artifactPath);
 const candidateDirectory = path.resolve(candidatePath);
 const candidateBlueprint = path.join(candidateDirectory, "blueprint");
-const baseUrlInput = process.env.MOCKUP_PROOF_BASE_URL;
-assert.ok(baseUrlInput, "MOCKUP_PROOF_BASE_URL is required");
-const baseUrl = new URL(baseUrlInput);
-assert.equal(baseUrl.protocol, "http:", "the proof server must use HTTP");
-assert.equal(baseUrl.hostname, "127.0.0.1", "the proof server must be local");
 
 await validateArtifact(artifactDirectory, input);
 assert.equal(
@@ -86,27 +82,90 @@ const { chromium } = requireFromCandidate("@playwright/test");
 const pageErrors = [];
 const consoleErrors = [];
 const browser = await chromium.launch();
+const contentTypes = new Map([
+  [".css", "text/css; charset=utf-8"],
+  [".html", "text/html; charset=utf-8"],
+  [".ico", "image/x-icon"],
+  [".jpeg", "image/jpeg"],
+  [".jpg", "image/jpeg"],
+  [".js", "application/javascript; charset=utf-8"],
+  [".json", "application/json; charset=utf-8"],
+  [".png", "image/png"],
+  [".svg", "image/svg+xml"],
+  [".txt", "text/plain; charset=utf-8"],
+  [".webp", "image/webp"],
+  [".woff2", "font/woff2"],
+]);
+const server = createServer(async (request, response) => {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    response.writeHead(405).end();
+    return;
+  }
+
+  let pathname;
+  try {
+    pathname = decodeURIComponent(
+      new URL(request.url ?? "/", "http://127.0.0.1").pathname,
+    );
+  } catch {
+    response.writeHead(400).end();
+    return;
+  }
+
+  // Cloudflare Workers Static Assets defaults to serving /file.html at /file.
+  const relativePath =
+    pathname === `/changes/${input.slug}`
+      ? `changes/${input.slug}.html`
+      : pathname.replace(/^\/+/, "");
+  const filePath = path.resolve(artifactDirectory, relativePath);
+  if (!filePath.startsWith(`${artifactDirectory}${path.sep}`)) {
+    response.writeHead(403).end();
+    return;
+  }
+
+  try {
+    const fileInfo = await stat(filePath);
+    if (!fileInfo.isFile()) {
+      response.writeHead(404).end();
+      return;
+    }
+    const body = await readFile(filePath);
+    response.writeHead(200, {
+      "content-length": body.length,
+      "content-type":
+        contentTypes.get(path.extname(filePath)) ?? "application/octet-stream",
+    });
+    response.end(request.method === "HEAD" ? undefined : body);
+  } catch {
+    response.writeHead(404).end();
+  }
+});
 
 try {
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+
   const page = await browser.newPage();
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
 
-  const routeUrl = new URL(`/changes/${input.slug}`, baseUrl).href;
-  await page.route(routeUrl, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "text/html; charset=utf-8",
-      body: staticMarkup,
-    }),
-  );
+  const routeUrl = `http://127.0.0.1:${address.port}/changes/${input.slug}`;
   const response = await page.goto(routeUrl, { waitUntil: "load" });
   assert.equal(
     response?.status(),
     200,
     "the exact exported Change route must load",
+  );
+  assert.equal(
+    new URL(page.url()).pathname,
+    `/changes/${input.slug}`,
+    "the browser must keep the canonical extensionless route",
   );
 
   const identity = page.locator("[data-blueprint-build-identity]");
@@ -148,4 +207,7 @@ try {
   );
 } finally {
   await browser.close();
+  await new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
 }
