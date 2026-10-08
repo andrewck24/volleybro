@@ -565,7 +565,6 @@ export function InteractiveFlowchart({
     };
   });
 
-  // Fit the viewBox to node and edge geometry with padding.
   const pad = 24;
   const xs = layoutNodes.flatMap((n) => {
     const hw = n.w / 2;

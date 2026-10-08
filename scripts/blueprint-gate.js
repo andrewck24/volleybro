@@ -14,7 +14,7 @@ import { promisify } from "node:util";
 
 import { publish } from "./blueprint-changes.js";
 import { changeInputHash } from "./blueprint-lifecycle.js";
-import { previewAlias } from "./blueprint-preview.js";
+import { hasDesignMockup, previewAlias } from "./blueprint-preview.js";
 import { checkGateBranchState } from "./check-workflow.js";
 import { git, readChangeDir } from "./change-page.js";
 
@@ -297,7 +297,8 @@ export async function runGate(
   );
   const branch = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
   const inputHash = await changeInputHash(slugDir);
-  const proof = preview
+  const isPreviewRequired = preview || (await hasDesignMockup(root, slug));
+  const proof = isPreviewRequired
     ? await rebuildPreview(root, branch, slug, inputHash)
     : await waitForHostedProof({
         host: MAIN_HOST,
@@ -305,7 +306,9 @@ export async function runGate(
         inputHash,
       });
 
-  const mode = preview ? `Branch preview build ${proof.build}` : "Production";
+  const mode = isPreviewRequired
+    ? `Branch preview build ${proof.build}`
+    : "Production";
   console.log(
     `${mode} hosted proof verified: ${proof.pageUrl} (source ${proof.receipt.sourceSha.slice(0, 8)}, store ${proof.receipt.storeSha.slice(0, 8)}). The hosted receipt matches this complete Change page and the page request succeeded; ${facts.commits} commits are included.`,
   );

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -339,6 +346,60 @@ test("preview gate waits for its exact GitHub run and accepts the corresponding 
     console.log.mock.calls.at(-1).arguments[0],
     /Branch preview build 123 hosted proof verified/,
   );
+});
+
+test("a mockup requires trusted route proof without an explicit preview flag", async (t) => {
+  const { dir, work } = await makeGateRepository(t);
+  await writeFile(
+    path.join(dir, "design.tsx"),
+    "export default function Design() {}\n",
+  );
+  quiet(t);
+  let clock = 0;
+  t.mock.method(Date, "now", () => clock);
+  t.mock.method(globalThis, "setTimeout", (callback, delay) => {
+    clock += delay;
+    queueMicrotask(callback);
+    return 0;
+  });
+  const requestPath = await installGh(t);
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (input, options) => {
+    const url = String(input);
+    requests.push({ url, options });
+    const fields = await readFile(requestPath, "utf8")
+      .then((content) => JSON.parse(content))
+      .catch((error) => {
+        if (error.code !== "ENOENT") throw error;
+        return null;
+      });
+    const build = fields
+      ? receipt(fields.input_hash, {
+          sourceSha: fields.source_sha,
+          integrationSha: fields.integration_sha,
+          storeSha: fields.store_sha,
+        })
+      : receipt(await changeInputHash(dir));
+    return url.includes("blueprint-build.json")
+      ? response(JSON.stringify(build))
+      : response(html(build));
+  });
+
+  await runGate(work, "gamma", { g1: true, runCheck: async () => true });
+
+  assert.match(
+    console.log.mock.calls.at(-1).arguments[0],
+    /Branch preview build 123 hosted proof verified/,
+  );
+  const fields = JSON.parse(await readFile(requestPath, "utf8"));
+  assert.equal(fields.branch, "feat/gamma");
+  assert.equal(
+    fields.source_sha,
+    (await git(work)(["rev-parse", "HEAD"])).stdout.trim(),
+  );
+  assert.equal(fields.input_hash, await changeInputHash(dir));
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every(({ options }) => options.cache === "no-store"));
 });
 
 test("a failed preview run stops before hosted acceptance", async (t) => {
