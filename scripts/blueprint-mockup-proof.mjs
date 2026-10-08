@@ -96,6 +96,41 @@ const contentTypes = new Map([
   [".webp", "image/webp"],
   [".woff2", "font/woff2"],
 ]);
+async function resolveArtifactFile(pathname) {
+  const relativePath = pathname.replace(/^\/+/, "") || "index.html";
+  const requestedPath = path.resolve(artifactDirectory, relativePath);
+
+  const candidates =
+    pathname === "/"
+      ? [path.join(artifactDirectory, "index.html")]
+      : pathname.endsWith("/")
+        ? [path.join(requestedPath, "index.html"), requestedPath]
+        : [
+            requestedPath,
+            ...(path.extname(requestedPath)
+              ? []
+              : [
+                  `${requestedPath}.html`,
+                  path.join(requestedPath, "index.html"),
+                ]),
+          ];
+
+  for (const candidate of candidates) {
+    try {
+      const info = await stat(candidate);
+      if (info.isFile()) return candidate;
+      if (info.isDirectory()) {
+        const indexPath = path.join(candidate, "index.html");
+        if ((await stat(indexPath)).isFile()) return indexPath;
+      }
+    } catch (error) {
+      if (error.code === "ENOENT" || error.code === "ENOTDIR") continue;
+      throw error;
+    }
+  }
+  return null;
+}
+
 const server = createServer(async (request, response) => {
   if (request.method !== "GET" && request.method !== "HEAD") {
     response.writeHead(405).end();
@@ -112,14 +147,18 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  // Cloudflare Workers Static Assets defaults to serving /file.html at /file.
-  const relativePath =
-    pathname === `/changes/${input.slug}`
-      ? `changes/${input.slug}.html`
-      : pathname.replace(/^\/+/, "");
-  const filePath = path.resolve(artifactDirectory, relativePath);
-  if (!filePath.startsWith(`${artifactDirectory}${path.sep}`)) {
+  // Match Cloudflare Workers Static Assets' default /file.html and index.html routes.
+  const requestedPath = path.resolve(
+    artifactDirectory,
+    pathname.replace(/^\/+/, "") || "index.html",
+  );
+  if (!requestedPath.startsWith(`${artifactDirectory}${path.sep}`)) {
     response.writeHead(403).end();
+    return;
+  }
+  const filePath = await resolveArtifactFile(pathname);
+  if (!filePath) {
+    response.writeHead(404).end();
     return;
   }
 
