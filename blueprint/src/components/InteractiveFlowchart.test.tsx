@@ -19,6 +19,97 @@ describe("InteractiveFlowchart", () => {
     expect(screen.getByText("Node B")).toBeInTheDocument();
   });
 
+  it("wraps CJK text and unbroken secret labels into visible lines", () => {
+    const label = "資料流程VERCEL_BLUEPRINT_PREVIEW_DEPLOY_TOKEN";
+    render(
+      <InteractiveFlowchart
+        nodes={[{ id: "long", label, x: 140, y: 70, w: 160 }]}
+        details={details}
+      />,
+    );
+
+    const node = screen.getByRole("button");
+    const lines = within(node).getAllByText(/\S/u, { selector: "tspan" });
+
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.map((line) => line.textContent).join("")).toBe(label);
+  });
+
+  it("wraps long English labels between words", () => {
+    const label = "A long English label with several words";
+    render(
+      <InteractiveFlowchart
+        nodes={[{ id: "long", label, x: 140, y: 70, w: 120 }]}
+        details={details}
+      />,
+    );
+
+    const node = screen.getByRole("button");
+    const lines = within(node).getAllByText(/\S/u, { selector: "tspan" });
+
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.map((line) => line.textContent).join(" ")).toBe(label);
+  });
+
+  it("keeps expanded nodes separate and anchors edges to their laid-out bounds", () => {
+    render(
+      <InteractiveFlowchart
+        nodes={[
+          {
+            id: "first",
+            label: "VERCEL_BLUEPRINT_PREVIEW_DEPLOY_TOKEN",
+            x: 140,
+            y: 70,
+            w: 160,
+          },
+          { id: "second", label: "下一個狀態", x: 140, y: 70, w: 160 },
+        ]}
+        edges={[{ from: "first", to: "second" }]}
+        details={details}
+      />,
+    );
+
+    const svg = screen.getByRole("img");
+    const nodeBounds = within(svg)
+      .getAllByRole("button")
+      .map((group) => {
+        // SVG geometry is the behavior under test; role queries alone cannot expose these bounds.
+        // eslint-disable-next-line testing-library/no-node-access
+        const rect = group.querySelector("rect");
+        expect(rect).not.toBeNull();
+        return {
+          x: Number(rect?.getAttribute("x")),
+          y: Number(rect?.getAttribute("y")),
+          width: Number(rect?.getAttribute("width")),
+          height: Number(rect?.getAttribute("height")),
+        };
+      });
+    const [first, second] = nodeBounds;
+
+    expect(first).toBeDefined();
+    expect(second).toBeDefined();
+    expect(first!.y + first!.height).toBeLessThanOrEqual(second!.y);
+
+    const edge = within(svg).getByRole("presentation");
+    expect(Number(edge.getAttribute("x1"))).toBe(first!.x + first!.width / 2);
+    expect(Number(edge.getAttribute("y1"))).toBe(first!.y + first!.height);
+    expect(Number(edge.getAttribute("x2"))).toBe(second!.x + second!.width / 2);
+    expect(Number(edge.getAttribute("y2"))).toBe(second!.y);
+
+    const [viewX, viewY, viewWidth, viewHeight] = svg
+      .getAttribute("viewBox")!
+      .split(/\s+/u)
+      .map(Number);
+    for (const bounds of nodeBounds) {
+      expect(bounds.x).toBeGreaterThanOrEqual(viewX!);
+      expect(bounds.y).toBeGreaterThanOrEqual(viewY!);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewX! + viewWidth!);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(
+        viewY! + viewHeight!,
+      );
+    }
+  });
+
   it("routes an explicitly curved edge outside the nodes and keeps default edges straight", () => {
     const routedNodes = [
       { id: "qa", label: "QA", x: 50, y: 150, w: 80, h: 40 },
@@ -65,6 +156,15 @@ describe("InteractiveFlowchart", () => {
     fireEvent.click(screen.getByText("Node A"));
     expect(screen.getByText("Detail A")).toBeInTheDocument();
     expect(screen.getByText("Body of A")).toBeInTheDocument();
+  });
+
+  it.each(["Enter", " "])("shows detail panel on %p", (key) => {
+    render(<InteractiveFlowchart nodes={nodes} details={details} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Node A" }), {
+      key,
+    });
+
+    expect(screen.getByText("Detail A")).toBeInTheDocument();
   });
 
   it("closes detail panel when the same node is clicked again", () => {

@@ -373,8 +373,34 @@ const SNIPPET_FORMS = [
   [/=\{`[^`]*\n/, "a multi-line template literal"],
   [/\n\s*code="/, "a bare string attribute"],
 ];
+// MDX trims the leading whitespace after an opening SVG <text> on the next
+// line; browsers then treat the first rendered line as empty.
+const SVG_TEXT_OPEN_ON_OWN_LINE = /<text\b[^>]*>[ \t]*\r?\n/;
 
-async function validateSnippetLiterals(root, directories) {
+function withoutFencedCode(content) {
+  let fence;
+  return content
+    .split(/\r?\n/u)
+    .map((line) => {
+      const marker = line.match(/^ {0,3}(`{3,}|~{3,})/u)?.[1];
+      if (!fence && marker) {
+        fence = { character: marker[0], length: marker.length };
+        return "";
+      }
+      if (fence) {
+        const closing = new RegExp(
+          `^ {0,3}${fence.character}{${fence.length},}[ \\t]*$`,
+          "u",
+        );
+        if (closing.test(line)) fence = undefined;
+        return "";
+      }
+      return line;
+    })
+    .join("\n");
+}
+
+async function validateMdxSource(root, directories) {
   const diagnostics = [];
   for (const directory of directories) {
     for (const filePath of await listFiles(directory)) {
@@ -384,6 +410,11 @@ async function validateSnippetLiterals(root, directories) {
         if (!form.test(content)) continue;
         diagnostics.push(
           `${path.relative(root, filePath)} [blueprint-snippet]: a snippet prop is ${label}, not an escaped string in braces`,
+        );
+      }
+      if (SVG_TEXT_OPEN_ON_OWN_LINE.test(withoutFencedCode(content))) {
+        diagnostics.push(
+          `${path.relative(root, filePath)} [blueprint-svg-text]: an SVG <text> opening tag must be followed by content on the same line`,
         );
       }
     }
@@ -539,7 +570,7 @@ export async function checkWorkflow(root = process.cwd()) {
   diagnostics.push(...(await validateTestTiers(root)));
   const directories = await changeDirectories(root);
   diagnostics.push(...(await validateChangePages(directories)));
-  diagnostics.push(...(await validateSnippetLiterals(root, directories)));
+  diagnostics.push(...(await validateMdxSource(root, directories)));
   diagnostics.push(...(await validateSharedSkills(root)));
 
   return diagnostics.sort();

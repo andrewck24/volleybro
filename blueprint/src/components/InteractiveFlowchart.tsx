@@ -36,6 +36,145 @@ interface InteractiveFlowchartProps {
 const DEFAULT_W = 120;
 const DEFAULT_H = 48;
 const CURVE_GAP = 12;
+const NODE_LABEL_FONT_SIZE = 13;
+const NODE_LABEL_LINE_HEIGHT = 16;
+const NODE_SUBLABEL_FONT_SIZE = 10;
+const NODE_SUBLABEL_LINE_HEIGHT = 12;
+const NODE_CONTENT_GAP = 4;
+const NODE_COLLISION_GAP = 12;
+const NODE_VERTICAL_PADDING = 12;
+const NODE_HORIZONTAL_PADDING = 16;
+
+function characterWidth(character: string, fontSize: number) {
+  if (
+    /[\u2e80-\u9fff\uf900-\ufaff\u3040-\u30ff\uac00-\ud7af]/u.test(character) ||
+    (character.codePointAt(0) ?? 0) > 0xffff
+  ) {
+    return fontSize;
+  }
+  if (/\s/u.test(character)) return fontSize * 0.35;
+  if (/[MW@#%&]/u.test(character)) return fontSize * 0.9;
+  if (/[ilI1|.,'`]/u.test(character)) return fontSize * 0.38;
+  return fontSize * 0.68;
+}
+
+function measureText(text: string, fontSize: number) {
+  return Array.from(text).reduce(
+    (width, character) => width + characterWidth(character, fontSize),
+    0,
+  );
+}
+
+function splitLongWord(word: string, maxWidth: number, fontSize: number) {
+  const chunks: string[] = [];
+  let chunk = "";
+  let width = 0;
+
+  for (const character of Array.from(word)) {
+    const nextWidth = characterWidth(character, fontSize);
+    if (chunk && width + nextWidth > maxWidth) {
+      chunks.push(chunk);
+      chunk = character;
+      width = nextWidth;
+    } else {
+      chunk += character;
+      width += nextWidth;
+    }
+  }
+
+  if (chunk) chunks.push(chunk);
+  return chunks;
+}
+
+function wrapText(text: string, maxWidth: number, fontSize: number) {
+  const lines: string[] = [];
+  let line = "";
+  let lineWidth = 0;
+
+  for (const word of text.trim().split(/\s+/u).filter(Boolean)) {
+    const chunks = splitLongWord(word, maxWidth, fontSize);
+    if (chunks.length > 1) {
+      if (line) lines.push(line);
+      lines.push(...chunks.slice(0, -1));
+      line = chunks.at(-1) ?? "";
+      lineWidth = measureText(line, fontSize);
+      continue;
+    }
+
+    const wordWidth = measureText(word, fontSize);
+    const nextWidth = line
+      ? lineWidth + fontSize * 0.35 + wordWidth
+      : wordWidth;
+    if (line && nextWidth > maxWidth) {
+      lines.push(line);
+      line = word;
+      lineWidth = wordWidth;
+    } else {
+      line = line ? `${line} ${word}` : word;
+      lineWidth = nextWidth;
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines.length ? lines : [text];
+}
+
+function layoutNode(node: Node) {
+  const w = node.w ?? DEFAULT_W;
+  const labelLines = wrapText(
+    node.label,
+    w - NODE_HORIZONTAL_PADDING,
+    NODE_LABEL_FONT_SIZE,
+  );
+  const sublabelLines = node.sublabel
+    ? wrapText(
+        node.sublabel,
+        w - NODE_HORIZONTAL_PADDING,
+        NODE_SUBLABEL_FONT_SIZE,
+      )
+    : [];
+  const textHeight =
+    labelLines.length * NODE_LABEL_LINE_HEIGHT +
+    (sublabelLines.length
+      ? NODE_CONTENT_GAP + sublabelLines.length * NODE_SUBLABEL_LINE_HEIGHT
+      : 0);
+
+  return {
+    ...node,
+    w,
+    h: Math.max(node.h ?? DEFAULT_H, textHeight + NODE_VERTICAL_PADDING),
+    textHeight,
+    labelLines,
+    sublabelLines,
+  };
+}
+
+function preventNodeOverlap(nodes: ReturnType<typeof layoutNode>[]) {
+  const placed = [] as typeof nodes;
+
+  for (const node of [...nodes].sort((a, b) => a.y - b.y || a.x - b.x)) {
+    let y = node.y;
+
+    for (;;) {
+      const overlappingNodes = placed.filter(
+        (other) =>
+          Math.abs(node.x - other.x) < (node.w + other.w) / 2 &&
+          Math.abs(y - other.y) < (node.h + other.h) / 2,
+      );
+      if (overlappingNodes.length === 0) break;
+
+      y =
+        Math.max(...overlappingNodes.map((other) => other.y + other.h / 2)) +
+        NODE_COLLISION_GAP +
+        node.h / 2;
+    }
+
+    placed.push({ ...node, y });
+  }
+
+  const placedById = new Map(placed.map((node) => [node.id, node]));
+  return nodes.map((node) => placedById.get(node.id) ?? node);
+}
 
 // ponytail: assumes axis-ish layouts — treats every node as its bounding rect
 // (diamonds included), so anchors are approximate for steep diagonal edges.
@@ -57,16 +196,17 @@ export function InteractiveFlowchart({
   details,
 }: InteractiveFlowchartProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const layoutNodes = preventNodeOverlap(nodes.map(layoutNode));
 
   function toggle(id: string) {
     setActiveId((prev) => (prev === id ? null : id));
   }
 
   const activeDetail = activeId ? details[activeId] : null;
-  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  const nodeById = new Map(layoutNodes.map((n) => [n.id, n]));
   const rightmostNode = Math.max(
     0,
-    ...nodes.map((node) => node.x + (node.w ?? DEFAULT_W) / 2),
+    ...layoutNodes.map((node) => node.x + node.w / 2),
   );
   const curveRailX = rightmostNode + CURVE_GAP;
   const curveLabelHalfWidth =
@@ -79,12 +219,12 @@ export function InteractiveFlowchart({
 
   // Fit viewBox to all node rects with padding.
   const pad = 24;
-  const xs = nodes.flatMap((n) => {
-    const hw = (n.w ?? DEFAULT_W) / 2;
+  const xs = layoutNodes.flatMap((n) => {
+    const hw = n.w / 2;
     return [n.x - hw, n.x + hw];
   });
-  const ys = nodes.flatMap((n) => {
-    const hh = (n.h ?? DEFAULT_H) / 2;
+  const ys = layoutNodes.flatMap((n) => {
+    const hh = n.h / 2;
     return [n.y - hh, n.y + hh];
   });
   const minX = Math.min(0, ...xs) - pad;
@@ -222,13 +362,13 @@ export function InteractiveFlowchart({
           })}
 
           {/* Nodes */}
-          {nodes.map((node) => {
-            const w = node.w ?? DEFAULT_W;
-            const h = node.h ?? DEFAULT_H;
+          {layoutNodes.map((node) => {
+            const { w, h } = node;
             const shape = node.shape ?? "box";
             const isActive = node.id === activeId;
             const left = node.x - w / 2;
             const top = node.y - h / 2;
+            const contentTop = node.y - node.textHeight / 2;
             const diamondPoints = [
               `${node.x},${top}`,
               `${node.x + w / 2},${node.y}`,
@@ -291,27 +431,49 @@ export function InteractiveFlowchart({
                     />
                   ))}
                 <text
-                  x={node.x}
-                  y={node.sublabel ? node.y - 6 : node.y}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={13}
+                  fontSize={NODE_LABEL_FONT_SIZE}
                   fontWeight={500}
                   fill="var(--foreground)"
                 >
-                  {node.label}
+                  {node.labelLines.map((line, index) => (
+                    <tspan
+                      key={`${node.id}-label-${index}`}
+                      x={node.x}
+                      y={
+                        contentTop +
+                        NODE_LABEL_LINE_HEIGHT / 2 +
+                        index * NODE_LABEL_LINE_HEIGHT
+                      }
+                    >
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
-                {node.sublabel && (
+                {node.sublabelLines.length > 0 && (
                   <text
-                    x={node.x}
-                    y={node.y + 13}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={10}
+                    fontSize={NODE_SUBLABEL_FONT_SIZE}
                     fontFamily="ui-monospace, monospace"
                     fill="var(--muted-foreground)"
                   >
-                    {node.sublabel}
+                    {node.sublabelLines.map((line, index) => (
+                      <tspan
+                        key={`${node.id}-sublabel-${index}`}
+                        x={node.x}
+                        y={
+                          contentTop +
+                          node.labelLines.length * NODE_LABEL_LINE_HEIGHT +
+                          NODE_CONTENT_GAP +
+                          NODE_SUBLABEL_LINE_HEIGHT / 2 +
+                          index * NODE_SUBLABEL_LINE_HEIGHT
+                        }
+                      >
+                        {line}
+                      </tspan>
+                    ))}
                   </text>
                 )}
               </g>
