@@ -200,6 +200,38 @@ export async function validateArtifact(directory, input) {
   return receipt;
 }
 
+export async function hasDesignMockup(root, slug) {
+  if (!SLUG.test(slug)) throw new Error("slug must be lowercase kebab-case");
+
+  let directory = path.resolve(root);
+  for (const part of ["blueprint", "content", "changes", slug]) {
+    directory = path.join(directory, part);
+    let info;
+    try {
+      info = await lstat(directory);
+    } catch (error) {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    }
+    if (info.isSymbolicLink() || !info.isDirectory()) {
+      throw new Error(`mockup source path is not a regular directory: ${part}`);
+    }
+  }
+
+  const designPath = path.join(directory, "design.tsx");
+  let info;
+  try {
+    info = await lstat(designPath);
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+  if (info.isSymbolicLink() || !info.isFile()) {
+    throw new Error("mockup source must be a regular design.tsx file");
+  }
+  return true;
+}
+
 export function previewAlias(branch) {
   const alias = branch
     .toLowerCase()
@@ -301,6 +333,17 @@ async function upload(input, env = process.env) {
   process.stderr.write(stderr);
 }
 
+async function detectMockup(input, env = process.env) {
+  requireTrustedDispatch(env);
+  const present = await hasDesignMockup(process.cwd(), input.slug);
+  await writeGitHubOutput({ has_mockup: String(present) }, env);
+  console.log(
+    present
+      ? "Mockup source found; runtime proof is required"
+      : "No mockup source; Chromium runtime proof is skipped",
+  );
+}
+
 async function main(command) {
   if (command === "validate-request") {
     const input = await validateRequest();
@@ -314,6 +357,10 @@ async function main(command) {
       input,
     );
     console.log("Blueprint artifact receipt and files are valid");
+    return;
+  }
+  if (command === "detect-mockup") {
+    await detectMockup(input);
     return;
   }
   if (command === "revalidate-branch") {
@@ -332,7 +379,7 @@ async function main(command) {
     return;
   }
   throw new Error(
-    "Usage: blueprint-preview.js <validate-request|validate-artifact|revalidate-branch|prepare-upload|upload>",
+    "Usage: blueprint-preview.js <validate-request|validate-artifact|detect-mockup|revalidate-branch|prepare-upload|upload>",
   );
 }
 

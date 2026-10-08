@@ -115,6 +115,34 @@ jobs:
         env:
           PREVIEW_ARTIFACT_DIR: blueprint/out
         run: node ../controller/scripts/blueprint-preview.js validate-artifact
+      - name: Detect a mockup in the requested snapshot
+        id: mockup
+        working-directory: candidate
+        run: node ../controller/scripts/blueprint-preview.js detect-mockup
+      - name: Install headless Chromium for a mockup snapshot
+        if: steps.mockup.outputs.has_mockup == 'true'
+        working-directory: candidate
+        run: pnpm --filter blueprint exec playwright install --with-deps --only-shell chromium
+      - name: Prove the mockup route against the exact build receipt
+        if: steps.mockup.outputs.has_mockup == 'true'
+        working-directory: controller
+        env:
+          PREVIEW_ARTIFACT_DIR: ${{ github.workspace }}/candidate/blueprint/out
+          CANDIDATE_SOURCE_DIR: ${{ github.workspace }}/candidate
+          MOCKUP_PROOF_BASE_URL: http://127.0.0.1:4173
+        run: |
+          python3 -m http.server 4173 --directory "$PREVIEW_ARTIFACT_DIR" > "$RUNNER_TEMP/blueprint-mockup-proof-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent --output /dev/null "$MOCKUP_PROOF_BASE_URL/changes/$INPUT_SLUG.html"; then
+              node scripts/blueprint-mockup-proof.mjs
+              exit $?
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/blueprint-mockup-proof-http.log"
+          exit 1
       - name: Upload the same-run static build artifact
         id: artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

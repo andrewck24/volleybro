@@ -51,6 +51,7 @@ export function MockupFrame({ Mockup }: { Mockup: ComponentType }) {
 
   return (
     <MockupBoundary>
+      <span hidden data-blueprint-mockup-mounted="true" />
       <Mockup />
     </MockupBoundary>
   );
