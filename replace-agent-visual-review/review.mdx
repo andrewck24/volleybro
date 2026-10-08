@@ -1,0 +1,61 @@
+<ActionItems>
+
+請於 G2 決定是否接受 S1 的本機正向 proof 與 workflow 測試作為合併前證據，並把 trusted positive-path run 留作合併後驗證。此分支的 Preview controller 固定取 `main`，而 G2 snapshot 不含 `design.tsx`，故目前無法由該 trusted controller 執行新增的正向路徑；若不接受此證據替代，請退回並要求先安排可信 rehearsal。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `.github/workflows/blueprint-preview.yml`：`design.tsx` 偵測控制 Chromium 安裝與單一路由 proof；artifact upload 排在 proof 成功之後。
+2. `scripts/blueprint-mockup-proof.mjs` 與 `scripts/blueprint-preview.js`：檢查收據、canonical route、source/store/integration/input identity、mount、loader 與錯誤 fallback 的 fail-closed 邊界。
+3. `blueprint/src/components/InteractiveFlowchart.tsx` 與其回歸測試：檢查文字換行、節點避碰、edge 外繞，以及既有互動與語意色彩。
+
+</ReviewFocus>
+
+<Deviations>
+
+無。密集佈局遇到阻擋 edge 時採用有 clearance 的 orthogonal route，且無法路由時明確失敗；這是 G1「節點／edge geometry 不碰撞」的實作方式。Mockup proof 透過 ephemeral HTTP server 提供實際匯出檔，依 Cloudflare Static Assets 預設規則映射 `.html` 與 `index.html`，不以 mock route 代替 HTTP。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "fail", evidence: "workflow tests 證明有 `design.tsx` 時會在 artifact upload 前呼叫 proof；最終 proof script 也在本機既有 `game-positional-writes` mockup route 成功：receipt identity 相符、loader 消失、mount 存在且無 fallback／JS／console error。但 trusted `main` workflow 尚未執行此分支新增的正向路徑，故此 scenario 的 trusted end-to-end 證據未完成。" },
+    { id: "S2", result: "pass", evidence: "目前 G2 snapshot 不含 `design.tsx`；`hasDesignMockup`／`detect-mockup` 的有無檔案回歸與 workflow 條件確認不要求 Proposal 新增 mockup。Branch Preview 將核對此 snapshot 的 hosted static receipt。" },
+    { id: "S3", result: "pass", evidence: "Blueprint 19 suites／93 tests 通過；InteractiveFlowchart 回歸涵蓋 CJK／secret／英文換行、node 與 viewBox 範圍、非端點及密集佈局避碰、diamond、click 與 keyboard details。" },
+    { id: "S4", result: "pass", evidence: "workflow 256 tests 通過；真實 content guard 的 SVG `<text>` 換行負例與 fenced-code 正例均通過。" },
+    { id: "S5", result: "pass", evidence: "WORKFLOW 與 Blueprint adapter 已移除常態逐頁 browser review；Impeccable critique／distill 只審文字，G1／G2 human acceptance 與開發者 dev preview 保留。" },
+    { id: "S6", result: "pass", evidence: "WORKFLOW、Blueprint adapter 與 delivery-workflow Feature 一致採用小型調整用 dev preview／少量截圖、新互動按需 prototype，僅在需要反覆比較時保留 mockup。" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "Blueprint 元件與 route-proof 回歸", method: "`pnpm --filter blueprint exec jest --runInBand`", executor: "agent", environment: "ATE-274 worktree", result: "pass", evidence: "19 suites passed；93 tests passed。" },
+    { id: "T2", checks: "Repository aggregate verification", method: "`pnpm verify:all`", executor: "agent", environment: "本機 placeholder MongoDB/Auth build env；臨時 NODE_OPTIONS preload 將 availableParallelism 固定為 2，讓 Jest 使用單 worker", result: "pass", evidence: "六個 lanes 全 pass；app-test 154 suites／1074 tests。未限 worker 的兩次嘗試在不同、未修改的 suite 出現 SIGSEGV；serial 測試全數通過。" },
+    { id: "T3", checks: "Mockup 正向 route proof", method: "`node scripts/blueprint-mockup-proof.mjs`", executor: "agent", environment: "最終 clean build receipt；既有 `game-positional-writes` mockup；localhost HTTP 與 headless Chromium", result: "pass", evidence: "source `2068578`、store、integration 與 input hash 一致；`/changes/game-positional-writes` mounted，無 loader、fallback、pageerror 或 console error。" },
+    { id: "T4", checks: "G2 hosted Preview identity 與頁面", method: "`pnpm blueprint:gate replace-agent-visual-review --preview`", executor: "agent", environment: "trusted main Preview controller", result: "pending", evidence: "待實際 gate 完成；目前 snapshot 不含 `design.tsx`，預期按 S2 驗證靜態 receipt 與 route，不啟動 Chromium。" },
+    { id: "T5", checks: "獨立 Spec／Standards 複審", method: "完整 diff 的雙軸固定點複審", executor: "agent", environment: "獨立 reviewer contexts", result: "pass", evidence: "最新 Spec 0 finding；Standards 0 hard finding、0 smell。" },
+  ]}
+/>
+
+<ReviewDetails>
+
+### 雙軸複審
+
+複審先發現 production collision math 與固定 Bézier sampling 被測試重複、密集佈局 edge 可能消失，以及註解重述 loop 行為。現已改成從 rendered SVG path 獨立取樣、以 point-in-rect 判定，讓無法避障的 edge 明確失敗；最後兩軸均無 findings。
+
+### Proof 與 workflow 邊界
+
+第一次本機 Chromium proof 暴露 server 未映射首頁及其他 extensionless 靜態資源；現依 Cloudflare Static Assets 預設路由映射修正，最終 clean build 與 Chromium proof 成功。該 CI 成功路徑的安裝與總耗時尚未量到：正向 proof 是在本機既有 mockup 上驗證；G2 hosted Preview 只跑無 mockup 的靜態路徑。`blueprint:gate --preview` 使用 main controller，因此本分支新增的含 mockup workflow 步驟待合併後由 trusted workflow 驗證。
+
+### Release evidence
+
+本次無 Changeset 適用：變更限於 private Blueprint site、CI workflow、文件與內部驗證工具，沒有已發布 package、API 或 app runtime 的版本／changelog 變更。
+
+### Aggregate verification
+
+最後一次 `pnpm verify:all` 以臨時 worker 限制通過全部六個 lanes。未限 worker 時兩次 app-test 分別在 `record-demo.test.tsx` 與 `active-team-preference-storage.test.ts` 的 Jest worker 收到 SIGSEGV；兩個 suite 未改動，且完整 app suite 以 serial 模式 154／1074 通過。此限制屬本機並行 Jest 穩定性，不是 assertion failure。
+
+</ReviewDetails>
