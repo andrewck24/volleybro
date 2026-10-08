@@ -38,7 +38,7 @@ import { scenarios } from "./proposal.mdx";
     { id: "T2", checks: "Repository aggregate verification", method: "`pnpm verify:all`", executor: "agent", environment: "本機 placeholder MongoDB/Auth build env；臨時 NODE_OPTIONS preload 將 availableParallelism 固定為 1，避開 Jest worker 的間歇 SIGSEGV", result: "pass", evidence: "六個 lanes 全 pass；Workflow 257 tests、Blueprint 19 suites／93 tests、app-test 154 suites／1074 tests，app build 與 service worker check 通過。worker=2 的一次 aggregate 在 app-test 遇到 SIGSEGV；worker=1 的最終完整 aggregate 通過。" },
     { id: "T3", checks: "Mockup 正向 route proof", method: "`node scripts/blueprint-mockup-proof.mjs`", executor: "agent", environment: "最終 clean build receipt；既有 `game-positional-writes` mockup；localhost HTTP 與 headless Chromium", result: "pass", evidence: "source `2068578`、store、integration 與 input hash 一致；`/changes/game-positional-writes` mounted，無 loader、fallback、pageerror 或 console error。" },
     { id: "T4", checks: "G2 hosted Preview identity 與頁面", method: "`pnpm blueprint:gate replace-agent-visual-review --preview`", executor: "agent", environment: "trusted main Preview controller", result: "pass", evidence: "成功 run 的 hosted receipt 與頁面符合同一 source/store/integration/input hash，HTTP route 載入且無 render error。此 snapshot 無 `design.tsx`，因此依條件未啟動 Chromium。" },
-    { id: "T5", checks: "獨立 Spec／Standards 複審", method: "完整 diff 的雙軸固定點複審", executor: "agent", environment: "獨立 reviewer contexts", result: "pass", evidence: "首輪發現 default G1 mockup 可略過 proof 的 P1 與一項冗餘註解；修復後 Standards 再發現 `usePreview` 命名未用 `is` 前綴，已改為 `isPreviewRequired`。固定 commit `9ff8bd27` 複審：Spec 0 findings、Standards 0 findings／0 smells。" },
+    { id: "T5", checks: "獨立 Spec／Standards 複審", method: "完整 diff 的雙軸固定點複審", executor: "agent", environment: "獨立 reviewer contexts", result: "pass", evidence: "首輪發現 default G1 mockup 可略過 proof 的 P1 與一項冗餘註解；修復後 Standards 再發現 `usePreview` 命名未用 `is` 前綴，已改為 `isPreviewRequired`。固定 commit `974eb3af` 複審：Spec 0 findings、Standards 0 findings／0 smells。" },
     { id: "T6", checks: "G1 mockup 預設 gate regression", method: "`node --test --test-name-pattern='a mockup requires trusted route proof' scripts/__tests__/blueprint-gate.test.js`", executor: "agent", environment: "臨時 Git repository 與 trusted Preview dispatch stub", result: "pass", evidence: "不帶 `--preview` 執行真實 `runGate`，確認 `design.tsx` 自動路由到 Preview，並核對 branch、exact source SHA、input hash 與 no-store requests。" },
   ]}
 />
@@ -51,7 +51,7 @@ import { scenarios } from "./proposal.mdx";
 
 ### Pre-PR 固定點複審
 
-最終驗收發現 default G1 gate 對含 `design.tsx` 的 snapshot 可能走靜態 production proof，違反 accepted trusted runtime-proof 條件；現由 gate 自動偵測 mockup 並要求 trusted Preview，新增不帶 `--preview` 的 regression test。Standards 提出的冗餘註解與 boolean 命名已修正。固定 commit `9ff8bd27` 的 Spec／Standards 複審均為 0 findings。
+最終驗收發現 default G1 gate 對含 `design.tsx` 的 snapshot 可能走靜態 production proof，違反 accepted trusted runtime-proof 條件；現由 gate 自動偵測 mockup 並要求 trusted Preview，新增不帶 `--preview` 的 regression test。Standards 提出的冗餘註解與 boolean 命名已修正。固定 commit `974eb3af` 的 Spec／Standards 複審均為 0 findings；為滿足 CI commitlint，另將兩個既有中間提交補上 Change／issue trailers 並縮短長行，source tree 與 `9ff8bd27` 完全相同。
 
 ### Proof 與 workflow 邊界
 
