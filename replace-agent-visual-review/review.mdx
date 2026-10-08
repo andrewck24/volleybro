@@ -1,3 +1,5 @@
+import { scenarios } from "./proposal.mdx";
+
 <ActionItems>
 
 請於 G2 決定是否接受 S1 的本機正向 proof 與 workflow 測試作為合併前證據，並把 trusted positive-path run 留作合併後驗證。此分支的 Preview controller 固定取 `main`，而 G2 snapshot 不含 `design.tsx`，故目前無法由該 trusted controller 執行新增的正向路徑；若不接受此證據替代，請退回並要求先安排可信 rehearsal。
