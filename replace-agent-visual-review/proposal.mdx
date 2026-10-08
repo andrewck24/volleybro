@@ -1,0 +1,150 @@
+export const scenarios = [
+  {
+    id: "S1",
+    given: "G1 或 G2 的 Change snapshot 含 design.tsx",
+    when: "trusted Preview workflow 建置並驗證該 snapshot",
+    then: "靜態 HTML 先含 MockupFrame loader；headless Chromium 只開該 Change route，HTTP 與 source/store/integration/input identity 相符、loader 消失，且沒有 pageerror、console error 或 MockupFrame fallback；缺少或不相符的 proof 會 fail closed",
+  },
+  {
+    id: "S2",
+    given: "G1 或 G2 的 Change snapshot 不含 design.tsx",
+    when: "trusted Preview workflow 驗證 build receipt 與頁面",
+    then: "沿用現有靜態建置及 identity proof，不下載 Chromium browser binary，也不啟動 route check；Playwright 套件仍併入既有 dependency install",
+  },
+  {
+    id: "S3",
+    given: "flowchart 含長英文、CJK 或 secret label，且節點接近",
+    when: "InteractiveFlowchart render 並執行元件回歸驗證",
+    then: "label 換行後仍落在 node box 與 viewBox 內，節點／edge geometry 不碰撞，click 與 keyboard details 保持可用，顏色繼續使用 light／dark semantic tokens",
+  },
+  {
+    id: "S4",
+    given: "MDX 將 SVG <text> 開標籤後的文字拆到下一行",
+    when: "Blueprint content guard 執行",
+    then: "驗證失敗並指出來源檔，避免 build 通過但 SVG 文字寬度為零",
+  },
+  {
+    id: "S5",
+    given: "普通 Change 完成 G1、Archive 或 G2 準備",
+    when: "Agent 依 WORKFLOW 完成交付",
+    then: "Agent 不必逐頁開瀏覽器、切換主題或點擊流程圖；開發者仍可用 dev server 檢視，並獨自作出 G1／G2 接受",
+  },
+];
+
+<TLDR>
+  G1／G2 的逐頁瀏覽器巡檢重複驗證同一套元件，也曾抓到應由共用元件負責的
+  flowchart 長字碰撞。移除 Agent 常態巡檢，改由共用元件回歸保障與 trusted
+  Preview workflow 驗證 build identity；只有 Change 含 `design.tsx` 時，才用
+  headless Chromium 驗證該頁的實際 client mount。開發者仍可檢視 Preview，G1／G2
+  human acceptance 不變。
+</TLDR>
+
+## Before／After
+
+| 階段                      | Before                                           | After                                                              |
+| ------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| G1／Archive／G2 頁面檢視  | Agent 逐段開頁、切換 light／dark，必要時點流程圖 | Agent 依 build、receipt、identity 與元件回歸準備驗收               |
+| 含 `design.tsx` 的 G1／G2 | 靜態建置無法確認 client mockup 已掛載            | trusted Preview workflow 對該 Change 執行一次 Chromium route proof |
+| 共用 flowchart            | 長 label 或密集節點由逐頁巡檢發現                | 元件處理換行與節點空間，以回歸測試保護                             |
+| 開發者 gate               | G1／G2 等待開發者接受                            | G1／G2 仍由開發者接受；dev server 保留供檢視                       |
+
+## 執行流程
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "snapshot", label: "Gate snapshot", x: 150, y: 40, w: 190 },
+    { id: "receipt", label: "Build + receipt", x: 150, y: 130, w: 190 },
+    {
+      id: "mockup",
+      label: "Has design.tsx?",
+      x: 150,
+      y: 230,
+      w: 190,
+      h: 64,
+      shape: "diamond",
+    },
+    { id: "static", label: "Static identity proof", x: 35, y: 340, w: 190 },
+    { id: "runtime", label: "One Chromium route", x: 265, y: 340, w: 190 },
+    { id: "accept", label: "Developer G1 / G2", x: 150, y: 450, w: 210 },
+  ]}
+  edges={[
+    { from: "snapshot", to: "receipt" },
+    { from: "receipt", to: "mockup" },
+    { from: "mockup", to: "static", label: "No" },
+    { from: "mockup", to: "runtime", label: "Yes" },
+    { from: "static", to: "accept" },
+    { from: "runtime", to: "accept" },
+  ]}
+  details={{
+    mockup: {
+      title: "依快照決定是否啟動瀏覽器",
+      body: "含 design.tsx 才做 client mount proof；其餘 Change 沿用現有靜態 proof。",
+    },
+    runtime: {
+      title: "驗證同一份輸入",
+      body: "路由、source、integration、store 與 Change input hash 必須符合當次 receipt。",
+    },
+    accept: {
+      title: "Human gate 不變",
+      body: "Agent 不做逐頁巡檢；開發者仍獨自接受 G1／G2，且可用 dev server 檢視。",
+    },
+  }}
+/>
+
+<DecisionCards ids={["0116"]} />
+
+## Scope
+
+1. 移除 WORKFLOW、Blueprint agent instructions 與直接相關 Feature 中要求 Agent 常態逐頁 browser verification 的規則；保留開發者 G1／G2 human acceptance、開發者 dev-server 檢視選擇、既有 Preview publication、build/render error 與部署 identity 的 fail-closed 檢查。
+2. 修改 trusted Preview workflow：只在同一 G1 或 G2 snapshot 確有 `design.tsx` 時，對該 Change 跑一次 route proof。proof controller 由 trusted `main` workflow revision 執行；依本次 build receipt 驗證同一 source SHA、integration SHA、store SHA 與 Change input hash；先確認靜態 HTML 含 `載入設計稿…`，再等待 loader 消失；收集 pageerror 與 console error，並拒絕 MockupFrame error fallback。缺少 receipt、route、mount 或匹配 identity 一律失敗，不上傳該次 artifact。
+3. 在 `InteractiveFlowchart` 共用元件處理長 label 換行、節點尺寸與碰撞；元件回歸測試驗證 SVG label lines 與 node/viewBox geometry，維持既有 light／dark semantic token 對應。
+4. 新增 Blueprint MDX guard，拒絕 SVG `<text>` 開標籤後立即換行的來源形狀；不掃描或改寫已封存頁面。
+5. 不改 DecisionRecord schema，不重寫已接受的 Proposal，不移除 Preview 或開發者 gate。
+
+## 不在本次範圍
+
+- `DecisionTimeline` inline Markdown 的完整支援：目前仍有決策文字直接輸出的欄位，與 flowchart／route proof 無關，留給 ATE-283 第 3 步元件／內容簡化盤點。
+- `FileTour` inline renderer：目前 source 沒有 `FileTour` 元件，不新增替代元件。
+- `RiskTable` 重接 renderer：目前元件已使用 `renderInline`。
+- Storybook／Chromatic pipeline 擴充：現有 Storybook glob 只涵蓋主 app `src/`，Chromatic scope 也把 `blueprint/` 列為可略過範圍；本次使用 Blueprint component regression tests，不改視覺測試 pipeline。
+- 已封存內容的字級回溯或整站重畫。
+
+## 驗收情境
+
+<Scenarios items={scenarios} />
+
+## 風險
+
+<RiskTable
+  risks={[
+    {
+      name: "目前的已發布 mockup route 會在 client hydration 時觸發 React error #418",
+      severity: "critical",
+      mitigation:
+        "原型依選定契約 fail closed；Apply 時須診斷並修正此 route 的真實來源，不能以忽略 pageerror 或廣泛 suppress hydration warning 讓檢查轉綠。",
+    },
+    {
+      name: "Chromium／Playwright 啟動增加 Preview runner 成本，且現有編譯收據本身不證明 client mount",
+      severity: "warning",
+      mitigation:
+        "只在含 design.tsx 的 G1／G2 執行單一 route；本頁列出實測步驟時間，成功路徑與套件安裝的邊際成本須於實作再量。",
+    },
+    {
+      name: "只測一個 mockup route 無法取代共用元件對其他內容形狀的保障",
+      severity: "warning",
+      mitigation:
+        "長標籤／碰撞與 SVG 零寬文字分別由元件回歸測試及 MDX source guard 保護；flowchart 顏色留用語意 tokens，human gate 仍在。",
+    },
+  ]}
+/>
+
+## Prototype CI cost
+
+Prototype 使用已發布的 `logo-v-splash-redesign` snapshot。 [Run 30](https://github.com/andrewck24/volleybro/actions/runs/37739734220) 的 build job 共 76 秒，其中原有依賴安裝 12 秒、build 40 秒；新增的 Chromium install 步驟 15 秒，route proof 在 2 秒內因 React #418 失敗。此數值是失敗路徑實測，不代表成功路徑上限；新依賴併入既有 install step，尚無法拆出它的邊際時間。較早的 [Run 29](https://github.com/andrewck24/volleybro/actions/runs/37739273636) 因原型路由誤用未帶 `.html` 的 URL 而 fail，未上傳 artifact。兩次 upload 均 skipped，沒有 Preview 部署。
+
+## References
+
+- [ATE-274：移除 G1／G2 Agent 實體畫面審查](https://linear.app/asatelier/issue/ATE-274)
+- [ATE-283：Blueprint 主線順序](https://linear.app/asatelier/issue/ATE-283)
+- [ATE-143：Blueprint 呈現與圖表寫作陷阱](https://linear.app/asatelier/issue/ATE-143)
+- 測試策略：`docs/testing-strategy.md`；Change page contract：`docs/agents/blueprint.md`。
