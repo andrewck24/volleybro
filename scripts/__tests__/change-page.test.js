@@ -205,7 +205,7 @@ test("a Review section written on one line is reported as inline", () => {
   assert.equal(reviewSections(page).includes("Deviations"), false);
 });
 
-test("only pass and fail count as results", () => {
+test("unknown result values do not count as results", () => {
   for (const value of ['"todo"', "status", "`${s}`"]) {
     const page = PAGE.replace('result: "pass"', `result: ${value}`);
     assert.deepEqual(resultIds(page), [], value);
