@@ -133,7 +133,7 @@ export function scenarioIds(content) {
 export function resultIds(content) {
   return elements(parse(content), "ScenarioResults")
     .flatMap((element) => entriesOf(attributeArray(element, "results")))
-    .filter((entry) => ["pass", "fail", "unverified"].includes(entry.result))
+    .filter((entry) => entry.result === "pass" || entry.result === "fail")
     .map((entry) => entry.id);
 }
 

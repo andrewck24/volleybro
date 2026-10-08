@@ -809,14 +809,6 @@ test("page gate names a scenario with no result", async () => {
   );
 });
 
-test("page gate accepts an unverified scenario result", async () => {
-  const review = reviewWithResults("S1", "S2").replace(
-    'result: "pass", evidence: "t"',
-    'result: "unverified", evidence: "trusted path deferred by developer"',
-  );
-  assert.equal(await pageGate(changePage({ review })), "");
-});
-
 test("page gate reports a missing required Review section", async () => {
   const review = FULL_REVIEW.replace(
     "<ReviewFocus>\n\n- a\n\n</ReviewFocus>\n\n",
