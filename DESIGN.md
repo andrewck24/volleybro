@@ -171,6 +171,8 @@ Frontmatter holds normative tokens. Unprefixed colors map to light-mode CSS prop
 
 Apple [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines) inform clarity, hierarchy, accessible interaction and feedback. Apply them gradually when a page is redesigned; they do not authorize a whole-app redesign. SwiftUI correspondences below describe concepts and interaction roles only, not API choices or native implementation.
 
+HIG-informed principles guide usability and accessibility. VolleyBro's token roles, surface layers, radii and component sizes are project policies; they are not Apple requirements. Web performance restrictions apply to custom PWA code, not native system animations. Documenting these principles does not establish that the shipped app meets them; verify each affected surface when applying them.
+
 ## Colors
 
 ### Brand identity
@@ -197,11 +199,15 @@ Away and error share a value today but remain separate semantic tokens. Use text
 
 Charts use `chartColors` from `src/lib/design-tokens`; the numeric keys map to the chart token family rather than literal colors.
 
+Following HIG [Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility), never communicate a score outcome, selection, error or substitution direction through color alone. Pair color with a visible label, icon or shape, and expose its meaning to assistive technology. Token separation does not replace these cues.
+
 ## Typography
 
 Saira is the primary Latin heading/body face; Noto Sans TC is the CJK fallback in `--font-sans`. Saira Stencil One is reserved for the existing V mark. Use semantic roles and the Tailwind rem scale, never arbitrary `text-[Npx]` literals.
 
 The floor is `text-xs` (0.75rem); body and description copy is at least `text-sm`. Text directly on court or free-zone surfaces is at least `text-base`. Reserve `text-xs` for badges, meta labels and the Beta mark. App components retain their context-specific sizes. A digit in a fixed-size badge may be smaller only when the same number appears elsewhere.
+
+Following HIG [Typography](https://developer.apple.com/design/human-interface-guidelines/typography) and [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), support text enlargement and adaptive layout. For the PWA, verify text at 200% enlargement: content and controls must remain readable and operable without clipping or overlap; rows may grow and horizontal groups may stack. Do not disable browser zoom. A repeated badge value does not waive legibility or resizing checks. Native correspondence is semantic text styles and Dynamic Type, not a CSS-pixel-to-point conversion.
 
 | Role            | Tailwind specimen                                            |
 | --------------- | ------------------------------------------------------------ |
@@ -252,6 +258,8 @@ All modal surfaces use `card`; the `bg-black/80` dimming scrim separates them fr
 The rule governs container elevation only: do not convey depth with a decorative ring or border. Overlay-backed surfaces use the scrim; non-overlay floats use the popover step plus `shadow-md`; in-flow Card/Item surfaces use the card step and shadow. Same-color nested containers use shadow, never a decorative ring.
 
 Ring-instead-of-border is a formal edge technique for controls and small media. Semantic-color rings may express selected or invalid states; `--ring` stays reserved for focus-visible. Keep semantic borders for table rows, accordion separators and tab indicators. They divide content or indicate state; they do not create container elevation.
+
+Following HIG [Materials](https://developer.apple.com/design/human-interface-guidelines/materials), preserve readable foregrounds when transparency is reduced or contrast is increased. Where the browser exposes these preferences, adapt glass and translucent surfaces; provide a sufficiently opaque fallback and stronger separation when needed. Verify against the underlying content in both themes. Functional edges needed for accessibility take precedence over decorative No-Ring styling. These are requirements for affected surfaces, not claims that existing CSS already handles every preference.
 
 ### Shadows
 
@@ -313,21 +321,24 @@ Item uses muted/50 or muted/40; outline/ghost Button and AccordionTrigger use mu
 
 ## Do's and Don'ts
 
+The labels below distinguish HIG-informed principles, VolleyBro policies and delivery rules. Web restrictions concern custom PWA implementation only; native implementations follow their platform guidance.
+
 ### Do
 
-- Do prioritise the score and next action over decoration.
-- Do use semantic color pairs and verify contrast in both themes.
-- Do respect reduced motion: show the end state without movement.
-- Do adopt HIG gradually as a page is redesigned.
-- Do keep route-specific strategy in its surface brief.
+- HIG-informed: prioritise the score and next action over decoration; see [Layout](https://developer.apple.com/design/human-interface-guidelines/layout).
+- HIG-informed: use semantic color pairs, verify contrast in both themes and provide non-color cues.
+- HIG-informed: support text enlargement and readable materials, including reduced-transparency and increased-contrast preferences.
+- Project policy informed by HIG [Motion](https://developer.apple.com/design/human-interface-guidelines/motion): respect reduced motion by showing the static end state. HIG also permits suitable fades; VolleyBro adopts the stricter default.
+- Delivery: adopt HIG gradually as a page is redesigned.
+- Delivery: keep route-specific strategy in its surface brief.
 
 ### Don't
 
-- Don't animate layout properties; motion uses transform and opacity only.
-- Don't reuse danger red for opponent data or errors.
-- Don't add a decorative container ring to express elevation.
-- Don't use accent as a page or resting surface background.
-- Don't present the pending button-size rules as already implemented.
+- Web performance policy: don't animate layout properties; custom PWA motion uses transform and opacity only.
+- Project policy: don't reuse the `destructive` token family for opponent data or errors; this does not prohibit red error feedback.
+- Project policy: don't add a decorative container ring to express elevation; preserve functional accessibility edges and keyboard focus.
+- Project policy: don't use `accent` as a page or resting surface background.
+- Delivery: don't present the pending button-size rules as already implemented.
 
 ### Motion extensions
 
