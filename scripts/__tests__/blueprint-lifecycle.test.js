@@ -43,7 +43,7 @@ async function fixture(t) {
     {
       "README.md": "base\n",
       ".gitignore":
-        "blueprint/content/changes/\nblueprint/dist/\nblueprint/public/blueprint-build.json\nblueprint/.change-lifecycle*\n",
+        "blueprint/content/changes/\nblueprint/out/\nblueprint/public/blueprint-build.json\nblueprint/.change-lifecycle*\n",
     },
     "base",
   );
@@ -204,7 +204,7 @@ test("derives landing lifecycle from a complete isolated integration snapshot", 
   const outputReceipt = path.join(
     repo,
     "blueprint",
-    "dist",
+    "out",
     "blueprint-build.json",
   );
   await mkdir(path.dirname(outputReceipt), { recursive: true });

@@ -16,7 +16,7 @@ export async function checkBlueprintOutput(root) {
     "utf8",
   );
   const exported = await readFile(
-    path.join(directory, "dist", "blueprint-build.json"),
+    path.join(directory, "out", "blueprint-build.json"),
     "utf8",
   );
   const { stdout } = await execFileAsync(

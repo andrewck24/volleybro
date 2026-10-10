@@ -128,6 +128,7 @@ function retainedDesignExports() {
 
 const astroConfig = {
   output: "static",
+  outDir: "./out",
   build: { format: "file" },
   trailingSlash: "never",
   markdown: {

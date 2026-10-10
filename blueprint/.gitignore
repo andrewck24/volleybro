@@ -1,4 +1,4 @@
-dist/
+out/
 .astro/
 .source/
 node_modules/

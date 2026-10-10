@@ -2,7 +2,7 @@ name = "volleybro-blueprint"
 compatibility_date = "2026-07-01"
 
 [assets]
-directory = "./dist"
+directory = "./out"
 
 [build]
 # Deploy consumes the existing Astro export; it never builds during upload.

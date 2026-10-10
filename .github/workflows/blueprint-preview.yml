@@ -113,7 +113,7 @@ jobs:
       - name: Validate build receipt and reject unsafe output files
         working-directory: candidate
         env:
-          PREVIEW_ARTIFACT_DIR: blueprint/dist
+          PREVIEW_ARTIFACT_DIR: blueprint/out
         run: node ../controller/scripts/blueprint-preview.js validate-artifact
       - name: Detect a mockup in the requested snapshot
         id: mockup
@@ -127,7 +127,7 @@ jobs:
         if: steps.mockup.outputs.has_mockup == 'true'
         working-directory: controller
         env:
-          PREVIEW_ARTIFACT_DIR: ${{ github.workspace }}/candidate/blueprint/dist
+          PREVIEW_ARTIFACT_DIR: ${{ github.workspace }}/candidate/blueprint/out
           CANDIDATE_SOURCE_DIR: ${{ github.workspace }}/candidate
         run: node scripts/blueprint-mockup-proof.mjs
       - name: Upload the same-run static build artifact
@@ -135,7 +135,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: blueprint-preview-${{ inputs.request_id }}
-          path: candidate/blueprint/dist
+          path: candidate/blueprint/out
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
