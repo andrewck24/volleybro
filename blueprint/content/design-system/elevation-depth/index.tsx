@@ -1,28 +1,3 @@
-// Elevation & Depth reference — the three background layers and the
-// overlay-replaces-ring rule, rendered live from the shared tokens via the
-// .light/.dark scopes. The open Drawer-layer question and its interactive
-// comparison live in the elevation-depth-system change's design page.
-
-import Link from "next/link";
-
-const layers = [
-  {
-    name: "Level 0 · Page",
-    token: "--background",
-    body: "The app body — the page plane only.",
-  },
-  {
-    name: "Level 0.5 · Floating",
-    token: "--popover",
-    body: "Non-overlay floating surfaces (Popover, Select) that open over live content. The background step + shadow-md keeps them raised — no ring, no overlay.",
-  },
-  {
-    name: "Level 1 · Card",
-    token: "--card",
-    body: "Cards and items — the topmost surface, raised by the background step and shadow (no ring). All modal-class surfaces (Dialog, AlertDialog, Drawer) share this color: the scrim, not a color step, separates them from the page.",
-  },
-];
-
 // A nested page→floating→card stack pinned to one theme via scope class.
 function LayerStack({
   scope,
@@ -71,98 +46,22 @@ function OverlayDemo({ ring, caption }: { ring: boolean; caption: string }) {
 export default function ElevationDepthPage() {
   return (
     <div>
-      <h1>Elevation &amp; Depth</h1>
-      <p>
-        Two rules govern depth. First, three distinct background layers ordered
-        by elevation. Second — <strong>no container carries a ring</strong>:
-        depth is signaled by scrim, background step, and shadow only.
-      </p>
-
       <h2 id="layers">A · Background layers</h2>
-      <p>
-        Elevation reads as a lighter surface in light theme, inverted in dark.
-        The same nested stack in both themes, rendered from the live tokens:
-      </p>
       <div className="my-4 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         <LayerStack scope="light" label="Light theme" />
         <LayerStack scope="dark" label="Dark theme" />
       </div>
-      <ul>
-        {layers.map((l) => (
-          <li key={l.token}>
-            <strong>{l.name}</strong> (<code>{l.token}</code>) — {l.body}
-          </li>
-        ))}
-      </ul>
 
-      <h2 id="overlay-ring">B · No container carries a ring</h2>
-      <p>
-        Modal, popover, and card components are all content containers, so the
-        ring rule is uniform: none carries a decorative ring. Overlay-backed
-        surfaces (Dialog, AlertDialog, Drawer) rely on their{" "}
-        <code>bg-black/80</code> scrim; non-overlay floats (Popover, Select) on
-        the background step + <code>shadow-md</code>; cards/items on the
-        background step + shadow. <code>--ring</code> is reserved for
-        focus-visible states. This makes the <code>entry-ui</code> observation
-        (removing the ring looked better) a contract, so nothing silently
-        re-adds one.
-      </p>
+      <h2 id="overlay-ring">B · Overlay edge comparison</h2>
       <div className="my-4 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-        <OverlayDemo
-          ring={false}
-          caption="✓ Overlay-backed: no ring (correct)"
-        />
-        <OverlayDemo
-          ring
-          caption="✗ Overlay-backed with ring: double-bordered"
-        />
+        <OverlayDemo ring={false} caption="Overlay without decorative edge" />
+        <OverlayDemo ring caption="Overlay with decorative edge" />
       </div>
-
-      <h2 id="drawer-question">Decided · all modals on bg-card</h2>
-      <p>
-        Every modal-class surface (Dialog, AlertDialog, Drawer) renders on{" "}
-        <code>bg-card</code> — the scrim separates it from the page, and the
-        Drawer peek stays continuous with the page&apos;s card surfaces. The
-        interactive comparison that settled this lives in the{" "}
-        <Link href="/changes/elevation-depth-system/design">
-          elevation-depth-system change&apos;s design page
-        </Link>
-        .
-      </p>
-
-      <h2 id="pwa-status-bar">C · PWA status bar colour</h2>
-      <p>
-        The standalone PWA uses an opaque status bar, so page content never
-        draws under it: iOS 26 and later blur the band below a status bar that
-        content sits under. Each route layout colours the status bar through{" "}
-        <code>StatusBarColor</code>, which writes <code>theme-color</code> from
-        the surface its header sits on and follows the user&apos;s light or dark
-        theme. Game routes use <code>bg-card</code>, auth uses{" "}
-        <code>bg-primary</code>, and tab and workspace routes declare{" "}
-        <code>bg-background</code>. It also mirrors the token onto the body as a
-        backdrop for installs still on the translucent status bar; that backdrop
-        does not create another layer and does not replace content tokens, and{" "}
-        <code>accent</code> remains reserved for hover/highlight states. Overlay
-        scrims are separate: they cover the full web content viewport with{" "}
-        <code>inset-0</code> and never change the status bar colour. The PWA
-        manifest <code>background_color</code> is the <code>--primary</code>{" "}
-        brand teal, so the Android launch splash reads as a bare mark on brand
-        ground like the iOS launch screen. It only colours that splash: it is
-        not a page background and is unrelated to the status bar colour each
-        route sets through <code>StatusBarColor</code>. It does not replace
-        Apple&apos;s <code>apple-touch-startup-image</code> handling.
-      </p>
     </div>
   );
 }
 
 export const toc = [
   { title: "A · Background layers", url: "#layers", depth: 2 },
-  { title: "B · No container carries a ring", url: "#overlay-ring", depth: 2 },
-  {
-    title: "Decided · all modals on bg-card",
-    url: "#drawer-question",
-    depth: 2,
-  },
-  { title: "C · PWA status bar colour", url: "#pwa-status-bar", depth: 2 },
+  { title: "B · Overlay edge comparison", url: "#overlay-ring", depth: 2 },
 ];

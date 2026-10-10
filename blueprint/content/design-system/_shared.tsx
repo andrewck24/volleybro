@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
 
 export type TokenInfo = {
   name: string; // CSS custom property, e.g. "--background"
-  usage: string;
+  usage?: string;
 };
 
 function useResolved(ref: React.RefObject<HTMLElement | null>) {
@@ -51,7 +51,9 @@ export function Swatch({ token }: { token: TokenInfo }) {
         <span className="text-[0.7rem] text-muted-foreground tabular-nums">
           {darkValue}
         </span>
-        <span className="text-xs opacity-85">{token.usage}</span>
+        {token.usage && (
+          <span className="text-xs opacity-85">{token.usage}</span>
+        )}
       </div>
     </div>
   );

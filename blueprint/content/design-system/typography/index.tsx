@@ -1,8 +1,3 @@
-// Type roles named by application context (not raw Tailwind vars), each mapped
-// to the real Tailwind class it uses in src/. Roles and samples mirror the
-// approved design-system artifact. Specimens name their intended font: Latin
-// content renders in Saira, CJK in Noto Sans TC (the app's --font-sans stack).
-
 type Role = {
   role: string;
   tw: string;
@@ -60,8 +55,8 @@ const roles: Role[] = [
   {
     role: "entry",
     tw: "text-2xl font-medium tabular-nums",
-    size: "1.375rem",
-    px: "22px",
+    size: "1.5rem",
+    px: "24px",
     weight: 500,
     tnum: true,
     sample: "15 MB · 攔網 — 逐球紀錄 row",
@@ -102,15 +97,6 @@ function fontFor(sample: string): string {
 export default function TypographyPage() {
   return (
     <div>
-      <h1>Typography</h1>
-      <p>
-        Type is named by <strong>where it is used</strong> in the app, not by
-        raw size. Each role lists the real Tailwind class it maps to
-        (pure-number scale, no bracket syntax) and the font that actually
-        renders it — Latin in <strong>Saira</strong>, CJK in{" "}
-        <strong>Noto Sans TC</strong>, the two faces in the{" "}
-        <code>--font-sans</code> stack.
-      </p>
       <h2 id="roles">Roles</h2>
       <div
         style={{
@@ -171,11 +157,6 @@ export default function TypographyPage() {
           </div>
         ))}
       </div>
-      <p style={{ fontSize: "0.8rem", opacity: 0.7 }}>
-        Note: specimens use the app&apos;s font stack where available; on the
-        blueprint site Saira may fall back to the local sans-serif, but sizes,
-        weights, and numeric styling are exact.
-      </p>
     </div>
   );
 }
