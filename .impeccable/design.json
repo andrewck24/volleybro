@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-10T04:00:08.838Z",
+  "generatedAt": "2026-10-10T04:10:00.902Z",
   "title": "Design System: VolleyBro",
   "extensions": {
     "colorMeta": {
@@ -112,39 +112,39 @@
       "name": "button-primary",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Current light-theme primitive; adopted future size rules are documented separately.",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       "html": "<button class=\"ds-button-primary\" type=\"button\">button-primary</button>",
-      "css": ".ds-button-primary{background:hsl(192, 77.46%, 27.84%);color:hsl(330, 10%, 96.08%);border-radius:6px;font-family:Saira, Noto Sans TC, sans-serif;font-size:0.875rem;font-weight:500;height:2.25rem;padding:0.5rem 0.875rem}.ds-button-primary:hover{background:color-mix(in srgb,hsl(192, 77.46%, 27.84%) 90%,transparent)}.ds-button-primary:focus-visible{outline:2px solid hsl(230, 16%, 86.5%);outline-offset:2px}"
+      "css": ".ds-button-primary{background:hsl(192, 77.46%, 27.84%);color:hsl(330, 10%, 96.08%);border-radius:6px;font-family:Saira, Noto Sans TC, sans-serif;font-size:0.875rem;font-weight:500;height:2.25rem;padding:0.5rem 0.875rem}"
     },
     {
       "name": "button-destructive",
       "kind": "button",
       "refersTo": "button-destructive",
-      "description": "Current light-theme primitive; adopted future size rules are documented separately.",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       "html": "<button class=\"ds-button-destructive\" type=\"button\">button-destructive</button>",
-      "css": ".ds-button-destructive{background:hsl(13, 85%, 42%);color:hsl(330, 10%, 96.08%);border-radius:6px;height:2.25rem;padding:0.5rem 0.875rem}.ds-button-destructive:hover{background:color-mix(in srgb,hsl(13, 85%, 42%) 90%,transparent)}.ds-button-destructive:focus-visible{outline:2px solid hsl(230, 16%, 86.5%);outline-offset:2px}"
+      "css": ".ds-button-destructive{background:hsl(13, 85%, 42%);color:hsl(330, 10%, 96.08%);border-radius:6px;height:2.25rem;padding:0.5rem 0.875rem}"
     },
     {
       "name": "button-court",
       "kind": "button",
       "refersTo": "button-court",
-      "description": "Current light-theme primitive; adopted future size rules are documented separately.",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       "html": "<button class=\"ds-button-court\" type=\"button\">button-court</button>",
-      "css": ".ds-button-court{background:hsl(13.01, 96.51%, 66.27%);color:hsl(192 70% 8%);border-radius:6px;height:2.25rem;padding:0.5rem 0.875rem}.ds-button-court:hover{background:color-mix(in srgb,hsl(13.01, 96.51%, 66.27%) 90%,transparent)}.ds-button-court:focus-visible{outline:2px solid hsl(230, 16%, 86.5%);outline-offset:2px}"
+      "css": ".ds-button-court{background:hsl(13.01, 96.51%, 66.27%);color:hsl(192 70% 8%);border-radius:6px;height:2.25rem;padding:0.5rem 0.875rem}"
     },
     {
       "name": "input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Current light-theme primitive; adopted future size rules are documented separately.",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       "html": "<input class=\"ds-input\" aria-label=\"Player name\" placeholder=\"Player name\" />",
-      "css": ".ds-input{background:transparent;color:hsl(0, 0%, 0%);border-radius:6px;height:2.25rem;padding:0.25rem 0.75rem}.ds-input:focus-visible{outline:2px solid hsl(230, 16%, 86.5%);outline-offset:2px}"
+      "css": ".ds-input{background:transparent;color:hsl(0, 0%, 0%);border-radius:6px;height:2.25rem;padding:0.25rem 0.75rem}"
     },
     {
       "name": "card",
       "kind": "card",
       "refersTo": "card",
-      "description": "Current light-theme primitive; adopted future size rules are documented separately.",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       "html": "<div class=\"ds-card\">card</div>",
       "css": ".ds-card{background:hsl(330, 10%, 98.45%);color:hsl(0, 0%, 0%);border-radius:0.5rem;padding:0.5rem 1rem}"
     },
@@ -152,7 +152,7 @@
       "name": "chip",
       "kind": "chip",
       "refersTo": "chip",
-      "description": "Current light-theme primitive; adopted future size rules are documented separately.",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       "html": "<div class=\"ds-chip\">chip</div>",
       "css": ".ds-chip{background:hsl(230, 18%, 93.8%);color:hsl(0, 2.04%, 9.61%);border-radius:6px;padding:0.125rem 0.5rem}"
     },
@@ -160,7 +160,7 @@
       "name": "navigation",
       "kind": "nav",
       "refersTo": "navigation",
-      "description": "Current light-theme primitive; adopted future size rules are documented separately.",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       "html": "<nav class=\"ds-navigation\">Team · Record · Stats</nav>",
       "css": ".ds-navigation{background:hsl(230, 20%, 95.6%);color:hsl(192, 77.46%, 27.84%);border-radius:6px}"
     }

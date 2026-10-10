@@ -55,11 +55,16 @@ export default async function Page({ params }: PageProps) {
   const document = designDocument[0];
   const Mdx = document.body;
   const selected = sectionsByRoute[key];
+  const selectedAnchors = selected.map(
+    (name) =>
+      `#${name
+        .toLowerCase()
+        .replace(/[^\w -]/g, "")
+        .replace(/ /g, "-")}`,
+  );
   const documentToc = document.toc.filter((_, index, items) =>
-    selected.includes(
-      String(
-        items.slice(0, index + 1).findLast((item) => item.depth === 2)?.title,
-      ),
+    selectedAnchors.includes(
+      items.slice(0, index + 1).findLast((item) => item.depth === 2)?.url ?? "",
     ),
   );
   const MdxLink = defaultMdxComponents.a;

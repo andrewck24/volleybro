@@ -1,4 +1,5 @@
 import {
+  applyMdxPreset,
   defineCollections,
   defineDocs,
   defineConfig,
@@ -44,7 +45,7 @@ export const designDocument = defineCollections({
   dir: "..",
   files: ["DESIGN.md"],
   schema: z.object({}),
-  mdxOptions: { remarkPlugins: [designSections] },
+  mdxOptions: applyMdxPreset({ remarkPlugins: [designSections] }),
 });
 
 export default defineConfig();

@@ -19,7 +19,7 @@ const headings = [
 ];
 const text = (node) => node.value ?? node.children?.map(text).join("") ?? "";
 
-export function parseDesignDocument(source) {
+function parseDesignDocument(source) {
   const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   if (!match) throw new Error("DESIGN.md must start with YAML frontmatter");
   const tokens = parse(match[1]);
@@ -53,7 +53,7 @@ export function parseDesignDocument(source) {
   return { tokens, sections, extensions };
 }
 
-export function checkDesignColors(tokens, stylesheet) {
+function checkDesignColors(tokens, stylesheet) {
   const light = {},
     overrides = {};
   postcss.parse(stylesheet).walkRules((rule) => {
@@ -143,25 +143,17 @@ export function buildDesignSidecar(document, generatedAt) {
         return declarations[key] ? [`${declarations[key]}:${resolved}`] : [];
       })
       .join(";");
-    const control = kind === "button" || kind === "input";
-    const focus = control
-      ? `.ds-${name}:focus-visible{outline:2px solid ${tokens.colors.ring};outline-offset:2px}`
-      : "";
-    const hover =
-      kind === "button"
-        ? `.ds-${name}:hover{background:color-mix(in srgb,${resolveRef(tokens, props.backgroundColor)} 90%,transparent)}`
-        : "";
     return {
       name,
       kind,
       refersTo: name,
       description:
-        "Current light-theme primitive; adopted future size rules are documented separately.",
+        "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
       html:
         tag === "input"
           ? `<input class="ds-${name}" aria-label="Player name" placeholder="Player name" />`
           : `<${tag} class="ds-${name}"${tag === "button" ? ' type="button"' : ""}>${name === "navigation" ? "Team · Record · Stats" : name}</${tag}>`,
-      css: `.ds-${name}{${css}}${hover}${focus}`,
+      css: `.ds-${name}{${css}}`,
     };
   });
   const list = (title) => {
