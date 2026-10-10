@@ -10,6 +10,8 @@
 
 Extract a shared `assertObjectId` guard for MongoDB ObjectId path-parameter validation and apply it to all API routes that accept an ObjectId segment but currently perform no format check.
 
+<AnchorAliases ids={["context"]} />
+
 ## Motivation
 
 Only `src/app/api/teams/[teamId]/route.ts` validates the `teamId` path segment against the ObjectId format before using it. Ten other route handlers that accept `teamId`, `gameId`, or `playerId` pass the raw path string directly into the service/authorization/repository layer. When a caller sends a syntactically invalid string (e.g. `"undefined"`, `"bad-id"`), Mongoose constructs `new Types.ObjectId(id)` and throws a `BSONError`. `translateRepositoryError` does not recognise `BSONError`, so the error falls through to a generic 500 — masking an input error that should be a 400.
@@ -51,4 +53,73 @@ Only `src/app/api/teams/[teamId]/route.ts` validates the `teamId` path segment a
   - Modified: `src/app/api/teams/[teamId]/__tests__/route.test.ts`
   - New: `src/lib/api/__tests__/guards.test.ts`
 
-<DesignMockup />
+<AnchorAliases ids={["key-decision"]} />
+
+## Guard placement comparison
+
+| Approach                                               | Advantages                                                                                             | Trade-offs                                                                                                      |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Shared `assertObjectId` at the route boundary (chosen) | One validation source; invalid input stops before DB/auth; one-line call; names the invalid parameter. | New ObjectId routes must call it explicitly.                                                                    |
+| Catch `BSONError` in `translateRepositoryError`        | No route call-site changes.                                                                            | Puts request validation in infrastructure, returns generic errors, and still runs DB/auth first.                |
+| `withValidatedParams(schema)` wrapper                  | Could enforce validation through a schema.                                                             | Couples the wrapper to Next.js async `props.params` and adds complexity without improving on one explicit call. |
+
+<AnchorAliases ids={["caller-convention"]} />
+
+## Caller convention
+
+Each handler calls `assertObjectId` immediately after awaiting `props.params`, before `connectToMongoDB` and authorization. Invalid requests therefore avoid both connection overhead and downstream side effects.
+
+<AnchorAliases ids={["key-scenarios"]} />
+
+## Key scenarios
+
+<Scenario
+  given="A route receives a 24-character hexadecimal path segment"
+  when="assertObjectId is called"
+  then="It returns normally and handler execution continues."
+/>
+
+<Scenario
+  given="A route receives a path segment that does not match /^[0-9a-fA-F]{24}$/"
+  when="assertObjectId is called"
+  then="It throws ValidationError; withErrorHandler returns 400 with code VALIDATION and reason INVALID_INPUT, without DB or auth calls."
+/>
+
+<Scenario
+  given="assertObjectId receives an invalid id and param is teamId"
+  when="The ValidationError is serialized"
+  then="The error detail identifies the parameter: Invalid teamId format."
+/>
+
+<AnchorAliases ids={["risks"]} />
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "A new route handler may omit the guard",
+      severity: "warning",
+      mitigation:
+        "Tests cover current call sites; reviewers check new routes that accept ObjectId path segments.",
+    },
+    {
+      name: "OBJECT_ID_RE could be duplicated",
+      severity: "info",
+      mitigation:
+        "The shared expression is exported from guards.ts and imported by team.ts.",
+    },
+    {
+      name: "A try/catch test could pass without reaching the catch",
+      severity: "warning",
+      mitigation:
+        "Affected tests use expect.assertions(N) so Jest fails if the catch is never entered.",
+    },
+    {
+      name: "game.repository.mongo.ts also validates an ObjectId",
+      severity: "info",
+      mitigation:
+        "That validation belongs to cursor pagination inside infrastructure, not this route-boundary concern; it remains unchanged.",
+    },
+  ]}
+/>
