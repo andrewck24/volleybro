@@ -321,24 +321,24 @@ Item uses muted/50 or muted/40; outline/ghost Button and AccordionTrigger use mu
 
 ## Do's and Don'ts
 
-The labels below distinguish HIG-informed principles, VolleyBro policies and delivery rules. Web restrictions concern custom PWA implementation only; native implementations follow their platform guidance.
+Follow Apple HIG for hierarchy, feedback and accessibility when applying these rules. VolleyBro's token and delivery choices remain project-specific. Web animation restrictions concern custom PWA implementation only; native implementations follow their platform guidance.
 
 ### Do
 
-- HIG-informed: prioritise the score and next action over decoration; see [Layout](https://developer.apple.com/design/human-interface-guidelines/layout).
-- HIG-informed: use semantic color pairs, verify contrast in both themes and provide non-color cues.
-- HIG-informed: support text enlargement and readable materials, including reduced-transparency and increased-contrast preferences.
-- Project policy informed by HIG [Motion](https://developer.apple.com/design/human-interface-guidelines/motion): respect reduced motion by showing the static end state. HIG also permits suitable fades; VolleyBro adopts the stricter default.
-- Delivery: adopt HIG gradually as a page is redesigned.
-- Delivery: keep route-specific strategy in its surface brief.
+- Do prioritise the score and next action over decoration; see [Layout](https://developer.apple.com/design/human-interface-guidelines/layout).
+- Do use semantic color pairs, verify contrast in both themes and provide non-color cues.
+- Do support text enlargement and readable materials, including reduced-transparency and increased-contrast preferences.
+- Do respect reduced motion by showing the static end state. HIG [Motion](https://developer.apple.com/design/human-interface-guidelines/motion) also permits suitable fades; VolleyBro adopts the stricter default.
+- Do adopt HIG gradually as a page is redesigned.
+- Do keep route-specific strategy in its surface brief.
 
 ### Don't
 
-- Web performance policy: don't animate layout properties; custom PWA motion uses transform and opacity only.
-- Project policy: don't reuse the `destructive` token family for opponent data or errors; this does not prohibit red error feedback.
-- Project policy: don't add a decorative container ring to express elevation; preserve functional accessibility edges and keyboard focus.
-- Project policy: don't use `accent` as a page or resting surface background.
-- Delivery: don't present the pending button-size rules as already implemented.
+- Don't animate layout properties; custom PWA motion uses transform and opacity only.
+- Don't reuse the `destructive` token family for opponent data or errors; this does not prohibit red error feedback.
+- Don't add a decorative container ring to express elevation; preserve functional accessibility edges and keyboard focus.
+- Don't use `accent` as a page or resting surface background.
+- Don't present the pending button-size rules as already implemented.
 
 ### Motion extensions
 

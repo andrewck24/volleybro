@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-10T10:26:59.619Z",
+  "generatedAt": "2026-10-10T10:44:29.720Z",
   "title": "Design System: VolleyBro",
   "extensions": {
     "colorMeta": {
@@ -170,19 +170,19 @@
     "overview": "Calm, clear and efficient. A recorder works one-handed with divided attention; scores and the next action lead, while supporting detail stays quiet. Teal anchors the interface and coral makes the court recognisable. Tonal surfaces, restrained shadows and compact, legible controls keep the hierarchy clear.",
     "keyCharacteristics": ["Calm", "Clear", "Efficient"],
     "dos": [
-      "HIG-informed: prioritise the score and next action over decoration; see Layout.",
-      "HIG-informed: use semantic color pairs, verify contrast in both themes and provide non-color cues.",
-      "HIG-informed: support text enlargement and readable materials, including reduced-transparency and increased-contrast preferences.",
-      "Project policy informed by HIG Motion: respect reduced motion by showing the static end state. HIG also permits suitable fades; VolleyBro adopts the stricter default.",
-      "Delivery: adopt HIG gradually as a page is redesigned.",
-      "Delivery: keep route-specific strategy in its surface brief."
+      "Do prioritise the score and next action over decoration; see Layout.",
+      "Do use semantic color pairs, verify contrast in both themes and provide non-color cues.",
+      "Do support text enlargement and readable materials, including reduced-transparency and increased-contrast preferences.",
+      "Do respect reduced motion by showing the static end state. HIG Motion also permits suitable fades; VolleyBro adopts the stricter default.",
+      "Do adopt HIG gradually as a page is redesigned.",
+      "Do keep route-specific strategy in its surface brief."
     ],
     "donts": [
-      "Web performance policy: don't animate layout properties; custom PWA motion uses transform and opacity only.",
-      "Project policy: don't reuse the destructive token family for opponent data or errors; this does not prohibit red error feedback.",
-      "Project policy: don't add a decorative container ring to express elevation; preserve functional accessibility edges and keyboard focus.",
-      "Project policy: don't use accent as a page or resting surface background.",
-      "Delivery: don't present the pending button-size rules as already implemented."
+      "Don't animate layout properties; custom PWA motion uses transform and opacity only.",
+      "Don't reuse the destructive token family for opponent data or errors; this does not prohibit red error feedback.",
+      "Don't add a decorative container ring to express elevation; preserve functional accessibility edges and keyboard focus.",
+      "Don't use accent as a page or resting surface background.",
+      "Don't present the pending button-size rules as already implemented."
     ]
   }
 }
