@@ -1,8 +1,357 @@
-由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。這是未通過 G1 的草稿，其中的決策未經核對，也不在決策記錄裡。
+由舊格式機械轉換。這份頁面仍是未通過 G1／G2 的草稿；下列方向與取捨保留自原始討論稿，不代表已採納的產品決策。持久知識以 Features 與決策記錄為準。
 
 <TLDR>
   多人即時共編比賽紀錄，包含 SSE 推播、意圖錨點衝突偵測與 server-derived
   scoring。
 </TLDR>
 
+<AnchorAliases ids={["decisions"]} />
+
+## 原稿方向與取捨（D1–D15，未驗收）
+
+原稿將這些項目標為「已定案」。遷移時保留其內容與取捨理由，但此頁未通過 G1，因此不能視為已接受或目前有效的決策。
+
+<details>
+<summary>D1 — 對等記錄（Google Docs 式共編）</summary>
+
+原稿方向：多名記錄者皆可記錄任何 entry，不做分工限制；觀眾唯讀即時觀看。衝突靠即時可見性與提交時檢查處理——entry 是離散事件的有序序列，不是自由文字。
+
+原稿比較的其他方向與理由：
+
+- 分工互補（一人記我方、一人記對方）：現行記錄模式不支援此分工，且會限制使用彈性。
+- 主備交接（同時間僅一人持記錄權）：不符使用者熟悉的 Google Docs 共編心智模型。
+- OT／CRDT 合併：entry 是離散有序事件，非自由文字，複雜度不成比例。
+
+</details>
+
+<details>
+<summary>D2 — 傳輸層：Vercel SSE（路徑一）</summary>
+
+原稿方向：寫入走 HTTP POST，推播走 SSE route handler 與 Atlas change stream。Hobby maxDuration 300s 時由 EventSource 自動重連及 Last-Event-ID 補漏；client 依 Last-Event-ID 語意實作，讓傳輸層可替換。
+
+原稿比較的其他方向與理由：
+
+- 自架 WebSocket：Vercel 無原生長連線支援，等於另架一個服務；本場景只需單向推播。
+- Cloudflare Durable Objects：架構最適配，但會多一個部署目標與跨域 auth；留作規模成長時的替換路徑，非起點。
+- 第三方 realtime（Ably／Pusher／Supabase）：新增供應商依賴，免費層額度反而比自有 SSE 更早見頂。
+- 純 polling：延遲與流量浪費，降級為 SSE 失效時的 fallback。
+
+</details>
+
+<details>
+<summary>D3 — 比分由 server 端推導</summary>
+
+原稿方向：client 只送事實（勝負、球種、球員），權威比分由 server 依 entry 序列 fold 計算後回傳及廣播。賽後編輯若改變下游比分，由 server 重算；client 端 optimistic helpers 保留，只負責樂觀顯示。
+
+原稿比較的其他方向與理由：
+
+- client 計算比分、server 信任（現況）：併發下比分必然過期；同一球記兩次時比分會錯亂。
+- client 計算、server 驗證：賽後編輯改第 N 球時，client 需重送其後所有球的比分；server 推導則只需一次 fold 重算。
+
+</details>
+
+<details>
+<summary>D4 — 比分作為意圖錨點進入送出資料</summary>
+
+原稿方向：basedOn 包含 entryIndex 與 score，表示「這一球開始輸入時我看到的狀態」，並在 draft 建立瞬間釘住。entryIndex 是儲存錨點（樂觀鎖檢查鍵、SSE 補漏游標）；score 是人可讀的球次識別，用於衝突面板與 defense-in-depth 驗證。
+
+原稿比較的其他方向與理由：
+
+- 送出當下的 expectedIndex（純樂觀鎖）：SSE 已更新畫面時，後送出者會被誤收為下一球，同一球可能記兩次。
+- 只送比分、不送 entryIndex：比分無法定位不改比分的 entry（如換人或暫停），不能作儲存錨點。
+
+</details>
+
+<details>
+<summary>D5 — recordedBy／recordedAt 永久保存</summary>
+
+原稿方向：server 從 session 蓋章；賽後編輯另記 updatedBy／updatedAt。資料存 userId，顯示時再 resolve 名字。
+
+原稿比較的其他方向與理由：
+
+- 不保存記錄者：衝突面板（「已由甲記錄」）與事後爭議追溯都需要記錄者資訊。
+- client 自報記錄者欄位：身分必須由 server 從 session 取得，以守住 trust boundary。
+
+</details>
+
+<details>
+<summary>D6 — 409 衝突選項：捨棄／覆蓋（同類型 entry）</summary>
+
+原稿方向：錨點過期表示 draft 在對方那筆入庫前就開始，想記的必然是同一球。衝突是「誰記的才對」的裁決：捨棄（對方對）或覆蓋（我對，走 update 路徑）。跨類型衝突（rally 撞上換人）不互斥，改提供「作為下一筆送出（rebase）」。
+
+原稿比較的其他方向與理由：
+
+- 捨棄／作為下一球送出：「作為下一球」與錨點語意矛盾；真心想記下一球的人會先在衝突面板回應並取得新錨點。
+- 自動以後到者覆蓋（last-write-wins）：內容差異（如勝負相反）需要人裁決，靜默覆蓋會吃掉正確記錄。
+
+</details>
+
+<details>
+<summary>D7 — 衝突詢問以 Panel 切換阻斷記錄者</summary>
+
+原稿方向：任何錨點失效（輸入中收到 SSE，或送出後 409）都把記錄 panel 整面切換為衝突面板，阻斷後續輸入直到裁決完成，讓記錄者明確認知衝突。比分與場上狀態保持可見，裁決所需的比較資訊就在原本的互動面上。
+
+原稿比較的其他方向與理由：
+
+- 非阻斷 banner（原方案）：可能被專注場上的記錄者忽略；忽略後仍要靠 409 二次攔截，多一條錯誤路徑。
+- Modal dialog：遮蔽比分與場上狀態；行動端 PWA 疊層互動較差，也與既有 panel 操作模式不一致。
+
+</details>
+
+<details>
+<summary>D8 — entry 輸入 UI：三步驟延展分段進度條＋Preview 送出</summary>
+
+原稿方向：進度條涵蓋全流程（球員→我方→對方；對方失誤屬對方得失分，選定即縮為單步可送出），採延展分段樣式：目前階段延展、各段無文字、說明統一放在下方並帶輪換動畫。前一步未完成不可前進；切換靠點選進度條或滑動（拖曳意圖才 capture、aria-disabled 取代 disabled、滑動後抑制誤觸 click）。
+
+Preview 仿 Entry 版式（左側比分 Figures：閒置＝上一筆、勝負未定＝目前比分皆 muted、已定＝結果比分勝方著色）承載送出：輸入中 pulse、完成時 ring＋send icon、送出後定格並讓背景閃一次。原稿指出 mockup 只定顯示邏輯、動畫與位置，視覺樣式留待 propose 精修。
+
+原稿比較的其他方向與理由：
+
+- 進度條樣式 1–4（分段填色／圓點連線／數字徽章／細線）：原稿偏好樣式 5，理由是延展動畫也能表達「對方失誤收合為單步」。
+- 上一步／下一步按鈕：原稿認為滑動與點選進度條已覆蓋導航，按鈕會佔用 panel 空間。
+- 第三步雙擊同鈕送出（現行）：原稿認為隱性確認不易發現，送出集中到 Preview 後可成為全介面唯一 highlight。
+- 以「輸入中／上一筆」文字標籤表達 Preview 狀態：原稿認為比分 Figures 三態與 pulse 已沿用 Entry／GamePreview 語彙，標籤多餘。
+
+</details>
+
+<details>
+<summary>D9 — 覆蓋機制（v1）：衝突面板限定＋版本檢查</summary>
+
+原稿方向：v1 提供覆蓋，但僅限衝突面板情境。衝突覆蓋通常是覆蓋最後一筆（committedSince 通常僅一筆、無下游 entry），連鎖效果為零。每筆 entry 帶版本號，覆蓋請求帶預期版本，防止「乙的衝突面板開著時甲搶先自行修正」及離線重播造成靜默遺失；版本過期走同一套衝突面板。
+
+原稿比較的其他方向與理由：
+
+- v1 支援任意 entry 覆蓋：改早期 entry 會觸發下游比分 fold 重算、輪轉變動與換人合法性問題，歸賽後編輯（Q3）。
+- 無限覆蓋（互相覆蓋）的強制收斂機制：原稿記載版本檢查使每次覆蓋成為合法循序編輯；updatedBy 與閃爍可見性可提供可見性，不需另造系統衝突。
+
+</details>
+
+<details>
+<summary>D10 — 賽後編輯（v1）：最後一筆規則＋退回重記</summary>
+
+原稿方向：T1（改球員／球種，勝負不變）零連鎖、隨時可改；T2（改勝負）僅在該球仍是最後一筆時允許。更早的勝負錯誤走退回重記；共編下 truncate 會刪除他人 entries，需以 panel 確認卡明示刪除範圍與影響對象，確認後廣播失效範圍。通用 UI 原則為「不可用 ≠ 不可見」：鎖定操作以 aria-disabled 保留可點，點擊時說明原因並提供替代路徑（explain-on-tap）。
+
+原稿比較的其他方向與理由：
+
+- 全自動連鎖重算並標記不合法項：比分可機械重算，但輪轉變動可能讓既有換人不合法；待修狀態會讓比賽記錄長時間半失效。
+- v1 不提供退回重記：原稿認為「三球前記反了」在真實比賽不罕見，完全無解過於苛刻；truncate 可與既有失效廣播共用，成本主要在確認 UI。
+- 原生 disabled 鎖定不可用操作：disabled 元素不發 pointer 事件，無法 explain-on-tap，記錄者不知道原因或替代路徑。
+
+</details>
+
+<details>
+<summary>D11 — 離線佇列重播：defer 至獨立 change（offline-recording）</summary>
+
+原稿方向：v1 的 basedOn 錨點、409、D7 衝突面板與版本檢查，已具備離線重播所需積木，晚做不會堵住 v1。定向結論為由應用層 outbox 產生佇列（送出失敗或離線時把 entry 與 basedOn 入列並本地持久化），不由 service worker 攔截；重播走批次端點。server 逐筆套用既有錨點檢查、入庫通過前綴，回傳第一筆衝突與 committedSince；client 開 D7 面板裁決、重新錨定剩餘佇列再送。傳輸批次化，裁決仍逐衝突走既有面板。
+
+原稿比較的其他方向與理由：
+
+- SW Background Sync 攔截重播：背景盲目重播沒有 UI 可掛；衝突解決依賴頁面開啟並有人裁決，現有 SW 僅做 serwist 快取，改走 SW 會新增前置工程。
+- 納入 sync-recording v1：outbox 持久化、離線指示與佇列上限是獨立工程；v1 斷線期間送出已由錨點 409 保護，不會污染序列。
+
+</details>
+
+<details>
+<summary>D12 — entry 編輯／刪除入口：Preview 上緣 drawer＋左滑動作鈕＋tap 行內展開</summary>
+
+原稿方向：Summary 從 Options dialog 獨立為以 Preview 為上緣的 bottom drawer。閒置時只露出把手與最新 entry（即原 Preview），展開時最新 entry 隨上緣升起並原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不再與 panel 滑動衝突。每行左滑揭露動作鈕；整行 tap 行內展開（accordion）顯示 recordedBy、時間與完整動作，脈絡不離開清單。
+
+按鈕組成反映最後一筆規則（D10）：最新一筆＝編輯＋刪除（請求帶版本號，與 D9／D10 共用守衛）；其餘＝編輯＋退回重記至此。與 D8 Preview 的手勢分工：閒置時 tap 展開 drawer；輸入中 Preview tap 僅處理送出（三步完成才送出，未完成無作用），把手恆為 drawer 開關；輸入中展開 drawer 時，draft 以 pulse 樣式升起佔據清單第一列，送出定格後原地轉為正式第一筆。
+
+原稿比較的其他方向與理由：
+
+- 版本 A：tap 顯示與左滑相同的動作鈕。UI 最少、沒有疊層，但揭露不了 recordedBy 等資訊。
+- 版本 C：tap 開 action sheet。行不變形，但 drawer 上再疊一層且脈絡離開清單。
+- 每行常駐 kebab 鈕／長按選單：entry 行內沒有水平空間；逐行按鈕是視覺噪音，長按沒有可見 affordance。
+- 非最後一筆顯示 disabled 刪除鈕並 explain-on-tap：原稿改以「退回重記至此」取代，讓替代路徑直接可見、可按。
+
+</details>
+
+<details>
+<summary>D13 — set 結束邊界：server 推導＋setEnded 守衛，早局不鎖定、比賽層級以提示處理</summary>
+
+原稿方向：set 結束是 server 推導事實，與權威比分同源；寫入決勝球時 fold 順帶判定（達 25／第五局 15 且領先 2）、標 set.win 並廣播 setEnded。set.win 非 null 時拒收新 entry（409 setEnded）；client 收到結束事件後 panel 切至「本局已結束」。最後一筆規則家族（D9／D10／D12）作用於決勝球時，set.win 由 fold 重算自然反轉。
+
+已結束的早局不鎖定：每局各自套用最後一筆規則，因前一局結果不影響發球權，建立新局時可自行調整 serve／lineup。若改早局勝負使整場勝負已定或出現多餘局數，記錄頁與局列表以 banner 提示「移除多餘局數」或「調整決勝局數」，不自動刪除。新 set 建立帶 expectedSetCount；重複建立回 409，後到者進入既有局。錨點 basedOn 維持局內語意（URL 帶 setIndex）；SSE event id 升為複合游標 setIndex:entryIndex，斷線補漏可跨局。
+
+原稿比較的其他方向與理由：
+
+- client 送出時自行宣告 set 結束：判定權重複；server fold 本來就能判定，兩台裝置各自宣告反而製造歧義。
+- 已結束且已開新局的 set 鎖定 T2／刪除（僅 T1 可改）：原稿認為前一局結果不影響發球權，新局選項本可自行調整，鎖定過嚴。
+- 跨 set 退回重記並自動刪除後續局：比賽層級的多餘局數或決勝局數改以 banner 提示人工處理，不自動刪整局。
+- per-game 全域遞增 event id：需新增儲存欄位；複合游標 setIndex:entryIndex 可用既有資料，補漏查詢也直觀。
+
+</details>
+
+<details>
+<summary>D14 — 觀眾視圖（v1）：唯讀 live 頁含統計，與記錄頁共用顯示元件</summary>
+
+原稿方向：觀眾視圖包含比分、entry 流與統計。新增唯讀 live 路由（如 /game/[gameId]/live），入口設於比賽總覽 banner 與局列表，與「進入記錄」並列。記錄者流程維持 home → 總覽 → 局列表 → 進入記錄；觀眾同路徑改按「觀看直播」。
+
+可共用的純顯示元件包括 Entry（rally／substitution 卡片）、Stats／TeamsStats、GameHeader、banner、options/overview、options/summary（隨 D12 遷為 drawer）；不需 entryDraft。觀眾頁不裝記錄者專屬的 GameCourt、GamePanel、GamePreview 輸入態、options/edit 與 set-options。觀眾與記錄者共用同一 SSE stream；TeamsStats 目前消費聚合後的 teams.\*.stats，live 更新由 client 依 SSE entry 流 fold 或 SWR revalidate，原稿留待 propose 階段定案。
+
+原稿比較的其他方向與理由：
+
+- 只做比分板：SSE 廣播已帶完整 entry 與權威比分，只顯示比分會丟棄已到手資料。
+- 觀眾獨立 SSE stream：內容同為已提交事實、只有權限不同；分流增加 Vercel 連線與維護成本。
+- v1 內建大規模觀賽 fan-out：v1 觀眾為隊員、規模小；未來需要時可替換 fan-out 服務，不需預留。
+
+</details>
+
+<details>
+<summary>D15 — 記錄與觀看權限（v1）：MEMBER+ 記錄、隊員限定觀看</summary>
+
+原稿方向：記錄權限為 JOINED 隊員（MEMBER+），server 以既有 AuthorizationService.verifyTeamRole(MEMBER) 驗證 POST 與 SSE GET。這是對等記錄哲學（D1）的延伸：問責靠 recordedBy 永久蓋章（D5）與覆蓋可見性（D9），不靠事前限權。觀看 v1 隊員限定；公開分享連結移入 backlog。非隊員協助記錄（如家長）走既有邀請流程成為 member，不做記錄員專用邀請連結。
+
+原稿比較的其他方向與理由：
+
+- ADMIN+ 限定記錄：與對等記錄矛盾，臨時請隊友接手還要先升 ADMIN。
+- per-game 指派記錄者：最精細，但多一層管理 UI 與流程；原稿認為 recordedBy 已提供問責。
+- v1 即做公開觀賽連結：內容含球員姓名與背號，需 opt-in 開關、token 撤銷與無登入獨立視圖，工程量獨立成項。
+
+</details>
+
+<AnchorAliases ids={["simulator"]} />
+
+## 流程走查：happy path 與衝突情境
+
+以下互動走查保留為單一 React island。選擇情境後可逐幀檢視；每一幀顯示兩台裝置的比分、同步狀態、衝突面板與 draft 資料，以及 server 判斷。流程圖會高亮目前步驟。
+
 <DesignMockup />
+
+<AnchorAliases ids={["intent-anchor"]} />
+
+## 衝突模型：意圖錨點（basedOn）
+
+衝突的根本問題是「後送出的人想記的是哪一球」。純樂觀鎖（送出當下的 expectedIndex）會被狀況二穿透：乙的畫面已被 SSE 更新，送出時 index 看似「下一球」，server 會誤收，導致同一球記兩次。原稿因此提出：
+
+- 錨點在開始輸入的瞬間釘住（draft 建立時），不是送出的瞬間。
+- 輸入中錨點失效（SSE 帶來同位置的 entry）時，panel 整面切換為衝突面板並阻斷輸入，直到記錄者裁決（D7）。「我在記下一球」在此回應並取得新錨點，是同類型情境下 rebase 唯一正規入口。
+- 真競態（雙方都在 SSE 到達前送出）時，後到者收到 409 並進入同一衝突面板。錨點過期表示 draft 在對方那筆入庫前開始，原稿因此只列「捨棄／覆蓋」兩選項（D6）。
+- 跨類型衝突（rally 撞上換人）不互斥，可提供「作為下一筆送出（rebase）」；rebase 前需重新驗證 draft 的球員／zone 選擇，因換人可能改變站位。
+
+<AnchorAliases ids={["data-contract"]} />
+
+## 資料契約
+
+原稿以互動 tabs 呈現三種資料交換；遷移後改為完整列出各情況，避免只有預設 tab 的程式碼留在頁面。
+
+### 送出：client → server
+
+只有事實與意圖錨點，沒有計算後比分。
+
+```http
+POST /api/games/{gameId}/sets/{setIndex}/entries
+Content-Type: application/json
+
+{
+  "basedOn": { "entryIndex": 19, "score": { "home": 10, "away": 8 } },
+  "entry": {
+    "type": "Rally",
+    "win": true,
+    "home": { "type": "attack", "num": 7, "player": { "id": "...", "zone": "..." } },
+    "away": { "type": "defense-error", "num": 3 }
+  }
+}
+```
+
+### 成功：201 與 SSE 廣播
+
+比分是 server 推導的權威值；SSE event id 是複合游標 setIndex:entryIndex（Last-Event-ID 補漏可跨局），setEnded 由 server fold 判定（D13）。
+
+```json
+{
+  "entryIndex": 19,
+  "entry": {
+    "...": "事實與 server 推導的比分"
+  },
+  "setEnded": false,
+  "recordedBy": { "userId": "...", "name": "..." },
+  "recordedAt": "2026-07-07T12:34:56Z"
+}
+```
+
+### 衝突：409
+
+附上 basedOn.entryIndex 之後所有已入庫 entries，client 據此渲染衝突面板。
+
+```json
+{
+  "conflict": {
+    "committedSince": [
+      {
+        "entryIndex": 19,
+        "entry": { "...": "甲的內容" },
+        "recordedBy": { "...": "甲" }
+      }
+    ],
+    "currentScore": { "home": 11, "away": 8 }
+  }
+}
+```
+
+<AnchorAliases ids={["feedback"]} />
+
+## 同步狀態與視覺回饋
+
+- entry 同步狀態：儲存中（POST 進行中、樂觀顯示）→ 已儲存（201 或 SSE echo）；離線（佇列中）；衝突（待解決）。輸入中 presence 指示暫緩，先靠已提交事件即時出現達成可見性。
+- 比分更新提示：任何已提交的比分變化（自己或 SSE 帶來）都觸發閃爍；互動走查中比分變動的幀示意此效果。
+- 衝突面板（D7）：錨點失效時記錄 panel 整面切換為比較卡並阻斷輸入；比分與場上狀態保持可見。
+- entry 輸入進度：原稿提出在 panel 上緣顯示多步驟輸入進度，支援滑動或上一步／下一步切換；步驟定義見 Q1 的文字整理。
+- 連線狀態：SSE heartbeat 逾時時顯示「離線」。斷線期間送出的 entry 因錨點過期會被 409 攔下，不污染序列。
+- set 結束（D13）：收到 setEnded 後記錄 panel 切換為「本局已結束」，引導建立新局。改早局勝負若使整場勝負已定或出現多餘局數，記錄頁與局列表以 banner 提示「移除多餘局數」或「調整決勝局數」，不自動刪除。
+
+<AnchorAliases ids={["q0-mockup"]} />
+
+## Q0 — progress bar 樣式比較（原稿偏好：樣式 5，未驗收）
+
+原稿比較五種樣式；第 5 種被原稿標記為採用，但仍屬未通過 G1 的候選方向。各方案共用相同步驟（球員、我方、對方）與說明文字：
+
+1. 分段填色：等寬分段、整段可點，觸控面積最大；完成與目前狀態靠深淺區分。
+2. 圓點連線（onboarding 經典）：步驟語意最明確、完成打勾；佔位較高，點擊目標是小圓點。
+3. 數字徽章＋標籤列：徽章與標籤同列、水平緊湊；步驟多時會擠。
+4. 細線進度＋置中說明：最省空間、說明文字即主角；但步驟不能個別點選，只能滑動切換。
+5. 延展分段：輪到的階段動畫延展變長；各段不放文字、說明統一放在下方；軌道上下以透明 padding 擴大觸控面積。原稿選它的理由是延展動畫也能表達「對方失誤收合為單步」。
+
+<AnchorAliases ids={["q1-mockup"]} />
+
+## Q1 — entry 進度條與 Preview 送出（原稿方向，未驗收）
+
+原稿提出進度條涵蓋全流程三步驟（含球員選擇），每步附說明文字；可點進度條或左右滑動 panel 切換，沿用 tab-container 的方向性滑動動畫，前一步驟完成前不能切到下一步。對方失誤不需記錄我方表現，因此流程縮為單一步驟。
+
+送出由底部 chat-input 式 Preview 承載：閒置時顯示上一筆 entry，輸入中顯示 draft；三步完成後 highlight 並浮現 send icon（原稿稱全介面唯一 highlight）。送出時 draft 原地轉為上一筆並附結果比分，ring 與 icon 淡出、比分閃爍。此處僅保留文字與原稿理由，不保留 Q1 mockup。
+
+<AnchorAliases ids={["q5-mockup"]} />
+
+## Q5 — entry 動作揭露（原稿偏好：版本 B，未驗收）
+
+原稿描述 Summary（entry 清單）從 Options dialog 獨立出來，改為以 Preview 為上緣、自底部升起的 drawer。閒置時只露出把手與最新 entry（即原 Preview）；展開時最新 entry 隨上緣升起、原地成為清單第一筆。Summary 因此離開 panel，左滑手勢不再與 panel 滑動衝突。
+
+drawer 內每筆 entry 可左滑顯示動作鈕；整行 tap 可揭露動作與資訊，原稿比較三種揭露方式並偏好版本 B。揭露內容包含編輯，以及依最後一筆規則顯示刪除或退回重記至此；資訊含 recordedBy（D5）與時間。閒置時 tap Preview 展開 drawer；輸入中 tap Preview 僅處理送出（未完成則無作用），把手恆為 drawer 開關。輸入中展開 drawer 時，draft 以 pulse 樣式隨上緣升起佔據清單第一列，送出定格後原地成為正式第一筆。
+
+原稿比較的版本與理由：
+
+- A：tap 顯示與左滑相同的動作鈕。最少 UI、無疊層，但揭露不了 recordedBy 等資訊。
+- B：tap 後在行內展開資訊與完整動作。脈絡不離開清單；代價是行高變動、清單會跳動。
+- C：tap 開 action sheet。行不變形，但 drawer 上再疊一層、脈絡離開清單。
+
+此處僅保留方案文字與取捨理由，不保留 Q5 mockup。
+
+<AnchorAliases ids={["open-questions"]} />
+
+## 原稿記載的未決問題狀態（未驗收）
+
+原稿記載 Q0–Q8 已收斂並整理為 D1–D15；此說法也未經 G1/G2 驗收，不能作為決策已採納的證據。
+
+<AnchorAliases ids={["out-of-scope"]} />
+
+## 範圍外（原稿 backlog）
+
+- 離線記錄（offline-recording）：應用層 outbox＋批次重播端點；原稿的 defer 方向與定向結論見 D11。
+- 公開觀賽連結（opt-in，原稿 defer 方向見 D15）：影響 game 層級 shareToken 欄位與預設關閉的開關；SSE／唯讀 API 增加 token 驗證分支取代 session 驗證，token 重生即撤銷。新 UI 包含比賽設定的「公開直播」開關、連結複製／重生、無登入觀賽 landing（僅唯讀視圖、隱藏操作）及開啟時的隱私提示（內容含球員姓名／背號）。
+- 創建比賽、創建新局、瀏覽比賽資料的使用者流程與介面重設計。
+- 資料層決策：MongoDB vs PostgreSQL（原稿認為唯一剩餘驅動因素是統計查詢需求，同步記錄本身 Mongo 可支撐）。
+- 狀態管理收斂：SWR → RTK Query（providesTags 解 N+1；onCacheEntryAdded 接 SSE）。
+- E2E 工具選型（原稿傾向 Playwright，因 multi-context 可測雙記錄者併發）與 Bruno API 測試定位。
+- Blueprint 關鍵功能說明區塊，以及 README 用 HTML／rich text 呈現關鍵功能流程與架構。
+- 過大元件重構（membership-section.tsx 478 行、info-form.tsx 346 行、custom/court TODO）。
