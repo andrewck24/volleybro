@@ -27,4 +27,30 @@
 - 影響程式：token blocks（兩側 globals.css）、`dialog.tsx` / `alert-dialog.tsx` / `drawer.tsx` / `popover.tsx` / `select.tsx` / `card.tsx` / `item.tsx` primitives、10+ 個 dialog call sites、`docs/design-system.md`、blueprint design-system section 與本 change 頁
 - 測試：新增 dialog / alert-dialog 元件測試（TDD），既有 748 tests 全綠
 
+<AnchorAliases ids={["decisions"]} />
+
+## 已定案決策
+
+- **D1 — 表面角色決定圖層：** `--background` 是頁面（layer 0），`--popover` 是無 scrim 浮面（layer 0.5），`--card` 是 Card/Item 與 Dialog、AlertDialog、Drawer（layer 1）。Modal 與頁面的分離由 scrim 表達；Drawer peek 和頁面 card 保持同色連續，卡片內部靠 shadow 區分。
+- **D2 — 亮度表達高度：** light 由暗到亮為 background 95.6% → popover 約 97% → card 98.45%；dark 反轉為 4.9% → 約 10% → 14.5%。HSL 數值可調，階層順序是契約。
+- **D3 — 三段式 overlay shell：** Header、Body、Footer 各自持有 padding；Content 不加 padding並裁切溢出；Body 是唯一捲動區，桌面 scrollbar 貼齊視窗邊緣。
+- **D4 — 共用控制群與標題語意：** DialogContent 內建右上角 close/expand 控制群；Title/Description 提供 `srOnly` prop，取代散落的 `sr-only` class 與 `aria-describedby={undefined}`。
+- **D5 — 容器不帶裝飾 ring：** Overlay 靠 scrim，Popover 靠背景階差與 `shadow-md`，Card 靠階差與 shadow；`--ring` 僅供 `focus-visible`，同色表面上的 Card 也用 shadow 補償。
+- **D6 — AlertDialog 保留明確選擇：** AlertDialog 與 Drawer 使用共用 shell、`bg-card`、無 ring；AlertDialog 不顯示 close/expand 控制，也不允許點外部或按 Esc 關閉，必須明確取消或確認。
+- **D7 — Blueprint design-system 是規則的成品與來源：** 直接呈現共用 tokens 與規則，取代過時的 `docs/design-system.md` 文字。
+
+## Lab 說明
+
+<AnchorAliases ids={["overlay-lab"]} />
+
+**Lab A — Overlay：** 以真實記錄畫面的 header、court、panel 與 drawer peek 為底，並排呈現 light/dark；分別切換 Drawer、Dialog、AlertDialog、`bg-background`/`bg-card` 與 ring 開關。預設比較的是已定案的 `bg-card`、無 ring；有 ring 與 `bg-background` 只供反例比較。
+
+<AnchorAliases ids={["ring-lab"]} />
+
+**Lab B — 非 overlay 容器：** 在真實頁面並排比較 Popover（`bg-popover` + shadow）與 Card（`bg-card`）的 light/dark 版本，切換裝飾 ring，確認背景階差與 shadow 足以呈現層級。
+
+<AnchorAliases ids={["drawer-question"]} />
+
+Drawer 使用 `bg-card` 的關鍵理由是 peek 的生命週期連續：Drawer 收合時與頁面 panel/header 同色，展開後仍維持同一表面角色。改用 `bg-background` 雖會讓內部 card 自然浮起，但破壞 peek 與頁面表面的連續性；內部同色元素改由 D5 的 shadow 規則處理。`AlertDialogContent` 因此由 `bg-background` 改為 `bg-card`。
+
 <DesignMockup />
