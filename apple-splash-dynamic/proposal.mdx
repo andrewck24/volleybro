@@ -37,4 +37,52 @@ The nine Apple PWA splash images are hand-exported PNGs from April 2024 that no 
   - Modified: `src/app/layout.tsx`
   - Removed: `public/apple-splash/750x1334_2x.png`, `public/apple-splash/828x1792_2x.png`, `public/apple-splash/1080x1920_3x.png`, `public/apple-splash/1125x2436_3x.png`, `public/apple-splash/1170x2532_3x.png`, `public/apple-splash/1179x2556_3x.png`, `public/apple-splash/1242x2688_3x.png`, `public/apple-splash/1284x2778_3x.png`, `public/apple-splash/1290x2796_3x.png`
 
+<AnchorAliases ids={["approved-mockup", "decisions"]} />
+
+## Approved visual and implementation decisions
+
+The approved draft is a bare `V` reconstructed from two Saira Stencil One glyph paths. The arms use independent ivory and coral fills on `--primary`; the paths are embedded, so runtime font loading is unnecessary. The SVG below is the approved 25% size specimen.
+
+| Decision                                                        | Benefit                                                                                                | Trade-off                                                                                |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Generate with `next/og` `ImageResponse`                         | No dependency, build step, or stored PNGs; the splash follows the current primary color.               | iOS fetches the image online at install time; this is acceptable with immutable caching. |
+| Parse size from a route segment against a fixed list            | One route supports all 15 devices; unsupported sizes return 404.                                       | Extra path segments are parsed loosely; this is non-security relevant.                   |
+| Draw the `V` as two inline SVG paths                            | No runtime font dependency; each arm can use its own color; mark size is 25% of the shorter dimension. | Re-extract path data if the glyph changes.                                               |
+| Use one 15-device configuration for registration and validation | The layout's startup image list and supported route sizes cannot drift.                                | Adding a device requires updating `devices.ts`.                                          |
+
+<AnchorAliases ids={["risks"]} />
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "iOS fetches the splash online at install time",
+      severity: "info",
+      mitigation:
+        "Every response uses Cache-Control: public, max-age=31536000, immutable.",
+    },
+    {
+      name: "The primary color is hardcoded in the renderer",
+      severity: "info",
+      mitigation:
+        "Satori cannot read CSS variables; the value must be kept aligned with --primary.",
+    },
+    {
+      name: "Size parsing accepts extra path segments",
+      severity: "ok",
+      mitigation:
+        "Accepted: the worst case is returning an already-supported image size; this is not security-sensitive.",
+    },
+  ]}
+/>
+
+<AnchorAliases ids={["implementation-contract"]} />
+
+## Implementation contract
+
+- `src/app/apple-splash/[size]/route.tsx` returns an `ImageResponse` at the requested dimensions, or 404 for unsupported sizes.
+- `src/app/apple-splash/devices.ts` exports the 15 device entries and `isSupportedSize(w, h)`.
+- `src/app/layout.tsx` builds `appleWebApp.startupImage` from that shared list; it does not register static PNG URLs.
+
 <DesignMockup />
