@@ -8,4 +8,4 @@ Read [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, revie
 - [`CODING_STANDARDS.md`](CODING_STANDARDS.md) — the judgement rules code review applies.
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — what to test at which layer.
 - [`docs/maintenance-policy.md`](docs/maintenance-policy.md) — dependency and deprecation policy.
-- [`docs/design-system.md`](docs/design-system.md) — colour and elevation tokens.
+- [`DESIGN.md`](DESIGN.md) — colour and elevation tokens.

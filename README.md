@@ -164,7 +164,7 @@ src/
 └── hooks/            # Shared React hooks
 ```
 
-Further reading: [`docs/design-system.md`](./docs/design-system.md) · [`docs/testing-strategy.md`](./docs/testing-strategy.md)
+Further reading: [`DESIGN.md`](./DESIGN.md) · [`docs/testing-strategy.md`](./docs/testing-strategy.md)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

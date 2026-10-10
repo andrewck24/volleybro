@@ -2,8 +2,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-
-/* experimental: ring technique - inset ring replaces border */
 const alertVariants = cva(
   "relative flex w-full flex-col gap-2 rounded-md px-4 py-3 text-sm ring-1 ring-inset [&>svg]:absolute [&>svg]:top-4 [&>svg]:left-4 [&>svg]:size-4 [&>svg]:text-foreground [&>svg+div]:translate-y-[-3px] [&>svg~*]:pl-7",
   {

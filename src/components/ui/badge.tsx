@@ -2,8 +2,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-
-/* experimental: ring technique - ring replaces border on outline variant */
 const badgeVariants = cva(
   "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold transition-colors focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden [&>svg]:size-4",
   {

@@ -1,5 +1,5 @@
 /* The landing's court-plan world: tokens, layers, type floors and contrast
-   are specified in docs/design-system.md and ADR-0106. */
+   are specified in DESIGN.md and ADR-0106. */
 
 .landing {
   --court-line: #fff;
