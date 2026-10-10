@@ -22,19 +22,31 @@ VolleyBro installs as a standalone PWA (`@serwist/turbopack`). These are the bou
 - The landing page at `/` renders `StatusBarColor` with the teal `--free-zone` (`src/app/page.tsx`), and sets its own `viewport.themeColor` for first paint, so its status bar follows the in-app theme too.
 - Before hydration, the root `viewport.themeColor` supplies the light and dark `--background` values by system colour scheme; until `StatusBarColor` mounts, a route whose colour differs, or an in-app theme that differs from the system's, can show the wrong colour briefly.
 
+## Status bar and launch surfaces
+
+The standalone PWA uses an opaque status bar (`statusBarStyle: "default"`, ADR-0068): page content never draws under it, because iOS 26 and later blur the band below a status bar that content sits under. The status bar takes its colour from `theme-color`, which each route layout sets through `StatusBarColor` from the surface its header sits on:
+
+- Auth routes use `--color-primary` to match their brand ground.
+- Game routes (overview, sets, recording) use `--color-card` to match their raised headers; the declaration lives in `app/game/layout.tsx`.
+- Tab and workspace routes use `--color-background`. They declare it too: the root `theme-color` can only follow the system colour scheme, not the theme chosen in the app, so it serves first paint alone.
+
+`StatusBarColor` resolves the token against the current theme and rewrites `theme-color` when the user switches between light and dark. It also sets `document.body.style.backgroundColor` to the same token, so installs added before ADR-0068 and still on `black-translucent` keep their colours. That backdrop is not the source of truth for page or surface backgrounds and does not create a fourth layer: page content still uses `bg-background`, raised surfaces still use `bg-card`, and `accent` remains hover/highlight only.
+
+Overlay scrims do not use the status bar colour or the body backdrop. They use `inset-0` to cover the full web content viewport and leave any iOS-reserved status-bar region to system composition. This avoids a second background side effect whose timing or opacity can drift from the scrim; on affected WebKit versions, DOM content cannot paint beyond the viewport boundary.
+
+The PWA manifest `background_color` must match the brand `--primary` teal (`#10687e`), the same field the iOS launch screens use — Chrome composes the Android splash from this color plus the maskable icon (whose own field is the same teal), so the splash reads as a bare V on brand ground rather than a near-white frame. This does not replace Apple's `apple-touch-startup-image` handling. The executable guard is `src/app/apple-splash/__tests__/manifest.test.ts`. It only colours that launch splash: it is unrelated to the status bar colour each route sets through `StatusBarColor`.
+
 ## Constraints
 
-- The manifest's `background_color` must match the brand `--primary` teal (`#10687e`), the same value the iOS launch screens use. Chrome composes the Android install splash from this field plus the maskable icon's own background (the same teal), so the splash reads as a bare mark on brand ground rather than a near-white frame. `src/app/apple-splash/__tests__/manifest.test.ts` pins this value. It only colours the Android launch splash and is unrelated to the status bar colour `StatusBarColor` writes per route.
 - Every route group, the landing included, renders `StatusBarColor`, background included: the root `theme-color` can only follow the system colour scheme, not the theme chosen in the app. A root-level default instance would not work either — React runs a child layout's effect before its parent's, so the root instance would override the route's colour.
 - `StatusBarColor` owns a separate meta rather than editing the viewport's, because Next.js re-renders the viewport metas on client navigation; and it resolves the colour from `<html>`, because `body`'s `transition-colors` reports mid-fade values.
-- The `html`/`body` backdrop follows the Design System's no-fourth-layer rule (`docs/design-system.md`, PWA Status Bar Color).
+- The `html`/`body` backdrop follows the Design System's no-fourth-layer rule ([Design System — Elevation & Depth](/design-system/elevation-depth)).
 - A rendering change to the generated splash requires bumping `SPLASH_VERSION` in the same change — otherwise the new rendering is masked by the immutable cache header at every layer that isn't a fresh iOS home-screen add.
 - `reloadOnOnline` staying off is app-wide, not route-scoped: the provider mounts exactly once in the root layout, so there is no per-route override point without adding a second provider instance.
 
 ## Known gaps
 
 - Switching tabs still shows the Liquid Glass blur (see ADR-0068) briefly during the view transition, because the header slides with the tab content.
-- The manifest `background_color`/splash-color relationship and the status bar colour rules are also documented in `docs/design-system.md` (PWA Status Bar Color). Moving that documentation here fully is a separate decision the main session has not taken; until then both sets of rules live in both places.
 - Caching boundaries (`NetworkOnly` on auth routes, `defaultCache` for everything else) are held by the explicit matcher list in `src/app/sw.ts` rather than by a naming convention — a new auth-adjacent route that leaks session state into cache would not be caught automatically.
 
 ## Implemented decisions

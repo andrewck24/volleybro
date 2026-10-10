@@ -7,8 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// Section landing page for /design-system. The rendered source of truth for
-// VolleyBro's visual language — supersedes the prose in docs/design-system.md.
 const sections = [
   {
     href: "/design-system/brand",
@@ -50,14 +48,6 @@ const sections = [
 export default function DesignSystemOverview() {
   return (
     <>
-      <h1>VolleyBro Design System</h1>
-      <p className="text-muted-foreground">
-        The shared visual language and building blocks behind VolleyBro. Every
-        surface is driven by design tokens, so colors, spacing, and typography
-        stay consistent across light and dark themes. This section renders the
-        real app tokens and rules — it is the source of truth that supersedes
-        the prose in <code>docs/design-system.md</code>.
-      </p>
       <h2 id="sections">Sections</h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {sections.map((s) => (

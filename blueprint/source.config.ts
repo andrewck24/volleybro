@@ -1,9 +1,11 @@
 import {
+  applyMdxPreset,
   defineCollections,
   defineDocs,
   defineConfig,
 } from "fumadocs-mdx/config";
 import { z } from "zod";
+import { designSections } from "./src/lib/design-sections";
 
 // A meta collection matches every JSON under its directory by default, which
 // would index each decision and implementation-slice record as navigation
@@ -36,6 +38,14 @@ export const { docs: featureDocs, meta: featureMeta } = defineDocs({
   dir: "content/features",
   docs: mdxOnly,
   meta: metaFiles,
+});
+
+export const designDocument = defineCollections({
+  type: "doc",
+  dir: "..",
+  files: ["DESIGN.md"],
+  schema: z.object({}),
+  mdxOptions: applyMdxPreset({ remarkPlugins: [designSections] }),
 });
 
 export default defineConfig();

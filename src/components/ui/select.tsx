@@ -25,7 +25,6 @@ const SelectTrigger = ({
   <SelectPrimitive.Trigger
     data-slot="SelectTrigger"
     className={cn(
-      /* experimental: ring technique - inset ring replaces border */
       "flex h-9 w-full items-center justify-between rounded-md bg-transparent px-3 py-2 text-lg whitespace-nowrap shadow-xs ring-1 ring-foreground/10 ring-inset placeholder:text-muted-foreground focus:ring-1 focus:ring-ring focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className,
     )}

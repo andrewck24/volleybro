@@ -1,7 +1,3 @@
-// Tailwind v4 spacing: every step is n × 0.25rem (4px at the root font size),
-// used via pure-number utilities (p-2, gap-4, pb-21…) — no bracket syntax.
-// Values rendered as literal px bars so the scale is theme-independent.
-
 const scale = [
   { step: "0.5", rem: "0.125rem", px: 2 },
   { step: "1", rem: "0.25rem", px: 4 },
@@ -37,13 +33,6 @@ const appValues = [
 export default function SpacingPage() {
   return (
     <div>
-      <h1>Spacing</h1>
-      <p>
-        Spacing follows the Tailwind v4 scale — every step is{" "}
-        <code>n × 0.25rem</code> (4px). Always use the pure-number utilities (
-        <code>p-2</code>, <code>gap-4</code>, <code>pb-21</code>), never the{" "}
-        <code>p-[?px]</code> bracket form.
-      </p>
       <h2 id="scale">Scale</h2>
       <div
         style={{

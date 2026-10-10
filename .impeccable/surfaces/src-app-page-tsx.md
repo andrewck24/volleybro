@@ -13,7 +13,7 @@ Audience and job: sideline recorders of school and amateur club teams (see PRODU
 
 Constraints: zh-TW only; app fonts only (Saira, Noto Sans TC; Saira Stencil One as already used by the V mark); no JS animation library (ADR-0104); mobile-first on old iPhones; WCAG AA (text on the coral court uses `--court-foreground`; near-white on coral fails at ~2.4:1); no gradients, glow or wood-grain texture; glass only on floating chrome.
 
-Design authority: until the DESIGN.md migration, the layer, radius and type rules live in ADR-0106 and `docs/design-system.md`; this brief records only the surface's direction and the developer's decisions.
+Design authority: shared layer, radius and type rules live in `DESIGN.md`; ADR-0106 records Landing-specific layering; this brief records only the surface's direction and the developer's decisions.
 
 ## Direction contract
 

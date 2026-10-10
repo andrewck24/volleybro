@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0117",
+  "title": "DESIGN.md is the design entry point, with supplements only when needed",
+  "capabilities": ["platform/blueprint"],
+  "context": "ADR-0108 makes a single root document the design authority and the sidecar a generated artifact. Detailed guidance may eventually make every agent read material irrelevant to its task. Mandatory splitting would add navigation and maintenance cost while the document is still small.",
+  "decision": "Root DESIGN.md is the authoritative entry point for the design system. Keep the rules in that file while it remains concise. Split a topic only when its detail creates a meaningful reading burden and can be loaded independently; DESIGN.md must identify each supplement, its scope, and when to read it. The entry point and its explicitly referenced supplements together own the rules, without duplicate editable definitions. .impeccable/design.json remains a committed generated artifact derived from those sources, not an independent authority. Blueprint presents the authoritative sources and live samples; docs/design-system.md is migrated and deleted.",
+  "alternatives": [
+    {
+      "option": "Require every rule and detail to remain in one file",
+      "reason": "As the document grows, agents must load unrelated details for narrow tasks."
+    },
+    {
+      "option": "Split every topic into a supplement immediately",
+      "reason": "Adds indirection and maintenance cost without reducing a demonstrated reading burden."
+    },
+    {
+      "option": "Author additional rules only in the sidecar",
+      "reason": "Makes the generated artifact a second editable authority."
+    }
+  ],
+  "consequences": [
+    "Agents read DESIGN.md first and load only the supplements required by its reading instructions and their task.",
+    "Markdown links are references, not automatic imports; conditional reading instructions must be explicit.",
+    "The sidecar must be regenerated from the authoritative sources when they change."
+  ],
+  "originChange": "design-authority"
+}

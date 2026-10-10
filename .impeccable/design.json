@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-10T10:44:29.720Z",
+  "title": "Design System: VolleyBro",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "displayName": "primary",
+        "canonical": "hsl(192, 77.46%, 27.84%)",
+        "tonalRamp": [
+          "hsl(192 77.46% 15%)",
+          "hsl(192 77.46% 25%)",
+          "hsl(192 77.46% 35%)",
+          "hsl(192 77.46% 45%)",
+          "hsl(192 77.46% 55%)",
+          "hsl(192 77.46% 65%)",
+          "hsl(192 77.46% 80%)",
+          "hsl(192 77.46% 95%)"
+        ]
+      },
+      "court": {
+        "displayName": "court",
+        "canonical": "hsl(13.01, 96.51%, 66.27%)",
+        "tonalRamp": [
+          "hsl(13.01 96.51% 15%)",
+          "hsl(13.01 96.51% 25%)",
+          "hsl(13.01 96.51% 35%)",
+          "hsl(13.01 96.51% 45%)",
+          "hsl(13.01 96.51% 55%)",
+          "hsl(13.01 96.51% 65%)",
+          "hsl(13.01 96.51% 80%)",
+          "hsl(13.01 96.51% 95%)"
+        ]
+      },
+      "destructive": {
+        "displayName": "destructive",
+        "canonical": "hsl(13, 85%, 42%)",
+        "tonalRamp": [
+          "hsl(13 85% 15%)",
+          "hsl(13 85% 25%)",
+          "hsl(13 85% 35%)",
+          "hsl(13 85% 45%)",
+          "hsl(13 85% 55%)",
+          "hsl(13 85% 65%)",
+          "hsl(13 85% 80%)",
+          "hsl(13 85% 95%)"
+        ]
+      },
+      "away": {
+        "displayName": "away",
+        "canonical": "hsl(13, 60%, 40%)",
+        "tonalRamp": [
+          "hsl(13 60% 15%)",
+          "hsl(13 60% 25%)",
+          "hsl(13 60% 35%)",
+          "hsl(13 60% 45%)",
+          "hsl(13 60% 55%)",
+          "hsl(13 60% 65%)",
+          "hsl(13 60% 80%)",
+          "hsl(13 60% 95%)"
+        ]
+      },
+      "error": {
+        "displayName": "error",
+        "canonical": "hsl(13, 60%, 40%)",
+        "tonalRamp": [
+          "hsl(13 60% 15%)",
+          "hsl(13 60% 25%)",
+          "hsl(13 60% 35%)",
+          "hsl(13 60% 45%)",
+          "hsl(13 60% 55%)",
+          "hsl(13 60% 65%)",
+          "hsl(13 60% 80%)",
+          "hsl(13 60% 95%)"
+        ]
+      }
+    },
+    "breakpoints": [
+      { "name": "sm", "value": "40rem" },
+      { "name": "md", "value": "48rem" },
+      { "name": "lg", "value": "64rem" },
+      { "name": "xl", "value": "80rem" },
+      { "name": "2xl", "value": "96rem" }
+    ],
+    "shadows": [
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+        "purpose": "In-flow card and action separation."
+      },
+      {
+        "name": "shadow-md",
+        "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        "purpose": "Non-overlay floating surfaces."
+      }
+    ],
+    "motion": [
+      {
+        "name": "landing-entry-transform",
+        "value": "500ms",
+        "purpose": "Landing entry-row transform; landing scope only."
+      },
+      {
+        "name": "ease-landing",
+        "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Landing easing; landing scope only."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "button-primary",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
+      "html": "<button class=\"ds-button-primary\" type=\"button\">button-primary</button>",
+      "css": ".ds-button-primary{background:hsl(192, 77.46%, 27.84%);color:hsl(330, 10%, 96.08%);border-radius:6px;font-family:Saira, Noto Sans TC, sans-serif;font-size:0.875rem;font-weight:500;height:2.25rem;padding:0.5rem 0.875rem}"
+    },
+    {
+      "name": "button-destructive",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
+      "html": "<button class=\"ds-button-destructive\" type=\"button\">button-destructive</button>",
+      "css": ".ds-button-destructive{background:hsl(13, 85%, 42%);color:hsl(330, 10%, 96.08%);border-radius:6px;height:2.25rem;padding:0.5rem 0.875rem}"
+    },
+    {
+      "name": "button-court",
+      "kind": "button",
+      "refersTo": "button-court",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
+      "html": "<button class=\"ds-button-court\" type=\"button\">button-court</button>",
+      "css": ".ds-button-court{background:hsl(13.01, 96.51%, 66.27%);color:hsl(192 70% 8%);border-radius:6px;height:2.25rem;padding:0.5rem 0.875rem}"
+    },
+    {
+      "name": "input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
+      "html": "<input class=\"ds-input\" aria-label=\"Player name\" placeholder=\"Player name\" />",
+      "css": ".ds-input{background:transparent;color:hsl(0, 0%, 0%);border-radius:6px;height:2.25rem;padding:0.25rem 0.75rem}"
+    },
+    {
+      "name": "card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
+      "html": "<div class=\"ds-card\">card</div>",
+      "css": ".ds-card{background:hsl(330, 10%, 98.45%);color:hsl(0, 0%, 0%);border-radius:0.5rem;padding:0.5rem 1rem}"
+    },
+    {
+      "name": "chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
+      "html": "<div class=\"ds-chip\">chip</div>",
+      "css": ".ds-chip{background:hsl(230, 18%, 93.8%);color:hsl(0, 2.04%, 9.61%);border-radius:6px;padding:0.125rem 0.5rem}"
+    },
+    {
+      "name": "navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Static light-theme token specimen; interaction rules and adopted future sizes are documented separately.",
+      "html": "<nav class=\"ds-navigation\">Team · Record · Stats</nav>",
+      "css": ".ds-navigation{background:hsl(230, 20%, 95.6%);color:hsl(192, 77.46%, 27.84%);border-radius:6px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Sideline Tool",
+    "overview": "Calm, clear and efficient. A recorder works one-handed with divided attention; scores and the next action lead, while supporting detail stays quiet. Teal anchors the interface and coral makes the court recognisable. Tonal surfaces, restrained shadows and compact, legible controls keep the hierarchy clear.",
+    "keyCharacteristics": ["Calm", "Clear", "Efficient"],
+    "dos": [
+      "Do prioritise the score and next action over decoration; see Layout.",
+      "Do use semantic color pairs, verify contrast in both themes and provide non-color cues.",
+      "Do support text enlargement and readable materials, including reduced-transparency and increased-contrast preferences.",
+      "Do respect reduced motion by showing the static end state. HIG Motion also permits suitable fades; VolleyBro adopts the stricter default.",
+      "Do adopt HIG gradually as a page is redesigned.",
+      "Do keep route-specific strategy in its surface brief."
+    ],
+    "donts": [
+      "Don't animate layout properties; custom PWA motion uses transform and opacity only.",
+      "Don't reuse the destructive token family for opponent data or errors; this does not prohibit red error feedback.",
+      "Don't add a decorative container ring to express elevation; preserve functional accessibility edges and keyboard focus.",
+      "Don't use accent as a page or resting surface background.",
+      "Don't present the pending button-size rules as already implemented."
+    ]
+  }
+}

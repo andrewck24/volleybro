@@ -24,7 +24,6 @@ const ToastViewport = ({
 );
 
 const toastVariants = cva(
-  /* experimental: ring technique - outer ring replaces border */
   "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md p-4 pr-6 shadow-lg ring-1 ring-foreground/10 transition-all data-[state=closed]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:animate-in data-[state=open]:slide-in-from-top-full data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=end]:animate-out data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none sm:data-[state=open]:slide-in-from-bottom-full",
   {
     variants: {
@@ -60,7 +59,6 @@ const ToastAction = ({
   <ToastPrimitives.Action
     data-slot="ToastAction"
     className={cn(
-      /* experimental: ring technique */
       "inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-transparent px-3 text-sm font-medium ring-1 ring-foreground/10 transition-colors hover:bg-secondary focus:ring-1 focus:ring-ring focus:outline-hidden disabled:pointer-events-none disabled:opacity-50",
       className,
     )}

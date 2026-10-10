@@ -8,6 +8,7 @@ import { resolveScopeBase } from "./change-page.js";
 export const LANE_COMMANDS = {
   static: [
     "pnpm format:check",
+    "node scripts/design-document.js --check",
     "pnpm check:workflow",
     "pnpm typecheck:strict",
     "pnpm lint",
