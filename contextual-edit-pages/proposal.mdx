@@ -69,4 +69,122 @@ Edit pages (team edit, player create/edit, lineup) currently mix responsibilitie
     - `src/hooks/use-on-leave-page.js` (dead code; replaced by `use-leave-page-warning.ts`)
     - `src/app/(protected)/` (entire directory; renamed to `(tabs)`)
 
-<DesignMockup />
+## Context
+
+The `(protected)` route group contains the tab shell, but edit pages render there as parallel route slots with the bottom navigation still visible. Team/player forms also use raw `useState` and manual Zod errors, unlike the existing game forms, which use React Hook Form.
+
+<AnchorAliases ids={["routing-architecture"]} />
+
+## Routing architecture
+
+| Approach                                                     | Advantages                                                                                                                                                  | Trade-offs                                                                                                  |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Intercepting routes with the `@modal` parallel slot (chosen) | URL updates; browser back, direct links, and sharing work; hard navigation falls through to the workspace route; no separate modal/workspace routing logic. | Next.js parallel/intercepting routes have cache and hard-refresh edge cases; each slot needs `default.tsx`. |
+| Inline modal without URL changes (rejected)                  | Simpler; no intercepting routes or parallel slots.                                                                                                          | Breaks browser back and direct links, and makes navigation state harder to test.                            |
+
+<AnchorAliases ids={["modal-component"]} />
+
+## Modal component
+
+| Approach                          | Advantages                                                                                                  | Trade-offs                                                                    |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Existing shadcn `Dialog` (chosen) | Existing styles support desktop modal and mobile bottom sheet; maximize fits its header; no new dependency. | No significant drawback identified.                                           |
+| `Sheet` (rejected)                | Explicit bottom-sheet semantics on mobile.                                                                  | Always enters from a side on desktop; maximize is less natural in its header. |
+
+<AnchorAliases ids={["form-library"]} />
+
+## Form library
+
+| Approach                                           | Advantages                                                                                                         | Trade-offs                                                                                              |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| React Hook Form with `zodResolver` (chosen)        | Removes manual Zod error state; reuses `FormProvider`, `FormField`, and `FormMessage`; consistent with game forms. | Existing team/player forms need migration; default `onSubmit` mode preserves current validation timing. |
+| Raw `useState` plus manual Zod handling (rejected) | No migration.                                                                                                      | Error handling grows with each field and remains inconsistent with game forms.                          |
+
+<AnchorAliases ids={["key-implementation-contracts"]} />
+
+## Implementation contracts
+
+### Maximize flow
+
+<AnchorAliases ids={["maximize-flow"]} />
+
+`EditDialogContainer` calls `suppressLeaveWarning()` and then `window.location.assign(fullPageHref)`. The workspace route mounts and restores the same draft from `sessionStorage`.
+
+### useFormDraft merge strategy
+
+<AnchorAliases ids={["use-form-draft-merge-strategy"]} />
+
+Merge persisted draft over caller `defaultValues` (`{ ...defaultValues, ...draft }`) because `JSON.stringify` drops `undefined`; write only when `form.formState.isDirty` so pristine defaults are not persisted.
+
+### Dialog header scroll containment
+
+<AnchorAliases ids={["dialog-header-scroll-containment"]} />
+
+Only the form body uses `overflow-y-auto`; the header stays naturally at the top of `DialogContent`, without `sticky` positioning.
+
+### Workspace wrappers co-location rule
+
+<AnchorAliases ids={["workspace-wrappers-co-location-rule"]} />
+
+Co-locate each `*Workspace` wrapper beside its base form (for example, `EditTeamWorkspace` in `src/components/team/form.tsx`); do not add a separate `workspace/` directory.
+
+<AnchorAliases ids={["key-scenarios"]} />
+
+## Key scenarios
+
+<Scenario
+  given="The user is in the (tabs) layout and soft-navigates to /team/{teamId}/edit"
+  when="The @modal intercepting route captures the navigation"
+  then="The team form opens in a Dialog over the tab content and the URL becomes /team/{teamId}/edit."
+/>
+
+<Scenario
+  given="The user partially fills an edit Dialog and selects maximize"
+  when="The handler suppresses the leave warning and hard-navigates to /team/{teamId}/edit"
+  then="No beforeunload prompt appears; the workspace form restores the draft from sessionStorage."
+/>
+
+<Scenario
+  given="The user has unsaved changes and closes the Dialog"
+  when="form.formState.isDirty is true"
+  then="An AlertDialog asks for confirmation; confirming clears the draft and closes, cancelling leaves the Dialog open."
+/>
+
+<Scenario
+  given="A form with optional empty fields unmounts and remounts"
+  when="useFormDraft merges the draft over defaultValues"
+  then="The baseline keeps its full field shape, isDirty stays false, and no discard prompt appears."
+/>
+
+<AnchorAliases ids={["risks"]} />
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "Intercepting routes and parallel slots have edge cases",
+      severity: "warning",
+      mitigation:
+        "Each slot includes default.tsx returning null; workspace routes provide the hard-refresh fallback.",
+    },
+    {
+      name: "Renaming the route group may break absolute imports",
+      severity: "info",
+      mitigation:
+        "Route-group names are absent from URLs/import paths; only the local protected layout references its own tree.",
+    },
+    {
+      name: "Two tabs might collide on a sessionStorage draft key",
+      severity: "info",
+      mitigation:
+        "sessionStorage is scoped to a browser tab, so separate tabs have separate stores.",
+    },
+    {
+      name: "RHF changes validation timing and error display",
+      severity: "warning",
+      mitigation:
+        "Default onSubmit mode matches existing behavior, and FormLabel already renders FormMessage inline.",
+    },
+  ]}
+/>
