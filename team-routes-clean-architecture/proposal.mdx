@@ -71,4 +71,102 @@ This is the root cause of the reported defects: `PATCH /api/teams/undefined/line
     - src/infrastructure/db/repositories/**tests**/game.repository.test.ts
   - Removed: (none)
 
-<DesignMockup />
+<AnchorAliases ids={["context"]} />
+
+## Context
+
+Mongoose 9.4.1 behavior confirmed the failure: lineup player subschemas disable their own `_id`, then declare the player reference on an explicit `_id` ObjectId path. The `id` virtual is read-only, so writes silently drop the reference; the game read path only maps the top-level `_id`, leaving nested references unmapped.
+
+<AnchorAliases ids={["decision-rename"]} />
+
+## Decision: persist the reference as `playerId`
+
+| Approach                                     | Advantages                                                                                                                  | Trade-offs                                                                                    |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Rename `_id` to nullable `playerId` (chosen) | Avoids the read-only virtual collision; represents empty slots explicitly; follows existing ObjectId reference conventions. | Requires a one-time migration; shared lineup schema changes team and game documents together. |
+| Transform `_id` in `toJSON`                  | Avoids a schema rename.                                                                                                     | Creates a second, fragile nested mapping path and does not fix dropped writes.                |
+| Store a string `id`                          | Avoids ObjectId conversion.                                                                                                 | Diverges from reference conventions and loses ObjectId validation/join semantics.             |
+| Keep `_id`                                   | No migration.                                                                                                               | Cannot represent an empty reference and preserves the write-drop bug.                         |
+
+<AnchorAliases ids={["decision-mapping"]} />
+
+## Repository mapping
+
+Repositories are the sole translation boundary: persisted `playerId: ObjectId | null` maps to domain `id: string | null` on reads, and domain `id` maps back to `playerId` on writes. Domain entities, Zod schemas, Redux, and React continue to use `id` only.
+
+<Scenario
+  given="A lineup slot is stored with playerId ObjectId 64b000000000000000000001"
+  when="The team repository reads the team document"
+  then="The domain receives id: '64b000000000000000000001'; playerId does not leak into the domain."
+/>
+
+<Scenario
+  given="A client submits an empty lineup slot with id: null"
+  when="The team repository persists the lineup"
+  then="It stores { playerId: null, position } as an object, never a bare null array element."
+/>
+
+<AnchorAliases ids={["decision-persist"]} />
+
+`ITeamRepository.updateLineups(teamId, lineups)` maps each slot, uses `findByIdAndUpdate(teamId, { lineups }, { new: true })`, throws `NotFoundError` if the team is absent, and returns `toTeam(doc).lineups`. `removePlayerFromLineups` matches by `playerId` rather than `_id`.
+
+<AnchorAliases ids={["decision-centralize"]} />
+
+The game repository's `toGame` maps embedded references in set lineups, player/staff snapshots, rally details, and substitution `players.in/out` to domain `id`. Its `toGameDoc` mapper converts these references back on `create` and `update`; game use cases and frontend consumers remain unchanged.
+
+<Scenario
+  given="A game has a home starting slot with playerId ObjectId 64b000000000000000000001"
+  when="The game repository reads the document"
+  then="sets[0].lineups.home[0] exposes id: '64b000000000000000000001'."
+/>
+
+<AnchorAliases ids={["decision-route"]} />
+
+## Team route boundary
+
+`GET`/`PATCH /api/teams/[teamId]` and `PATCH /api/teams/[teamId]/lineups` delegate through thin controllers to `GetTeamUseCase`, `UpdateTeamUseCase`, and `UpdateTeamLineupsUseCase`, following `createTeamController` and registering the corresponding DI symbols. Authorization and input validation stay in the route layer.
+
+<AnchorAliases ids={["decision-migration"]} />
+
+## Audit-first migration
+
+The dry-run audit counts legacy `_id` references, resolvable references, and empty slots without writing. The migration then renames `_id` to `playerId`, normalizes empty slots to `{ playerId: null, position }`, is idempotent, and leaves already-correct `substitution.players.in/out` unchanged.
+
+<Scenario
+  given="A team lineup slot still uses the legacy _id path"
+  when="The migration runs twice"
+  then="The first run moves it to playerId; the second run reports zero modifications."
+/>
+
+<AnchorAliases ids={["risks"]} />
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "Production data may already have lost references",
+      severity: "warning",
+      mitigation:
+        "Run the dry-run audit first and base migration decisions on observed data.",
+    },
+    {
+      name: "Renaming the shared lineup schema affects team and game persistence together",
+      severity: "warning",
+      mitigation:
+        "Centralize both repository mappings and migrate both document shapes in one idempotent script.",
+    },
+    {
+      name: "Thin pass-through team use cases add ceremony",
+      severity: "info",
+      mitigation:
+        "Accepted for consistent Clean Architecture layering; three small files mirror CreateTeamUseCase.",
+    },
+    {
+      name: "Mocked repository tests do not exercise real Mongoose subdocument behavior",
+      severity: "info",
+      mitigation:
+        "Explicit mappers avoid dependence on Mongoose defaults; manual verification covers the persistence round-trip.",
+    },
+  ]}
+/>
