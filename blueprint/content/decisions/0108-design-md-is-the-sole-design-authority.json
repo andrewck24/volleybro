@@ -19,5 +19,6 @@
     "A later shard migrates the document and removes docs/design-system.md.",
     ".impeccable/design.json, the sidecar design tooling reads, is generated from DESIGN.md and committed, so a stale sidecar is a review finding."
   ],
-  "originChange": "design-authority"
+  "originChange": "design-authority",
+  "supersededBy": "0117"
 }
