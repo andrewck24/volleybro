@@ -1,5 +1,25 @@
 # VolleyBro CHANGELOG
 
+## [0.17.0](https://github.com/andrewck24/volleybro/compare/v0.16.3...v0.17.0) 2026-10-10
+
+### Changed
+
+- Redesign the landing page as a volleyball court plan: a live rally feed in the hero, a four-step recording walkthrough on the real recording components, a stats court you can swipe through, a list of the seven supporting features, and a closing call to action on the court.
+- Match the phone status bar to the landing page's background in light and dark mode.
+
+### Removed
+
+- Remove the highlights and feature showcase sections, replaced by the recording walkthrough and stats court.
+
+### Fixed
+
+- Make error text and the leave-team, remove-player and transfer-ownership headings readable in light and dark mode, and show error alerts and toasts on a light tint with red text.
+- Keep destructive buttons a vivid red, and draw opponent and loss marks and badges in a muted red with legible white text.
+- Make teal text and icons readable on dark cards, including the rally list plus and minus icons, navigation labels, tabs and links.
+- Make secondary grey text readable on muted backgrounds in dark mode.
+- Make the radio button outline visible in dark mode.
+- Show the selected opponent-move button on the recording panel, the opponent stat bar and the libero badge in the court coral with dark text.
+
 ## [0.16.3](https://github.com/andrewck24/volleybro/compare/v0.16.2...v0.16.3) 2026-10-06
 
 ### Security
