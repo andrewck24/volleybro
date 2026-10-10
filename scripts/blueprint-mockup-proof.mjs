@@ -61,10 +61,40 @@ const exportedPage = path.join(
   `${input.slug}.html`,
 );
 const staticMarkup = await readFile(exportedPage, "utf8");
-assert.ok(
-  staticMarkup.includes("載入設計稿…"),
-  "the exact exported route must contain the client-only MockupFrame loader",
+const modeMatch = staticMarkup.match(
+  /data-blueprint-mockup-mode="([a-z0-9-]+)"/u,
 );
+assert.ok(
+  modeMatch,
+  "the exact exported route must declare its mockup render mode",
+);
+const renderMode = modeMatch[1];
+const expectedFrames =
+  {
+    "client-frame-1": 1,
+    "client-frame-2": 2,
+    "client-fallback": 1,
+  }[renderMode] ?? 0;
+assert.ok(
+  [
+    "client-frame-1",
+    "client-frame-2",
+    "client-flowchart",
+    "client-fallback",
+    "none",
+    "static-content",
+    "static-svg",
+  ].includes(renderMode),
+  `unsupported mockup render mode: ${renderMode}`,
+);
+assert.equal(
+  staticMarkup.split("載入設計稿…").length - 1,
+  expectedFrames,
+  "the exact exported route must emit only the client loaders its render mode requires",
+);
+if (renderMode === "client-flowchart") {
+  assert.match(staticMarkup, /<svg[^>]+role="img"/u);
+}
 assert.ok(
   staticMarkup.includes(`data-blueprint-build-identity="${expectedIdentity}"`),
   "the exact exported route must carry the requested source, integration, store and input identity",
@@ -73,6 +103,11 @@ assert.equal(
   staticMarkup.includes('data-blueprint-mockup-mounted="true"'),
   false,
   "the mount marker must be client-rendered, not present in static HTML",
+);
+assert.equal(
+  staticMarkup.includes('data-blueprint-render-error="true"'),
+  false,
+  "the exported route must not contain a caught server-render failure",
 );
 
 const requireFromCandidate = createRequire(
@@ -220,29 +255,54 @@ try {
     "the rendered route must match the validated build receipt",
   );
 
-  const mounted = page.locator('[data-blueprint-mockup-mounted="true"]');
-  await mounted.waitFor({ state: "attached", timeout: 20_000 });
-  assert.equal(
-    await mounted.count(),
-    1,
-    "MockupFrame must reach its mounted branch",
-  );
-  const loader = page.getByText("載入設計稿…", { exact: true });
-  await loader.waitFor({ state: "detached", timeout: 20_000 });
-  assert.equal(await loader.count(), 0, "the initial loader must disappear");
   await page.waitForLoadState("networkidle", { timeout: 20_000 });
+  if (expectedFrames > 0) {
+    const mounted = page.locator('[data-blueprint-mockup-mounted="true"]');
+    await mounted.first().waitFor({ state: "attached", timeout: 20_000 });
+    assert.equal(
+      await mounted.count(),
+      expectedFrames,
+      "each retained MockupFrame must reach its mounted branch",
+    );
+    const loader = page.getByText("載入設計稿…", { exact: true });
+    await loader.waitFor({ state: "detached", timeout: 20_000 });
+    assert.equal(await loader.count(), 0, "the initial loaders must disappear");
+    assert.equal(
+      await page
+        .getByText("此設計稿在此 checkout 中無法顯示", { exact: false })
+        .count(),
+      0,
+      "MockupFrame must not show its error fallback",
+    );
+  } else if (renderMode === "client-flowchart") {
+    const chart = page.locator(
+      '[data-blueprint-mockup-mode="client-flowchart"] svg[role="img"]',
+    );
+    await chart.waitFor({ state: "visible", timeout: 20_000 });
+  } else {
+    const region = page.locator("[data-blueprint-mockup-mode]");
+    assert.equal(
+      await region.getAttribute("data-blueprint-mockup-mode"),
+      renderMode,
+    );
+    if (renderMode === "static-svg") {
+      assert.ok(await region.locator("svg").count());
+    } else if (renderMode === "static-content") {
+      assert.ok(await region.locator("h2").count());
+    } else if (renderMode === "none") {
+      assert.equal(await region.locator(":scope > *").count(), 0);
+    }
+  }
   assert.equal(
-    await page
-      .getByText("此設計稿在此 checkout 中無法顯示", { exact: false })
-      .count(),
+    await page.locator('[data-blueprint-render-error="true"]').count(),
     0,
-    "MockupFrame must not show its error fallback",
+    "the route must not expose a caught static render failure",
   );
   assert.deepEqual(pageErrors, [], "the route must not emit JavaScript errors");
   assert.deepEqual(consoleErrors, [], "the route must not emit console errors");
 
   console.log(
-    `Client mockup mounted for ${expectedIdentity} at /changes/${input.slug}`,
+    `Mockup render mode ${renderMode} verified for ${expectedIdentity} at /changes/${input.slug}`,
   );
 } finally {
   await browser.close();

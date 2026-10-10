@@ -1,0 +1,49 @@
+---
+import { ClientRouter } from "astro:transitions";
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="en" class="font-sans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+        const getPreference = () => {
+          try {
+            return localStorage.getItem("theme") || "system";
+          } catch {
+            return "system";
+          }
+        };
+        const applyTheme = () => {
+          const preference = getPreference();
+          const theme =
+            preference === "light" || preference === "dark"
+              ? preference
+              : media?.matches
+                ? "dark"
+                : "light";
+          root.classList.remove("light", "dark");
+          root.classList.add(theme);
+        };
+
+        applyTheme();
+        media?.addEventListener("change", () => {
+          if (getPreference() === "system") applyTheme();
+        });
+        window.addEventListener("storage", (event) => {
+          if (event.key === "theme" || event.key === null) applyTheme();
+        });
+      })();
+    </script>
+    <ClientRouter />
+    <slot name="head" />
+  </head>
+  <body class="min-h-screen bg-background text-foreground">
+    <slot />
+  </body>
+</html>

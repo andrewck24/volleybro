@@ -56,8 +56,10 @@ const eslintConfig = defineConfig([
     ".agent/**",
     ".agents/**",
     ".claude/**",
-    // Build output, including nested apps (e.g. blueprint/.next)
+    // Build output and generated types, including nested apps (e.g. Blueprint)
     "**/.next/**",
+    "**/.astro/**",
+    "blueprint/dist/**",
     "**/out/**",
     "**/build/**",
     "**/.source/**", // Generated content types (fumadocs-mdx, e.g. blueprint/.source)

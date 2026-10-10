@@ -1,7 +1,7 @@
-"use client";
+import { Fragment } from "react";
+import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 
-import { transformerNotationDiff } from "@shikijs/transformers";
-import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import { parseAnnotatedDiff } from "@/lib/annotated-diff";
 
 interface AnnotatedDiffProps {
   /**
@@ -9,7 +9,7 @@ interface AnnotatedDiffProps {
    * plus ordinary language comments for any per-line notes.
    */
   code: string;
-  /** Shiki language for `code` (default "tsx"). */
+  /** Code language metadata (default "tsx"). */
   lang?: string;
   /**
    * Read `code` as a unified diff (leading `+`/`-`/space column) instead of
@@ -17,64 +17,41 @@ interface AnnotatedDiffProps {
    * a mode.
    */
   unified?: boolean;
+  /** HTML produced by the build-time Shiki renderer for static Astro output. */
+  highlightedHtml?: string;
 }
 
-const MARKS = { "+": "add", "-": "remove" } as const;
-
-// Plain code never qualifies, so a snippet shown without marks stays untouched.
-const looksUnified = (code: string) => {
-  if (code.includes("[!code")) return false;
-  const lines = code.split("\n").filter((line) => line !== "");
-  return (
-    lines.every((line) => /^[-+ ]/.test(line)) &&
-    lines.some((line) => /^[-+]/.test(line))
-  );
-};
-
-/**
- * Thin preset over fumadocs' DynamicCodeBlock: adds Shiki's official
- * transformerNotationDiff so lines marked `// [!code ++]` / `// [!code --]`
- * receive the `.diff.add` / `.diff.remove` classes that fumadocs' shiki.css
- * already styles (full-width tint + gutter symbol). Line notes are written as
- * normal code comments, so there is no separate annotations layer to maintain.
- *
- * A unified diff marks lines by a leading column instead, and is detected when
- * `unified` is omitted. The marker is stripped before highlighting so the body
- * keeps its own language, and fumadocs' `::before` restores the gutter symbol.
- */
-export function AnnotatedDiff({ code, lang, unified }: AnnotatedDiffProps) {
-  const marks = new Map<number, "add" | "remove">();
-  let body = code;
-
-  if (unified ?? looksUnified(code)) {
-    body = code
-      .split("\n")
-      .map((line, index) => {
-        const mark = MARKS[line[0] as keyof typeof MARKS];
-        if (!mark) return line;
-        marks.set(index + 1, mark);
-        return ` ${line.slice(1)}`;
-      })
-      .join("\n");
+export function AnnotatedDiff({
+  code,
+  lang = "tsx",
+  unified,
+  highlightedHtml,
+}: AnnotatedDiffProps) {
+  if (highlightedHtml) {
+    return <div dangerouslySetInnerHTML={{ __html: highlightedHtml }} />;
   }
 
+  const { lines } = parseAnnotatedDiff(code, unified);
+
   return (
-    <DynamicCodeBlock
-      lang={lang ?? "tsx"}
-      code={body}
-      options={{
-        themes: { light: "github-light", dark: "github-dark" },
-        transformers: [
-          transformerNotationDiff(),
-          {
-            name: "unified-diff",
-            line(node, line) {
-              const mark = marks.get(line);
-              if (mark) this.addClassToHast(node, `diff ${mark}`);
-            },
-          },
-        ],
-      }}
-    />
+    <CodeBlock allowCopy={false} data-language={lang}>
+      <Pre>
+        <code>
+          {lines.map(({ text, mark }, index) => (
+            <Fragment key={index}>
+              {index > 0 ? "\n" : null}
+              <span className={mark ? `line diff ${mark}` : "line"}>
+                {mark && (
+                  <span className="sr-only">
+                    {mark === "add" ? "Added line: " : "Removed line: "}
+                  </span>
+                )}
+                {text}
+              </span>
+            </Fragment>
+          ))}
+        </code>
+      </Pre>
+    </CodeBlock>
   );
 }

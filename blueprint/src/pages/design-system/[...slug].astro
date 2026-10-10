@@ -1,0 +1,90 @@
+---
+import { render } from "astro:content";
+import { Docs } from "../../components/docs";
+import Layout from "../../components/layout.astro";
+import { createBlueprintSources } from "../../lib/source";
+import { listChanges } from "../../lib/changes-index";
+import DesignSystemOverview, { toc as overviewToc } from "../../../content/design-system/index";
+import BrandPage, { toc as brandToc } from "../../../content/design-system/brand/index";
+import ColorPage, { toc as colorToc } from "../../../content/design-system/color/index";
+import TypographyPage, { toc as typographyToc } from "../../../content/design-system/typography/index";
+import SpacingPage, { toc as spacingToc } from "../../../content/design-system/spacing/index";
+import RadiusPage, { toc as radiusToc } from "../../../content/design-system/radius/index";
+import ElevationDepthPage, { toc as elevationDepthToc } from "../../../content/design-system/elevation-depth/index";
+import ComponentLibraryShowcase, { annotatedDiffCode, toc as componentsToc } from "../../../content/design-system/components/index";
+import { renderAnnotatedDiffHtml } from "../../lib/annotated-diff-html";
+
+const sources = await createBlueprintSources();
+const slug = (Astro.props as { slug: string }).slug;
+const designPage = sources.designPages.find((page) => page.slug === slug);
+if (!designPage) throw new Error(`Design System page not found: ${slug}`);
+
+export async function getStaticPaths() {
+  const { designPages } = await createBlueprintSources();
+  return designPages.map((page) => ({
+    params: { slug: page.slug || undefined },
+    props: { slug: page.slug },
+  }));
+}
+
+const { Content, headings } = await render(sources.designDocument);
+const showcaseToc = {
+  index: overviewToc,
+  brand: brandToc,
+  color: colorToc,
+  typography: typographyToc,
+  spacing: spacingToc,
+  radius: radiusToc,
+  "elevation-depth": elevationDepthToc,
+  components: componentsToc,
+}[designPage.showcase];
+if (!showcaseToc) throw new Error(`Design System showcase not found: ${designPage.showcase}`);
+let isInSelectedSection = false;
+const documentToc = headings.flatMap((heading) => {
+  if (heading.depth === 2) {
+    isInSelectedSection = designPage.sections.includes(heading.text);
+  }
+  return isInSelectedSection
+    ? [{ title: heading.text, url: `#${heading.slug}`, depth: heading.depth }]
+    : [];
+});
+const hasChanges = listChanges(sources.changes.getPages()).length > 0;
+const annotatedDiffHtml = designPage.showcase === "components"
+  ? await renderAnnotatedDiffHtml(annotatedDiffCode, "tsx")
+  : undefined;
+const escapeAttribute = (value: string) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+const visibleSectionFilters = designPage.sections
+  .map((section) => `:not([data-blueprint-design-section="${escapeAttribute(section)}"])`)
+  .join("");
+const sectionCss = `[data-blueprint-design-page="${escapeAttribute(slug)}"] section[data-blueprint-design-section]${visibleSectionFilters}{display:none}`;
+const pageToc = [...documentToc, ...showcaseToc];
+---
+
+<Layout>
+  <Fragment slot="head">
+    <title>{designPage.title} · Design System · Blueprint</title>
+    <meta name="description" content={designPage.description} />
+    <style is:inline set:html={sectionCss}></style>
+  </Fragment>
+  <Docs
+    client:load
+    tree={sources.designSystem.pageTree}
+    pathname={Astro.url.pathname.replace(/\.html$/u, "")}
+    params={Astro.params}
+    hasChanges={hasChanges}
+    page={{ toc: pageToc }}
+  >
+    <main data-blueprint-design-page={slug}>
+      <h1>{designPage.title === "Overview" ? "VolleyBro Design System" : designPage.title}</h1>
+      <Content />
+      {designPage.showcase === "index" && <DesignSystemOverview />}
+      {designPage.showcase === "brand" && <BrandPage />}
+      {designPage.showcase === "color" && <ColorPage client:load />}
+      {designPage.showcase === "typography" && <TypographyPage />}
+      {designPage.showcase === "spacing" && <SpacingPage />}
+      {designPage.showcase === "radius" && <RadiusPage />}
+      {designPage.showcase === "elevation-depth" && <ElevationDepthPage />}
+      {designPage.showcase === "components" && <ComponentLibraryShowcase client:load annotatedDiffHtml={annotatedDiffHtml} />}
+    </main>
+  </Docs>
+</Layout>

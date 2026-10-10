@@ -34,8 +34,8 @@ export const REMOTE_REF = "refs/blueprint-changes/remote";
 const FETCH_REFSPEC = `+${BRANCH}:${REMOTE_REF}`;
 const DEFAULT_REMOTE = "https://github.com/andrewck24/volleybro.git";
 const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
-// Dotfile, not `meta.json` — fumadocs-mdx's meta collection in
-// source.config.ts only globs `**/meta.json`, so this never becomes a page.
+// Dotfile, not `meta.json` — Fumadocs treats JSON metadata files as navigation
+// metadata, so this must stay outside the content collection's JSON glob.
 const STORE_FILE = ".store-state.json";
 const DEPLOY_WORKFLOW = [".github", "workflows", "blueprint-deploy.yml"];
 // See ADR-0082.

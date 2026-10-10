@@ -1,0 +1,64 @@
+---
+import { getCollection, render } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import { Docs } from "../../components/docs";
+import FlowchartIsland from "../../components/interactive-flowchart-island.astro";
+import DecisionTimelineIsland from "../../components/decision-timeline-island.astro";
+import Layout from "../../components/layout.astro";
+import { listChanges } from "../../lib/changes-index";
+import { featureMdxComponents } from "../../lib/mdx-components";
+import { createBlueprintSources } from "../../lib/source";
+
+export async function getStaticPaths() {
+  const { features } = await createBlueprintSources();
+  return features.getPages().map((page) => {
+    if (!("id" in page.data._raw)) {
+      throw new Error(`Feature page source is missing its collection id: ${page.url}`);
+    }
+    return {
+      params: { slug: page.slugs.length > 0 ? page.slugs.join("/") : undefined },
+      props: { entryId: page.data._raw.id },
+    };
+  });
+}
+
+const { entryId } = Astro.props as { entryId: string };
+const entries = await getCollection("featurePages");
+const entry = entries.find((page) => page.id === entryId) as CollectionEntry<"featurePages"> | undefined;
+if (!entry) throw new Error(`Feature page not found: ${entryId}`);
+
+const { Content, headings } = await render(entry);
+const sources = await createBlueprintSources();
+const { features } = sources;
+const hasChanges = listChanges(sources.changes.getPages()).length > 0;
+const toc = headings.map((heading) => ({
+  title: heading.text,
+  url: `#${heading.slug}`,
+  depth: heading.depth,
+}));
+const components = {
+  ...featureMdxComponents(),
+  InteractiveFlowchart: FlowchartIsland,
+  DecisionTimeline: DecisionTimelineIsland,
+};
+---
+
+<Layout>
+  <title>{entry.data.title} · Features · Blueprint</title>
+  <meta name="description" content={entry.data.description ?? "VolleyBro feature documentation."} />
+  <Docs
+    client:load
+    tree={features.pageTree}
+    pathname={Astro.url.pathname.replace(/\.html$/u, "")}
+    params={Astro.params}
+    hasChanges={hasChanges}
+    page={{ toc }}
+  >
+    <main>
+      <h1>{entry.data.title}</h1>
+      <div class="prose flex-1">
+        <Content components={components} />
+      </div>
+    </main>
+  </Docs>
+</Layout>

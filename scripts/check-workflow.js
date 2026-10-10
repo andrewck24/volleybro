@@ -52,10 +52,6 @@ const REQUIRED_FILES = [
   "docs/agents/artifact-lifecycle.md",
 ];
 const BLUEPRINT_CHANGES = "blueprint/content/changes";
-const BLUEPRINT_LINK_SOURCES = ["blueprint/src", "blueprint/content"];
-const BLUEPRINT_LINK_EXTENSIONS = new Set([".tsx", ".mdx"]);
-const ANCHOR_TAG = /<a(\s[^>]*)>/g;
-const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
 const CHANGE_SCOPE_SOFT_LIMIT = 30;
 const SCENARIO_COUNT_SOFT_LIMIT = 8;
 
@@ -280,37 +276,6 @@ async function listFiles(directory) {
     }),
   );
   return nested.flat();
-}
-
-// A raw anchor is a full document load, which discards the sidebar state
-// fumadocs keeps in React state. Internal links have to route through next/link.
-async function validateInternalLinks(root) {
-  const files = (
-    await Promise.all(
-      BLUEPRINT_LINK_SOURCES.map((relativePath) =>
-        listFiles(path.join(root, relativePath)),
-      ),
-    )
-  )
-    .flat()
-    .filter((filePath) =>
-      BLUEPRINT_LINK_EXTENSIONS.has(path.extname(filePath)),
-    );
-
-  const diagnostics = [];
-  for (const filePath of files) {
-    const content = await readFile(filePath, "utf8");
-    for (const [, attributes] of content.matchAll(ANCHOR_TAG)) {
-      if (!attributes.includes("href=")) continue;
-      if (EXTERNAL_HREF.test(attributes)) continue;
-      diagnostics.push(
-        `${path.relative(root, filePath)} [blueprint-internal-link]: use next/link so navigation keeps the sidebar state`,
-      );
-      break;
-    }
-  }
-
-  return diagnostics;
 }
 
 async function changeDirectories(root) {
@@ -566,7 +531,6 @@ export async function checkWorkflow(root = process.cwd()) {
     diagnostics.push(...validateSectionReferences("AGENTS.md", content));
   }
 
-  diagnostics.push(...(await validateInternalLinks(root)));
   diagnostics.push(...(await validateTestTiers(root)));
   const directories = await changeDirectories(root);
   diagnostics.push(...(await validateChangePages(directories)));

@@ -1,0 +1,11 @@
+---
+import { DecisionTimeline } from "./DecisionTimeline";
+import { decisionsFor } from "../lib/decisions-index";
+
+const capability = Astro.url.pathname
+  .replace(/\.html$/u, "")
+  .replace(/^\/features\//, "")
+  .replace(/\/$/, "");
+---
+
+<DecisionTimeline decisions={decisionsFor(capability)} client:load />

@@ -34,30 +34,44 @@ const flowchartEdges = [
   { from: "gate", to: "propose", label: "changes", dashed: true },
 ];
 
-const flowchartDetails: Record<string, { title: string; body: string }> = {
-  propose: {
-    title: "Propose",
-    body: "An author opens a change proposal and drafts the design intent.",
-  },
-  review: {
-    title: "Review",
-    body: "Reviewers comment on the proposal and request changes as needed.",
-  },
-  gate: {
-    title: "Approved?",
-    body: "The decision point: reviewers either approve or send it back for changes.",
-  },
-  merge: {
-    title: "Merge",
-    body: "Once approved, the delivery batch merges into main; integration does not deploy production.",
-  },
-  ship: {
-    title: "Ship",
-    body: "An authorized version PR fixes the release revision; candidate checks, promotion and production smoke precede successful release.",
-  },
-};
+export const flowchartDetails: Record<string, { title: string; body: string }> =
+  {
+    propose: {
+      title: "Propose",
+      body: "An author opens a change proposal and drafts the design intent.",
+    },
+    review: {
+      title: "Review",
+      body: "Reviewers comment on the proposal and request changes as needed.",
+    },
+    gate: {
+      title: "Approved?",
+      body: "The decision point: reviewers either approve or send it back for changes.",
+    },
+    merge: {
+      title: "Merge",
+      body: "Once approved, the delivery batch merges into main; integration does not deploy production.",
+    },
+    ship: {
+      title: "Ship",
+      body: "An authorized version PR fixes the release revision; candidate checks, promotion and production smoke precede successful release.",
+    },
+  };
 
-export default function ComponentLibraryShowcase() {
+export const annotatedDiffCode = `sidebar={{
+  tabs: [
+    { title: "Changes", url: "/changes" },
+    { title: "Features", url: "/features" },
+    // New peer tab, registered alongside Changes and Features
+    { title: "Design System", url: "/design-system" }, // [!code ++]
+  ],
+}}`;
+
+export default function ComponentLibraryShowcase({
+  annotatedDiffHtml,
+}: {
+  annotatedDiffHtml?: string;
+} = {}) {
   return (
     <div>
       <h1>Component Library</h1>
@@ -150,14 +164,8 @@ export default function ComponentLibraryShowcase() {
 
       <h3>AnnotatedDiff</h3>
       <AnnotatedDiff
-        code={`sidebar={{
-  tabs: [
-    { title: "Changes", url: "/changes" },
-    { title: "Features", url: "/features" },
-    // New peer tab, registered alongside Changes and Features
-    { title: "Design System", url: "/design-system" }, // [!code ++]
-  ],
-}}`}
+        code={annotatedDiffCode}
+        highlightedHtml={annotatedDiffHtml}
       />
 
       <h2 id="flowchart">Flowchart</h2>

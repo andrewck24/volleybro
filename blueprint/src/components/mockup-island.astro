@@ -1,0 +1,61 @@
+---
+import {
+  // @ts-expect-error injected by the Vite adapter
+  RetainedInterfaceDiff,
+  // @ts-expect-error injected by the Vite adapter
+  RetainedUsecaseDiff,
+  // @ts-expect-error injected by the Vite adapter
+  RetainedWriteFlow,
+} from "../../content/changes/game-positional-writes/design";
+import { GamePositionalDetails } from "./game-positional-details";
+import { RetainedMockupIsland } from "./retained-mockup-island";
+import AppleSplashMockup from "./apple-splash-mockup.astro";
+import { renderAnnotatedDiffHtml } from "../lib/annotated-diff-html";
+import { createElement, type ComponentType } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+const slug = (Astro.url.pathname.replace(/\.html$/u, "").split("/").filter(Boolean).at(-1) ?? "");
+const mode = {
+  "apple-splash-dynamic": "static-svg",
+  "elevation-depth-system": "client-frame-2",
+  "game-positional-writes": "client-flowchart",
+  "logo-v-splash-redesign": "client-frame-1",
+  "sync-recording": "client-frame-1",
+}[slug];
+if (!mode) throw new Error(`No accepted design rendering mode for ${slug}`);
+
+function safeStaticMarkup<Props extends object>(
+  Component: ComponentType<Props>,
+  props: Props,
+) {
+  try {
+    return { html: renderToStaticMarkup(createElement(Component, props)), error: undefined };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Blueprint static design ${slug} failed to render:`, error);
+    return { html: undefined, error: message };
+  }
+}
+
+const gameDetails = slug === "game-positional-writes"
+  ? safeStaticMarkup(GamePositionalDetails, {
+      interfaceDiffHtml: await renderAnnotatedDiffHtml(RetainedInterfaceDiff, "ts"),
+      usecaseDiffHtml: await renderAnnotatedDiffHtml(RetainedUsecaseDiff, "ts"),
+    })
+  : undefined;
+---
+
+<div class="contents" data-blueprint-mockup-mode={mode}>
+  {slug === "apple-splash-dynamic" && <AppleSplashMockup />}
+  {slug === "elevation-depth-system" && <>
+    <RetainedMockupIsland client:load name="elevation-lab-a" />
+    <RetainedMockupIsland client:load name="elevation-lab-b" />
+  </>}
+  {slug === "game-positional-writes" && <>
+    {gameDetails?.error && <span hidden data-blueprint-render-error="true" />}
+    {gameDetails?.html && <div set:html={gameDetails.html} />}
+    <RetainedWriteFlow client:load />
+  </>}
+  {slug === "logo-v-splash-redesign" && <RetainedMockupIsland client:load name="logo-redesign" />}
+  {slug === "sync-recording" && <RetainedMockupIsland client:load name="sync-conflict-simulator" />}
+</div>

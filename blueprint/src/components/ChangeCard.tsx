@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { FigureBadges } from "@/components/FigureBadges";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,7 +24,7 @@ export function ChangeCard({ change }: { change: ChangeSummary }) {
   const hidden = change.capabilities.length - shown.length;
 
   return (
-    <Link href={change.href} className="block text-inherit no-underline!">
+    <a href={change.href} className="block text-inherit no-underline!">
       <Card className="gap-3 border-l-4 border-l-primary py-4 transition-colors hover:bg-muted/30">
         <CardHeader className="gap-2 px-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -66,7 +64,7 @@ export function ChangeCard({ change }: { change: ChangeSummary }) {
           </CardContent>
         )}
       </Card>
-    </Link>
+    </a>
   );
 }
 

@@ -1,5 +1,3 @@
-jest.mock("server-only", () => ({}), { virtual: true });
-
 let mockFiles: Record<string, unknown> = {};
 jest.mock("node:fs", () => {
   const actual = jest.requireActual("node:fs");

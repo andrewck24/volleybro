@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { FigureBadges } from "@/components/FigureBadges";
 import { Badge } from "@/components/ui/badge";
 import { gateLabel, mergedLabel } from "@/lib/change-gate";
@@ -14,19 +12,21 @@ export function ChangeHeader({
   capabilities: string[];
   facts: ChangeFacts;
 }) {
+  const stateLabel = facts.archivedAt ? "archived" : gateLabel(facts);
+
   return (
     <header className="not-prose mb-6 flex flex-col gap-3">
       <h1 className="text-3xl font-semibold">{title}</h1>
       <div className="flex flex-wrap items-center gap-2">
-        {(facts.gate || facts.shards?.current) && (
-          <Badge>{gateLabel(facts)}</Badge>
+        {(facts.archivedAt || facts.gate || facts.shards?.current) && (
+          <Badge>{stateLabel}</Badge>
         )}
         {mergedLabel(facts) && (
           <Badge variant="secondary">{mergedLabel(facts)}</Badge>
         )}
         {capabilities.map((capability) => (
           <Badge key={capability} variant="outline" asChild>
-            <Link href={`/features/${capability}`}>{capability}</Link>
+            <a href={`/features/${capability}`}>{capability}</a>
           </Badge>
         ))}
       </div>

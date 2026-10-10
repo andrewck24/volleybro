@@ -68,6 +68,7 @@ package-lock.json
 /blueprint/.change-lifecycle.json.tmp
 /blueprint/public/blueprint-build.json
 /blueprint/public/blueprint-build.json.tmp
+/blueprint/dist/
 .scratch/
 
 # Impeccable keeps durable design context in surface briefs, the shared

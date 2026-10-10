@@ -1,13 +1,9 @@
-import "server-only";
-
 import { gateLabel, mergedLabel } from "@/lib/change-gate";
 import {
   type ChangeFacts,
   readCapabilities,
   readFacts,
 } from "@/lib/change-meta";
-import { createChangesTree } from "@/lib/changes-tree";
-import { source } from "@/lib/source";
 
 export type ChangeStatus = "archived" | "in-progress" | "draft";
 
@@ -43,22 +39,27 @@ function changeState(facts: ChangeFacts): ChangeSummary["state"] {
   };
 }
 
-function changePages(): Dated[] {
-  return source
-    .getPages()
+export type ChangePage = {
+  slugs: string[];
+  url: string;
+  data: { title?: string; description?: string };
+};
+
+function changePages(pages: ChangePage[], root?: string): Dated[] {
+  return pages
     .filter((page) => page.slugs.length === 1)
     .map((page) => {
       const slug = page.slugs[0];
-      const facts = readFacts(slug);
+      const facts = readFacts(slug, root);
       const date = changeDate(facts.archivedAt, facts.startedAt);
       return {
         slug,
-        title: page.data.title,
+        title: page.data.title ?? slug,
         href: page.url,
         description: page.data.description,
         state: changeState(facts),
         date,
-        capabilities: readCapabilities(slug),
+        capabilities: readCapabilities(slug, root),
         facts,
         order: date?.value ?? "",
       };
@@ -66,15 +67,11 @@ function changePages(): Dated[] {
 }
 
 // ADR-0078; a draft never published has no date and sorts last.
-export function listChanges(): ChangeSummary[] {
-  return changePages()
+export function listChanges(
+  pages: ChangePage[],
+  root?: string,
+): ChangeSummary[] {
+  return changePages(pages, root)
     .sort((a, b) => b.order.localeCompare(a.order))
     .map(({ order: _order, ...summary }) => summary);
-}
-
-export function changesTree() {
-  return createChangesTree(
-    source.pageTree,
-    listChanges().map((change) => change.href),
-  );
 }

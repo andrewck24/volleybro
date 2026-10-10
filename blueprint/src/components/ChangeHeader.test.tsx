@@ -18,6 +18,19 @@ describe("ChangeHeader", () => {
     expect(screen.getByText("G2 Review")).toBeInTheDocument();
   });
 
+  it("shows archived after a Change lands", () => {
+    render(
+      <ChangeHeader
+        title="Archived Change"
+        capabilities={[]}
+        facts={{ gate: "G2", archivedAt: "2026-09-26T02:42:58.000Z" }}
+      />,
+    );
+
+    expect(screen.getByText("archived")).toBeInTheDocument();
+    expect(screen.queryByText("G2 Review")).not.toBeInTheDocument();
+  });
+
   it("shows a Migration's current shard, its gate and how many have merged", () => {
     render(
       <ChangeHeader

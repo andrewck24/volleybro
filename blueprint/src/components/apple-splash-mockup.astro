@@ -1,0 +1,47 @@
+---
+const V_LEFT =
+  "M107.01 581.12L102.40 566.27Q95.74 545.79 90.62 526.34L90.62 526.34L74.24 470.02Q66.05 442.37 61.44 428.54L61.44 428.54Q57.34 413.18 54.78 405.50L54.78 405.50L2.56 228.86L107.01 228.86L202.75 581.12L107.01 581.12Z";
+const V_RIGHT =
+  "M225.28 581.12L182.78 424.96L234.50 228.86L336.90 228.86L284.67 405.50L265.73 470.02Q256.51 499.71 248.83 526.34L248.83 526.34Q243.71 545.79 237.06 566.27L237.06 566.27L232.45 581.12L225.28 581.12Z";
+const SIZES = [
+  { label: "28%（現況）", size: 50, isSelected: false },
+  { label: "25%（採用）", size: 45, isSelected: true },
+  { label: "20%", size: 36, isSelected: false },
+  { label: "15%", size: 27, isSelected: false },
+];
+---
+
+<div
+  class="my-4 flex flex-wrap gap-4"
+  role="list"
+  aria-label="iOS splash 尺寸比較"
+>
+  {SIZES.map(({ label, size, isSelected }) => (
+    <div class="shrink-0 text-center" role="listitem">
+      <div
+        class:list={[
+          "mx-auto flex h-65 w-30 items-center justify-center overflow-hidden rounded-[20px] border-[5px] border-black bg-[#10687E]",
+          isSelected && "ring-2 ring-[#2f9e44]",
+        ]}
+      >
+        <svg
+          width={size}
+          height={size}
+          viewBox="-10 225 360 360"
+          aria-hidden="true"
+        >
+          <path d={V_LEFT} fill="#F6F4F5" />
+          <path d={V_RIGHT} fill="#FC7A56" />
+        </svg>
+      </div>
+      <div
+        class:list={[
+          "mt-1.5 text-[11px]",
+          isSelected ? "text-[#2f9e44]" : "text-[#9aa0ad]",
+        ]}
+      >
+        {label}
+      </div>
+    </div>
+  ))}
+</div>

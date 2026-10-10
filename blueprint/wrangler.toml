@@ -2,10 +2,10 @@ name = "volleybro-blueprint"
 compatibility_date = "2026-07-01"
 
 [assets]
-directory = "./out"
+directory = "./dist"
 
 [build]
-# Deploy consumes the existing export; it never starts a second Next build.
+# Deploy consumes the existing Astro export; it never builds during upload.
 command = "node ../scripts/blueprint-check-output.js"
 
 [observability]

@@ -1,5 +1,5 @@
-.next/
-out/
+dist/
+.astro/
 .source/
 node_modules/
 # Written by `next dev`, which re-creates them when deleted.

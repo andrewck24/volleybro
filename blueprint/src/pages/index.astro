@@ -1,0 +1,81 @@
+---
+import { Layers, ListTree, Palette } from "lucide-react";
+import { ChangeCardList } from "../components/ChangeCard";
+import Layout from "../components/layout.astro";
+import { listChanges } from "../lib/changes-index";
+import { createBlueprintSources } from "../lib/source";
+
+const { changes, features } = await createBlueprintSources();
+const summaries = listChanges(changes.getPages());
+const capabilities = features.getPages().filter((page) => page.slugs.length > 0).length;
+const sections = [
+  {
+    href: "/features",
+    title: "Features",
+    description: "VolleyBro 現在能做什麼：依 capability 整理的行為、限制與決策紀錄。",
+    figure: `${capabilities} capabilities`,
+    Icon: ListTree,
+  },
+  {
+    href: "/changes",
+    title: "Changes",
+    description: "每一次交付的 Proposal 與 Review：做了什麼、為什麼、怎麼驗證。",
+    figure: `${summaries.length} changes`,
+    Icon: Layers,
+  },
+  {
+    href: "/design-system",
+    title: "Design System",
+    description: "介面共用的色彩、層次、間距、字體與元件規則。",
+    figure: "tokens & components",
+    Icon: Palette,
+  },
+];
+---
+
+<Layout>
+  <title>VolleyBro Blueprint</title>
+  <main class="mx-auto flex w-full max-w-5xl flex-col gap-14 px-4 py-16 md:py-24">
+    <header class="flex max-w-2xl flex-col gap-4">
+      <p class="m-0 text-sm font-medium text-primary-text">VolleyBro Blueprint</p>
+      <h1 class="m-0 break-keep text-3xl font-semibold md:text-4xl">
+        排球隊管理與比賽紀錄 PWA 的設計與交付紀錄
+      </h1>
+      <p class="m-0 leading-relaxed text-muted-foreground">
+        這裡記錄 VolleyBro 目前的功能與決策，以及每個 Change 從提案到交付的經過。
+      </p>
+    </header>
+
+    <nav aria-label="Blueprint sections">
+      <ul class="m-0 grid list-none gap-4 p-0 md:grid-cols-3">
+        {sections.map(({ href, title, description, figure, Icon }) => (
+          <li class="m-0 flex p-0 [&>a]:flex-1">
+            <a
+              href={href}
+              class="group flex flex-col gap-3 rounded-xl border bg-card p-5 text-inherit no-underline transition-colors duration-200 hover:border-primary/60 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <Icon aria-hidden="true" className="size-5 text-primary-text" />
+                <span class="text-xs tabular-nums text-muted-foreground">{figure}</span>
+              </div>
+              <h2 class="m-0 text-lg font-semibold">{title}</h2>
+              <p class="m-0 text-sm leading-relaxed text-muted-foreground">{description}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    {summaries.length > 0 && (
+      <section aria-labelledby="latest-changes" class="flex flex-col">
+        <div class="flex items-baseline justify-between gap-4">
+          <h2 id="latest-changes" class="m-0 text-lg font-semibold">最近的 Change</h2>
+          <a href="/changes" class="text-sm text-primary-text underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+            全部 Change
+          </a>
+        </div>
+        <ChangeCardList changes={summaries.slice(0, 3)} />
+      </section>
+    )}
+  </main>
+</Layout>

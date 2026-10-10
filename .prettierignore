@@ -9,6 +9,7 @@ storybook-static/
 pnpm-lock.yaml
 CHANGELOG.md
 .source/
+.astro/
 
 # Agent config, skills, and worktrees
 .agents/

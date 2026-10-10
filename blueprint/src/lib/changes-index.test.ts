@@ -1,10 +1,3 @@
-jest.mock("server-only", () => ({}), { virtual: true });
-
-const mockGetPages = jest.fn();
-jest.mock("@/lib/source", () => ({
-  source: { getPages: () => mockGetPages() },
-}));
-
 let mockFacts: Record<string, object> = {};
 jest.mock("@/lib/change-meta", () => ({
   readFacts: (slug: string) => mockFacts[slug] ?? {},
@@ -27,10 +20,7 @@ describe("listChanges", () => {
   });
 
   it("orders Changes newest first, by archivedAt then startedAt", () => {
-    mockGetPages.mockReturnValue([
-      page("landed", "Landed"),
-      page("open", "Open"),
-    ]);
+    const pages = [page("landed", "Landed"), page("open", "Open")];
     mockFacts = {
       landed: {
         gate: "G2",
@@ -44,17 +34,14 @@ describe("listChanges", () => {
       },
     };
 
-    expect(listChanges().map((change) => change.slug)).toEqual([
+    expect(listChanges(pages).map((change) => change.slug)).toEqual([
       "open",
       "landed",
     ]);
   });
 
   it("labels a Change by its gate until it lands, then as archived", () => {
-    mockGetPages.mockReturnValue([
-      page("landed", "Landed"),
-      page("open", "Open"),
-    ]);
+    const pages = [page("landed", "Landed"), page("open", "Open")];
     mockFacts = {
       landed: {
         gate: "G2",
@@ -68,7 +55,7 @@ describe("listChanges", () => {
       },
     };
 
-    const [landed, open] = listChanges();
+    const [landed, open] = listChanges(pages);
     expect(landed.state).toEqual({ label: "archived", status: "archived" });
     expect(landed.date).toEqual({
       kind: "archived",
@@ -82,7 +69,7 @@ describe("listChanges", () => {
   });
 
   it("sorts a never-published draft last, with no date", () => {
-    mockGetPages.mockReturnValue([page("draft", "Draft"), page("old", "Old")]);
+    const pages = [page("draft", "Draft"), page("old", "Old")];
     mockFacts = {
       old: {
         gate: "G2",
@@ -91,18 +78,18 @@ describe("listChanges", () => {
       },
     };
 
-    const changes = listChanges();
+    const changes = listChanges(pages);
     expect(changes.map((change) => change.slug)).toEqual(["old", "draft"]);
     expect(changes[1].date).toBeUndefined();
   });
 
   it("labels a converted draft as a draft rather than by a gate", () => {
-    mockGetPages.mockReturnValue([page("idea", "Idea")]);
+    const pages = [page("idea", "Idea")];
     mockFacts = {
       idea: { converted: true, startedAt: "2026-07-07T00:00:00.000Z" },
     };
 
-    expect(listChanges()[0].state).toEqual({
+    expect(listChanges(pages)[0].state).toEqual({
       label: "draft",
       status: "draft",
     });

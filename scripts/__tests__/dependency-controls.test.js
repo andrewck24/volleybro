@@ -16,6 +16,16 @@ import { fileURLToPath } from "node:url";
 const cli = fileURLToPath(
   new URL("../dependency-controls.js", import.meta.url),
 );
+const packageManager = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL("../../package.json", import.meta.url)),
+    "utf8",
+  ),
+).packageManager;
+const packageManagerVersion = packageManager.replace(/^pnpm@/u, "");
+const [packageManagerMajor, packageManagerMinor, packageManagerPatch] =
+  packageManagerVersion.split(".");
+const mismatchedPackageManagerVersion = `${packageManagerMajor}.${packageManagerMinor}.${Number(packageManagerPatch) + 1}`;
 
 test("native dual-document patch assessment rejects expanded or tampered dependency changes", (t) => {
   const root = mkdtempSync(path.join(tmpdir(), "dependency-owner-"));
@@ -24,7 +34,7 @@ test("native dual-document patch assessment rejects expanded or tampered depende
   const manifest = {
     name: "volleybro",
     version: "1.0.0",
-    packageManager: "pnpm@12.8.1",
+    packageManager,
     devDependencies: { "@types/jest-axe": "3.5.8" },
   };
   writeFileSync(path.join(root, "package.json"), JSON.stringify(manifest));
@@ -93,7 +103,10 @@ test("native dual-document patch assessment rejects expanded or tampered depende
   }
   const environment = run({
     ...after,
-    "pnpm-lock.yaml": after["pnpm-lock.yaml"].replace("12.8.1", "12.8.2"),
+    "pnpm-lock.yaml": after["pnpm-lock.yaml"].replace(
+      packageManagerVersion,
+      mismatchedPackageManagerVersion,
+    ),
   });
   assert.equal(environment.status, 1);
   assert.match(environment.stderr, /environment changed/);

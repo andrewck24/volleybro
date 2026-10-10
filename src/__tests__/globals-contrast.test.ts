@@ -25,7 +25,7 @@ function readTokens(file: string): Record<Theme, Tokens> {
 }
 
 const app = readTokens("src/app/globals.css");
-const blueprint = readTokens("blueprint/src/app/globals.css");
+const blueprint = readTokens("blueprint/src/styles/global.css");
 
 function toRgb(tokens: Tokens, name: string): Rgb {
   const value = tokens[name];

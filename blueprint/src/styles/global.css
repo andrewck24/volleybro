@@ -1,3 +1,5 @@
+@import "@fontsource-variable/saira";
+@import "@fontsource-variable/noto-sans-tc/wght.css";
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
@@ -10,6 +12,8 @@
    blocks. Re-copy when the app's tokens change. */
 :root,
 .light {
+  --font-saira: "Saira Variable";
+  --font-noto-sans-tc: "Noto Sans TC Variable";
   --background: hsl(230, 20%, 95.6%);
   --foreground: hsl(0, 0%, 0%);
   --card: hsl(330, 10%, 98.45%);

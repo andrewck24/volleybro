@@ -1,0 +1,39 @@
+---
+import { listChanges } from "../../lib/changes-index";
+import { createChangesTree } from "../../lib/changes-tree";
+import { createBlueprintSources } from "../../lib/source";
+import { ChangeCardList } from "../../components/ChangeCard";
+import { Docs } from "../../components/docs";
+import Layout from "../../components/layout.astro";
+
+const sources = await createBlueprintSources();
+const summaries = listChanges(sources.changes.getPages());
+const tree = createChangesTree(
+  sources.changes.pageTree,
+  summaries.map((change) => change.href),
+);
+---
+
+<Layout>
+  <title>Changes · Blueprint</title>
+  <Docs
+    client:load
+    tree={tree}
+    pathname={Astro.url.pathname.replace(/\.html$/u, "")}
+    params={Astro.params}
+    hasChanges={summaries.length > 0}
+    page={{ breadcrumb: { includePage: false } }}
+  >
+    <main>
+      <h1>Changes</h1>
+      {summaries.length === 0 ? (
+        <p>
+          No Change pages right now — none are published or pulled yet. Run{" "}
+          <code>pnpm blueprint:changes:pull</code>.
+        </p>
+      ) : (
+        <ChangeCardList changes={summaries} />
+      )}
+    </main>
+  </Docs>
+</Layout>

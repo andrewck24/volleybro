@@ -213,30 +213,6 @@ test("reports a broken provider skill bridge", async () => {
   );
 });
 
-test("reports an internal link that bypasses the router", async () => {
-  assert.match(
-    (
-      await messages({
-        "blueprint/src/components/Sample.tsx":
-          'export const Sample = () => <a href="/changes">Changes</a>;\n',
-      })
-    ).join("\n"),
-    /Sample\.tsx.*blueprint-internal-link/i,
-  );
-});
-
-test("accepts external links and in-page anchors", async () => {
-  assert.deepEqual(
-    await messages({
-      "blueprint/src/components/Sample.tsx":
-        'export const Sample = () => <a href="https://volleybro.dev">Site</a>;\n',
-      "blueprint/content/design-system/index.mdx":
-        '<a href="#tokens">Tokens</a>\n',
-    }),
-    [],
-  );
-});
-
 test("accepts each test tier in its own home", async () => {
   assert.deepEqual(
     await messages({

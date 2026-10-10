@@ -1,0 +1,190 @@
+---
+import { getCollection, render } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import { FigureBadges } from "../../components/FigureBadges";
+import { ChangeHeader } from "../../components/ChangeHeader";
+import { Docs } from "../../components/docs";
+import Layout from "../../components/layout.astro";
+import FlowchartIsland from "../../components/interactive-flowchart-island.astro";
+import MockupIsland from "../../components/mockup-island.astro";
+import AnnotatedDiffHtml from "../../components/annotated-diff.astro";
+import { changeMdxComponents } from "../../lib/mdx-components";
+import { readCapabilities, readChangeBuildIdentity, readFacts } from "../../lib/change-meta";
+import { listChanges } from "../../lib/changes-index";
+import { createChangesBreadcrumbTree, createChangesTree } from "../../lib/changes-tree";
+import { createBlueprintSources } from "../../lib/source";
+
+export async function getStaticPaths() {
+  const { changes } = await createBlueprintSources();
+  return changes.getPages()
+    .filter((page) => page.slugs.length === 1)
+    .map((page) => ({ params: { slug: page.slugs[0] } }));
+}
+
+const slug = Astro.params.slug ?? "";
+const [sources, changeEntries, tabEntries] = await Promise.all([
+  createBlueprintSources(),
+  getCollection("changePage"),
+  getCollection("changeTabs"),
+]);
+const changeEntry = changeEntries.find((entry) =>
+  entry.filePath?.split("content/changes/")[1]?.startsWith(`${slug}/`),
+);
+if (!changeEntry) throw new Error(`Change page not found: ${slug}`);
+
+const summaries = listChanges(sources.changes.getPages());
+const changesTree = createChangesTree(
+  sources.changes.pageTree,
+  summaries.map((change) => change.href),
+);
+const tree = createChangesBreadcrumbTree(changesTree);
+const { Proposal, reviews } = (() => {
+  const selected: {
+    Proposal: (typeof tabEntries)[number] | undefined;
+    reviews: { entry: (typeof tabEntries)[number]; shard?: number }[];
+  } = { Proposal: undefined, reviews: [] };
+  for (const entry of tabEntries) {
+    const relative = entry.filePath?.split("content/changes/")[1] ?? "";
+    const match = relative.match(/^([^/]+)\/(proposal|review)(?:-s([1-9]\d*))?\.mdx$/u);
+    if (!match || match[1] !== slug) continue;
+    if (match[2] === "proposal") selected.Proposal = entry;
+    else selected.reviews.push({ entry, shard: match[3] ? Number(match[3]) : undefined });
+  }
+  selected.reviews.sort((a, b) => (a.shard ?? 0) - (b.shard ?? 0));
+  return selected;
+})();
+
+const facts = readFacts(slug);
+const shardFacts = new Map((facts.shards?.items ?? []).map((item) => [item.shard, item]));
+const mdxComponents = {
+  ...changeMdxComponents(),
+  AnnotatedDiff: AnnotatedDiffHtml,
+  InteractiveFlowchart: FlowchartIsland,
+  DesignMockup: MockupIsland,
+};
+const staticDesignProposalSlugs = new Set([
+  "api-objectid-guards",
+  "contextual-edit-pages",
+  "entry-ui",
+  "team-routes-clean-architecture",
+]);
+
+async function tabContent(
+  entry: CollectionEntry<"changeTabs"> | undefined,
+  label: string,
+) {
+  if (!entry) return { Content: undefined, error: undefined };
+  try {
+    const result = await render(entry);
+    return { Content: result.Content, error: undefined };
+  } catch (error) {
+    console.error(`Change tab "${label}" failed to render:`, error);
+    return {
+      Content: undefined,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+const proposal = await tabContent(Proposal, "Proposal");
+const reviewPanels = await Promise.all(
+  reviews.map(async (review) => ({
+    ...review,
+    label: review.shard === undefined ? "Review" : `Shard ${review.shard}`,
+    anchor: review.shard === undefined ? "review" : `review-s${review.shard}`,
+    facts: review.shard === undefined ? undefined : shardFacts.get(review.shard),
+    content: await tabContent(review.entry, review.shard === undefined ? "Review" : `Shard ${review.shard}`),
+  })),
+);
+const panels = [
+  { label: "Proposal", anchor: "proposal", facts: undefined, content: proposal },
+  ...reviewPanels,
+];
+const changeIdentity = readChangeBuildIdentity(slug);
+const capabilities = readCapabilities(slug);
+---
+
+<Layout>
+  <title>{changeEntry.data.title} · Blueprint</title>
+  <Docs
+    client:load
+    tree={tree}
+    pathname={Astro.url.pathname.replace(/\.html$/u, "")}
+    params={Astro.params}
+    hasChanges={summaries.length > 0}
+    page={{
+      tableOfContent: { enabled: false },
+      breadcrumb: { includeRoot: { url: "/changes" }, includePage: true },
+    }}
+  >
+    <main data-blueprint-build-identity={changeIdentity}>
+      <ChangeHeader title={changeEntry.data.title} capabilities={capabilities} facts={facts} />
+      <div data-blueprint-tabs>
+          <div class="mb-4 flex gap-5 border-b border-border" role="tablist" aria-label="Change tabs">
+            {panels.map((panel, index) => (
+              <button
+                id={`tab-${panel.anchor}`}
+                type="button"
+                role="tab"
+                aria-controls={panel.anchor}
+                aria-selected={index === 0 ? "true" : "false"}
+                tabindex={index === 0 ? 0 : -1}
+                data-tab-anchor={panel.anchor}
+                data-state={index === 0 ? "active" : "inactive"}
+                class="border-b-2 border-transparent py-2 text-sm text-muted-foreground hover:text-foreground data-[state=active]:border-primary data-[state=active]:font-medium data-[state=active]:text-foreground"
+              >
+                {panel.label}
+              </button>
+            ))}
+          </div>
+          {panels.map((panel, index) => {
+            const Content = panel.content.Content;
+            const attributes = {
+              "data-blueprint-mockup-mode":
+                index === 0 && staticDesignProposalSlugs.has(slug)
+                  ? "static-content"
+                  : undefined,
+            };
+            return <>
+              <section
+                id={panel.anchor}
+                role="tabpanel"
+                aria-labelledby={`tab-${panel.anchor}`}
+                tabindex="0"
+                hidden={index !== 0}
+                class="prose flex-1"
+                {...attributes}
+              >
+                {index === 0 && <div data-blueprint-tab-content>
+                  {panel.facts && <div class="not-prose mb-4"><FigureBadges facts={panel.facts} /></div>}
+                  {panel.content.error && (
+                    <>
+                      <span hidden data-blueprint-render-error="true" />
+                      <p class="text-sm text-error-text">此分頁（{panel.label}）在此 checkout 中無法顯示：{panel.content.error}</p>
+                    </>
+                  )}
+                  {Content && <Content components={mdxComponents} />}
+                </div>}
+              </section>
+              {index !== 0 && <template data-blueprint-tab-template={panel.anchor}>
+                <div data-blueprint-tab-content>
+                  {panel.facts && <div class="not-prose mb-4"><FigureBadges facts={panel.facts} /></div>}
+                  {panel.content.error && (
+                    <>
+                      <span hidden data-blueprint-render-error="true" />
+                      <p class="text-sm text-error-text">此分頁（{panel.label}）在此 checkout 中無法顯示：{panel.content.error}</p>
+                    </>
+                  )}
+                  {Content && <Content components={mdxComponents} />}
+                </div>
+              </template>}
+            </>
+          })}
+      </div>
+    </main>
+  </Docs>
+</Layout>
+
+<script>
+  import "../../scripts/change-tabs";
+</script>

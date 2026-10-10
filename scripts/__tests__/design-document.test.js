@@ -6,7 +6,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { checkDesignDocument } from "../design-document.js";
-import { designSections } from "../../blueprint/src/lib/design-sections.ts";
+import { designSections } from "../../blueprint/src/lib/design-sections.mjs";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const source = await readFile(path.join(root, "DESIGN.md"), "utf8");
@@ -61,13 +61,29 @@ test("section routing preserves fenced examples and each chapter's content", () 
   const tree = fromMarkdown(
     "# Title\n\n## Overview\n\nIntro.\n\n```md\n## Not a section\n```\n\n## Colors\n\nPalette.\n",
   );
-  designSections()(tree);
-  assert.equal(tree.children.length, 2);
-  assert.equal(tree.children[0].attributes[0].value, "Overview");
+  designSections()(tree, { path: "/repo/blueprint/DESIGN.md" });
+  assert.deepEqual(
+    tree.children
+      .filter((node) => node.type === "html")
+      .map((node) => node.value),
+    [
+      '<section data-blueprint-design-section="Overview">',
+      "</section>",
+      '<section data-blueprint-design-section="Colors">',
+      "</section>",
+    ],
+  );
   assert.equal(
-    tree.children[0].children.find((n) => n.type === "code").value,
+    tree.children.find((node) => node.type === "code").value,
     "## Not a section",
   );
-  assert.equal(tree.children[1].attributes[0].value, "Colors");
-  assert.equal(tree.children[1].children.at(-1).children[0].value, "Palette.");
+  assert.equal(
+    tree.children.find((node) => node.type === "paragraph").children[0].value,
+    "Intro.",
+  );
+  assert.equal(
+    tree.children.findLast((node) => node.type === "paragraph").children[0]
+      .value,
+    "Palette.",
+  );
 });

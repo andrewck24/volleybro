@@ -1,0 +1,115 @@
+{
+  "title": "Design System",
+  "pages": [
+    {
+      "slug": "",
+      "title": "Overview",
+      "description": "The shared visual language and component rules used across VolleyBro.",
+      "sections": ["Overview", "Do's and Don'ts"],
+      "showcase": "index"
+    },
+    {
+      "slug": "brand",
+      "title": "Brand",
+      "description": "The VolleyBro logo symbol, wordmark, adaptive coloring, and safe grounds.",
+      "sections": ["Colors"],
+      "showcase": "brand"
+    },
+    {
+      "slug": "color",
+      "title": "Color",
+      "description": "Semantic light and dark color tokens, including surface, brand, feedback, and chart colors.",
+      "sections": ["Colors"],
+      "showcase": "color",
+      "interactive": true,
+      "searchTerms": [
+        "--background",
+        "--popover",
+        "--popover-foreground",
+        "--card",
+        "--card-foreground",
+        "--muted",
+        "--accent",
+        "--accent-foreground",
+        "--secondary",
+        "--secondary-foreground",
+        "--primary",
+        "--primary-foreground",
+        "--primary-text",
+        "--court",
+        "--court-foreground",
+        "--court-back-zone",
+        "--destructive",
+        "--destructive-foreground",
+        "--destructive-text",
+        "--away",
+        "--away-foreground",
+        "--away-text",
+        "--error",
+        "--error-foreground",
+        "--error-text",
+        "--success",
+        "--success-foreground",
+        "--warning",
+        "--warning-foreground",
+        "--info",
+        "--info-foreground",
+        "--chart-1",
+        "--chart-2",
+        "--chart-3",
+        "--chart-4",
+        "--chart-5",
+        "--border",
+        "--input",
+        "--ring",
+        "--foreground",
+        "--muted-foreground"
+      ]
+    },
+    {
+      "slug": "typography",
+      "title": "Typography",
+      "description": "Typography roles, fonts, sizes, weights, and Tailwind utilities.",
+      "sections": ["Typography"],
+      "showcase": "typography"
+    },
+    {
+      "slug": "spacing",
+      "title": "Spacing",
+      "description": "The spacing scale and layout rules used by the application.",
+      "sections": ["Layout"],
+      "showcase": "spacing"
+    },
+    {
+      "slug": "radius",
+      "title": "Radius",
+      "description": "The shared radius token and its derived shape steps.",
+      "sections": ["Shapes"],
+      "showcase": "radius"
+    },
+    {
+      "slug": "elevation-depth",
+      "title": "Elevation & Depth",
+      "description": "The background, popover, and card layers and the overlay edge rule.",
+      "sections": ["Elevation & Depth"],
+      "showcase": "elevation-depth"
+    },
+    {
+      "slug": "components",
+      "title": "Components",
+      "description": "The Blueprint component library and its reusable presentation patterns.",
+      "sections": ["Components"],
+      "showcase": "components",
+      "interactive": true,
+      "searchTerms": [
+        "TLDR",
+        "Scenario",
+        "RiskTable",
+        "AnnotatedDiff",
+        "InteractiveFlowchart",
+        "DecisionTimeline",
+        "FigureBadges"
+      ]
+    }
+  ]
+}

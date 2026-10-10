@@ -1,0 +1,15 @@
+---
+import { renderAnnotatedDiffHtml } from "../lib/annotated-diff-html";
+import type { BundledLanguage } from "shiki";
+
+interface Props {
+  code: string;
+  lang?: BundledLanguage;
+  unified?: boolean;
+}
+
+const { code, lang = "tsx", unified } = Astro.props;
+const highlightedHtml = await renderAnnotatedDiffHtml(code, lang, unified);
+---
+
+<div set:html={highlightedHtml} />
