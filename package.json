@@ -1,6 +1,6 @@
 {
   "name": "volleybro",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.9.1",
