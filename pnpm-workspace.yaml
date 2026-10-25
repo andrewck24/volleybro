@@ -2,12 +2,16 @@ packages:
   - "."
   - blueprint
 
-# Only the Zod resolver is used. The resolvers package still lists ajv and ajv-formats as peers
-# (optional since 5.x), which these overrides strip. Revisit before enabling the AJV resolver.
+# The two @hookform/resolvers entries: only the Zod resolver is used. The package still lists ajv and
+# ajv-formats as peers (optional since 5.x), which these entries strip. Revisit before enabling the AJV resolver.
+# The zod and undici entries lift exact upstream pins to a patched version.
 overrides:
   "@hookform/resolvers@6.0.0>ajv": "-"
   "@hookform/resolvers@6.0.0>ajv-formats": "-"
-  proxy-addr@>=1.1.0 <2.0.8: ^2.0.8
+  # emdash and @emdash-cms/auth pin zod 4.5.4 exactly and @serwist/build pins 4.6.5; remove once upstream ships a fixed pin.
+  zod@>=4.0.0 <4.6.6: ^4.6.7
+  # miniflare pins undici 7.29.1 exactly, even via the latest wrangler; remove once upstream ships a fixed pin.
+  undici@>=7.0.0 <7.30.1: ^7.30.1
 
 allowBuilds:
   "@parcel/watcher": false
@@ -18,18 +22,3 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
-
-minimumReleaseAgeExclude:
-  - chromatic@18.13.1
-  - "@astrojs/check@0.9.12"
-  - "@astrojs/cloudflare@14.4.2"
-  - "@astrojs/language-server@2.17.3"
-  - "@astrojs/markdown-remark@7.3.4"
-  - "@astrojs/markdown-satteri@0.4.5"
-  - "@astrojs/mdx@8.1.1"
-  - "@astrojs/prism@4.1.1"
-  - "@astrojs/react@7.1.1"
-  - "@astrojs/telemetry@3.4.1"
-  - astro@7.4.2
-  - lucide-react@1.61.0
-  - pele@1.8.0
