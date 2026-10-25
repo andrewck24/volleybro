@@ -120,30 +120,23 @@ async function lockPair(
   );
 }
 
-test("skips agent tooling and root prose docs but still runs when mixed with src", async (t) => {
+test("compares from the merge-base, so base-only commits do not count as PR changes", async (t) => {
+  const cwd = await repository(t);
+  const fork = await commitFiles(cwd, { "docs/a.md": "a\n" }, "fork");
+  const base = await commitFiles(cwd, { "src/Button.tsx": "next\n" }, "main");
+  git(cwd, "checkout", "-q", "-b", "pr", fork);
+  const head = await commitFiles(cwd, { "docs/a.md": "b\n" }, "pr");
+  const result = await classify(cwd, compareArgs(base, head));
+  assert.equal(result.output, "skip=true\n");
+});
+
+test("skips only when every changed path is non-visual", async (t) => {
   const skipped = {
     ".agents/skills/x/SKILL.md": "next\n",
     ".claude/launch.json": "{}\n",
     "AGENTS.md": "next\n",
     "GLOSSARY.md": "next\n",
     "README.zh-TW.md": "next\n",
-  };
-  for (const [files, skip] of [
-    [skipped, true],
-    [{ ...skipped, "src/Button.tsx": "next\n" }, false],
-  ]) {
-    const { cwd, base, head } = await commitPair(
-      t,
-      { "docs/a.md": "a\n" },
-      files,
-    );
-    const result = await classify(cwd, compareArgs(base, head));
-    assert.equal(result.output, `skip=${skip}\n`);
-  }
-});
-
-test("skips non-visual paths and tests but runs for the classifier, its workflow, and src code", async (t) => {
-  const skipped = {
     "docs/images/shot.png": "next\n",
     "blueprint/content/features/example.md": "next\n",
     ".github/workflows/ci.yml": "next\n",
@@ -158,7 +151,11 @@ test("skips non-visual paths and tests but runs for the classifier, its workflow
     [skipped, true],
     [{ ".github/workflows/chromatic.yml": "next\n" }, false],
     [{ "scripts/chromatic-scope.js": "next\n" }, false],
+    [{ ...skipped, "src/Button.tsx": "next\n" }, false],
     [{ "src/Button.test.tsx": "next\n", "src/Button.tsx": "next\n" }, false],
+    [{ ".storybook/preview.ts": "next\n" }, false],
+    [{ "src/app.css": "next\n" }, false],
+    [{ "tsconfig.json": "next\n" }, false],
   ]) {
     const { cwd, base, head } = await commitPair(
       t,
@@ -239,25 +236,8 @@ test("runs when native first-document package manager metadata changes", async (
     manifest(),
   );
   const result = await classify(cwd, compareArgs(base, head));
-  assert.match(result.stdout, /skip=false reason=/);
+  assert.match(result.stdout, /reason=pnpm lockfile environment changed/);
   assert.equal(result.output, "skip=false\n");
-});
-
-test("runs for Storybook, CSS, and build tool changes", async (t) => {
-  for (const filename of [
-    ".storybook/preview.ts",
-    "src/app.css",
-    "tsconfig.json",
-  ]) {
-    const { cwd, base, head } = await commitPair(
-      t,
-      { [filename]: "base\n" },
-      { [filename]: "head\n" },
-    );
-    const result = await classify(cwd, compareArgs(base, head));
-    assert.match(result.stdout, /skip=false reason=/, filename);
-    assert.equal(result.output, "skip=false\n", filename);
-  }
 });
 
 test("fails closed for malformed locks, dangling refs, unsupported versions, and extra documents", async (t) => {
@@ -307,10 +287,11 @@ test("runs when a visual file is renamed or deleted", async (t) => {
     const cwd = await repository(t);
     const base = await commitFiles(
       cwd,
-      { "src/old.tsx": "component\n" },
+      { "src/old.tsx": "component\n", "docs/a.md": "a\n" },
       "base",
     );
-    if (change === "rename") git(cwd, "mv", "src/old.tsx", "src/new.tsx");
+    // The new path is safe, so only the old path can make this run.
+    if (change === "rename") git(cwd, "mv", "src/old.tsx", "docs/old.tsx");
     else git(cwd, "rm", "src/old.tsx");
     git(cwd, "add", "--all");
     git(cwd, "commit", "-qm", change);
@@ -451,4 +432,85 @@ test("runs when package manager configDependencies change", async (t) => {
   );
   const result = await classify(pair.cwd, compareArgs(pair.base, pair.head));
   assert.equal(result.output, "skip=false\n", result.stdout);
+});
+
+test("runs for lockfile changes only the graph check can see", async (t) => {
+  const devEslintAlsoRuntime = (specifier) =>
+    lockfile().replace(
+      "    devDependencies:\n      eslint:\n        specifier: ^9.0.0",
+      `      eslint:\n        specifier: ^9.0.0\n        version: 9.0.0\n    devDependencies:\n      eslint:\n        specifier: ${specifier}`,
+    );
+  const withOptional = (child) =>
+    lockfile()
+      .replace(
+        "    devDependencies:\n",
+        "    optionalDependencies:\n      opt-lib:\n        specifier: ^1.0.0\n        version: 1.0.0\n    devDependencies:\n",
+      )
+      .replace(
+        "packages:\n  app-lib@1.0.0:",
+        `packages:\n  opt-lib@1.0.0:\n    resolution: {integrity: sha512-opt}\n  opt-child@${child}:\n    resolution: {integrity: sha512-child-${child}}\n  app-lib@1.0.0:`,
+      )
+      .replace(
+        'snapshots:\n  "app-lib',
+        `snapshots:\n${snapshot("opt-lib", "1.0.0", { "opt-child": child })}${snapshot("opt-child", child)}  "app-lib`,
+      );
+  const linked = (eslint) =>
+    lockfile({ eslint }).replace(
+      "        version: 1.0.0\n",
+      "        version: link:../lib\n",
+    );
+  const conflictingPin = lockfile().replace(
+    "    devDependencies:\n",
+    "    packageManagerDependencies:\n      pnpm:\n        specifier: 1.0.0\n        version: 1.0.0\n    devDependencies:\n",
+  );
+  for (const [name, firstLock, secondLock, reason] of [
+    [
+      "resolution settings",
+      lockfile(),
+      lockfile().replace("autoInstallPeers: true", "autoInstallPeers: false"),
+      /lockfile environment changed/,
+    ],
+    [
+      "dev tool also a runtime dependency",
+      devEslintAlsoRuntime("^9.0.0"),
+      devEslintAlsoRuntime("^9.0.1"),
+      /dependency graph changed/,
+    ],
+    [
+      "transitive optional dependency",
+      withOptional("1.0.0"),
+      withOptional("1.1.0"),
+      /dependency graph changed/,
+    ],
+    [
+      "link: reference",
+      linked("9.0.0"),
+      linked("9.1.0"),
+      /unsupported package reference/,
+    ],
+    [
+      "importer documents disagree",
+      lockfile(),
+      conflictingPin,
+      /importer documents differ/,
+    ],
+  ]) {
+    const pair = await lockPair(
+      t,
+      firstLock,
+      secondLock,
+      manifest(),
+      manifest(),
+    );
+    const result = await classify(pair.cwd, compareArgs(pair.base, pair.head));
+    assert.match(result.stdout, reason, name);
+    assert.equal(result.output, "skip=false\n", name);
+  }
+});
+
+test("runs for an unknown argument", async (t) => {
+  const cwd = await repository(t);
+  const result = await classify(cwd, ["--bogus"]);
+  assert.match(result.stdout, /skip=false reason=unknown argument/);
+  assert.equal(result.output, "skip=false\n");
 });

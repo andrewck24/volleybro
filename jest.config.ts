@@ -108,7 +108,6 @@ export default async function jestConfig() {
   };
 
   return {
-    collectCoverage: true,
     coverageDirectory: "coverage",
     coverageProvider: "v8",
     projects: [backendProject, frontendProject, integrationProject],
