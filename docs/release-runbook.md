@@ -38,6 +38,22 @@ The session secret is a bearer credential for the test account only: a read-only
 2. Perform the re-login procedure above to create and store a new session. Confirm the old cookie now fails `get-session`.
 3. Rotate the production `BETTER_AUTH_SECRET` only when the signing secret itself may be exposed, since cookie signatures could then be forged for any user. Rotation signs every user out and needs a production redeploy, so treat it as an incident and not as routine cleanup.
 
+## Test project deployment
+
+Real-device acceptance of an auth-gated page runs on the test project. Confirm the deployment project is the unprotected `volleybro-test`, not the formal `volleybro` project. Use the globally installed Vercel CLI when available; fall back to `pnpm dlx vercel` only when it is absent. Confirm authentication before deploying; `--prod` selects the test project's Production target, not the formal site's project.
+
+```sh
+git status --short && {
+  if command -v vercel >/dev/null 2>&1; then
+    vercel --prod --yes
+  else
+    pnpm dlx vercel --prod --yes
+  fi
+}
+```
+
+Do not fall back after an installed CLI fails: resolve authentication or deployment errors instead. Hand out `https://volleybro-test.vercel.app`, never the org-suffixed alias, which redirects to SSO.
+
 ## Dependency maintenance
 
 Follow [maintenance-policy.md](maintenance-policy.md) for schedules and Agent collaboration. Treat graph coverage, alert visibility and native updater compatibility as separate proofs; local SBOM generation or upload success alone is insufficient. Keep the relevant automation flag false when its proof fails or is unavailable. New workspaces require submission mapping and graph read-back.
