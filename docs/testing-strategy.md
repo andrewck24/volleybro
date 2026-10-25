@@ -172,15 +172,16 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 Shared test code lives under `test/support/`, outside `src/`, so production tooling ignores it, and `jest.config.ts` leaves `test/` out of coverage. Import it as `@test/support/...`. It is sorted by what a helper is, not by which test uses it:
 
-| Directory   | Holds                                                      | Example                             |
-| ----------- | ---------------------------------------------------------- | ----------------------------------- |
-| `fixtures/` | Builders that return domain data, `createX(overrides?)`    | `createGame`                        |
-| `doubles/`  | Mock repositories and services for use-case tests          | `createMockTeamRepository`          |
-| `msw/`      | The MSW server and handlers for this application's own API | `answerRallies`                     |
-| `react/`    | Render wrappers and providers                              | `SwrIsolation`, `renderEditingGame` |
-| `http/`     | Request builders for route tests                           | `routeRequest`                      |
-| `dom/`      | Walkers over rendered output                               | `collect`                           |
-| `storage/`  | Seeders for browser storage                                | `seedActiveTeamPreference`          |
+| Directory   | Holds                                                                           | Example                             |
+| ----------- | ------------------------------------------------------------------------------- | ----------------------------------- |
+| `fixtures/` | Builders that return domain data, `createX(overrides?)`                         | `createGame`                        |
+| `doubles/`  | Mock repositories and services for use-case tests                               | `createMockTeamRepository`          |
+| `msw/`      | The MSW server and handlers for this application's own API                      | `answerRallies`                     |
+| `react/`    | Render wrappers and providers                                                   | `SwrIsolation`, `renderEditingGame` |
+| `http/`     | Request builders for route tests                                                | `routeRequest`                      |
+| `dom/`      | Walkers over rendered output                                                    | `collect`                           |
+| `storage/`  | Seeders for browser storage                                                     | `seedActiveTeamPreference`          |
+| (root)      | `gates.ts` holds MSW responses; `git-fixture.js` commits files for script tests | `deferred`, `commitFiles`           |
 
 `test/setup/` wires Jest and no test imports it. `test/integration/support/` needs the database driver, so only integration tests import it.
 
@@ -196,15 +197,15 @@ Defines what belongs in shared setup files versus inline per-test mocks.
 
 Jest setup files live under `test/setup/`; only `jest.config.ts` stays at the repository root (ADR-0091).
 
-| File                                 | What it does                                                                                                                                                                                       | Used by               |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `test/setup/shared.ts`               | Silences known third-party warnings                                                                                                                                                                | backend, frontend     |
-| `test/setup/backend.ts`              | Replaces `next/server` and `next/headers`, and `connectToMongoDB` with a resolved no-op that `withErrorHandler` awaits; the database driver itself is not stubbed                                  | backend               |
-| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture, `setImmediate`); `next/link` and `next/image`; `jest-dom` and `jest-axe`; starts the MSW server | frontend              |
-| `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                                               | integration           |
-| `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                                              | integration           |
-| `test/setup/integration.ts`          | Connects each test file to a database of its own, empties model collections between tests, drops the database at the end; makes `@/lib/auth` and `next/headers` importable                         | integration           |
-| `test/setup/integration.preload.js`  | Exposes `globalThis.AsyncLocalStorage` before any module loads, because Next's server modules capture it at import time                                                                            | integration (preload) |
+| File                                 | What it does                                                                                                                                                                                                                                              | Used by               |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `test/setup/shared.ts`               | Silences known third-party warnings                                                                                                                                                                                                                       | backend, frontend     |
+| `test/setup/backend.ts`              | Replaces `next/server` and `next/headers`, and `connectToMongoDB` with a resolved no-op that `withErrorHandler` awaits; the database driver itself is not stubbed                                                                                         | backend               |
+| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture, `setImmediate`); `next/link` and `next/image`; `jest-dom` and `jest-axe`; starts the MSW server and releases held `gates.ts` responses after each test | frontend              |
+| `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                                                                                                      | integration           |
+| `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                                                                                                     | integration           |
+| `test/setup/integration.ts`          | Connects each test file to a database of its own, empties model collections between tests, drops the database at the end; makes `@/lib/auth` and `next/headers` importable                                                                                | integration           |
+| `test/setup/integration.preload.js`  | Exposes `globalThis.AsyncLocalStorage` before any module loads, because Next's server modules capture it at import time                                                                                                                                   | integration (preload) |
 
 The replica set starts in global setup because the driver that initiates it cannot complete its handshake inside a Jest test environment; one server per run also keeps the run short. The integration project does **not** load `backend.ts`: it needs the real driver.
 
