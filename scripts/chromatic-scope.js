@@ -168,10 +168,10 @@ function rootProtectedImporter(importer) {
 }
 
 function packageLocator(name, reference, lock) {
-  if (typeof reference !== "string" || reference.startsWith("link:")) {
-    throw new Error(`unsupported or missing package reference for ${name}`);
-  }
-  if (reference.startsWith("file:") || reference.startsWith("workspace:")) {
+  if (
+    typeof reference !== "string" ||
+    /^(?:link|file|workspace):/.test(reference)
+  ) {
     throw new Error(`unsupported package reference for ${name}`);
   }
   if (Object.hasOwn(lock.snapshots, reference)) return reference;
@@ -233,7 +233,7 @@ function protectedGraph(lock) {
 }
 
 // Known metadata that cannot change what Storybook bundles. Any other field,
-// including unknown ones, is compared so the check stays fail-open.
+// including unknown ones, is compared so the check stays fail-closed.
 const IGNORED_MANIFEST_FIELDS = [
   "name",
   "version",
@@ -347,20 +347,20 @@ function runGit(args, cwd) {
   });
 }
 
-function assess({ base, head, force = false }) {
+function assess({ base: target, head, force = false }) {
   const cwd = process.cwd();
   if (force) return { skip: false, reason: "forced by --force" };
   if (
-    !base ||
+    !target ||
     !head ||
-    !/^[0-9a-f]{7,40}$/i.test(base) ||
+    !/^[0-9a-f]{7,40}$/i.test(target) ||
     !/^[0-9a-f]{7,40}$/i.test(head)
   ) {
     return { skip: false, reason: "base/head SHA is missing or malformed" };
   }
   try {
-    runGit(["cat-file", "-e", `${base}^{commit}`], cwd);
-    runGit(["cat-file", "-e", `${head}^{commit}`], cwd);
+    // Commits that landed on the target after the branch point are not PR changes.
+    const base = runGit(["merge-base", target, head], cwd).trim();
     const paths = parseNameStatus(
       runGit(["diff", "--name-status", "-z", base, head], cwd),
     );
