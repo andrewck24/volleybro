@@ -15,9 +15,9 @@ export const LANE_COMMANDS = {
     "pnpm lint",
   ],
   workflow: ["pnpm test:workflow"],
-  integration: ["pnpm test:integration --coverage=false"],
+  integration: ["pnpm test:integration"],
   "app-build": ["pnpm build", "node scripts/assert-sw.js"],
-  "app-test": ["pnpm test --coverage=false"],
+  "app-test": ["pnpm test"],
   blueprint: [
     "pnpm --filter blueprint test",
     "pnpm --filter blueprint test:persistence",
