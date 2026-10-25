@@ -14,7 +14,7 @@ A test's tier follows from what it touches, not from its folder or its entry poi
 | ----------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
 | Unit        | One process, no I/O, however many real collaborators                                        | `*.test.ts(x)` beside the code in `src/`                     | `pnpm test` (Jest `backend` and `frontend` projects) |
 | Integration | At least one real out-of-process dependency, the database here, and proving it is the point | `*.itest.ts` under `test/integration/api/` or `persistence/` | `pnpm test:integration` (Jest `integration` project) |
-| End-to-end  | A real client, the web app in a browser or a mobile app, against a deployed backend         | `*.e2e.ts` under `test/e2e/`                                 | `pnpm exec playwright test` (Playwright)             |
+| End-to-end  | A real client, the web app in a browser or a mobile app, against a deployed backend         | `*.e2e.ts` under `test/e2e/`                                 | `pnpm test:smoke` (Playwright)                       |
 
 End-to-end tests cover critical paths only, one suite per client. The production smoke test is the subset tagged `@smoke`, run by `pnpm test:smoke` against `PRODUCTION_ALIAS` after promotion; it uses a real session a person established once and never a test-only sign-in path. That path is for end-to-end tests outside production and must never reach production. A check against a deployed backend is an end-to-end test even when it sends HTTP requests without opening a page (ADR-0140).
 
@@ -95,7 +95,7 @@ Repository query and write behaviour is proven in `persistence/` integration tes
 `test/support/msw/server.ts` is one MSW server for the `frontend` project. A test adds its handlers with `server.use(http.get(...))`, and they are dropped after each test. A request no handler answers fails the test.
 
 - MSW matches a path and ignores its query string; read `new URL(request.url).searchParams` inside the handler to assert it.
-- To hold a request in flight, await a promise in the handler and resolve it from the test; `delay("infinite")` never answers.
+- To hold a request in flight, await `deferred()` from `@test/support/gates` in the handler and call its `release` from the test; `delay("infinite")` never answers.
 - A test that renders a real SWR hook wraps it in `SwrIsolation` from `@test/support/react/swr-isolation`, so one test's cached response never answers another.
 - `jest.useFakeTimers()` stops MSW from answering; use `jest.useFakeTimers({ doNotFake: ["nextTick"] })`.
 
@@ -159,7 +159,7 @@ Frontend component tests are split across two tools with distinct responsibiliti
 - Catch layout, spacing, color, and responsive breakpoint regressions via screenshot diffing
 - Stories serve as living documentation and visual test cases
 - Run Chromatic on CI to gate visual changes, with TurboSnap (`onlyChanged`) to trace affected stories; shared preview inputs can require a full capture
-- Before invoking Chromatic, `scripts/chromatic-scope.js` compares the complete change since the merge-base with the target branch and the protected root dependency graph. Only proven unrelated tooling or isolated Blueprint changes may skip the build; runtime, Storybook, CSS, assets and uncertain changes still run. Nonvisual development tools are explicitly classified in the script, not inferred from `devDependencies`. A shared transitive change remains protected. Manual dispatch always runs; commit titles cannot bypass this assessment. Chromatic's `skip` reports the skipped result without leaving a pending check. TurboSnap can still require a full capture when a shared preview input changes ([official setup](https://www.chromatic.com/docs/turbosnap/setup/)).
+- `scripts/chromatic-scope.js` decides whether a change may skip the build, and its tests hold the rules; anything it cannot prove non-visual runs. Manual dispatch always runs, and a skip reports a skipped result rather than a pending check.
 - Stories do **not** include `play()` functions — Storybook is not used for interaction testing
 - `fn()` from `storybook/test` is used only for action spying in the Actions panel, not for assertions
 - The behavioral ↔ visual split is intentional: Jest + RTL owns interactions, Chromatic owns pixels
@@ -180,6 +180,7 @@ Shared test code lives under `test/support/`, outside `src/`, so production tool
 | `react/`    | Render wrappers and providers                              | `SwrIsolation`, `renderEditingGame` |
 | `http/`     | Request builders for route tests                           | `routeRequest`                      |
 | `dom/`      | Walkers over rendered output                               | `collect`                           |
+| `storage/`  | Seeders for browser storage                                | `seedActiveTeamPreference`          |
 
 `test/setup/` wires Jest and no test imports it. `test/integration/support/` needs the database driver, so only integration tests import it.
 
@@ -195,15 +196,15 @@ Defines what belongs in shared setup files versus inline per-test mocks.
 
 Jest setup files live under `test/setup/`; only `jest.config.ts` stays at the repository root (ADR-0091).
 
-| File                                 | What it does                                                                                                                                                               | Used by               |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `test/setup/shared.ts`               | Silences known third-party warnings                                                                                                                                        | backend, frontend     |
-| `test/setup/backend.ts`              | Replaces `mongoose`, `mongodb` and `bson` with stubs, and `connectToMongoDB` with a resolved no-op that `withErrorHandler` awaits                                          | backend               |
-| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture, `setImmediate`); `jest-dom` and `jest-axe`; starts the MSW server       | frontend              |
-| `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                       | integration           |
-| `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                      | integration           |
-| `test/setup/integration.ts`          | Connects each test file to a database of its own, empties model collections between tests, drops the database at the end; makes `@/lib/auth` and `next/headers` importable | integration           |
-| `test/setup/integration.preload.js`  | Exposes `globalThis.AsyncLocalStorage` before any module loads, because Next's server modules capture it at import time                                                    | integration (preload) |
+| File                                 | What it does                                                                                                                                                                                       | Used by               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `test/setup/shared.ts`               | Silences known third-party warnings                                                                                                                                                                | backend, frontend     |
+| `test/setup/backend.ts`              | Replaces `next/server` and `next/headers`, and `connectToMongoDB` with a resolved no-op that `withErrorHandler` awaits; the database driver itself is not stubbed                                  | backend               |
+| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture, `setImmediate`); `next/link` and `next/image`; `jest-dom` and `jest-axe`; starts the MSW server | frontend              |
+| `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                                               | integration           |
+| `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                                              | integration           |
+| `test/setup/integration.ts`          | Connects each test file to a database of its own, empties model collections between tests, drops the database at the end; makes `@/lib/auth` and `next/headers` importable                         | integration           |
+| `test/setup/integration.preload.js`  | Exposes `globalThis.AsyncLocalStorage` before any module loads, because Next's server modules capture it at import time                                                                            | integration (preload) |
 
 The replica set starts in global setup because the driver that initiates it cannot complete its handshake inside a Jest test environment; one server per run also keeps the run short. The integration project does **not** load `backend.ts`: it needs the real driver.
 
@@ -222,11 +223,11 @@ The replica set starts in global setup because the driver that initiates it cann
 
 ## Story Coverage Requirements
 
-| Layer                                | Story required                                    | Story location        |
-| ------------------------------------ | ------------------------------------------------- | --------------------- |
-| `ui/`                                | **Yes** — every component                         | `src/stories/ui/`     |
-| `custom/`                            | **Yes** — cross-domain composites                 | `src/stories/custom/` |
-| `{domain}/` (e.g., `team/`, `user/`) | No — behavioral coverage via Jest, visual via E2E | —                     |
+| Layer                                | Story required                                 | Story location        |
+| ------------------------------------ | ---------------------------------------------- | --------------------- |
+| `ui/`                                | **Yes** — every component                      | `src/stories/ui/`     |
+| `custom/`                            | **Yes** — cross-domain composites              | `src/stories/custom/` |
+| `{domain}/` (e.g., `team/`, `user/`) | No — Jest covers behaviour; no visual coverage | —                     |
 
 New components in `ui/` and `custom/` must include a Storybook story before the PR is merged. Domain components are exercised through their parent feature flows.
 
@@ -234,7 +235,7 @@ New components in `ui/` and `custom/` must include a Storybook story before the 
 
 ## Where Tests Run
 
-CI runs every check on every pull request and is the authority (ADR-0092). Locally, `pnpm verify` runs format, lint, type checks, workflow conformance and unit tests. `pnpm verify:all` runs each other lane — the app build and unit tests, the workflow tests, the integration tests, the Blueprint tests — only when the diff against the remote default integration branch reaches it, and every lane when root configuration changed; `pnpm verify:all --full` runs everything. No local gate builds the Blueprint site. The integration tests download a `mongodb-memory-server` binary on first run.
+CI runs every check on every pull request and is the authority (ADR-0092). The local gates are defined in `WORKFLOW.md`'s Repository profile; `pnpm verify:all --dry-run` prints which lanes a diff runs. The integration tests download a `mongodb-memory-server` binary on first run.
 
 Each run replaces `.verify-logs/` with every lane's full output (`<lane>.log`, gitignored); read it rather than rerunning a failed gate. A Jest lane whose worker crashes with `SIGSEGV` reruns once on its own, and the summary says so.
 
@@ -254,7 +255,7 @@ Each run replaces `.verify-logs/` with every lane's full output (`<lane>.log`, g
 | Repository or transaction behaviour      | `test/integration/persistence/*.itest.ts`   | Classical | Auth services (DI doubles)      |
 | React component (visual)                 | Storybook story                             | —         | —                               |
 | New `ui/` or `custom/` component         | Story **required**                          | —         | —                               |
-| New domain component                     | Story optional (Jest is sufficient)         | —         | —                               |
+| New domain component                     | No story required (Jest covers behaviour)   | —         | —                               |
 
 **Do:** Assert on rendered output and resulting state.  
 **Don't:** Assert on CSS class names or implementation call order (unless Controller layer).

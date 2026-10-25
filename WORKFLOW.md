@@ -38,7 +38,7 @@ This file is VolleyBro's canonical provider-neutral delivery contract. A develop
 | Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                               |
 | Fast path branch                       | `fast/<slug>`, whatever the commit type                                                                                                                         |
 | Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                               |
-| Section gate                           | `pnpm verify` — format, lint, type checks, unit tests, workflow conformance                                                                                     |
+| Section gate                           | `pnpm verify` — format, design document, lint, type checks, unit tests, workflow conformance                                                                    |
 | Final gate                             | `pnpm verify:all` — static checks and the lanes reached by the diff against the remote default integration branch; `--full` runs all; CI runs every check       |
 | Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                          |
 | Change specification and G1            | The Linear execution issue; G1 is the `ready-for-human` → `ready-for-agent` label switch. A Blueprint Change page (EmDash) exists only on demand, see Lifecycle |
