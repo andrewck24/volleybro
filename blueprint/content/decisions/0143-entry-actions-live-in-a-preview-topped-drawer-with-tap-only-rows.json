@@ -3,7 +3,7 @@
   "id": "0143",
   "title": "Entry edit and delete live in a Preview-topped drawer with tap-to-expand rows only",
   "capabilities": ["game-recording/rally-recording"],
-  "context": "Decision 0136 gave summary rows both a left-swipe reveal and tap-to-expand. Both showed the same actions, so the swipe added a second, non-exclusive way to open a row without adding anything, and the developer chose to remove it.",
+  "context": "Decision 0136 gave summary rows both a left-swipe reveal and tap-to-expand. Both showed the same actions, so the swipe added a second, non-exclusive way to open a row without adding anything, and the developer chose to remove it. The expanded row's recordedBy and time, and the delete and roll-back actions, are carried over from 0136 unchanged and are not yet implemented; only edit is wired today.",
   "decision": "Summary leaves the Options dialog and becomes a bottom drawer whose top edge is the Preview. Idle, it shows only the handle and the latest entry (the former Preview); opening it lifts the latest entry with the edge so that it becomes the list's first row in place. Summary therefore leaves the panel, and its gestures no longer compete with the panel's. Tapping a row is the only way to show its actions: it expands inline (an accordion), one row at a time, to show recordedBy, the time and the full actions, keeping the context in the list; rows have no swipe gesture. The buttons follow the last-entry rule: the latest entry offers edit and delete (the request carries the version number and shares the guard of sync-recording's D9 and D10), any other offers edit and roll back to here, so the alternative path is visible instead of a disabled delete. Gestures split with the input Preview: idle, a tap opens the drawer; during input, a tap on the Preview only submits (three steps complete submits, otherwise nothing happens); the handle always toggles the drawer. Opening the drawer by its handle during input lifts the draft, pulsing, into the list's first row, clearly apart from committed entries; once submitted and frozen it becomes the real first entry in place.",
   "alternatives": [
     {
@@ -24,7 +24,14 @@
     },
     {
       "option": "Keep the left-swipe reveal alongside tap-to-expand",
-      "reason": "It showed the same actions as tapping, could leave one row swiped open while another was expanded, and duplicated a gesture the panel already uses; a native rewrite can reconsider gestures."
+      "reason": "It showed the same actions as tapping, could leave one row swiped open while another was expanded, and duplicated a gesture the panel already uses."
     }
+  ],
+  "consequences": [
+    "The swipe handlers, the swiped-open row state and its story are removed; tapping is the only way to open a row.",
+    "Decision 0136 is superseded."
+  ],
+  "revisitTriggers": [
+    "A native rewrite of the recording screen, where row gestures may be reconsidered."
   ]
 }
