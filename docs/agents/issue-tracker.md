@@ -51,6 +51,10 @@ Estimate in points, set in two steps:
 
 A cycle holds 20 points (cycles 2–4 averaged about 23; the figure is lowered for weekly dev-notes and articles); revisit it after a few more cycles. A Change whose slices landed in an earlier cycle counts only its remaining point.
 
+## Per-Cycle audit
+
+Each Cycle, run a whole-repository audit for bugs, security, load, untested risk and removable code (`ponytail-audit` when available), and list the deferred `shortcut:` comments (`ponytail-debt` when available). Open an issue for each finding that has no existing owner, and merge a finding into its owner when one exists. This routine is a recurring tracker issue, not a lifecycle step in `WORKFLOW.md`; Linear's recurrence setting is the schedule.
+
 ## Grill decisions
 
 When a grilling session settles a decision, record it on the issue immediately, one decision at a time, rather than batching them at the end. Create dependency links only from relationships the discussion established; never invent one.

@@ -14,7 +14,7 @@ Most skills in `.agents/skills/` are vendored and written for any repository; an
 | `grilling`                      | no adapter                                                                                                                                               |
 | `handoff`                       | `docs/agents/domain.md`                                                                                                                                  |
 | `impeccable`                    | no adapter                                                                                                                                               |
-| `implement`                     | `docs/agents/issue-tracker.md`, `docs/agents/artifact-lifecycle.md`, `docs/agents/test-audit.md`                                                         |
+| `implement`                     | `docs/agents/issue-tracker.md`, `docs/agents/artifact-lifecycle.md`                                                                                      |
 | `implement-spec`                | `docs/agents/issue-tracker.md`                                                                                                                           |
 | `improve-codebase-architecture` | `docs/agents/domain.md`                                                                                                                                  |
 | `plan-spec`                     | `docs/agents/domain.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/artifact-lifecycle.md`, `docs/agents/blueprint.md` |
