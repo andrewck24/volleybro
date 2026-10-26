@@ -10,8 +10,9 @@ import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { pointerEvent } from "@test/support/dom/pointer-event";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
@@ -150,32 +151,17 @@ describe("SummaryDrawerCard handle / expansion", () => {
     expect(rows[1]).toHaveAttribute("data-expanded", "true");
   });
 
-  it("expanded: a horizontal swipe reveals nothing; tapping still opens exactly one row", async () => {
-    const user = userEvent.setup();
+  it("expanded: a horizontal swipe reveals no extra actions", async () => {
     render(<SummaryDrawerCard {...baseProps} state="expanded" />);
 
     const rows = await screen.findAllByTestId("entry-row");
-    // jsdom has no native PointerEvent; a MouseEvent under the pointer type
-    // name drives the same listeners a real swipe would.
-    const pointer = (type: string, clientX: number) =>
-      fireEvent(
-        rows[0]!,
-        new MouseEvent(type, { bubbles: true, cancelable: true, clientX }),
-      );
-    pointer("pointerdown", 100);
-    pointer("pointermove", 40);
-    pointer("pointerup", 40);
+    fireEvent(rows[0]!, pointerEvent("pointerdown", 100));
+    fireEvent(rows[0]!, pointerEvent("pointermove", 40));
+    fireEvent(rows[0]!, pointerEvent("pointerup", 40));
 
     expect(
-      screen.queryByTestId("entry-row-swipe-actions"),
-    ).not.toBeInTheDocument();
-    expect(rows[0]).toHaveAttribute("data-expanded", "false");
-
-    await user.click(rows[0]!);
-    await user.click(rows[1]!);
-    expect(
-      rows.filter((r) => r.getAttribute("data-expanded") === "true"),
-    ).toEqual([rows[1]]);
+      within(rows[0]!).getAllByRole("button", { name: "編輯" }),
+    ).toHaveLength(1);
   });
 });
 

@@ -3,18 +3,13 @@ import type { ProgressStep } from "@/components/game/panel/entry-progress";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
+import { pointerEvent } from "@test/support/dom/pointer-event";
 
 const steps: ProgressStep[] = [
   { key: "player", caption: "選擇球員" },
   { key: "home", caption: "我方得失分紀錄" },
   { key: "away", caption: "對方得失分紀錄" },
 ];
-
-// jsdom has no native PointerEvent implementation, so fireEvent.pointerX
-// helpers silently drop clientX. Build a MouseEvent under the pointer event
-// type name instead — React dispatches on event.type, not constructor identity.
-const pointerEvent = (type: string, clientX: number) =>
-  new MouseEvent(type, { bubbles: true, cancelable: true, clientX });
 
 describe("EntryProgressBar", () => {
   it("renders one segment per step with no inline text and shows the active caption", () => {
