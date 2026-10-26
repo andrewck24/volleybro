@@ -609,7 +609,7 @@ function workflowJob(
 }
 
 const compatibilityStep = (conclusion = "success", status = "completed") => ({
-  name: "Run and validate exact-baseline compatibility suite",
+  name: "Run exact-baseline compatibility suite",
   status,
   conclusion,
 });
@@ -950,6 +950,19 @@ test("the recovery receipt job accepts only one completed successful native comp
   }
 
   await passingCompatibilityTestJob(f);
+  const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, {
+    runs: { ...api.runs, 9: { ...api.runs[9], status: "completed" } },
+  });
+  const finishedRun = run(f, "record-recovery-evidence", {
+    ...source.env,
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.notEqual(finishedRun.status, 0);
+  assert.match(finishedRun.stderr, /active release run/);
+  assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
+  await updateApi(f, { runs: api.runs });
+
   const wrongJob = run(f, "record-recovery-evidence", {
     ...source.env,
     RELEASE_ACCEPTED_STATE_FILE: accepted,
@@ -3047,6 +3060,18 @@ test("recovery-receipt runs no candidate code and reads only the trusted control
     assert.equal(step.with["persist-credentials"], false);
     assert.equal(step.with["sparse-checkout"], ".nvmrc");
   }
+  // The runtime of the trusted controller comes from trusted main, not the candidate.
+  const nodeSetups = stepsOf(job).filter((s) =>
+    s.uses?.startsWith("actions/setup-node"),
+  );
+  assert.deepEqual(
+    nodeSetups.map((s) => s.with["node-version-file"]),
+    ["trusted-node/.nvmrc"],
+  );
+  const trustedCheckout = checkouts(job).find(
+    (s) => s.with.path === "trusted-node",
+  );
+  assert.equal(trustedCheckout.with.ref, "${{ github.workflow_sha }}");
   assert.deepEqual(
     downloads(job)
       .map((step) => step.with.name)
@@ -3078,16 +3103,39 @@ test("recovery-receipt runs no candidate code and reads only the trusted control
   assert.equal(upload.with.name, "production-release-accepted-state");
 });
 
-test("recovery-evidence holds no GitHub token, uploads only its report and cannot reach the accepted state", async () => {
+test("recovery-evidence holds no GitHub token, runs no controller and uploads only its report", async () => {
   const { jobs } = await loadWorkflow("production-release.yml");
   const job = jobs["recovery-evidence"];
   assert.doesNotMatch(
     JSON.stringify(job),
-    /GH_TOKEN|github\.token|RELEASE_TOKEN|VERCEL_TOKEN|record-recovery-evidence|production-release-accepted-state/,
+    /GH_TOKEN|github\.token|RELEASE_TOKEN|VERCEL_TOKEN|release-controls|record-recovery-evidence|production-release-accepted-state/,
   );
+  assert.deepEqual(downloads(job), []);
   assert.equal(job.permissions.actions, undefined);
   for (const step of checkouts(job))
     assert.equal(step.with["persist-credentials"], false);
+  // Whether the suite runs is decided upstream by the trusted source-qa job.
+  assert.ok(jobs["source-qa"].steps.some((s) => s.id === "compatibility-plan"));
+  const evidence = (required, result = "success") => ({
+    candidate: { result: "success" },
+    "source-qa": { result, outputs: { compatibility_required: required } },
+  });
+  assert.equal(evalIf(job.if, evidence("true")), true);
+  assert.equal(evalIf(job.if, evidence("false")), false);
+  assert.equal(evalIf(job.if, evidence("true", "failure")), false);
+  const receipt = (required, evidenceResult) => ({
+    candidate: { result: "success" },
+    "source-qa": {
+      result: "success",
+      outputs: { compatibility_required: required },
+    },
+    "recovery-evidence": { result: evidenceResult },
+  });
+  const gate = jobs["recovery-receipt"].if;
+  assert.equal(evalIf(gate, receipt("true", "success")), true);
+  assert.equal(evalIf(gate, receipt("true", "skipped")), false);
+  assert.equal(evalIf(gate, receipt("true", "failure")), false);
+  assert.equal(evalIf(gate, receipt("false", "skipped")), true);
   const uploads = stepsOf(job).filter((s) =>
     s.uses?.startsWith("actions/upload-artifact"),
   );
@@ -3127,9 +3175,12 @@ test("only the hotfix authorization job references VERCEL_TOKEN before staging, 
     );
   assert.ok(jobs["failure-summary"].needs.includes("authorize-hotfix"));
 
-  const candidate = (mode, hotfixResult, release) => ({
+  const candidate = (mode, hotfixResult, release, hotfixRelease = "") => ({
     authorize: { result: "success", outputs: { mode, release } },
-    "authorize-hotfix": { result: hotfixResult, outputs: {} },
+    "authorize-hotfix": {
+      result: hotfixResult,
+      outputs: { release: hotfixRelease },
+    },
   });
   // Non-hotfix: the hotfix job is skipped and the candidate still runs.
   assert.equal(
@@ -3143,6 +3194,16 @@ test("only the hotfix authorization job references VERCEL_TOKEN before staging, 
   assert.equal(
     evalIf(jobs.candidate.if, candidate("normal", "skipped", "false")),
     false,
+  );
+  // A successful hotfix authorization that reports no release stops the candidate,
+  // and the hotfix output takes precedence over the (empty) authorize output.
+  assert.equal(
+    evalIf(jobs.candidate.if, candidate("hotfix", "success", "", "false")),
+    false,
+  );
+  assert.equal(
+    evalIf(jobs.candidate.if, candidate("hotfix", "success", "false", "true")),
+    true,
   );
   // Hotfix: a failed authorization stops the candidate.
   assert.equal(

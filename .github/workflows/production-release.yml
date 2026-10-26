@@ -224,6 +224,8 @@ jobs:
     permissions:
       contents: read
       actions: read
+    outputs:
+      compatibility_required: ${{ steps.compatibility-plan.outputs.required }}
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -240,6 +242,32 @@ jobs:
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" record-source-qa
+      # Git history for the plan only: the sparse checkout leaves no candidate code to run.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          fetch-depth: 0
+          sparse-checkout: .nvmrc
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      # Node version comes from trusted main, never from the candidate.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: trusted-node
+          sparse-checkout: .nvmrc
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: trusted-node/.nvmrc
+      - id: compatibility-plan
+        name: Decide whether the exact-baseline compatibility suite is required
+        env:
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+        run: node "$RUNNER_TEMP/release-controls.js" plan-recovery-compatibility
       - uses: actions/upload-artifact@v7
         with:
           name: production-release-source-state
@@ -252,21 +280,14 @@ jobs:
     needs: [candidate, source-qa]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.source-qa.result == 'success'
+      needs.source-qa.result == 'success' &&
+      needs.source-qa.outputs.compatibility_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     cache-mode: none
     permissions:
       contents: read
     steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: trusted-release-controller
-          path: ${{ runner.temp }}/trusted
-      - uses: actions/download-artifact@v8
-        with:
-          name: production-release-source-state
-          path: ${{ runner.temp }}/source
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.candidate.outputs.sha }}
@@ -275,29 +296,18 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-      - id: compatibility-plan
-        name: Plan exact-baseline compatibility proof
-        env:
-          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-        run: node "$RUNNER_TEMP/trusted/release-controls.js" plan-recovery-compatibility
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
-        if: steps.compatibility-plan.outputs.required == 'true'
         with:
           install: false
           node-version-file: false
       - name: Install dependencies for exact-baseline compatibility proof
-        if: steps.compatibility-plan.outputs.required == 'true'
         run: pnpm install --frozen-lockfile
       - id: compatibility
-        name: Run and validate exact-baseline compatibility suite
-        if: steps.compatibility-plan.outputs.required == 'true'
+        name: Run exact-baseline compatibility suite
         env:
           RELEASE_COMPATIBILITY_REPORT: ${{ runner.temp }}/release-compatibility-report.json
         run: pnpm test:integration --runTestsByPath test/integration/persistence/release-compatibility.itest.ts --json --outputFile="$RELEASE_COMPATIBILITY_REPORT"
       - uses: actions/upload-artifact@v7
-        if: steps.compatibility-plan.outputs.required == 'true'
         with:
           name: release-compatibility-report
           path: ${{ runner.temp }}/release-compatibility-report.json
@@ -310,7 +320,9 @@ jobs:
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
       needs.source-qa.result == 'success' &&
-      needs.recovery-evidence.result == 'success'
+      (needs.recovery-evidence.result == 'success' ||
+      (needs.recovery-evidence.result == 'skipped' &&
+      needs.source-qa.outputs.compatibility_required != 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     cache-mode: none
@@ -334,9 +346,17 @@ jobs:
           sparse-checkout: .nvmrc
           sparse-checkout-cone-mode: false
           persist-credentials: false
+      # Node version comes from trusted main, never from the candidate.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: trusted-node
+          sparse-checkout: .nvmrc
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version-file: .nvmrc
+          node-version-file: trusted-node/.nvmrc
       - id: compatibility-plan
         name: Recompute exact-baseline compatibility plan
         env:

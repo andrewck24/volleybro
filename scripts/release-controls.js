@@ -726,8 +726,7 @@ async function verifyCompatibilityTestStep(state, receipt) {
   )
     fail("Compatibility test is not from the completed candidate test job");
   const steps = (matches[0].steps || []).filter(
-    (step) =>
-      step.name === "Run and validate exact-baseline compatibility suite",
+    (step) => step.name === "Run exact-baseline compatibility suite",
   );
   if (
     steps.length !== 1 ||
@@ -743,7 +742,18 @@ async function recordCompatibilityTest(state, plan) {
   if (!plan.required) return null;
   if (required("GITHUB_JOB") !== "recovery-receipt")
     fail("Compatibility proof must be recorded by the recovery receipt job");
-  const jobs = await workflowJobs(state.releaseRunId);
+  const [run, jobs] = await Promise.all([
+    workflowRun(state.releaseRunId),
+    workflowJobs(state.releaseRunId),
+  ]);
+  validateWorkflowRun(run, {
+    id: state.releaseRunId,
+    path: PRODUCTION_WORKFLOW,
+    repository: required("GITHUB_REPOSITORY"),
+    attempt: state.releaseRunAttempt,
+  });
+  if (run.status !== "in_progress")
+    fail("Compatibility proof must be recorded inside its active release run");
   const matches = jobs.filter(
     (item) =>
       item.name === COMPATIBILITY_TEST_JOB &&
