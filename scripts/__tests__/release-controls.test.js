@@ -3051,16 +3051,14 @@ const checkouts = (job) =>
 const downloads = (job) =>
   stepsOf(job).filter((s) => s.uses?.startsWith("actions/download-artifact"));
 
-test("recovery-receipt runs no candidate code and reads only the trusted controller, source state and one report", async () => {
-  const { jobs } = await loadWorkflow("production-release.yml");
-  const job = jobs["recovery-receipt"];
-  assert.ok(job.needs.includes("recovery-evidence"));
+// A trusted controller job may read candidate git history but never candidate
+// code, and takes its Node runtime from trusted main.
+const assertCandidateHistoryOnly = (job) => {
   assert.doesNotMatch(JSON.stringify(job), /pnpm/);
   for (const step of checkouts(job)) {
     assert.equal(step.with["persist-credentials"], false);
     assert.equal(step.with["sparse-checkout"], ".nvmrc");
   }
-  // The runtime of the trusted controller comes from trusted main, not the candidate.
   const nodeSetups = stepsOf(job).filter((s) =>
     s.uses?.startsWith("actions/setup-node"),
   );
@@ -3072,6 +3070,18 @@ test("recovery-receipt runs no candidate code and reads only the trusted control
     (s) => s.with.path === "trusted-node",
   );
   assert.equal(trustedCheckout.with.ref, "${{ github.workflow_sha }}");
+};
+
+test("source-qa plans the compatibility suite from candidate history without running candidate code", async () => {
+  const { jobs } = await loadWorkflow("production-release.yml");
+  assertCandidateHistoryOnly(jobs["source-qa"]);
+});
+
+test("recovery-receipt runs no candidate code and reads only the trusted controller, source state and one report", async () => {
+  const { jobs } = await loadWorkflow("production-release.yml");
+  const job = jobs["recovery-receipt"];
+  assert.ok(job.needs.includes("recovery-evidence"));
+  assertCandidateHistoryOnly(job);
   assert.deepEqual(
     downloads(job)
       .map((step) => step.with.name)
