@@ -2228,6 +2228,8 @@ test("tooling-only paths are unrelated to production data", async (t) => {
     "DESIGN.md",
     "skills-lock.json",
     "commitlint.config.js",
+    "commitlint.title.config.js",
+    "playwright.config.ts",
     ".worktreeinclude",
     ".markdownlint.jsonc",
     ".nvmrc",
