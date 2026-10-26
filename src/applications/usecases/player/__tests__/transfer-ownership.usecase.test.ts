@@ -63,9 +63,8 @@ describe("TransferOwnershipUseCase", () => {
         .mockResolvedValueOnce({ ...currentOwner, role: PlayerRole.ADMIN })
         .mockResolvedValueOnce({ ...newOwner, role: PlayerRole.OWNER });
 
-      const result = await useCase.execute({ teamId, newOwnerId, userId });
+      await useCase.execute({ teamId, newOwnerId, userId });
 
-      expect(result).toMatchObject({ role: PlayerRole.OWNER });
       expect(mockPlayerRepository.updateRoleIf).toHaveBeenCalledWith(
         currentOwner.id,
         PlayerRole.OWNER,

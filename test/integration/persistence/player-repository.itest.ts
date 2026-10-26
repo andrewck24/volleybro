@@ -103,4 +103,10 @@ describe("player reads and writes", () => {
       ),
     ).toMatchObject({ role: PlayerRole.MEMBER });
   });
+
+  it("changes no role for a player that does not exist", async () => {
+    expect(
+      await players().updateRoleIf(oid(), PlayerRole.ADMIN, PlayerRole.OWNER),
+    ).toBeNull();
+  });
 });
