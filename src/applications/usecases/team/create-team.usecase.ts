@@ -50,14 +50,27 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
       }),
     });
 
-    await this.playerRepository.create({
-      name: userName,
-      status: PlayerStatus.JOINED,
-      number: 1,
-      role: PlayerRole.OWNER,
-      teamId: team.id,
-      userId,
-    });
+    try {
+      await this.playerRepository.create({
+        name: userName,
+        status: PlayerStatus.JOINED,
+        number: 1,
+        role: PlayerRole.OWNER,
+        teamId: team.id,
+        userId,
+      });
+    } catch (error) {
+      // Compensate, not a transaction: an ownerless team is unreachable by anyone.
+      try {
+        await this.teamRepository.delete(team.id);
+      } catch (cleanupError) {
+        console.error(
+          `Failed to delete ownerless team ${team.id}`,
+          cleanupError,
+        );
+      }
+      throw error;
+    }
 
     return team;
   }

@@ -42,4 +42,32 @@ describe("CreateTeamUseCase", () => {
       }),
     );
   });
+
+  describe("when the owner cannot be created", () => {
+    const input = { name: "Test Team", userId: "user-1", userName: "John Doe" };
+    const ownerError = new Error("owner write failed");
+
+    beforeEach(() => {
+      mockTeamRepository.create.mockResolvedValue(mockTeam);
+      mockPlayerRepository.create.mockRejectedValue(ownerError);
+    });
+
+    it("deletes the new team and rethrows the owner error", async () => {
+      mockTeamRepository.delete.mockResolvedValue();
+
+      await expect(useCase.execute(input)).rejects.toBe(ownerError);
+      expect(mockTeamRepository.delete).toHaveBeenCalledWith(mockTeam.id);
+    });
+
+    it("still rethrows the owner error when the delete also fails", async () => {
+      const consoleError = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+      mockTeamRepository.delete.mockRejectedValue(new Error("delete failed"));
+
+      await expect(useCase.execute(input)).rejects.toBe(ownerError);
+      expect(consoleError).toHaveBeenCalled();
+      consoleError.mockRestore();
+    });
+  });
 });
