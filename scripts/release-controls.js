@@ -2196,8 +2196,7 @@ async function finalize() {
   let remote = await lookupRemoteTag();
   if (!remote) {
     if (!local) await command("git", ["tag", tag, state.sha]);
-    // A lost race still succeeds when the re-lookup finds the tag; otherwise
-    // surface git's own error instead of a bare "could not verify".
+    // A lost race still succeeds when the re-lookup finds the tag.
     let pushError;
     await command("git", ["push", "origin", `refs/tags/${tag}`]).catch(
       (error) => {
