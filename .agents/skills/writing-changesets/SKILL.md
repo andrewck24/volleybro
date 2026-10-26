@@ -24,9 +24,9 @@ Assess Changeset applicability at the Pre-PR gate for each delivery batch, inclu
 implement -> Pre-PR Changeset assessment -> pnpm changeset when applicable -> same batch PR
 ```
 
-Every delivery batch with user-visible or contributor-setup impact carries its own changeset. A tracking parent receives no extra changeset just for grouping its shards. Do not duplicate earlier batches' entries. Lifecycle, human gates, integration branch and release authorization are owned by `WORKFLOW.md`, not this skill.
+Write a changeset only for content shipped in the package. Every delivery batch that changes shipped content carries its own changeset; CI, workflows, the release controller, tests, docs, agent skills and contributor-setup-only changes need none. A tracking parent receives no extra changeset just for grouping its shards. Do not duplicate earlier batches' entries. Lifecycle, human gates, integration branch and release authorization are owned by `WORKFLOW.md`, not this skill.
 
-Skip the changeset only if the change has zero user-visible impact (pure refactor, tests only, docs only); use `pnpm changeset --empty` if CI requires a file.
+Skip the changeset when the batch changes no shipped content; use `pnpm changeset --empty` if CI requires a file.
 
 ## CLI Quick Reference
 
@@ -56,7 +56,7 @@ When writing the body at the Pre-PR gate, pull from the Change's own artifacts:
 1. Read the execution issue's spec (and the Change page when one exists) for scope and motivation
 2. Read the batch's commits against the current integration base for what was actually implemented; their bodies carry the outcome and verification per slice
 3. Map each user-visible change to a bullet under the correct `###` heading (see `body-format.md`)
-4. Ignore internal work (refactors, test infra, CI plumbing) unless it affects contributors
+4. Ignore internal work (refactors, test infra, CI plumbing, contributor setup)
 
 ## Rationalization Table
 

@@ -10,7 +10,7 @@ Run `pnpm changeset` on the work branch and select the package and semantic bump
 
 The CLI leaves files unstaged (`commit: false`). Stage only the intended changeset path alongside the batch's changes. A standalone commit must still carry the trailers required by `WORKFLOW.md`.
 
-Documentation-only work, pure internal refactors, tests and formatting generally need no changeset. Contributor setup changes do. Record the applicable exemption in the PR body; use `pnpm changeset --empty` only if a check actually requires an empty file.
+Write a changeset only for content shipped in the package. CI, workflows, the release controller, tests, docs, agent skills, formatting, pure internal refactors and contributor-setup-only changes need none. Record the applicable exemption in the PR body; use `pnpm changeset --empty` only if a check actually requires an empty file.
 
 ## Toolchain
 
