@@ -213,6 +213,38 @@ describe("useUnconfirmedSetCompletion", () => {
     ]);
   });
 
+  // An optimistic entry has no recordedAt yet, but carries the `at` it was
+  // first sent with. A write that landed with a lost response must read as a
+  // resend, so that `at` has to survive instead of being replaced by now.
+  it("retry resends an optimistic entry with its own at, not a fresh one", async () => {
+    const requests = answerRallies(() =>
+      HttpResponse.json({ entries: [lastRally] }),
+    );
+    const at = "2026-01-01T10:00:00.000Z";
+    recordCompletion(false);
+    cachedGame = gameWithSet(true);
+    cachedGame.sets[0]!.entries = [{ ...lastRally, at }] as never;
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(requests[0]!.body).toEqual([
+      {
+        id: "e1",
+        seq: 0,
+        at,
+        win: true,
+        home: lastRally.home,
+        away: lastRally.away,
+      },
+    ]);
+  });
+
   // The manual retry bypasses the queue: it sends the entry itself, so
   // nothing removes the entry on its way out. A successful retry must still
   // close the dialog, and a response that omits the field means a different
