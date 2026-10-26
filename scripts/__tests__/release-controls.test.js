@@ -2140,6 +2140,31 @@ test("finalize tags only the promoted exact SHA and repeats without duplicate Re
   assert.match(result.stderr, /different commit/);
 });
 
+test("finalize reports git's push error when the tag cannot be pushed", async (t) => {
+  const f = await fixture(t);
+  const { finalState } = await prepareFinalRelease(f);
+  const withProduction = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, {
+    jobs: {
+      ...withProduction.jobs,
+      9: withProduction.jobs[9].map((job) =>
+        job.id === 504
+          ? { ...job, status: "completed", conclusion: "success" }
+          : job,
+      ),
+    },
+  });
+  const hook = path.join(f.remote, "hooks", "pre-receive");
+  await writeFile(
+    hook,
+    "#!/bin/sh\necho 'tag push rejected by test hook' >&2\nexit 1\n",
+  );
+  await chmod(hook, 0o755);
+  const result = run(f, "finalize", { RELEASE_STATE_FILE: finalState });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /git push failed: [\s\S]*rejected by test hook/);
+});
+
 async function finalizeRelease(f) {
   const { finalState } = await prepareFinalRelease(f);
   const env = { RELEASE_STATE_FILE: finalState };

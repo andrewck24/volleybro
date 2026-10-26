@@ -2196,10 +2196,16 @@ async function finalize() {
   let remote = await lookupRemoteTag();
   if (!remote) {
     if (!local) await command("git", ["tag", tag, state.sha]);
+    // A lost race still succeeds when the re-lookup finds the tag; otherwise
+    // surface git's own error instead of a bare "could not verify".
+    let pushError;
     await command("git", ["push", "origin", `refs/tags/${tag}`]).catch(
-      () => undefined,
+      (error) => {
+        pushError = error;
+      },
     );
     remote = await lookupRemoteTag();
+    if (!remote && pushError) throw pushError;
   }
   assertExistingTagSha(remoteTagTarget(remote, tag), state.sha, tag);
   const existing = await command("gh", [
