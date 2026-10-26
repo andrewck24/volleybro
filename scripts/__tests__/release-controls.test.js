@@ -897,7 +897,7 @@ test("compatibility report requires both directional assertions to pass without 
     report(expectedAssertions, 0, ["failed", "passed"]),
     report(expectedAssertions, 0, ["passed", "skipped"]),
   ];
-  for (const [index, invalidReport] of invalidReports.entries()) {
+  for (const invalidReport of invalidReports) {
     await writeFile(reportPath, JSON.stringify(invalidReport));
     const rejected = run(f, "verify-compatibility-report", env);
     assert.notEqual(rejected.status, 0);
