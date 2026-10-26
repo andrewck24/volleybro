@@ -60,7 +60,8 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
         userId,
       });
     } catch (error) {
-      // Compensate, not a transaction: an ownerless team is unreachable by anyone.
+      // Team and owner are separate aggregates with no shared transaction, so
+      // undo the team: an ownerless team is unreachable by anyone.
       try {
         await this.teamRepository.delete(team.id);
       } catch (cleanupError) {

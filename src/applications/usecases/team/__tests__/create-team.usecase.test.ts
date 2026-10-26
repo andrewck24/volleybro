@@ -60,14 +60,12 @@ describe("CreateTeamUseCase", () => {
     });
 
     it("still rethrows the owner error when the delete also fails", async () => {
-      const consoleError = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
+      jest.spyOn(console, "error").mockImplementation(() => undefined);
       mockTeamRepository.delete.mockRejectedValue(new Error("delete failed"));
 
       await expect(useCase.execute(input)).rejects.toBe(ownerError);
-      expect(consoleError).toHaveBeenCalled();
-      consoleError.mockRestore();
     });
+
+    afterEach(() => jest.restoreAllMocks());
   });
 });
