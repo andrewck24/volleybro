@@ -67,5 +67,5 @@ When writing the body at the Pre-PR gate, pull from the Change's own artifacts:
 | "The bug fix is more informative with the root cause"             | Describe the observable fix, not the implementation.                          |
 | "Skipping `####` domains is fine for a short list or one scope"   | Every entry sits under a `####` domain; the release merges changesets.        |
 | "The dep upgrade is worth mentioning even with no visible change" | Only include if it changes observable behavior or removes deprecated options. |
-| "This change is too small for a changeset"                        | If it has user-visible impact, it needs a changeset. Size doesn't matter.     |
+| "This change is too small for a changeset"                        | If it changes shipped content, it needs a changeset. Size doesn't matter.  |
 | "I'll create the changeset later"                                 | Create at the Pre-PR gate. Context is freshest then.                          |

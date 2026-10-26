@@ -44,7 +44,7 @@ Put every entry under a `####` domain inside its type heading, even when the cha
 
 #### Record
 
-- Fix duplicate rally numbers after a substitution event
+- Show the set score beside each rally in the match record
 
 #### UI
 
