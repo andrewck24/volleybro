@@ -149,6 +149,34 @@ describe("SummaryDrawerCard handle / expansion", () => {
     expect(rows[0]).toHaveAttribute("data-expanded", "false");
     expect(rows[1]).toHaveAttribute("data-expanded", "true");
   });
+
+  it("expanded: a horizontal swipe reveals nothing; tapping still opens exactly one row", async () => {
+    const user = userEvent.setup();
+    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
+
+    const rows = await screen.findAllByTestId("entry-row");
+    // jsdom has no native PointerEvent; a MouseEvent under the pointer type
+    // name drives the same listeners a real swipe would.
+    const pointer = (type: string, clientX: number) =>
+      fireEvent(
+        rows[0]!,
+        new MouseEvent(type, { bubbles: true, cancelable: true, clientX }),
+      );
+    pointer("pointerdown", 100);
+    pointer("pointermove", 40);
+    pointer("pointerup", 40);
+
+    expect(
+      screen.queryByTestId("entry-row-swipe-actions"),
+    ).not.toBeInTheDocument();
+    expect(rows[0]).toHaveAttribute("data-expanded", "false");
+
+    await user.click(rows[0]!);
+    await user.click(rows[1]!);
+    expect(
+      rows.filter((r) => r.getAttribute("data-expanded") === "true"),
+    ).toEqual([rows[1]]);
+  });
 });
 
 describe("SummaryDrawerCard backdrop overlay", () => {

@@ -54,8 +54,8 @@ const SNAP_POINTS: (number | string)[] = [PEEK_SNAP, 0.85];
  *
  * The committed list always shows every committed entry as an actionable row;
  * only the uncommitted draft is rendered as the distinct Preview bar. Inline
- * expansion and swipe-reveal are single-open, owned here so tapping/​swiping one
- * row collapses the others.
+ * expansion is single-open, owned here so tapping one row collapses the
+ * others.
  */
 export const SummaryDrawerCard = ({
   entries,
@@ -91,12 +91,10 @@ export const SummaryDrawerCard = ({
 }) => {
   const expanded = state === "expanded";
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const [revealIndex, setRevealIndex] = useState<number | null>(null);
-  // At the peek every row reads as collapsed/unrevealed (no inline detail peeks
-  // out); the stored index only takes effect once expanded. Derived rather than
-  // reset in an effect.
+  // At the peek every row reads as collapsed (no inline detail peeks out); the
+  // stored index only takes effect once expanded. Derived rather than reset in
+  // an effect.
   const openIdx = expanded ? openIndex : null;
-  const revealIdx = expanded ? revealIndex : null;
 
   // Newest-first. The collapsed peek renders ONLY the top row -- the draft
   // Preview while recording, else the single newest committed entry -- so below
@@ -217,10 +215,6 @@ export const SummaryDrawerCard = ({
                       }
                       setOpenIndex((cur) => (cur === index ? null : index));
                     }}
-                    swipeRevealed={revealIdx === index}
-                    onSwipeReveal={(revealed) =>
-                      setRevealIndex(revealed ? index : null)
-                    }
                     onEdit={() => onEntryClick?.(index)}
                     onDelete={() => onEntryDelete?.(index)}
                     onRollbackToHere={() => onEntryRollback?.(index)}

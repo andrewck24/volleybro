@@ -1,7 +1,7 @@
 import { Entry, EntryRow } from "@/components/game/entry";
 import { EntryType, MoveType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const players: GamePlayerView[] = [{ id: "p1", name: "選手一", number: 4 }];
@@ -18,11 +18,6 @@ const entry: EntryView = {
   away: { score: 0, type: MoveType.SERVING, num: 1 },
 } as unknown as EntryView;
 
-// jsdom has no native PointerEvent; build a MouseEvent under the pointer
-// event type name instead, mirroring panel/progress-bar.test.tsx.
-const pointerEvent = (type: string, clientX: number) =>
-  new MouseEvent(type, { bubbles: true, cancelable: true, clientX });
-
 describe("Entry", () => {
   // An undefined entry can reach <Entry> via the recording Preview or an
   // optimistic rollback; it must render nothing rather than dereference `.type`.
@@ -34,7 +29,7 @@ describe("Entry", () => {
 });
 
 describe("EntryRow", () => {
-  it("is collapsed and unrevealed by default", () => {
+  it("is collapsed by default", () => {
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 
     // entry-row-expanded is now always rendered (height-animated via CSS
@@ -48,9 +43,6 @@ describe("EntryRow", () => {
       "data-expanded",
       "false",
     );
-    expect(
-      screen.queryByTestId("entry-row-swipe-actions"),
-    ).not.toBeInTheDocument();
   });
 
   // Scenario: Tap inline-expands the row in place
@@ -73,38 +65,6 @@ describe("EntryRow", () => {
       "data-open",
       "false",
     );
-  });
-
-  // Scenario: Left-swipe reveals action buttons
-  it("reveals action buttons on a recognized left-swipe and suppresses the resulting tap", () => {
-    render(<EntryRow entry={entry} players={players} isLatest={true} />);
-
-    const row = screen.getByTestId("entry-row");
-    fireEvent(row, pointerEvent("pointerdown", 100));
-    fireEvent(row, pointerEvent("pointermove", 40));
-    fireEvent(row, pointerEvent("pointerup", 40));
-
-    expect(screen.getByTestId("entry-row-swipe-actions")).toBeInTheDocument();
-
-    // the swipe's synthesized click must not also toggle the expansion.
-    fireEvent.click(row);
-    expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(
-      "data-open",
-      "false",
-    );
-  });
-
-  it("does not reveal action buttons on a right-swipe", () => {
-    render(<EntryRow entry={entry} players={players} isLatest={true} />);
-
-    const row = screen.getByTestId("entry-row");
-    fireEvent(row, pointerEvent("pointerdown", 40));
-    fireEvent(row, pointerEvent("pointermove", 100));
-    fireEvent(row, pointerEvent("pointerup", 100));
-
-    expect(
-      screen.queryByTestId("entry-row-swipe-actions"),
-    ).not.toBeInTheDocument();
   });
 
   // Scenario: delete/rollback are computed by the last-entry rule but hidden
