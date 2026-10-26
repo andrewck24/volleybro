@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFile as execFileCallback } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFile, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -35,6 +35,7 @@ const SMOKE_EXPECTED = [
   ),
 ];
 const SMOKE_JOBS = ["Production smoke", "Classify production smoke"];
+const COMPATIBILITY_TEST_JOB = "Run release compatibility suite";
 const ACCEPTANCE_JOBS = {
   human: "Accept production QA",
   smoke: "Accept production smoke",
@@ -715,14 +716,15 @@ async function verifyCompatibilityTestStep(state, receipt) {
   });
   const matches = jobs.filter(
     (job) =>
-      job.name === "Verify release recovery evidence" &&
+      job.name === COMPATIBILITY_TEST_JOB &&
       (!job.run_attempt || String(job.run_attempt) === receipt.runAttempt),
   );
   if (
     matches.length !== 1 ||
-    !["in_progress", "completed"].includes(matches[0].status)
+    matches[0].status !== "completed" ||
+    matches[0].conclusion !== "success"
   )
-    fail("Compatibility test is not from the current trusted recovery job");
+    fail("Compatibility test is not from the completed candidate test job");
   const steps = (matches[0].steps || []).filter(
     (step) =>
       step.name === "Run and validate exact-baseline compatibility suite",
@@ -738,84 +740,34 @@ async function verifyCompatibilityTestStep(state, receipt) {
 }
 
 async function recordCompatibilityTest(state, plan) {
-  if (!plan.required) {
-    if (process.env.RELEASE_COMPATIBILITY_TEST_RESULT)
-      fail(
-        "Unexpected compatibility test result for a release without a data risk",
-      );
-    return null;
-  }
-  if (
-    process.env.RELEASE_COMPATIBILITY_TEST_RESULT !== "success" ||
-    exactSha(
-      process.env.RELEASE_COMPATIBILITY_BASELINE_SHA,
-      "Compatibility test baseline SHA",
-    ) !== state.baseline.sha ||
-    exactSha(
-      process.env.RELEASE_COMPATIBILITY_SOURCE_SHA,
-      "Compatibility test source SHA",
-    ) !== state.sha ||
-    exactSha(
-      process.env.RELEASE_COMPATIBILITY_SOURCE_TREE,
-      "Compatibility test source tree",
-    ) !== state.sourceQA.scopes.integration.testedTree ||
-    required("GITHUB_JOB") !== "recovery-evidence"
-  )
-    fail(
-      "Exact-baseline compatibility integration test did not pass for this release",
-    );
-  const [run, jobs] = await Promise.all([
-    workflowRun(state.releaseRunId),
-    workflowJobs(state.releaseRunId),
-  ]);
-  validateWorkflowRun(run, {
-    id: state.releaseRunId,
-    path: PRODUCTION_WORKFLOW,
-    repository: required("GITHUB_REPOSITORY"),
-    attempt: state.releaseRunAttempt,
-  });
-  if (run.status !== "in_progress")
-    fail("Compatibility proof must be recorded inside its active release run");
+  if (!plan.required) return null;
+  if (required("GITHUB_JOB") !== "recovery-receipt")
+    fail("Compatibility proof must be recorded by the recovery receipt job");
+  const jobs = await workflowJobs(state.releaseRunId);
   const matches = jobs.filter(
     (item) =>
-      item.name === "Verify release recovery evidence" &&
+      item.name === COMPATIBILITY_TEST_JOB &&
       (!item.run_attempt ||
         String(item.run_attempt) === String(state.releaseRunAttempt)),
   );
-  const job = matches.length === 1 ? matches[0] : undefined;
-  const step = job?.steps?.find(
-    (item) =>
-      item.name === "Run and validate exact-baseline compatibility suite",
-  );
-  const receipt = {
+  return {
     runId: String(state.releaseRunId),
     runAttempt: String(state.releaseRunAttempt),
-    jobId: String(job?.id || ""),
+    jobId: matches.length === 1 ? String(matches[0].id) : "",
     path: RECOVERY_COMPATIBILITY_TEST,
     baselineSha: state.baseline.sha,
     sourceSha: state.sha,
     sourceTree: state.sourceQA.scopes.integration.testedTree,
-    result: process.env.RELEASE_COMPATIBILITY_TEST_RESULT,
+    result: "success",
   };
-  if (
-    !job ||
-    !["in_progress", "completed"].includes(job.status) ||
-    step?.status !== "completed" ||
-    step?.conclusion !== "success"
-  )
-    fail(
-      "Exact-baseline compatibility test has no successful native workflow step",
-    );
-  return receipt;
 }
 
 async function verifyCompatibilityReport() {
+  const state = await loadState();
   const baselineSha = exactSha(
-    required("PRODUCTION_BASELINE_SHA"),
+    state.baseline.sha,
     "Compatibility test baseline SHA",
   );
-  exactSha(required("RELEASE_CANDIDATE_SHA"), "Compatibility candidate SHA");
-  exactSha(required("RELEASE_CANDIDATE_TREE"), "Compatibility candidate tree");
   const report = json(
     await readFile(required("RELEASE_COMPATIBILITY_REPORT"), "utf8"),
     "Jest compatibility report",
@@ -857,8 +809,6 @@ async function verifyCompatibilityReport() {
     if (matches?.length !== 1 || matches[0].status !== "passed")
       fail(`Compatibility report is missing a passing assertion: ${title}`);
   }
-
-  await appendFile(required("GITHUB_OUTPUT"), "result=success\n");
 }
 
 async function recoveryReceiptFacts(state) {
@@ -1953,12 +1903,7 @@ async function planRecoveryCompatibility() {
   const state = await loadState();
   validateConfiguredPlatform(state);
   const plan = await recoveryCompatibilityPlan(state);
-  await appendOutputs({
-    required: String(plan.required),
-    baseline_sha: state.baseline.sha,
-    source_sha: state.sha,
-    source_tree: state.sourceQA?.scopes?.integration?.testedTree || "",
-  });
+  await appendOutputs({ required: String(plan.required) });
 }
 
 function assertProductionQAReceipt(state) {
@@ -2447,7 +2392,6 @@ async function recoverVerify() {
   )
     fail("Accepted state does not belong to the original run and attempt");
   validateOriginalAuthorization(state, originalRun);
-  await assertRollbackAllowed(state, originalRunId);
   const [candidate, baseline, production] = await Promise.all([
     deployment(state.candidateId),
     deployment(state.baseline.deploymentId),

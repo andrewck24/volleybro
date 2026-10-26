@@ -86,6 +86,7 @@ jobs:
           retention-days: 31
       - name: Verify release authorization
         id: authorize
+        if: steps.controller.outputs.mode != 'hotfix'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
@@ -101,22 +102,71 @@ jobs:
           HOTFIX_PR_NUMBER: ${{ inputs.pull_request }}
           RELEASE_PR_NUMBER: ${{ inputs.pull_request }}
           CONTROLLER_SHA: ${{ steps.controller.outputs.controller_sha }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
-          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           MODE: ${{ steps.controller.outputs.mode }}
         run: |
-          if [ "$MODE" = hotfix ]; then
-            node "$RUNNER_TEMP/release-controls.js" authorize-hotfix
-          elif [ "$MODE" = normal-retry ]; then
+          if [ "$MODE" = normal-retry ]; then
             node "$RUNNER_TEMP/release-controls.js" authorize-retry
           else
             node "$RUNNER_TEMP/release-controls.js" authorize
           fi
 
-  candidate:
+  # The only job that references VERCEL_TOKEN before staging: GitHub sends a
+  # referenced secret to the runner, so only a job-level condition keeps it
+  # off every other mode's runner.
+  authorize-hotfix:
     needs: authorize
-    if: needs.authorize.outputs.release != 'false'
+    if: needs.authorize.outputs.mode == 'hotfix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: read
+      statuses: read
+      pull-requests: read
+      actions: read
+    outputs:
+      release: ${{ steps.authorize.outputs.release }}
+      sha: ${{ steps.authorize.outputs.sha }}
+      release_authorization: ${{ steps.authorize.outputs.release_authorization }}
+      baseline_deployment: ${{ steps.authorize.outputs.baseline_deployment }}
+      baseline_updated_at: ${{ steps.authorize.outputs.baseline_updated_at }}
+      baseline_sha: ${{ steps.authorize.outputs.baseline_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: trusted-release-controller
+          path: ${{ runner.temp }}
+      - name: Verify hotfix authorization
+        id: authorize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          RELEASE_SHA: ${{ inputs.sha }}
+          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
+          RELEASE_OWNER_LOGIN: ${{ vars.RELEASE_OWNER_LOGIN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+          HOTFIX_PR_NUMBER: ${{ inputs.pull_request }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+        run: node "$RUNNER_TEMP/release-controls.js" authorize-hotfix
+
+  candidate:
+    needs: [authorize, authorize-hotfix]
+    if: >-
+      always() && !cancelled() && needs.authorize.result == 'success' &&
+      (needs.authorize-hotfix.result == 'success' ||
+      needs.authorize-hotfix.result == 'skipped') &&
+      (needs.authorize-hotfix.outputs.release || needs.authorize.outputs.release) != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -134,7 +184,7 @@ jobs:
           path: ${{ runner.temp }}
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.authorize.outputs.sha }}
+          ref: ${{ needs.authorize-hotfix.outputs.sha || needs.authorize.outputs.sha }}
           fetch-depth: 0
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
@@ -151,13 +201,13 @@ jobs:
           VERCEL_ORG_ID: ${{ vars.VERCEL_TEAM_ID }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-          RELEASE_SHA: ${{ needs.authorize.outputs.sha }}
+          RELEASE_SHA: ${{ needs.authorize-hotfix.outputs.sha || needs.authorize.outputs.sha }}
           RELEASE_MODE: ${{ needs.authorize.outputs.mode }}
-          RELEASE_AUTHORIZATION: ${{ needs.authorize.outputs.release_authorization }}
+          RELEASE_AUTHORIZATION: ${{ needs.authorize-hotfix.outputs.release_authorization || needs.authorize.outputs.release_authorization }}
           CONTROLLER_SHA: ${{ needs.authorize.outputs.controller_sha }}
-          EXPECTED_BASELINE_DEPLOYMENT: ${{ needs.authorize.outputs.baseline_deployment }}
-          EXPECTED_BASELINE_UPDATED_AT: ${{ needs.authorize.outputs.baseline_updated_at }}
-          EXPECTED_BASELINE_SHA: ${{ needs.authorize.outputs.baseline_sha }}
+          EXPECTED_BASELINE_DEPLOYMENT: ${{ needs.authorize-hotfix.outputs.baseline_deployment || needs.authorize.outputs.baseline_deployment }}
+          EXPECTED_BASELINE_UPDATED_AT: ${{ needs.authorize-hotfix.outputs.baseline_updated_at || needs.authorize.outputs.baseline_updated_at }}
+          EXPECTED_BASELINE_SHA: ${{ needs.authorize-hotfix.outputs.baseline_sha || needs.authorize.outputs.baseline_sha }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" stage
       - uses: actions/upload-artifact@v7
@@ -198,7 +248,7 @@ jobs:
           retention-days: 1
 
   recovery-evidence:
-    name: Verify release recovery evidence
+    name: Run release compatibility suite
     needs: [candidate, source-qa]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
@@ -208,7 +258,6 @@ jobs:
     cache-mode: none
     permissions:
       contents: read
-      actions: read
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -229,10 +278,9 @@ jobs:
       - id: compatibility-plan
         name: Plan exact-baseline compatibility proof
         env:
-          GH_TOKEN: ${{ github.token }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
         run: node "$RUNNER_TEMP/trusted/release-controls.js" plan-recovery-compatibility
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         if: steps.compatibility-plan.outputs.required == 'true'
@@ -246,13 +294,67 @@ jobs:
         name: Run and validate exact-baseline compatibility suite
         if: steps.compatibility-plan.outputs.required == 'true'
         env:
-          PRODUCTION_BASELINE_SHA: ${{ steps.compatibility-plan.outputs.baseline_sha }}
-          RELEASE_CANDIDATE_SHA: ${{ steps.compatibility-plan.outputs.source_sha }}
-          RELEASE_CANDIDATE_TREE: ${{ steps.compatibility-plan.outputs.source_tree }}
           RELEASE_COMPATIBILITY_REPORT: ${{ runner.temp }}/release-compatibility-report.json
-        run: |
-          pnpm test:integration --runTestsByPath test/integration/persistence/release-compatibility.itest.ts --json --outputFile="$RELEASE_COMPATIBILITY_REPORT"
-          node "$RUNNER_TEMP/trusted/release-controls.js" verify-compatibility-report
+        run: pnpm test:integration --runTestsByPath test/integration/persistence/release-compatibility.itest.ts --json --outputFile="$RELEASE_COMPATIBILITY_REPORT"
+      - uses: actions/upload-artifact@v7
+        if: steps.compatibility-plan.outputs.required == 'true'
+        with:
+          name: release-compatibility-report
+          path: ${{ runner.temp }}/release-compatibility-report.json
+          if-no-files-found: error
+          retention-days: 1
+
+  recovery-receipt:
+    name: Record release recovery receipt
+    needs: [candidate, source-qa, recovery-evidence]
+    if: >-
+      always() && !cancelled() && needs.candidate.result == 'success' &&
+      needs.source-qa.result == 'success' &&
+      needs.recovery-evidence.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    cache-mode: none
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: trusted-release-controller
+          path: ${{ runner.temp }}/trusted
+      - uses: actions/download-artifact@v8
+        with:
+          name: production-release-source-state
+          path: ${{ runner.temp }}/source
+      # Git history for the plan only: the sparse checkout leaves no candidate code to run.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          fetch-depth: 0
+          sparse-checkout: .nvmrc
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - id: compatibility-plan
+        name: Recompute exact-baseline compatibility plan
+        env:
+          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+        run: node "$RUNNER_TEMP/trusted/release-controls.js" plan-recovery-compatibility
+      - uses: actions/download-artifact@v8
+        if: steps.compatibility-plan.outputs.required == 'true'
+        with:
+          name: release-compatibility-report
+          path: ${{ runner.temp }}/compatibility-report
+      - name: Check compatibility report shape
+        if: steps.compatibility-plan.outputs.required == 'true'
+        env:
+          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
+          RELEASE_COMPATIBILITY_REPORT: ${{ runner.temp }}/compatibility-report/release-compatibility-report.json
+        run: node "$RUNNER_TEMP/trusted/release-controls.js" verify-compatibility-report
       - name: Create run-bound machine-verified recovery receipt
         env:
           RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
@@ -260,10 +362,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-          RELEASE_COMPATIBILITY_TEST_RESULT: ${{ steps.compatibility.outputs.result }}
-          RELEASE_COMPATIBILITY_BASELINE_SHA: ${{ steps.compatibility-plan.outputs.baseline_sha }}
-          RELEASE_COMPATIBILITY_SOURCE_SHA: ${{ steps.compatibility-plan.outputs.source_sha }}
-          RELEASE_COMPATIBILITY_SOURCE_TREE: ${{ steps.compatibility-plan.outputs.source_tree }}
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
         run: node "$RUNNER_TEMP/trusted/release-controls.js" record-recovery-evidence
       - uses: actions/upload-artifact@v7
@@ -278,10 +376,10 @@ jobs:
       group: production-release
       cancel-in-progress: false
       queue: max
-    needs: [candidate, recovery-evidence]
+    needs: [candidate, recovery-receipt]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.recovery-evidence.result == 'success'
+      needs.recovery-receipt.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -705,8 +803,10 @@ jobs:
   failure-summary:
     needs:
       - authorize
+      - authorize-hotfix
       - candidate
       - recovery-evidence
+      - recovery-receipt
       - promote-and-smoke
       - production-smoke
       - classify-production-smoke

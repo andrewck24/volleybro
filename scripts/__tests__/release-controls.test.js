@@ -373,7 +373,7 @@ globalThis.fetch=async(u,options={})=>{
       GITHUB_OUTPUT: path.join(root, "output"),
       GITHUB_RUN_ID: "9",
       GITHUB_RUN_ATTEMPT: "1",
-      GITHUB_JOB: "recovery-evidence",
+      GITHUB_JOB: "recovery-receipt",
       GH_TOKEN: "test",
       GITHUB_EVENT_PATH: eventPath,
       GITHUB_REPOSITORY: "owner/repo",
@@ -608,38 +608,24 @@ function workflowJob(
   };
 }
 
-async function passingCompatibilityTestEnv(f, overrides = {}) {
+const compatibilityStep = (conclusion = "success", status = "completed") => ({
+  name: "Run and validate exact-baseline compatibility suite",
+  status,
+  conclusion,
+});
+
+async function setCompatibilityJobs(f, jobs) {
   const api = JSON.parse(await readFile(f.statePath, "utf8"));
-  await updateApi(f, {
-    jobs: {
-      ...api.jobs,
-      9: [
-        workflowJob(
-          503,
-          "Verify release recovery evidence",
-          "in_progress",
-          null,
-          [
-            {
-              name: "Run and validate exact-baseline compatibility suite",
-              status: "completed",
-              conclusion: "success",
-            },
-          ],
-        ),
-      ],
-    },
-  });
-  return {
-    RELEASE_COMPATIBILITY_TEST_RESULT: "success",
-    RELEASE_COMPATIBILITY_BASELINE_SHA: f.deployed,
-    RELEASE_COMPATIBILITY_SOURCE_SHA: f.merge,
-    RELEASE_COMPATIBILITY_SOURCE_TREE: f.git([
-      "rev-parse",
-      `${f.merge}^{tree}`,
-    ]),
-    ...overrides,
-  };
+  await updateApi(f, { jobs: { ...api.jobs, 9: jobs } });
+}
+
+const passingCompatibilityJob = (id = 503, status = "completed") =>
+  workflowJob(id, "Run release compatibility suite", status, "success", [
+    compatibilityStep(),
+  ]);
+
+async function passingCompatibilityTestJob(f) {
+  await setCompatibilityJobs(f, [passingCompatibilityJob()]);
 }
 
 function ciScopeJob(git, id, name, source) {
@@ -793,10 +779,8 @@ test("persisted contract changes require exact-source integration proof", async 
     persistedContractPath: "src/entities/game.ts",
     compatibilityTest: true,
   });
-  const compatibilityEnv = await passingCompatibilityTestEnv(proofFixture);
-  const proofRelease = await prepareAcceptedRelease(proofFixture, {
-    env: compatibilityEnv,
-  });
+  await passingCompatibilityTestJob(proofFixture);
+  const proofRelease = await prepareAcceptedRelease(proofFixture);
   const proof = JSON.parse(await readFile(proofRelease.accepted, "utf8"));
   assert.equal(
     proof.recoveryEvidence.facts.database.policy,
@@ -818,6 +802,7 @@ test("persisted contract changes require exact-source integration proof", async 
     proofFixture.merge,
   );
   assert.equal(proof.recoveryEvidence.facts.database.rollbackAllowed, true);
+  assert.equal(proof.compatibilityTest.jobId, "503");
 });
 
 test("unclassified production source paths stop instead of implying compatibility", async (t) => {
@@ -871,7 +856,6 @@ test("compatibility report requires both directional assertions to pass without 
     "test/integration/persistence/release-compatibility.itest.ts";
   const baselineAssertion = `production baseline ${f.deployed} reads candidate-written records`;
   const reportPath = path.join(f.root, "compatibility-report.json");
-  const sourceTree = f.git(["rev-parse", `${f.merge}^{tree}`]);
   const expectedAssertions = [
     "candidate reads legacy persisted records",
     baselineAssertion,
@@ -895,17 +879,12 @@ test("compatibility report requires both directional assertions to pass without 
       },
     ],
   });
-  const env = {
-    PRODUCTION_BASELINE_SHA: f.deployed,
-    RELEASE_CANDIDATE_SHA: f.merge,
-    RELEASE_CANDIDATE_TREE: sourceTree,
-    RELEASE_COMPATIBILITY_REPORT: reportPath,
-  };
+  const env = { RELEASE_COMPATIBILITY_REPORT: reportPath };
+  assert.equal(run(f, "stage").status, 0);
 
   await writeFile(reportPath, JSON.stringify(report(expectedAssertions)));
   const passed = run(f, "verify-compatibility-report", env);
   assert.equal(passed.status, 0, passed.stderr);
-  assert.match(await readFile(f.env.GITHUB_OUTPUT, "utf8"), /result=success/);
 
   const wrongBaselineSha = `${f.deployed.slice(0, -1)}${f.deployed.endsWith("0") ? "1" : "0"}`;
   const wrongBaselineAssertion = `production baseline ${wrongBaselineSha} reads candidate-written records`;
@@ -920,10 +899,7 @@ test("compatibility report requires both directional assertions to pass without 
   ];
   for (const [index, invalidReport] of invalidReports.entries()) {
     await writeFile(reportPath, JSON.stringify(invalidReport));
-    const rejected = run(f, "verify-compatibility-report", {
-      ...env,
-      GITHUB_OUTPUT: path.join(f.root, `invalid-${index}.out`),
-    });
+    const rejected = run(f, "verify-compatibility-report", env);
     assert.notEqual(rejected.status, 0);
     assert.match(
       rejected.stderr,
@@ -932,32 +908,109 @@ test("compatibility report requires both directional assertions to pass without 
   }
 });
 
-test("active production contract changes require a passing exact-baseline suite receipt", async (t) => {
+test("the recovery receipt job accepts only one completed successful native compatibility job and step", async (t) => {
   const f = await fixture(t, {
     persistedContract: true,
     compatibilityTest: true,
   });
   const source = await prepareSourceRelease(f);
-  const accepted = path.join(f.root, "missing-suite-receipt.json");
-  const missing = run(f, "record-recovery-evidence", {
+  const accepted = path.join(f.root, "native-proof.json");
+  const failedJob = {
+    ...passingCompatibilityJob(),
+    conclusion: "failure",
+  };
+  const stepFails = (conclusion, status) => ({
+    ...passingCompatibilityJob(),
+    steps: [compatibilityStep(conclusion, status)],
+  });
+  const rejected = {
+    "no native job": [],
+    "job still running": [
+      { ...passingCompatibilityJob(), status: "in_progress", conclusion: null },
+    ],
+    "job not completed": [passingCompatibilityJob(503, "in_progress")],
+    "job failed": [failedJob],
+    "job name not unique": [
+      passingCompatibilityJob(503),
+      passingCompatibilityJob(504),
+    ],
+    "step failed": [stepFails("failure")],
+    "step skipped": [stepFails("skipped")],
+    "step missing": [{ ...passingCompatibilityJob(), steps: [] }],
+  };
+  for (const [name, jobs] of Object.entries(rejected)) {
+    await setCompatibilityJobs(f, jobs);
+    const result = run(f, "record-recovery-evidence", {
+      ...source.env,
+      RELEASE_ACCEPTED_STATE_FILE: accepted,
+    });
+    assert.notEqual(result.status, 0, name);
+    assert.match(result.stderr, /compatibility (test|suite)/i, name);
+    assert.equal(await readFile(accepted, "utf8").catch(() => ""), "", name);
+  }
+
+  await passingCompatibilityTestJob(f);
+  const wrongJob = run(f, "record-recovery-evidence", {
     ...source.env,
     RELEASE_ACCEPTED_STATE_FILE: accepted,
+    GITHUB_JOB: "recovery-evidence",
   });
-  assert.notEqual(missing.status, 0);
-  assert.match(missing.stderr, /compatibility integration test did not pass/i);
+  assert.notEqual(wrongJob.status, 0);
+  assert.match(wrongJob.stderr, /recovery receipt job/);
   assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
 
-  const mismatchEnv = await passingCompatibilityTestEnv(f, {
-    RELEASE_COMPATIBILITY_BASELINE_SHA: "b".repeat(40),
-  });
-  const mismatch = run(f, "record-recovery-evidence", {
+  const written = run(f, "record-recovery-evidence", {
     ...source.env,
-    ...mismatchEnv,
     RELEASE_ACCEPTED_STATE_FILE: accepted,
   });
+  assert.equal(written.status, 0, written.stderr);
+  const state = JSON.parse(await readFile(accepted, "utf8"));
+  assert.equal(state.compatibilityTest.jobId, "503");
+  assert.equal(state.compatibilityTest.baselineSha, f.deployed);
+  assert.equal(state.compatibilityTest.sourceSha, f.merge);
+});
+
+test("a release without a data risk records no compatibility proof", async (t) => {
+  const f = await fixture(t);
+  const { accepted } = await prepareAcceptedRelease(f);
+  assert.equal(
+    JSON.parse(await readFile(accepted, "utf8")).compatibilityTest,
+    null,
+  );
+});
+
+test("promote rejects a receipt whose compatibility job ID or native step no longer matches", async (t) => {
+  const f = await fixture(t, {
+    persistedContract: true,
+    compatibilityTest: true,
+  });
+  await passingCompatibilityTestJob(f);
+  const { accepted } = await prepareAcceptedRelease(f);
+  const state = JSON.parse(await readFile(accepted, "utf8"));
+  state.compatibilityTest.jobId = "999";
+  const wrongId = path.join(f.root, "wrong-job-id.json");
+  await writeFile(wrongId, JSON.stringify(state));
+  const callsBefore = JSON.parse(await readFile(f.statePath, "utf8")).calls;
+  const mismatch = run(f, "promote", { RELEASE_STATE_FILE: wrongId });
   assert.notEqual(mismatch.status, 0);
-  assert.match(mismatch.stderr, /did not pass for this release/i);
-  assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
+  assert.match(mismatch.stderr, /did not pass natively/i);
+
+  await setCompatibilityJobs(f, [
+    {
+      ...passingCompatibilityJob(),
+      steps: [compatibilityStep("failure")],
+    },
+  ]);
+  const failedStep = run(f, "promote", { RELEASE_STATE_FILE: accepted });
+  assert.notEqual(failedStep.status, 0);
+  assert.match(failedStep.stderr, /did not pass natively/i);
+  const after = JSON.parse(await readFile(f.statePath, "utf8"));
+  assert.deepEqual(after.calls, callsBefore);
+  assert.notEqual(after.alias, "dpl_cand");
+
+  await passingCompatibilityTestJob(f);
+  const promoted = run(f, "promote", { RELEASE_STATE_FILE: accepted });
+  assert.equal(promoted.status, 0, promoted.stderr);
 });
 
 test("existing exact-source integration coverage may prove a persisted contract change", async (t) => {
@@ -974,8 +1027,8 @@ test("existing exact-source integration coverage may prove a persisted contract 
       .includes(suitePath),
     false,
   );
-  const compatibilityEnv = await passingCompatibilityTestEnv(f);
-  const release = await prepareAcceptedRelease(f, { env: compatibilityEnv });
+  await passingCompatibilityTestJob(f);
+  const release = await prepareAcceptedRelease(f);
   const proof = JSON.parse(await readFile(release.accepted, "utf8"));
   assert.equal(
     proof.recoveryEvidence.facts.database.compatibilityTest.path,
@@ -988,10 +1041,8 @@ test("recovery revalidates the native compatibility test before rolling back", a
     persistedContract: true,
     compatibilityTest: true,
   });
-  const compatibilityEnv = await passingCompatibilityTestEnv(f);
-  const { accepted } = await prepareAcceptedRelease(f, {
-    env: compatibilityEnv,
-  });
+  await passingCompatibilityTestJob(f);
+  const { accepted } = await prepareAcceptedRelease(f);
   await updateApi(f, { alias: "dpl_cand" });
   let state = JSON.parse(await readFile(f.statePath, "utf8"));
   const job = state.jobs[9][0];
@@ -2105,7 +2156,7 @@ test("finalize states a forward-only release in the GitHub Release notes", async
   assert.equal(create.includes("--generate-notes"), false);
 });
 
-test("owner recovery refuses a forward-only release without touching the alias", async (t) => {
+test("owner recovery verifies a forward-only release but rollback-if-compatible refuses it without touching the alias", async (t) => {
   const f = await fixture(t, { persistedContract: true });
   const { accepted } = await prepareAcceptedRelease(f);
   await updateApi(f, { alias: "dpl_cand" });
@@ -2156,7 +2207,7 @@ test("owner recovery refuses a forward-only release without touching the alias",
     artifactArchives: { 700: archive },
   });
   const recovery = path.join(f.root, "recovery.json");
-  const result = run(f, "recover-verify", {
+  const recoveryEnv = {
     GITHUB_RUN_ID: "10",
     GITHUB_RUN_ATTEMPT: "1",
     GITHUB_EVENT_NAME: "workflow_dispatch",
@@ -2164,14 +2215,19 @@ test("owner recovery refuses a forward-only release without touching the alias",
     GITHUB_JOB: "recover",
     ORIGINAL_RELEASE_RUN_ID: "9",
     RELEASE_RECOVERY_STATE_FILE: recovery,
+  };
+  // The refusal must come from rollback-if-compatible, not from recover-verify.
+  const verified = run(f, "recover-verify", recoveryEnv);
+  assert.equal(verified.status, 0, verified.stderr);
+  const result = run(f, "rollback-if-compatible", {
+    ...recoveryEnv,
+    RELEASE_STATE_FILE: recovery,
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /forward-only/);
-  assert.equal(await readFile(recovery, "utf8").catch(() => ""), "");
-  assert.equal(
-    JSON.parse(await readFile(f.statePath, "utf8")).alias,
-    "dpl_cand",
-  );
+  const after = JSON.parse(await readFile(f.statePath, "utf8"));
+  assert.equal(after.alias, "dpl_cand");
+  assert.doesNotMatch(JSON.stringify(after.calls), /rollback/);
 });
 
 test("recovery receipt cannot be created without trusted source CI receipts", async (t) => {
@@ -2973,5 +3029,128 @@ test("jobs in the production-smoke environment hold no artifact, deploy token or
     jobs["classify-production-smoke"].steps.some((s) =>
       JSON.stringify(s).includes("VERCEL_TOKEN"),
     ),
+  );
+});
+
+const stepsOf = (job) => job.steps ?? [];
+const checkouts = (job) =>
+  stepsOf(job).filter((s) => s.uses?.startsWith("actions/checkout"));
+const downloads = (job) =>
+  stepsOf(job).filter((s) => s.uses?.startsWith("actions/download-artifact"));
+
+test("recovery-receipt runs no candidate code and reads only the trusted controller, source state and one report", async () => {
+  const { jobs } = await loadWorkflow("production-release.yml");
+  const job = jobs["recovery-receipt"];
+  assert.ok(job.needs.includes("recovery-evidence"));
+  assert.doesNotMatch(JSON.stringify(job), /pnpm/);
+  for (const step of checkouts(job)) {
+    assert.equal(step.with["persist-credentials"], false);
+    assert.equal(step.with["sparse-checkout"], ".nvmrc");
+  }
+  assert.deepEqual(
+    downloads(job)
+      .map((step) => step.with.name)
+      .sort(),
+    [
+      "production-release-source-state",
+      "release-compatibility-report",
+      "trusted-release-controller",
+    ],
+  );
+  for (const step of downloads(job)) {
+    assert.equal(step.with.pattern, undefined);
+    assert.equal(step.with["merge-multiple"], undefined);
+  }
+  const trusted = downloads(job).find(
+    (s) => s.with.name === "trusted-release-controller",
+  );
+  const runs = stepsOf(job).filter((s) => s.run);
+  assert.ok(runs.length > 0);
+  for (const step of runs)
+    assert.match(
+      step.run,
+      /^node "\$RUNNER_TEMP\/trusted\/release-controls\.js"/,
+    );
+  assert.equal(trusted.with.path, "${{ runner.temp }}/trusted");
+  const upload = stepsOf(job).find((s) =>
+    s.uses?.startsWith("actions/upload-artifact"),
+  );
+  assert.equal(upload.with.name, "production-release-accepted-state");
+});
+
+test("recovery-evidence holds no GitHub token, uploads only its report and cannot reach the accepted state", async () => {
+  const { jobs } = await loadWorkflow("production-release.yml");
+  const job = jobs["recovery-evidence"];
+  assert.doesNotMatch(
+    JSON.stringify(job),
+    /GH_TOKEN|github\.token|RELEASE_TOKEN|VERCEL_TOKEN|record-recovery-evidence|production-release-accepted-state/,
+  );
+  assert.equal(job.permissions.actions, undefined);
+  for (const step of checkouts(job))
+    assert.equal(step.with["persist-credentials"], false);
+  const uploads = stepsOf(job).filter((s) =>
+    s.uses?.startsWith("actions/upload-artifact"),
+  );
+  assert.deepEqual(
+    uploads.map((s) => s.with.name),
+    ["release-compatibility-report"],
+  );
+  assert.ok(jobs["promote-and-smoke"].needs.includes("recovery-receipt"));
+  assert.doesNotMatch(
+    JSON.stringify(jobs["promote-and-smoke"].if),
+    /recovery-evidence/,
+  );
+});
+
+test("only the hotfix authorization job references VERCEL_TOKEN before staging, and only for a verified hotfix mode", async () => {
+  const { jobs } = await loadWorkflow("production-release.yml");
+  assert.doesNotMatch(JSON.stringify(jobs.authorize), /VERCEL_TOKEN/);
+  assert.match(
+    JSON.stringify(jobs["authorize-hotfix"]),
+    /secrets\.VERCEL_TOKEN/,
+  );
+  assert.equal(
+    jobs["authorize-hotfix"].if,
+    "needs.authorize.outputs.mode == 'hotfix'",
+  );
+  const hotfix = (mode, result) => ({
+    authorize: { result, outputs: { mode } },
+  });
+  assert.equal(
+    evalIf(jobs["authorize-hotfix"].if, hotfix("hotfix", "success")),
+    true,
+  );
+  for (const mode of ["normal", "normal-retry"])
+    assert.equal(
+      evalIf(jobs["authorize-hotfix"].if, hotfix(mode, "success")),
+      false,
+    );
+  assert.ok(jobs["failure-summary"].needs.includes("authorize-hotfix"));
+
+  const candidate = (mode, hotfixResult, release) => ({
+    authorize: { result: "success", outputs: { mode, release } },
+    "authorize-hotfix": { result: hotfixResult, outputs: {} },
+  });
+  // Non-hotfix: the hotfix job is skipped and the candidate still runs.
+  assert.equal(
+    evalIf(jobs.candidate.if, candidate("normal", "skipped", "true")),
+    true,
+  );
+  assert.equal(
+    evalIf(jobs.candidate.if, candidate("normal-retry", "skipped", "")),
+    true,
+  );
+  assert.equal(
+    evalIf(jobs.candidate.if, candidate("normal", "skipped", "false")),
+    false,
+  );
+  // Hotfix: a failed authorization stops the candidate.
+  assert.equal(
+    evalIf(jobs.candidate.if, candidate("hotfix", "success", "")),
+    true,
+  );
+  assert.equal(
+    evalIf(jobs.candidate.if, candidate("hotfix", "failure", "")),
+    false,
   );
 });
