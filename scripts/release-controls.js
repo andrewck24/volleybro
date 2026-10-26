@@ -1536,7 +1536,6 @@ async function stage() {
   const output = {
     stateVersion: RELEASE_STATE_VERSION,
     candidateId: candidate.id,
-    candidateUrl: `https://${candidateUrl.replace(/^https?:\/\//, "")}`,
     sha,
     controllerSha,
     projectId: required("VERCEL_PROJECT_ID"),
@@ -1588,6 +1587,7 @@ async function workflowBlob(ref) {
 
 async function reusableSourceQA(state) {
   const scopes = { unit: null, integration: null };
+  const rejections = {};
   const repository = required("GITHUB_REPOSITORY");
   let workflow, responses;
   try {
@@ -1606,10 +1606,10 @@ async function reusableSourceQA(state) {
       ),
     ]);
   } catch {
-    return scopes;
+    return { scopes, rejections };
   }
   if (workflow.path !== CI_WORKFLOW || !Number.isInteger(workflow.id))
-    return scopes;
+    return { scopes, rejections };
   if (
     responses.some(
       (response) =>
@@ -1649,8 +1649,8 @@ async function reusableSourceQA(state) {
             scope,
             name,
           );
-        } catch {
-          continue;
+        } catch (error) {
+          rejections[scope] = error.message;
         }
       }
       if (scopes.unit && scopes.integration) break;
@@ -1658,7 +1658,7 @@ async function reusableSourceQA(state) {
       continue;
     }
   }
-  return scopes;
+  return { scopes, rejections };
 }
 
 async function commitTree(sha) {
@@ -1803,11 +1803,15 @@ function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
 async function recordSourceQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
-  const scopes = await reusableSourceQA(state);
-  if (!scopes.unit || !scopes.integration)
+  const { scopes, rejections } = await reusableSourceQA(state);
+  if (!scopes.unit || !scopes.integration) {
+    const reasons = Object.entries(rejections)
+      .filter(([scope]) => !scopes[scope])
+      .map(([scope, reason]) => `${scope}: ${reason}`);
     fail(
-      "Missing trusted CI evidence for this source tree; complete CI before retrying release",
+      `Missing trusted CI evidence for this source tree; complete CI before retrying release${reasons.length ? ` (${reasons.join("; ")})` : ""}`,
     );
+  }
   state.sourceQA = {
     sourceSha: state.sha,
     boundRunId: state.releaseRunId,

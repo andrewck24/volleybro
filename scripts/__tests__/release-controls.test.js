@@ -1375,7 +1375,7 @@ test("owner CI correction proves an unchanged old application tree with the trus
     await writeFile(f.env.RELEASE_STATE_FILE, staged);
     result = run(f, "record-source-qa");
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /trusted CI evidence/);
+    assert.match(result.stderr, /owner-dispatched/);
   }
 });
 
