@@ -53,7 +53,7 @@ The production smoke test departs from Playwright's defaults on purpose:
 
 ## Test Value
 
-A test earns its maintenance cost only by protecting observable behaviour, a credible regression, or an independent contract. The `test-audit` skill (`.agents/skills/test-audit/`) holds the method, read through [its adapter](agents/test-audit.md); this section is the rule it serves.
+A test earns its maintenance cost only by protecting observable behaviour, a credible regression, or an independent contract. The `test-audit` skill (`.agents/skills/test-audit/`) holds the method, read through [its adapter](agents/test-audit.md); this section is the rule it serves. Review applies those rules at the Pre-PR gate; Apply relies on this section.
 
 **Before writing a test,** answer five questions; a missing answer means the test is not written yet:
 

@@ -21,5 +21,6 @@
   ],
   "revisitTriggers": [
     "Fix path pull requests start carrying decision-body edits described as wording fixes."
-  ]
+  ],
+  "supersededBy": "https://github.com/andrewck24/volleybro/pull/627"
 }

@@ -136,11 +136,11 @@ Use ordinary issue statuses, parent/child relationships, duplicate relations, an
 
 Classify new work and every material scope expansion by size, creating no new tracker labels:
 
-| Mode              | When                                                                | Planning                                                                                              | Pre-G1 review |
-| ----------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------- |
-| **Fast path**     | Needs no planning and fits one session                              | None; the Linear issue description is the spec, confirmed once at intake                              | No            |
-| **Change**        | Needs planning, even if it fits one session (then it has no slices) | `plan-spec` and `plan-tickets` on the execution issue                                                 | Yes           |
-| **Mapped Change** | Too large or foggy for one spec                                     | `wayfinder` map of decision tickets, then `plan-spec` / `plan-tickets` for each Change the map yields | Yes           |
+| Mode              | When                                                                | Planning                                                                                                            | Pre-G1 review |
+| ----------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------- |
+| **Fast path**     | Needs no planning and fits one session                              | None; the issue description, or the pull request body when there is no issue, is the spec, confirmed once at intake | No            |
+| **Change**        | Needs planning, even if it fits one session (then it has no slices) | `plan-spec` and `plan-tickets` on the execution issue                                                               | Yes           |
+| **Mapped Change** | Too large or foggy for one spec                                     | `wayfinder` map of decision tickets, then `plan-spec` / `plan-tickets` for each Change the map yields               | Yes           |
 
 Size decides the mode, not whether work fixes a bug, changes semantic version, or involves an architecture or product decision; a major pnpm upgrade can be a Fast path. A Change owns one converged design and delivers it in one pull request. A Mapped Change's map yields Changes with their own spec and G1; a resulting Change that needs several independently releasable delivery batches uses the shard mechanics under Change scope. Independent goals belong in separate Changes.
 
@@ -184,12 +184,12 @@ G1 accepts the spec and the slice checklist together: the design, scope, batch b
 ### 2. Apply
 
 1. Read the accepted spec and slice checklist on the execution issue (and the published Change page when one exists), applicable ADRs and git state, plus the unattended workpad when present.
-2. Explicitly invoke `implement` against the accepted spec and slice checklist. Assess credible failures and existing evidence before adding tests. Read `docs/testing-strategy.md` and invoke `test-audit` for changed tests; use pre-agreed seams, actual owning boundaries and bug regressions that fail before the repair and pass after it.
+2. Explicitly invoke `implement` against the accepted spec and slice checklist. Assess credible failures and existing evidence before adding tests. Read `docs/testing-strategy.md`; use pre-agreed seams, actual owning boundaries and bug regressions that fail before the repair and pass after it.
 3. Complete and verify eligible slices, committing each slice's code and tests together under the branch/commit contract below. Run the whole-batch independent review at the Pre-PR gate, rather than adding a full gate per slice.
 
 Commit bodies own the slice-to-commit mapping and retain it through rebases. For work committed before this contract existed, preserve valid history and explain bootstrap deviations and slice evidence in the PR; do not rewrite history solely to manufacture compliance.
 
-For auth, session, production-gate or secrets work in any delivery mode, settle scope, risks and acceptance criteria on the issue, then run `security-review` before implementation starts.
+For auth, session, production-gate or secrets work in any delivery mode, settle scope, risks and acceptance criteria before implementation: a Change through the pre-G1 review, Fast path through the intake confirmation (Fast path item 3). The security review of the diff happens at the Pre-PR gate.
 
 Fix implementation defects inside Apply. Sweep all affected identifiers, prose, tests and criteria when a term is redefined. Deleting files beyond accepted scope remains a judgement for the human gate: list paths and rationale, and preserve them pending authorization.
 
@@ -201,7 +201,7 @@ A material change to accepted scope, behavior, acceptance criteria or architectu
 
 1. Assess and promote verified Features and Design System knowledge on the delivery branch through `docs/agents/artifact-lifecycle.md`; reconcile settled glossary and ADRs. Record why any assessed page needs no change.
 2. Run `pnpm verify:all`, including applicable documentation checks, and assess Changeset applicability for the complete batch.
-3. Invoke `code-review` in independent contexts for both Standards and Spec. Supply `CODING_STANDARDS.md` verbatim and the accepted spec from the execution issue. The Standards axis applies the actual test-audit rules and documented judgement that tooling cannot enforce.
+3. Invoke `code-review` in independent contexts for both Standards and Spec. Supply `CODING_STANDARDS.md` verbatim and the accepted spec from the execution issue. The Standards axis applies the test-audit rules and the documented judgement that tooling cannot enforce, and checks the diff for correctness, behavior under the expected load (races, work repeated per caller, unbounded growth), leanness (no code beyond the spec: dead code, unused options, duplicated helpers) and security, using `security-review` when available.
 4. Fix accepted findings, rerun affected checks and `pnpm verify:all`, and repeat both axes to a fixed point. A fix merely requested by a reviewer needs review; only review-report prose or a change specified verbatim by the round may remain unreviewed. Use the last reviewed commit for later rounds, carrying all earlier reports and dispositions if context cannot resume (ADR-0076).
 5. Group findings by root cause. The same cause in two consecutive rounds requires an approach switch (ADR-0077); review the whole diff against the verified integration base after that switch. A technique-only deviation belongs in the PR. A material contract change goes through Ingest.
 
@@ -253,14 +253,14 @@ Fast path sits beside Change and Mapped Change for work that fits in one session
 
 1. Eligibility follows size, not fix type, semantic version impact or whether a decision is involved. A change may qualify whether it restores existing behavior, changes behavior, updates docs or configuration, or changes dependencies (including a major pnpm upgrade). Work exceeding the Change soft size targets needs a delivery-boundary assessment; work too large or foggy for one spec uses Mapped Change, while independent goals use separate Changes.
 2. Fast-path work happens on a `fast/<slug>` branch, whatever the commit type. It never uses `feat/`, `fix/`, or `refactor/`, which are Change branch prefixes.
-3. The agent proposes Fast path during intake; the developer confirms it once — on the tracker issue when the work came from one, or in the session when it did not. The Linear issue description is the spec.
-4. Kept: `pnpm verify:all`, independent two-axis code review with the issue as the spec, Changeset when applicable, and migration verification when applicable. Bug work also keeps a regression demonstrating failure before repair and success after it.
+3. The agent proposes Fast path during intake; the developer confirms it once — on the tracker issue when the work came from one, or in the session when it did not. For auth, session, production-gate or secrets work the confirmation lists the risks. The Linear issue description is the spec; work that has no issue, including a bug fix under item 10, uses its pull request body.
+4. Kept: `pnpm verify:all`, independent two-axis code review against that spec (including the security check of the diff), Changeset when applicable, and migration verification when applicable. Bug work also keeps a regression demonstrating failure before repair and success after it.
 5. Skipped: Change page, `plan-spec` and `plan-tickets`, pre-G1 review, G1 and slices. Assess and update affected current knowledge on the same branch before review; unchanged pages need no edit.
 6. The only human gate is the pull request: its body names Fast path and carries a short verification summary; the developer explicitly authorizes exact-revision merge and cleanup in the conversation after reviewing the PR; direct human merging is acceptance.
-7. Upgrade to a Change — plan it, pass the pre-G1 review and G1 — when the work grows beyond one session, and estimate it again per `docs/agents/issue-tracker.md`. Editing a decision record's `decision` body or setting `supersededBy` remains a new judgement and requires a normal Change.
+7. Upgrade to a Change — plan it, pass the pre-G1 review and G1 — when the work grows beyond one session, and estimate it again per `docs/agents/issue-tracker.md`. A decision record, including editing its `decision` body or setting `supersededBy`, takes the mode its size calls for. Editing a `decision` body is therefore no reason on its own to upgrade. A new decision must be stated explicitly by the developer, on the issue or in the session, before implementation; the pull request body names any decision it supersedes.
 8. A Fast-path commit carries a `Refs: <tracker issue>` trailer when the work came from a tracker issue, and no reference trailer when it did not; either way it omits `Implements`, `Linear-Issue` and `Blueprint-Change`, and the body states what triggered the work.
 9. A single-commit Fast-path change may squash as usual. A multi-commit change merges with a merge commit, the same as a normal Change; if it is squashed, the squash commit keeps whatever reference trailer the original commits carried.
-10. A bug found while working on something else is fixed through its own Fast-path pull request rather than parked, unless the fix needs a developer judgement. A choice that follows established practice — atomic or idempotent writes, a retryable failure order, Clean Architecture layering, matching the existing pattern — needs no confirmation; the pull request names the practice.
+10. A bug found while working on something else is fixed through its own Fast-path pull request rather than parked, unless the fix needs a developer judgement. A choice that follows established practice — atomic or idempotent writes, a retryable failure order, Clean Architecture layering, matching the existing pattern — needs no confirmation; the pull request names the practice. Such a fix's pull request is the Fast-path confirmation: the issue or pull request body is its spec, and the fix goes no further than that bug. A bug in auth, session, production-gate or secrets work is the exception: its risks are confirmed first, as item 3 requires.
 
 ## Decision-record contract
 
