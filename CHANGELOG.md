@@ -1,5 +1,14 @@
 # VolleyBro CHANGELOG
 
+## [0.18.3](https://github.com/andrewck24/volleybro/compare/v0.18.2...v0.18.3) 2026-10-26
+
+### Changed
+
+#### Infrastructure
+
+- Commits on a `feat/`, `fix/` or `refactor/` branch now need a `Linear-Issue: <ID>` trailer; `Blueprint-Change: <slug>` is optional and only for a Change that has a Blueprint page.
+- `pnpm check:workflow --change-shards <slug>` replaces `--sharded-change`, and the `--migration` alias is gone.
+
 ## [0.18.2](https://github.com/andrewck24/volleybro/compare/v0.18.0...v0.18.2) 2026-10-22
 
 ### Changed
