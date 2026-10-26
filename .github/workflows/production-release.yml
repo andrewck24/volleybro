@@ -220,6 +220,7 @@ jobs:
   source-qa:
     name: Record source QA
     needs: candidate
+    if: always() && !cancelled() && needs.candidate.result == 'success'
     runs-on: ubuntu-latest
     cache-mode: none
     permissions:
