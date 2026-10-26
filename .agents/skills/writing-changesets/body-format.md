@@ -58,7 +58,7 @@ Put every entry under a `####` domain inside its type heading, even when the cha
 | Feature domains        | `User`, `Team`, `Record`, `Match`, etc.     |
 | `Auth`                 | Authentication, session management          |
 | `UI` / `Accessibility` | Visual and interaction changes              |
-| `Infrastructure`       | Database, DI container, toolchain internals |
+| `Infrastructure`       | Database, DI container                      |
 
 Name domains by reader recognition, not implementation package. (`MongoDB` -> `Infrastructure`, `shadcn/ui` -> `UI`)
 

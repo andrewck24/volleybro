@@ -26,14 +26,12 @@ implement -> Pre-PR Changeset assessment -> pnpm changeset when applicable -> sa
 
 Write a changeset only for content shipped in the package. Every delivery batch that changes shipped content carries its own changeset; CI, workflows, the release controller, tests, docs, agent skills and contributor-setup-only changes need none. A tracking parent receives no extra changeset just for grouping its shards. Do not duplicate earlier batches' entries. Lifecycle, human gates, integration branch and release authorization are owned by `WORKFLOW.md`, not this skill.
 
-Skip the changeset when the batch changes no shipped content; use `pnpm changeset --empty` if CI requires a file.
-
 ## CLI Quick Reference
 
 | Command                  | When                                                     | What it does                                                     |
 | ------------------------ | -------------------------------------------------------- | ---------------------------------------------------------------- |
 | `pnpm changeset`         | At the Pre-PR gate, on the batch branch                  | Interactive: pick bump type, write body                          |
-| `pnpm changeset --empty` | CI requires changeset but no user impact                 | Creates empty changeset                                          |
+| `pnpm changeset --empty` | CI requires changeset, no shipped change               | Creates empty changeset                                          |
 | `pnpm changeset status`  | Anytime                                                  | Shows pending changesets                                         |
 | `pnpm release:version`   | Authorized version preparation, not deployment | Bumps version, updates CHANGELOG.md, deletes consumed changesets |
 
@@ -55,7 +53,7 @@ When writing the body at the Pre-PR gate, pull from the Change's own artifacts:
 
 1. Read the execution issue's spec (and the Change page when one exists) for scope and motivation
 2. Read the batch's commits against the current integration base for what was actually implemented; their bodies carry the outcome and verification per slice
-3. Map each user-visible change to a bullet under the correct `###` heading (see `body-format.md`)
+3. Map each shipped change to a bullet under the correct `###` heading (see `body-format.md`)
 4. Ignore internal work (refactors, test infra, CI plumbing, contributor setup)
 
 ## Rationalization Table
