@@ -221,6 +221,7 @@ jobs:
     name: Record source QA
     needs: candidate
     runs-on: ubuntu-latest
+    cache-mode: none
     permissions:
       contents: read
       actions: read

@@ -3067,6 +3067,7 @@ const downloads = (job) =>
 // A trusted controller job may read candidate git history but never candidate
 // code, and takes its Node runtime from trusted main.
 const assertCandidateHistoryOnly = (job) => {
+  assert.equal(job["cache-mode"], "none");
   assert.doesNotMatch(JSON.stringify(job), /pnpm/);
   for (const step of checkouts(job)) {
     assert.equal(step.with["persist-credentials"], false);
@@ -3218,6 +3219,9 @@ test("only the hotfix authorization job references VERCEL_TOKEN before staging, 
   assert.equal(runs("normal", "skipped", "false"), false);
   // The hotfix output takes precedence over the authorize output.
   assert.equal(runs("hotfix", "success", "false", "true"), true);
+  assert.equal(runs("hotfix", "success", "", "false"), false);
+  // A retry carries no release output of its own and still runs.
+  assert.equal(runs("normal-retry", "skipped", ""), true);
   // A failed hotfix authorization stops the candidate.
   assert.equal(runs("hotfix", "failure", ""), false);
 });
