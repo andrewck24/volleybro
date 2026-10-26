@@ -3,8 +3,6 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
-  UnexpectedError,
-  CommonReason,
   PlayerReason,
 } from "@/entities/errors";
 import type { Player } from "@/entities/player";
@@ -73,8 +71,8 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // Both writes below would land on this one document, which would end as
-    // ADMIN and leave the team without an owner.
+    // Demoting and promoting the same document would leave the team without an
+    // owner.
     if (newOwner.id === currentOwner.id) {
       throw new ConflictError(
         PlayerReason.TARGET_ALREADY_OWNER,
@@ -90,23 +88,51 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // 5. Transfer: update new owner to OWNER, demote current owner to ADMIN
-    const updatedNewOwner = await this.playerRepository.update(newOwnerId, {
-      role: PlayerRole.OWNER,
-    });
-
-    if (!updatedNewOwner) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to update new owner",
+    // 5. Demote first, only while the owner we read still holds OWNER. A
+    // concurrent transfer that got there first leaves nothing to demote, so
+    // this one stops before it can create a second owner.
+    const demoted = await this.playerRepository.updateRoleIf(
+      currentOwner.id,
+      PlayerRole.OWNER,
+      PlayerRole.ADMIN,
+    );
+    if (!demoted) {
+      throw new AuthorizationError(
+        PlayerReason.NOT_TEAM_OWNER,
+        "Only the current team owner can transfer ownership",
       );
     }
 
-    // 6. Demote current owner to ADMIN
-    await this.playerRepository.update(currentOwner.id, {
-      role: PlayerRole.ADMIN,
-    });
-
-    return updatedNewOwner;
+    // 6. Promote, only while the target still holds the role we read: leaving
+    // the team clears it. If that fails the team has no owner, so put the old
+    // one back, unless they left in the meantime too.
+    try {
+      const updatedNewOwner = await this.playerRepository.updateRoleIf(
+        newOwnerId,
+        newOwner.role,
+        PlayerRole.OWNER,
+      );
+      if (!updatedNewOwner) {
+        throw new ConflictError(
+          PlayerReason.TARGET_NOT_MEMBER,
+          "Target player must be an active member of the team",
+        );
+      }
+      return updatedNewOwner;
+    } catch (error) {
+      try {
+        await this.playerRepository.updateRoleIf(
+          currentOwner.id,
+          PlayerRole.ADMIN,
+          PlayerRole.OWNER,
+        );
+      } catch (restoreError) {
+        console.error(
+          `Failed to restore owner ${currentOwner.id} of team ${teamId}`,
+          restoreError,
+        );
+      }
+      throw error;
+    }
   }
 }

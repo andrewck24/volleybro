@@ -99,6 +99,17 @@ PlayerSchema.index(
   { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
 );
 
+// At most one OWNER per team. Named explicitly: the generated name would
+// collide with the plain `teamId_1` index above.
+PlayerSchema.index(
+  { teamId: 1 },
+  {
+    name: "teamId_1_owner_unique",
+    unique: true,
+    partialFilterExpression: { role: "OWNER" },
+  },
+);
+
 // Composite index for querying members by role within a team
 PlayerSchema.index({ teamId: 1, role: 1 });
 

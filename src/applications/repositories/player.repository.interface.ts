@@ -1,4 +1,4 @@
-import { NewPlayer, Player, PlayerFields } from "@/entities/player";
+import { NewPlayer, Player, PlayerFields, PlayerRole } from "@/entities/player";
 
 /**
  * IPlayerRepository Interface
@@ -40,6 +40,17 @@ export interface IPlayerRepository {
    * responsible for leaving the document in one of them.
    */
   update(id: string, updates: Partial<PlayerFields>): Promise<Player | null>;
+
+  /**
+   * Change a player's role only while it still equals `from`. Returns null
+   * when the player is gone or holds another role, so a caller that read the
+   * role earlier can tell its read went stale.
+   */
+  updateRoleIf(
+    id: string,
+    from: PlayerRole,
+    to: PlayerRole,
+  ): Promise<Player | null>;
 
   /**
    * Delete player by ID
