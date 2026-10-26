@@ -2955,14 +2955,21 @@ test("production release routes each smoke outcome to exactly one path", async (
   assert.equal(evalIf(recover, gate("skipped")), false);
 });
 
-test("source QA runs in normal mode after a successful candidate despite the skipped hotfix job", async () => {
+test("every job downstream of the hotfix-only job opts out of the implicit success() check", async () => {
+  // GitHub's implicit success() skips a job whenever any ancestor was
+  // skipped, and authorize-hotfix is skipped on every normal release.
   const { jobs } = await loadWorkflow("production-release.yml");
-  const needs = (candidate) => ({
-    candidate: { result: candidate },
-    "authorize-hotfix": { result: "skipped" },
-  });
-  assert.equal(evalIf(jobs["source-qa"].if, needs("success")), true);
-  assert.equal(evalIf(jobs["source-qa"].if, needs("failure")), false);
+  const needsOf = (id) => [jobs[id].needs ?? []].flat();
+  const downstream = (id) =>
+    needsOf(id).some((need) => need === "authorize-hotfix" || downstream(need));
+  const unguarded = Object.keys(jobs).filter(
+    (id) => downstream(id) && !String(jobs[id].if).includes("always()"),
+  );
+  assert.deepEqual(unguarded, []);
+  const sourceQa = (candidate) =>
+    evalIf(jobs["source-qa"].if, { candidate: { result: candidate } });
+  assert.equal(sourceQa("success"), true);
+  assert.equal(sourceQa("failure"), false);
 });
 
 test("finalize needs both acceptance jobs and runs only when exactly one succeeded", async () => {
