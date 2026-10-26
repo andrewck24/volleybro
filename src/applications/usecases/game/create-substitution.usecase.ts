@@ -16,7 +16,7 @@ import { inject, injectable } from "inversify";
 
 export interface ICreateSubstitutionInput {
   params: { gameId: string; setIndex: number; entryIndex: number };
-  data: Substitution & EntryIdentity;
+  data: Substitution & EntryIdentity & { at: Date };
 }
 
 export type ICreateSubstitutionOutput = Entry[];
@@ -38,14 +38,15 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
   async execute(
     input: ICreateSubstitutionInput,
   ): Promise<ICreateSubstitutionOutput> {
-    const { params, data: substitution } = input;
+    const { params, data } = input;
+    const { at, ...substitution } = data;
     const user = await this.authenticationService.verifySession();
 
     const game = await this.gameRepository.findById(params.gameId);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
 
-    await this.authorizationService.verifyTeamRole(
+    const operator = await this.authorizationService.verifyTeamRole(
       game.teamId.toString(),
       user.id.toString(),
       PlayerRole.MEMBER,
@@ -64,7 +65,8 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
 
     return this.gameRepository.upsertEntry(
       { gameId: params.gameId, setIndex: params.setIndex },
-      [createSubstitutionEntry(substitution)],
+      [{ entry: createSubstitutionEntry(substitution), at }],
+      operator.id,
       { [side]: lineup },
     );
   }

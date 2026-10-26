@@ -15,7 +15,6 @@ describe("GetTeamUseCase", () => {
   beforeEach(() => {
     mockTeamRepository = createMockTeamRepository();
     mockAuthService = createMockAuthorizationService();
-    mockAuthService.verifyTeamRole.mockResolvedValue();
     usecase = new GetTeamUseCase(mockTeamRepository, mockAuthService);
   });
 

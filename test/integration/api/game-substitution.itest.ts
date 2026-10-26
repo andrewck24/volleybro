@@ -8,13 +8,14 @@ import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { POST as createSubstitution } from "@/app/api/games/[gameId]/sets/substitutions/route";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
-import { lineupFor, seedGame, type SeededGame } from "../support/seed";
+import { lineupFor, oid, seedGame, type SeededGame } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
 const rally = {
   id: "entry-rally-1",
   seq: 0,
+  at: "2026-03-01T10:00:00.000Z",
   win: true,
   home: { score: 1, type: MoveType.ATTACK, num: 0 },
   away: { score: 0, type: MoveType.ATTACK, num: 0 },
@@ -44,6 +45,48 @@ describe("POST /api/games/:id/sets/substitutions", () => {
     expect(created.status).toBe(201);
   });
 
+  it("records the sender's player and the client's time on the entry", async () => {
+    const recorder = oid();
+    useFakeAuth({ playerId: recorder });
+
+    const res = await callRoute(createSubstitution, {
+      gameId: seeded.gameId,
+      method: "POST",
+      query: { si: 0, ei: 0 },
+      body: {
+        id: "entry-sub-1",
+        seq: 0,
+        at: "2026-03-01T10:01:00.000Z",
+        team: Side.HOME,
+        players: { in: benchId, out: seeded.playerIds[0] },
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const [entry] = (await repo().findById(seeded.gameId))!.sets[0]!.entries;
+    expect(entry).toMatchObject({
+      type: EntryType.SUBSTITUTION,
+      recordedBy: recorder,
+    });
+    expect(entry!.recordedAt).toEqual(new Date("2026-03-01T10:01:00.000Z"));
+  });
+
+  it("rejects a substitution that carries no time", async () => {
+    const res = await callRoute(createSubstitution, {
+      gameId: seeded.gameId,
+      method: "POST",
+      query: { si: 0, ei: 0 },
+      body: {
+        id: "entry-sub-1",
+        seq: 0,
+        team: Side.HOME,
+        players: { in: benchId, out: seeded.playerIds[0] },
+      },
+    });
+
+    expect(res.status).toBe(400);
+  });
+
   it("appends the entry and swaps the lineup in the same write", async () => {
     // A rally first, so the substitution has to land after it rather than
     // overwrite the set.
@@ -61,6 +104,7 @@ describe("POST /api/games/:id/sets/substitutions", () => {
       body: {
         id: "entry-sub-1",
         seq: 1,
+        at: "2026-03-01T10:01:00.000Z",
         team: Side.HOME,
         players: { in: benchId, out: seeded.playerIds[0] },
       },

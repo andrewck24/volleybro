@@ -16,7 +16,7 @@ import { inject, injectable } from "inversify";
 
 export interface IRecordRalliesInput {
   params: { gameId: string; setIndex: number };
-  data: (Rally & EntryIdentity)[];
+  data: (Rally & EntryIdentity & { at: Date })[];
 }
 
 export type IRecordRalliesOutput = {
@@ -54,7 +54,7 @@ export class RecordRalliesUseCase implements IRecordRalliesUseCase {
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
 
-    await this.authorizationService.verifyTeamRole(
+    const operator = await this.authorizationService.verifyTeamRole(
       game.teamId.toString(),
       user.id.toString(),
       PlayerRole.MEMBER,
@@ -62,7 +62,11 @@ export class RecordRalliesUseCase implements IRecordRalliesUseCase {
 
     const entries = await this.gameRepository.upsertEntry(
       { gameId, setIndex },
-      rallies.map(createRallyEntry),
+      rallies.map(({ at, ...rally }) => ({
+        entry: createRallyEntry(rally),
+        at,
+      })),
+      operator.id,
     );
 
     const completion = deriveSetCompletion(game, setIndex, entries);

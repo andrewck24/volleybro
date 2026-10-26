@@ -1,5 +1,4 @@
 import {
-  EntryType,
   type Game,
   type Team as GameTeam,
   type Match,
@@ -17,6 +16,7 @@ import {
   type TeamMember,
   type UnlinkedPlayer,
 } from "@/entities/player";
+import { createRecordedRally } from "./entries";
 import type { Profile } from "@/entities/profile";
 import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
@@ -136,14 +136,10 @@ function createDefaultSet(): Set {
     },
     options: { serve: "home" },
     entries: [
-      {
-        type: EntryType.RALLY,
-        id: "entry-1",
-        seq: 0,
-        win: true,
+      createRecordedRally({
         home: { score: 1, type: MoveType.ATTACK, num: 1 },
         away: { score: 0, type: MoveType.RECEPTION, num: 1 },
-      },
+      }),
     ],
   };
 }

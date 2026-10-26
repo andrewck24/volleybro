@@ -54,6 +54,7 @@ describe("PUT /api/games/[gameId]/sets/rallies", () => {
   const rally = (overrides: Record<string, unknown> = {}) => ({
     id: "entry-1",
     seq: 0,
+    at: "2026-03-01T10:00:00.000Z",
     win: true,
     home: { score: 1, type: MoveType.ATTACK, num: 4 },
     away: { score: 0, type: MoveType.DEFENSE, num: 7 },
@@ -77,6 +78,7 @@ describe("PUT /api/games/[gameId]/sets/rallies", () => {
       { home: { score: 1, type: 99, num: 4 } },
     ],
     ["records no win", { win: undefined }],
+    ["carries no time", { at: undefined }],
     [
       "carries an undeclared field nested in its player",
       {

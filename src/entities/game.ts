@@ -227,8 +227,25 @@ export type TimeoutEntry = { type: EntryType.TIMEOUT } & EntryIdentity &
 export type ChallengeEntry = { type: EntryType.CHALLENGE } & EntryIdentity &
   Challenge;
 
-export type Entry =
+export type EntryContent =
   RallyEntry | SubstitutionEntry | TimeoutEntry | ChallengeEntry;
+
+/**
+ * Who first recorded an entry and when, and who last edited it. The server
+ * stamps these from the session and the client's `at`; a client never names
+ * them. `recordedBy` and `recordedAt` are written once, on creation.
+ */
+export type EntryRecord = {
+  recordedBy: string;
+  recordedAt: Date;
+  editedBy?: string;
+  editedAt?: Date;
+};
+
+export type Entry = EntryContent & EntryRecord;
+
+/** An entry's content and the instant the client performed the action. */
+export type EntryWrite = { entry: EntryContent; at: Date };
 
 export const createRallyEntry = (rally: Rally & EntryIdentity): RallyEntry => ({
   type: EntryType.RALLY,
