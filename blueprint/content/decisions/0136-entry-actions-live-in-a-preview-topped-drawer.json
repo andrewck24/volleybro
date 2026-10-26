@@ -22,5 +22,6 @@
       "reason": "Replaced in place by a roll-back-to-here button: the alternative path is visible and usable, better than learning it is unavailable only after a tap."
     }
   ],
-  "originChange": "sync-recording"
+  "originChange": "sync-recording",
+  "supersededBy": "0143"
 }
