@@ -32,6 +32,8 @@ import {
 import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 import mongoose, { type AnyBulkWriteOperation } from "mongoose";
 
+type RawEntry = NonNullable<RawSet["entries"]>[number];
+
 const fromDocument = (doc: GameDocument): Game =>
   toGame(doc.toObject() as RawGame);
 
@@ -131,13 +133,6 @@ export class GameRepositoryImpl implements IGameRepository {
     return set ?? {};
   }
 
-  /**
-   * Existence is read first and decides which single operation each entry
-   * becomes (see the interface). Both are ordinary updates rather than an
-   * aggregation pipeline update, so Mongoose casting still applies; each is
-   * still guarded on the identity so a concurrent write cannot duplicate an
-   * entry.
-   */
   async upsertEntry(
     ref: EntryRef,
     writes: EntryWrite[],
@@ -174,73 +169,90 @@ export class GameRepositoryImpl implements IGameRepository {
       );
 
     try {
-      const stored = new Map(
-        ((await this.findSet(ref)).entries ?? []).map((e) => [
-          e.id as string,
-          e,
-        ]),
-      );
+      // A create whose push matches nothing lost a race to another create of
+      // the same id; classifying again against a fresh read turns it into an
+      // edit instead of dropping it.
+      for (let attempt = 0; ; attempt++) {
+        const stored = new Map(
+          ((await this.findSet(ref)).entries ?? []).map((e) => [
+            e.id as string,
+            e,
+          ]),
+        );
 
-      const ops = writes.flatMap(
-        ({ entry, at }): AnyBulkWriteOperation<GameDocument>[] => {
-          const mapped = mapEntryWrite(entry);
-          const existing = stored.get(entry.id);
-          if (!existing)
+        const ops = writes.flatMap(
+          ({ entry, at }): AnyBulkWriteOperation<GameDocument>[] => {
+            const mapped = mapEntryWrite(entry);
+            const existing = stored.get(entry.id);
+            if (!existing) {
+              // Later writes of the same id in this batch classify against it.
+              stored.set(entry.id, {
+                ...mapped,
+                recordedBy: operator,
+                recordedAt: at,
+              } as unknown as RawEntry);
+              return [
+                {
+                  updateOne: {
+                    filter: {
+                      ...guard,
+                      [`${path}.entries.id`]: { $ne: entry.id },
+                    },
+                    update: {
+                      $push: {
+                        [`${path}.entries`]: {
+                          $each: [
+                            { ...mapped, recordedBy: operator, recordedAt: at },
+                          ],
+                          $sort: { seq: 1 },
+                        },
+                      },
+                      ...(lineupSet && { $set: lineupSet }),
+                    },
+                  },
+                },
+              ];
+            }
+
+            const isCreationResend =
+              existing.recordedBy?.toString() === operator &&
+              existing.recordedAt?.getTime() === at.getTime();
+            if (isCreationResend) return [];
+
+            // Mongoose drops a discriminator's field when an update names it
+            // through an array filter, so the slot is written whole -- from the
+            // stored entry, which carries the recorder over untouched.
             return [
               {
                 updateOne: {
-                  filter: {
-                    ...guard,
-                    [`${path}.entries.id`]: { $ne: entry.id },
-                  },
+                  filter: { ...guard, [`${path}.entries.id`]: entry.id },
                   update: {
-                    $push: {
-                      [`${path}.entries`]: {
-                        $each: [
-                          { ...mapped, recordedBy: operator, recordedAt: at },
-                        ],
-                        $sort: { seq: 1 },
+                    $set: {
+                      [`${path}.entries.$[e]`]: {
+                        ...existing,
+                        ...mapped,
+                        recordedBy: existing.recordedBy,
+                        recordedAt: existing.recordedAt,
+                        editedBy: operator,
+                        editedAt: at,
                       },
+                      ...lineupSet,
                     },
-                    ...(lineupSet && { $set: lineupSet }),
                   },
+                  arrayFilters: [{ "e.id": entry.id }],
                 },
               },
             ];
+          },
+        );
 
-          const isCreationResend =
-            existing.recordedBy?.toString() === operator &&
-            existing.recordedAt?.getTime() === at.getTime();
-          if (isCreationResend) return [];
-
-          // Mongoose drops a discriminator's field when an update names it
-          // through an array filter, so the slot is written whole -- from the
-          // stored entry, which carries the recorder over untouched.
-          return [
-            {
-              updateOne: {
-                filter: { ...guard, [`${path}.entries.id`]: entry.id },
-                update: {
-                  $set: {
-                    [`${path}.entries.$[e]`]: {
-                      ...existing,
-                      ...mapped,
-                      recordedBy: existing.recordedBy,
-                      recordedAt: existing.recordedAt,
-                      editedBy: operator,
-                      editedAt: at,
-                    },
-                    ...lineupSet,
-                  },
-                },
-                arrayFilters: [{ "e.id": entry.id }],
-              },
-            },
-          ];
-        },
-      );
-
-      if (ops.length) await this.model.bulkWrite(ops, { ordered: true });
+        const result = ops.length
+          ? await this.model.bulkWrite(ops, { ordered: true })
+          : undefined;
+        if (!result || result.matchedCount === ops.length) break;
+        if (attempt > 0)
+          throw new Error("Entry writes kept losing to concurrent writes");
+      }
       const set = await this.findSet(ref);
       return (set.entries ?? []).map((e) => mapEntryRead(e)) as Entry[];
     } catch (error) {

@@ -117,6 +117,58 @@ describe("identity-keyed entry writes", () => {
     expect(entries[0]!.recordedAt).toEqual(recordedAt);
   });
 
+  it("keeps the edit when a create and an edit of one id share a batch", async () => {
+    const entries = await repo().upsertEntry(
+      { gameId: seeded.gameId, setIndex: 0 },
+      [
+        { entry: rally("entry-1", 0, 1), at: recordedAt },
+        { entry: rally("entry-1", 0, 9), at: editedAt },
+      ],
+      operator,
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      home: { score: 9 },
+      recordedBy: operator,
+      editedBy: operator,
+      editedAt,
+    });
+    expect(entries[0]!.recordedAt).toEqual(recordedAt);
+  });
+
+  it("re-classifies a create that lost a race to another create instead of dropping it", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    const other = oid();
+    const instance = repo();
+    await instance.upsertEntry(
+      ref,
+      [{ entry: rally("entry-1", 0, 1), at: recordedAt }],
+      other,
+    );
+    // The pre-read ran before the other create landed.
+    jest
+      .spyOn(
+        instance as unknown as { findSet: () => Promise<unknown> },
+        "findSet",
+      )
+      .mockResolvedValueOnce({ entries: [] });
+
+    const entries = await instance.upsertEntry(
+      ref,
+      [{ entry: rally("entry-1", 0, 9), at: editedAt }],
+      operator,
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      home: { score: 9 },
+      recordedBy: other,
+      editedBy: operator,
+      editedAt,
+    });
+  });
+
   it("stores a lower-sequence entry ahead of a higher one that arrived first", async () => {
     await write({ gameId: seeded.gameId, setIndex: 0 }, [
       rally("entry-8", 8, 8),
