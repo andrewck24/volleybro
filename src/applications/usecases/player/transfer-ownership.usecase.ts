@@ -3,8 +3,6 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
-  UnexpectedError,
-  CommonReason,
   PlayerReason,
 } from "@/entities/errors";
 import type { Player } from "@/entities/player";
@@ -99,30 +97,35 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       PlayerRole.ADMIN,
     );
     if (!demoted) {
-      throw new ConflictError(
+      throw new AuthorizationError(
         PlayerReason.NOT_TEAM_OWNER,
-        "Ownership was transferred by someone else; reload and retry",
+        "Only the current team owner can transfer ownership",
       );
     }
 
-    // 6. Promote. If that fails the team has no owner, so put the old one
-    // back; the unique owner index rejects a second OWNER should one appear.
+    // 6. Promote, only while the target still holds the role we read: leaving
+    // the team clears it. If that fails the team has no owner, so put the old
+    // one back, unless they left in the meantime too.
     try {
-      const updatedNewOwner = await this.playerRepository.update(newOwnerId, {
-        role: PlayerRole.OWNER,
-      });
+      const updatedNewOwner = await this.playerRepository.updateRoleIf(
+        newOwnerId,
+        newOwner.role,
+        PlayerRole.OWNER,
+      );
       if (!updatedNewOwner) {
-        throw new UnexpectedError(
-          CommonReason.UNHANDLED_ERROR,
-          "Failed to update new owner",
+        throw new ConflictError(
+          PlayerReason.TARGET_NOT_MEMBER,
+          "Target player must be an active member of the team",
         );
       }
       return updatedNewOwner;
     } catch (error) {
       try {
-        await this.playerRepository.update(currentOwner.id, {
-          role: PlayerRole.OWNER,
-        });
+        await this.playerRepository.updateRoleIf(
+          currentOwner.id,
+          PlayerRole.ADMIN,
+          PlayerRole.OWNER,
+        );
       } catch (restoreError) {
         console.error(
           `Failed to restore owner ${currentOwner.id} of team ${teamId}`,

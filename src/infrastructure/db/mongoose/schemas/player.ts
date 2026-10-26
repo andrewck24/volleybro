@@ -99,10 +99,8 @@ PlayerSchema.index(
   { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
 );
 
-// At most one OWNER per team. Filtering on the stored value keeps every other
-// role out of the index, so a team's other players are never constrained. The
-// explicit name keeps it apart from the plain `teamId_1` index above, which
-// MongoDB refuses to share a generated name with.
+// At most one OWNER per team. Named explicitly: the generated name would
+// collide with the plain `teamId_1` index above.
 PlayerSchema.index(
   { teamId: 1 },
   {
