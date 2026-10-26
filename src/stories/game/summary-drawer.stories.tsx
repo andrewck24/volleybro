@@ -2,9 +2,13 @@ import {
   SummaryDrawerCard,
   type IndexedEntry,
 } from "@/components/game/summary-drawer";
-import { EntryType, MoveType } from "@/entities/game";
+import { MoveType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import type { Meta, StoryObj } from "@storybook/nextjs";
+import {
+  createRecordedRally,
+  toEntryView,
+} from "@test/support/fixtures/entries";
 import { fn } from "storybook/test";
 
 const players: GamePlayerView[] = [
@@ -13,37 +17,44 @@ const players: GamePlayerView[] = [
 ];
 
 const rawEntries: EntryView[] = [
-  {
-    type: EntryType.RALLY,
-    id: "entry-0",
-    seq: 0,
-    win: true,
-    home: {
-      score: 1,
-      type: MoveType.SERVING,
-      num: 0,
-      player: { id: "p1", zone: 1 },
-    },
-    away: { score: 0, type: MoveType.SERVING, num: 1 },
-  },
-  {
-    type: EntryType.RALLY,
-    id: "entry-1",
-    seq: 1,
-    win: false,
-    home: {
-      score: 1,
-      type: MoveType.DEFENSE,
-      num: 5,
-      player: { id: "p2", zone: 4 },
-    },
-    away: {
-      score: 1,
-      type: MoveType.ATTACK,
-      num: 4,
-      player: { id: "p2", zone: 4 },
-    },
-  },
+  toEntryView(
+    createRecordedRally({
+      id: "entry-0",
+      seq: 0,
+      recordedBy: "p1",
+      recordedAt: new Date(2026, 0, 1, 14, 5),
+      home: {
+        score: 1,
+        type: MoveType.SERVING,
+        num: 0,
+        player: { id: "p1", zone: 1 },
+      },
+      away: { score: 0, type: MoveType.SERVING, num: 1 },
+    }),
+  ),
+  toEntryView(
+    createRecordedRally({
+      id: "entry-1",
+      seq: 1,
+      win: false,
+      recordedBy: "p1",
+      recordedAt: new Date(2026, 0, 1, 14, 6),
+      editedBy: "gone",
+      editedAt: new Date(2026, 0, 1, 14, 9),
+      home: {
+        score: 1,
+        type: MoveType.DEFENSE,
+        num: 5,
+        player: { id: "p2", zone: 4 },
+      },
+      away: {
+        score: 1,
+        type: MoveType.ATTACK,
+        num: 4,
+        player: { id: "p2", zone: 4 },
+      },
+    }),
+  ),
 ];
 
 const entries: IndexedEntry[] = rawEntries.map((entry, index) => ({
@@ -60,6 +71,7 @@ const meta = {
     entries,
     totalEntries: entries.length,
     players,
+    recorderNames: new Map([["p1", "選手一"]]),
     onToggle: fn(),
     onEntryClick: fn(),
   },

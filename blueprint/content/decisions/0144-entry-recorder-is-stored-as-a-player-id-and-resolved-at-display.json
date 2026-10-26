@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "id": "0144",
+  "title": "Entry recorder is stored as a player id and resolved to a name at display",
+  "capabilities": ["game-recording/rally-recording"],
+  "context": "Several members record the same game, but a stored entry named neither who wrote it nor when, so a wrong score could not be traced back. Decision 0143 already promised a recorder and a time on the expanded row; the data model had no field for them. The sync-recording draft proposed storing the recording user's userId.",
+  "decision": "Every entry carries recordedBy and recordedAt, written once when the entry is created, and optionally editedBy and editedAt for the last edit only. Both identities are the player id of the sender on that team, taken from the session by the server and never accepted from the client. The name is not stored: the game page resolves it from the team roster when it renders, so a renamed player shows the new name on old entries and a player who left the team still shows a name. A player id absent from the roster, because the player was deleted, renders as 已刪除的球員. The time is the client's action time, sent as an ISO 8601 `at`, stored as UTC and formatted with the viewer's local clock as HH:mm only on the client.",
+  "alternatives": [
+    {
+      "option": "Store the recording user's userId, as the sync-recording draft proposed",
+      "reason": "A user is not a roster entry: the display needs the player's name on this team, so every read would map userId to player through the membership. Membership changes when someone leaves or is unlinked, which would orphan the mapping for entries that were already recorded."
+    },
+    {
+      "option": "Store a snapshot of the recorder's name on the entry",
+      "reason": "Old entries would keep a name the team has since corrected, and the roster and the history would disagree. It also copies a name into every entry for a fact the roster already owns."
+    },
+    {
+      "option": "Resolve recorders on the server and return names with the game",
+      "reason": "The game page already loads the team roster; resolving there adds nothing to the game payload and lets a rename show without refetching every game."
+    }
+  ],
+  "consequences": [
+    "The recorder line is empty while the roster loads rather than showing a deleted player that is merely not loaded yet.",
+    "Deleting a player makes their entries show 已刪除的球員; the entries themselves are untouched.",
+    "An entry without recordedBy or recordedAt fails to read; there is no compatibility path for data written before these fields."
+  ],
+  "revisitTriggers": [
+    "Players can be restored after deletion, which would make the deleted label wrong for a returning id.",
+    "A recorder may act for a team they are not a player of, such as an admin with no roster slot."
+  ]
+}

@@ -4,7 +4,7 @@ import {
   type IndexedEntry,
   type SummaryDrawerPreview,
 } from "@/components/game/summary-drawer";
-import { EntryType, MoveType } from "@/entities/game";
+import { MoveType, type EntryRecord } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
@@ -13,6 +13,11 @@ import { scoringMoves } from "@/lib/scoring-moves";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { pointerEvent } from "@test/support/dom/pointer-event";
+import {
+  FIXTURE_RECORDER_ID,
+  createRecordedRally,
+  toEntryView,
+} from "@test/support/fixtures/entries";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
@@ -22,19 +27,27 @@ const players: GamePlayerView[] = [
 ];
 
 let entryIdSeq = 0;
-const makeEntry = (homeScore: number, playerId: string): EntryView =>
-  ({
-    id: `entry-${(entryIdSeq += 1)}`,
-    type: EntryType.RALLY,
-    win: true,
-    home: {
-      score: homeScore,
-      type: MoveType.SERVING,
-      num: 0,
-      player: { id: playerId, zone: 1 },
-    },
-    away: { score: 0, type: MoveType.SERVING, num: 1 },
-  }) as unknown as EntryView;
+const makeEntry = (
+  homeScore: number,
+  playerId: string,
+  record: Partial<EntryRecord> = {},
+): EntryView => {
+  entryIdSeq += 1;
+  return toEntryView(
+    createRecordedRally({
+      id: `entry-${entryIdSeq}`,
+      seq: entryIdSeq,
+      home: {
+        score: homeScore,
+        type: MoveType.SERVING,
+        num: 0,
+        player: { id: playerId, zone: 1 },
+      },
+      away: { score: 0, type: MoveType.SERVING, num: 1 },
+      ...record,
+    }),
+  );
+};
 
 // Three committed entries, chronologically increasing score; entries[2] (score
 // 3, player #7) is the latest.
@@ -165,6 +178,66 @@ describe("SummaryDrawerCard handle / expansion", () => {
   });
 });
 
+// Local clock times, so the expected text holds in any timezone.
+describe("SummaryDrawerCard recorder and editor lines", () => {
+  const recorderNames = new Map([
+    ["rec-1", "記錄員甲"],
+    ["ed-1", "編輯員乙"],
+  ]);
+  const expandRow = async (entry: EntryView) => {
+    const user = userEvent.setup();
+    render(
+      <SummaryDrawerCard
+        entries={indexed([entry])}
+        totalEntries={1}
+        players={players}
+        recorderNames={recorderNames}
+        state="expanded"
+      />,
+    );
+    const row = await screen.findByTestId("entry-row");
+    await user.click(row);
+    return row;
+  };
+
+  it("shows who recorded an entry and when, in the viewer's local time", async () => {
+    const row = await expandRow(
+      makeEntry(1, "p1", {
+        recordedBy: "rec-1",
+        recordedAt: new Date(2026, 0, 1, 14, 5),
+      }),
+    );
+
+    expect(row).toHaveTextContent("記錄員甲 · 14:05");
+    expect(row).not.toHaveTextContent("編輯 ·");
+  });
+
+  it("adds an editor line when the entry was edited", async () => {
+    const row = await expandRow(
+      makeEntry(1, "p1", {
+        recordedBy: "rec-1",
+        recordedAt: new Date(2026, 0, 1, 14, 5),
+        editedBy: "ed-1",
+        editedAt: new Date(2026, 0, 1, 14, 9),
+      }),
+    );
+
+    expect(row).toHaveTextContent("記錄員甲 · 14:05");
+    expect(row).toHaveTextContent("編輯員乙 編輯 · 14:09");
+  });
+
+  it("names a recorder who is no longer on the roster as a deleted player", async () => {
+    const row = await expandRow(
+      makeEntry(1, "p1", {
+        recordedBy: "gone",
+        recordedAt: new Date(2026, 0, 1, 9, 30),
+      }),
+    );
+
+    expect(row).toHaveTextContent("已刪除的球員 · 09:30");
+  });
+});
+
 describe("SummaryDrawerCard backdrop overlay", () => {
   it("expanded: tapping the backdrop collapses the drawer", () => {
     const onToggle = jest.fn();
@@ -256,6 +329,7 @@ describe("SummaryDrawerCard failed-write marking", () => {
 
 const serverGame = {
   id: "game-1",
+  teamId: "team-1",
   info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
   sets: [{ options: { serve: "home" }, entries: allEntries }],
   teams: { home: { players } },
@@ -267,7 +341,13 @@ const renderDrawer = (store: AppStore, ui: React.ReactNode) =>
       <SWRConfig
         value={{
           provider: () =>
-            new Map([["/api/games/game-1", { data: serverGame }]]) as never,
+            new Map([
+              ["/api/games/game-1", { data: serverGame }],
+              [
+                "/api/teams/team-1/players",
+                { data: [{ id: FIXTURE_RECORDER_ID, name: "隊員小明" }] },
+              ],
+            ]) as never,
           dedupingInterval: 0,
         }}
       >
@@ -346,6 +426,19 @@ describe("SummaryDrawer", () => {
     expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().game.editing.entryDraft.id).toBe(allEntries[2]!.id);
     expect(onEditRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the recorder from the team roster", async () => {
+    const user = userEvent.setup();
+    renderDrawer(
+      initializedStore(),
+      <SummaryDrawer gameId="game-1" state="expanded" />,
+    );
+
+    const rows = await screen.findAllByTestId("entry-row");
+    await user.click(rows[0]!);
+
+    expect(rows[0]).toHaveTextContent("隊員小明 · ");
   });
 
   it("toggles between the idle peek and the expanded sheet on its own: handle expands, Escape collapses", async () => {

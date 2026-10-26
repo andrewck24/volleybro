@@ -83,9 +83,19 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
     if (!lastRally) return;
 
     setRetrying(true);
-    const { type: _type, ...pendingEntry } = lastRally;
+    // The write schema is strict, so the server-stamped fields are dropped.
+    // A stored entry keeps its recordedAt as `at`: the server then reads this
+    // as a resend of the creation instead of an edit.
+    const {
+      type: _type,
+      recordedBy: _recordedBy,
+      recordedAt,
+      editedBy: _editedBy,
+      editedAt: _editedAt,
+      ...pendingEntry
+    } = lastRally;
     const result = await flushPendingWrites(gameId, setIndex, [
-      { ...pendingEntry, at: new Date().toISOString() },
+      { ...pendingEntry, at: recordedAt ?? new Date().toISOString() },
     ]);
     if (result.ok) {
       mutate(

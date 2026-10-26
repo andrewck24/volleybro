@@ -7,6 +7,12 @@ import {
   type EntryRecord,
   type SubstitutionEntry,
 } from "@/entities/game";
+import type { EntryView } from "@/lib/features/game/types";
+
+/** An entry as the API returns it: JSON-serialised, so dates are ISO strings. */
+export function toEntryView(entry: Entry): EntryView {
+  return JSON.parse(JSON.stringify(entry)) as EntryView;
+}
 
 /** A valid ObjectId, so a stored entry's `recordedBy` casts. */
 export const FIXTURE_RECORDER_ID = "64b0000000000000000000a1";

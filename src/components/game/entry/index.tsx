@@ -8,6 +8,8 @@ import { FailedWriteRetry } from "@/components/game/failed-write-retry";
 import { EntryType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { format } from "date-fns";
 import { useState } from "react";
 
 export const Entry = ({
@@ -120,6 +122,31 @@ const EntryRowActions = ({
   </>
 );
 
+const DELETED_PLAYER = "已刪除的球員";
+
+// The clock reads the viewer's timezone, which the server cannot know, so the
+// time renders only after hydration.
+const RecordLine = ({
+  playerId,
+  at,
+  names,
+  suffix = "",
+}: {
+  playerId: string;
+  at: string | undefined;
+  names: ReadonlyMap<string, string>;
+  suffix?: string;
+}) => {
+  const hydrated = useHydrated();
+  const time = hydrated && at ? format(new Date(at), "HH:mm") : "";
+  return (
+    <p className="text-sm text-muted-foreground">
+      {names.get(playerId) ?? DELETED_PLAYER}
+      {suffix} · {time}
+    </p>
+  );
+};
+
 export const EntryRow = ({
   entry,
   players,
@@ -131,6 +158,7 @@ export const EntryRow = ({
   onToggleExpand,
   failed,
   onRetry,
+  recorderNames,
   className,
 }: {
   entry: EntryView;
@@ -147,6 +175,9 @@ export const EntryRow = ({
   // once whatever the server rejected has changed.
   failed?: boolean;
   onRetry?: () => void;
+  // playerId -> name. Absent while the roster loads, so no line shows a
+  // deleted player that is merely not loaded yet.
+  recorderNames?: ReadonlyMap<string, string>;
   className?: string;
 }) => {
   const [localExpanded, setLocalExpanded] = useState(false);
@@ -189,6 +220,23 @@ export const EntryRow = ({
         style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
       >
         <div className="overflow-hidden">
+          {recorderNames && entry.recordedBy && (
+            <div className="px-1 pt-2">
+              <RecordLine
+                playerId={entry.recordedBy}
+                at={entry.recordedAt}
+                names={recorderNames}
+              />
+              {entry.editedBy && (
+                <RecordLine
+                  playerId={entry.editedBy}
+                  at={entry.editedAt}
+                  names={recorderNames}
+                  suffix=" 編輯"
+                />
+              )}
+            </div>
+          )}
           <div className="flex flex-row flex-wrap items-center gap-2 py-2">
             <EntryRowActions
               actions={actions}
