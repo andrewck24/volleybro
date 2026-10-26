@@ -1,5 +1,13 @@
 # VolleyBro CHANGELOG
 
+## [0.18.4](https://github.com/andrewck24/volleybro/compare/v0.18.2...v0.18.4) 2026-10-26
+
+### Fixed
+
+#### Accessibility
+
+- The team page now announces the team name as the page heading to screen readers.
+
 ## [0.18.3](https://github.com/andrewck24/volleybro/compare/v0.18.2...v0.18.3) 2026-10-26
 
 ### Changed
