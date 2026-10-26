@@ -8,11 +8,7 @@ import { FailedWriteRetry } from "@/components/game/failed-write-retry";
 import { EntryType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
-import {
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useState } from "react";
 
 export const Entry = ({
   entry,
@@ -87,9 +83,6 @@ export const EntryPlayerNumber = ({
   </span>
 );
 
-// keep in sync with panel/progress-bar.tsx
-const SWIPE_THRESHOLD_PX = 40;
-
 const actionLabel: Record<EntryAction, string> = {
   edit: "編輯",
   delete: "刪除",
@@ -136,8 +129,6 @@ export const EntryRow = ({
   onRollbackToHere,
   expanded: expandedProp,
   onToggleExpand,
-  swipeRevealed: swipeRevealedProp,
-  onSwipeReveal,
   failed,
   onRetry,
   className,
@@ -151,8 +142,6 @@ export const EntryRow = ({
   // optional controlled state; falls back to local when uncontrolled
   expanded?: boolean;
   onToggleExpand?: () => void;
-  swipeRevealed?: boolean;
-  onSwipeReveal?: (revealed: boolean) => void;
   // hasFailedWrite: matched to the queue by entry id. Not a toast -- it
   // persists until the entry leaves the queue, which a retry achieves only
   // once whatever the server rejected has changed.
@@ -161,45 +150,8 @@ export const EntryRow = ({
   className?: string;
 }) => {
   const [localExpanded, setLocalExpanded] = useState(false);
-  const [localSwipeRevealed, setLocalSwipeRevealed] = useState(false);
   const expanded = expandedProp ?? localExpanded;
-  const swipeRevealed = swipeRevealedProp ?? localSwipeRevealed;
   const toggleExpand = onToggleExpand ?? (() => setLocalExpanded((v) => !v));
-  const revealSwipe = onSwipeReveal ?? setLocalSwipeRevealed;
-
-  const dragRef = useRef<{ startX: number; triggered: boolean } | null>(null);
-  const suppressClickRef = useRef(false);
-
-  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    dragRef.current = { startX: e.clientX, triggered: false };
-  };
-
-  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.triggered) return;
-
-    const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
-
-    drag.triggered = true;
-    // suppress the synthetic tap after a swipe so it doesn't also toggle expand
-    suppressClickRef.current = true;
-    if (dx < 0) {
-      revealSwipe(true);
-    }
-  };
-
-  const endDrag = () => {
-    dragRef.current = null;
-  };
-
-  const handleRowClick = () => {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
-      return;
-    }
-    toggleExpand();
-  };
 
   // only edit is wired yet; delete/rollback await sync-recording reducers
   const actions = composeEntryActions(isLatest).filter((a) => a === "edit");
@@ -207,14 +159,9 @@ export const EntryRow = ({
   return (
     <div
       data-testid="entry-row"
-      data-swipe-revealed={swipeRevealed}
       data-expanded={expanded}
       className={cn("flex w-full flex-col", className)}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onClick={handleRowClick}
+      onClick={toggleExpand}
     >
       <div className="flex w-full flex-row items-center">
         <div className="relative flex-1">
@@ -234,19 +181,6 @@ export const EntryRow = ({
             />
           )}
         </div>
-        {swipeRevealed && (
-          <div
-            data-testid="entry-row-swipe-actions"
-            className="flex flex-none flex-row gap-1"
-          >
-            <EntryRowActions
-              actions={actions}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onRollbackToHere={onRollbackToHere}
-            />
-          </div>
-        )}
       </div>
       <div
         data-testid="entry-row-expanded"

@@ -45,34 +45,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Latest entry, at rest: no swipe reveal, no expansion yet (`entry-ui`
-// change, scenario "Left-swipe reveals action buttons" starts from here).
+// Latest entry, at rest: not expanded yet.
 export const Collapsed: Story = {
   args: { isLatest: true },
-};
-
-// Left-swipe reveals the row's action buttons in place, without expanding it
-// (`entry-ui` change, scenario "Left-swipe reveals action buttons"). Runs in
-// a real browser via Storybook's play function, so a genuine PointerEvent
-// sequence drives the same capture-on-intent gesture used in
-// panel/progress-bar.tsx.
-export const SwipeRevealed: Story = {
-  args: { isLatest: true },
-  play: async ({ canvasElement }) => {
-    const row = canvasElement.querySelector(
-      '[data-testid="entry-row"]',
-    ) as HTMLElement | null;
-    if (!row) return;
-    row.dispatchEvent(
-      new PointerEvent("pointerdown", { clientX: 200, bubbles: true }),
-    );
-    row.dispatchEvent(
-      new PointerEvent("pointermove", { clientX: 140, bubbles: true }),
-    );
-    row.dispatchEvent(
-      new PointerEvent("pointerup", { clientX: 140, bubbles: true }),
-    );
-  },
 };
 
 // Tap inline-expands the row in place to show the entry detail + actions,
