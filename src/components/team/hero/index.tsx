@@ -9,9 +9,9 @@ const TeamHero = ({ teamId }: { teamId: string }) => {
       {!team || isLoading || isValidating ? (
         <p className="h-8 w-[16rem] animate-pulse rounded-md bg-muted" />
       ) : (
-        <p data-testid="team-name" className="text-2xl text-primary-foreground">
+        <h1 className="text-2xl text-primary-foreground">
           {team?.name || "Loading..."}
-        </p>
+        </h1>
       )}
     </div>
   );
