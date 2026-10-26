@@ -7,7 +7,10 @@ import { server } from "@test/support/msw/server";
 
 describe("createSubstitution", () => {
   const params = { gameId: "game-1", setIndex: 0, entryIndex: 2 };
-  const substitution = { id: "sub-1" } as unknown as SubstitutionView;
+  const substitution = {
+    id: "sub-1",
+    at: "2026-10-27T01:02:03.000Z",
+  } as unknown as SubstitutionView & { at: string };
   const makeGame = (): GameView =>
     ({ sets: [{ entries: [] }] }) as unknown as GameView;
 

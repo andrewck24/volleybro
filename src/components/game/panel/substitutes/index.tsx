@@ -46,6 +46,7 @@ export const Substitutes = ({
         ...draft.substitution!,
         id: draft.id || crypto.randomUUID(),
         seq: entryIndex,
+        at: new Date().toISOString(),
       };
       // Advances the draft the instant the write starts, without waiting for
       // the server; awaiting afterwards is what routes a rejection into the

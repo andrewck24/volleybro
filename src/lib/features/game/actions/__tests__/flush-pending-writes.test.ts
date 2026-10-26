@@ -9,7 +9,9 @@ import type { PendingEntry } from "@/lib/features/game/types";
 
 import { answerRallies } from "@test/support/msw/rallies";
 
-const entries = [{ id: "e1", seq: 0 }] as unknown as PendingEntry["entry"][];
+const entries = [
+  { id: "e1", seq: 0, at: "2026-10-27T01:02:03.000Z" },
+] as unknown as PendingEntry["entry"][];
 const confirmed = { entries: [{ id: "e1" }] };
 
 const transientError = () =>
@@ -64,7 +66,7 @@ describe("flushPendingWrites", () => {
     const result = await promise;
 
     expect(result).toEqual({ ok: true, value: confirmed });
-    expect(requests).toHaveLength(3);
+    expect(requests.map((r) => r.body)).toEqual([entries, entries, entries]);
   });
 
   it("reports a retryable failure once the inline attempts are exhausted", async () => {

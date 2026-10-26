@@ -84,7 +84,9 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
 
     setRetrying(true);
     const { type: _type, ...pendingEntry } = lastRally;
-    const result = await flushPendingWrites(gameId, setIndex, [pendingEntry]);
+    const result = await flushPendingWrites(gameId, setIndex, [
+      { ...pendingEntry, at: new Date().toISOString() },
+    ]);
     if (result.ok) {
       mutate(
         (current) =>

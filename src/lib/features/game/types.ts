@@ -360,8 +360,11 @@ export type WriteError = {
   status: number;
 };
 
+// `at` is the action time the client decided once; every resend carries it.
+export type PendingRally = RallyView & EntryIdentity & { at: string };
+
 export type PendingEntry = {
-  entry: RallyView & EntryIdentity;
+  entry: PendingRally;
   gameId: string;
   setIndex: number;
   attempts: number;
@@ -395,7 +398,9 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
   version: z.number(),
   items: z.array(
     z.object({
-      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema),
+      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema).extend({
+        at: z.string(),
+      }),
       gameId: z.string(),
       setIndex: z.number(),
       lastError: z

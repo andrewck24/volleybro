@@ -168,6 +168,7 @@ describe("useUnconfirmedSetCompletion", () => {
           {
             id: "e1",
             seq: 0,
+            at: expect.any(String),
             win: true,
             home: lastRally.home,
             away: lastRally.away,

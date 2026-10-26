@@ -105,6 +105,65 @@ describe("useSubmitEntryDraft update path", () => {
   });
 });
 
+const sentAt = (put: { body: unknown }) =>
+  (put.body as { at: string }[])[0]!.at;
+
+describe("useSubmitEntryDraft action time", () => {
+  it("stamps an edit with the moment it was made and resends it unchanged", async () => {
+    const puts = answerRallies(
+      () => HttpResponse.error(),
+      () => HttpResponse.json({ entries: [{ id: "e1" }] }),
+    );
+    const { result } = await editFirstEntry(gameWith([rally]));
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    });
+
+    const before = Date.now();
+    await act(async () => {
+      await result.current.submit();
+    });
+    const after = Date.now();
+
+    expect(puts.length).toBeGreaterThan(1);
+    const at = sentAt(puts[0]!);
+    expect(new Date(at).toISOString()).toBe(at);
+    expect(Date.parse(at)).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(at)).toBeLessThanOrEqual(after);
+    expect(puts.map(sentAt)).toEqual(puts.map(() => at));
+  });
+
+  it("stamps a new rally with the moment it was created", async () => {
+    const puts = answerRallies(() =>
+      HttpResponse.json({ entries: [{ id: "x" }] }),
+    );
+    store = makeStore();
+    const game = gameWith([]);
+    server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
+    store.dispatch(
+      gameActions.initialize({ game: game as never, setIndex: 0 }),
+    );
+    store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    store.dispatch(
+      gameActions.setEntryDraftAwayMove(
+        scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+      ),
+    );
+    const { result } = renderHook(useHarness, { wrapper });
+    await waitFor(() => expect(result.current.game).toBeDefined());
+
+    const before = Date.now();
+    await act(async () => {
+      await result.current.submit();
+    });
+    const after = Date.now();
+
+    await waitFor(() => expect(puts).toHaveLength(1));
+    expect(Date.parse(sentAt(puts[0]!))).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(sentAt(puts[0]!))).toBeLessThanOrEqual(after);
+  });
+});
+
 describe("useSubmitEntryDraft against a cache the server has cut back", () => {
   it("writes the edited rally by its identity, leaving no gap in the cache", async () => {
     // The queue still holds e1 (unsent) while the server's copy of the set is
@@ -128,7 +187,7 @@ describe("useSubmitEntryDraft against a cache the server has cut back", () => {
     );
     store.dispatch(
       pendingWritesActions.enqueued({
-        entry: rally as never,
+        entry: { ...rally, at: new Date().toISOString() } as never,
         gameId: "game-1",
         setIndex: 0,
       }),

@@ -142,6 +142,7 @@ const queueRally = () =>
       entry: {
         id: "pending-1",
         seq: 1,
+        at: "2026-10-27T01:02:03.000Z",
         win: true,
         home: { score: 7, type: MoveType.ATTACK, num: 4 },
         away: { score: 3, type: MoveType.DEFENSE, num: 7 },

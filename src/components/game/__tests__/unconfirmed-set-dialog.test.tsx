@@ -134,6 +134,6 @@ describe("UnconfirmedSetDialog", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(url.searchParams.get("si")).toBe("0");
-    expect(sent).toEqual([pendingRally]);
+    expect(sent).toEqual([{ ...pendingRally, at: expect.any(String) }]);
   });
 });
