@@ -2955,6 +2955,16 @@ test("production release routes each smoke outcome to exactly one path", async (
   assert.equal(evalIf(recover, gate("skipped")), false);
 });
 
+test("source QA runs in normal mode after a successful candidate despite the skipped hotfix job", async () => {
+  const { jobs } = await loadWorkflow("production-release.yml");
+  const needs = (candidate) => ({
+    candidate: { result: candidate },
+    "authorize-hotfix": { result: "skipped" },
+  });
+  assert.equal(evalIf(jobs["source-qa"].if, needs("success")), true);
+  assert.equal(evalIf(jobs["source-qa"].if, needs("failure")), false);
+});
+
 test("finalize needs both acceptance jobs and runs only when exactly one succeeded", async () => {
   const { jobs } = await loadWorkflow("production-release.yml");
   const job = jobs["finalize-release"];
