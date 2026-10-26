@@ -90,7 +90,7 @@ Remove a worktree that still holds symlinks with `git worktree remove --force <p
 
 ## Versioning
 
-This project uses [Changesets](https://github.com/changesets/changesets) for version management. When submitting a PR that includes a user-visible change or version bump, run:
+This project uses [Changesets](https://github.com/changesets/changesets) for version management. When submitting a PR that includes a change to content shipped in the package ([`writing-changesets`](.agents/skills/writing-changesets/SKILL.md) lists what needs none), run:
 
 ```bash
 pnpm changeset

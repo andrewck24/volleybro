@@ -42,9 +42,9 @@ Put every entry under a `####` domain inside its type heading, even when the cha
 ```markdown
 ### Changed
 
-#### CI
+#### Record
 
-- Migrate package manager from npm to pnpm
+- Show the set score beside each rally in the match record
 
 #### UI
 
@@ -58,8 +58,7 @@ Put every entry under a `####` domain inside its type heading, even when the cha
 | Feature domains        | `User`, `Team`, `Record`, `Match`, etc.     |
 | `Auth`                 | Authentication, session management          |
 | `UI` / `Accessibility` | Visual and interaction changes              |
-| `CI`                   | Automation pipelines, GitHub Actions        |
-| `Infrastructure`       | Database, DI container, toolchain internals |
+| `Infrastructure`       | Database, DI container                      |
 
 Name domains by reader recognition, not implementation package. (`MongoDB` -> `Infrastructure`, `shadcn/ui` -> `UI`)
 
@@ -93,5 +92,4 @@ These do NOT belong in a changelog. Do not create a catch-all section for them -
 
 - Security patches
 - Major runtime version bumps (Node.js, etc.)
-- Toolchain changes that affect contributor setup (e.g. npm -> pnpm)
 - Dep upgrades that change observable behavior or remove deprecated options
