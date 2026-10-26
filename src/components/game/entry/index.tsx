@@ -137,8 +137,8 @@ const RecordLine = ({
   names: ReadonlyMap<string, string>;
   suffix?: string;
 }) => {
-  const hydrated = useHydrated();
-  const time = hydrated && at ? format(new Date(at), "HH:mm") : "";
+  const isHydrated = useHydrated();
+  const time = isHydrated && at ? format(new Date(at), "HH:mm") : "";
   return (
     <p className="text-sm text-muted-foreground">
       {names.get(playerId) ?? DELETED_PLAYER}

@@ -230,11 +230,7 @@ export type ChallengeEntry = { type: EntryType.CHALLENGE } & EntryIdentity &
 export type EntryContent =
   RallyEntry | SubstitutionEntry | TimeoutEntry | ChallengeEntry;
 
-/**
- * Who first recorded an entry and when, and who last edited it. The server
- * stamps these from the session and the client's `at`; a client never names
- * them. `recordedBy` and `recordedAt` are written once, on creation.
- */
+/** Server-stamped authorship of an entry; see ADR 0144. */
 export type EntryRecord = {
   recordedBy: string;
   recordedAt: Date;
