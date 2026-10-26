@@ -357,24 +357,11 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: trusted-node/.nvmrc
-      - id: compatibility-plan
-        name: Recompute exact-baseline compatibility plan
-        env:
-          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-        run: node "$RUNNER_TEMP/trusted/release-controls.js" plan-recovery-compatibility
       - uses: actions/download-artifact@v8
-        if: steps.compatibility-plan.outputs.required == 'true'
+        if: needs.source-qa.outputs.compatibility_required == 'true'
         with:
           name: release-compatibility-report
           path: ${{ runner.temp }}/compatibility-report
-      - name: Check compatibility report shape
-        if: steps.compatibility-plan.outputs.required == 'true'
-        env:
-          RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
-          RELEASE_COMPATIBILITY_REPORT: ${{ runner.temp }}/compatibility-report/release-compatibility-report.json
-        run: node "$RUNNER_TEMP/trusted/release-controls.js" verify-compatibility-report
       - name: Create run-bound machine-verified recovery receipt
         env:
           RELEASE_STATE_FILE: ${{ runner.temp }}/source/release-state.json
@@ -382,6 +369,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_COMPATIBILITY_REPORT: ${{ runner.temp }}/compatibility-report/release-compatibility-report.json
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
         run: node "$RUNNER_TEMP/trusted/release-controls.js" record-recovery-evidence
       - uses: actions/upload-artifact@v7

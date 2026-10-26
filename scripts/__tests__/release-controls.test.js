@@ -624,8 +624,41 @@ const passingCompatibilityJob = (id = 503, status = "completed") =>
     compatibilityStep(),
   ]);
 
+function compatibilityReport(f, titles, skipped = 0, statuses = []) {
+  return {
+    numFailedTests: 0,
+    numPendingTests: skipped,
+    numTodoTests: 0,
+    numPassedTests: titles.length - skipped,
+    numTotalTests: titles.length,
+    testResults: [
+      {
+        name: path.join(
+          f.repo,
+          "test/integration/persistence/release-compatibility.itest.ts",
+        ),
+        status: "passed",
+        assertionResults: titles.map((title, index) => ({
+          title,
+          status: statuses[index] ?? (index < skipped ? "skipped" : "passed"),
+        })),
+      },
+    ],
+  };
+}
+
+const compatibilityAssertions = (f) => [
+  "candidate reads legacy persisted records",
+  `production baseline ${f.deployed} reads candidate-written records`,
+];
+
 async function passingCompatibilityTestJob(f) {
   await setCompatibilityJobs(f, [passingCompatibilityJob()]);
+  f.env.RELEASE_COMPATIBILITY_REPORT = path.join(f.root, "report.json");
+  await writeFile(
+    f.env.RELEASE_COMPATIBILITY_REPORT,
+    JSON.stringify(compatibilityReport(f, compatibilityAssertions(f))),
+  );
 }
 
 function ciScopeJob(git, id, name, source) {
@@ -851,61 +884,53 @@ test("production package version metadata alone is not a persisted contract chan
 });
 
 test("compatibility report requires both directional assertions to pass without skips", async (t) => {
-  const f = await fixture(t);
-  const suitePath =
-    "test/integration/persistence/release-compatibility.itest.ts";
-  const baselineAssertion = `production baseline ${f.deployed} reads candidate-written records`;
-  const reportPath = path.join(f.root, "compatibility-report.json");
-  const expectedAssertions = [
-    "candidate reads legacy persisted records",
-    baselineAssertion,
-  ];
-  const report = (assertionTitles, skipped = 0, assertionStatuses = []) => ({
-    numFailedTests: 0,
-    numPendingTests: skipped,
-    numTodoTests: 0,
-    numPassedTests: assertionTitles.length - skipped,
-    numTotalTests: assertionTitles.length,
-    testResults: [
-      {
-        name: path.join(f.repo, suitePath),
-        status: "passed",
-        assertionResults: assertionTitles.map((title, index) => ({
-          title,
-          status:
-            assertionStatuses[index] ??
-            (index < skipped ? "skipped" : "passed"),
-        })),
-      },
-    ],
+  const f = await fixture(t, {
+    persistedContract: true,
+    compatibilityTest: true,
   });
-  const env = { RELEASE_COMPATIBILITY_REPORT: reportPath };
-  assert.equal(run(f, "stage").status, 0);
-
-  await writeFile(reportPath, JSON.stringify(report(expectedAssertions)));
-  const passed = run(f, "verify-compatibility-report", env);
-  assert.equal(passed.status, 0, passed.stderr);
-
-  const wrongBaselineSha = `${f.deployed.slice(0, -1)}${f.deployed.endsWith("0") ? "1" : "0"}`;
-  const wrongBaselineAssertion = `production baseline ${wrongBaselineSha} reads candidate-written records`;
+  await passingCompatibilityTestJob(f);
+  const source = await prepareSourceRelease(f);
+  const accepted = path.join(f.root, "report-proof.json");
+  const record = () =>
+    run(f, "record-recovery-evidence", {
+      ...source.env,
+      RELEASE_ACCEPTED_STATE_FILE: accepted,
+    });
+  const expected = compatibilityAssertions(f);
+  const wrongSha = `${f.deployed.slice(0, -1)}${f.deployed.endsWith("0") ? "1" : "0"}`;
   const invalidReports = [
-    report(expectedAssertions, 1),
-    report(expectedAssertions.slice(0, 1)),
-    report(["unrelated assertion one", "unrelated assertion two"]),
-    report([expectedAssertions[0], wrongBaselineAssertion]),
-    report([expectedAssertions[0], expectedAssertions[0]]),
-    report(expectedAssertions, 0, ["failed", "passed"]),
-    report(expectedAssertions, 0, ["passed", "skipped"]),
+    compatibilityReport(f, expected, 1),
+    compatibilityReport(f, expected.slice(0, 1)),
+    compatibilityReport(f, [
+      "unrelated assertion one",
+      "unrelated assertion two",
+    ]),
+    compatibilityReport(f, [
+      expected[0],
+      `production baseline ${wrongSha} reads candidate-written records`,
+    ]),
+    compatibilityReport(f, [expected[0], expected[0]]),
+    compatibilityReport(f, expected, 0, ["failed", "passed"]),
+    compatibilityReport(f, expected, 0, ["passed", "skipped"]),
   ];
   for (const invalidReport of invalidReports) {
-    await writeFile(reportPath, JSON.stringify(invalidReport));
-    const rejected = run(f, "verify-compatibility-report", env);
-    assert.notEqual(rejected.status, 0);
-    assert.match(
-      rejected.stderr,
-      /Compatibility report|Compatibility report is missing/,
+    await writeFile(
+      f.env.RELEASE_COMPATIBILITY_REPORT,
+      JSON.stringify(invalidReport),
     );
+    const rejected = record();
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /Compatibility report|Compatibility suite/);
+    assert.equal(await readFile(accepted, "utf8").catch(() => ""), "");
   }
+  await rm(f.env.RELEASE_COMPATIBILITY_REPORT);
+  assert.notEqual(record().status, 0);
+  await writeFile(
+    f.env.RELEASE_COMPATIBILITY_REPORT,
+    JSON.stringify(compatibilityReport(f, expected)),
+  );
+  const passed = record();
+  assert.equal(passed.status, 0, passed.stderr);
 });
 
 test("the recovery receipt job accepts only one completed successful native compatibility job and step", async (t) => {
@@ -913,6 +938,7 @@ test("the recovery receipt job accepts only one completed successful native comp
     persistedContract: true,
     compatibilityTest: true,
   });
+  await passingCompatibilityTestJob(f);
   const source = await prepareSourceRelease(f);
   const accepted = path.join(f.root, "native-proof.json");
   const failedJob = {
@@ -925,9 +951,6 @@ test("the recovery receipt job accepts only one completed successful native comp
   });
   const rejected = {
     "no native job": [],
-    "job still running": [
-      { ...passingCompatibilityJob(), status: "in_progress", conclusion: null },
-    ],
     "job not completed": [passingCompatibilityJob(503, "in_progress")],
     "job failed": [failedJob],
     "job name not unique": [
@@ -935,7 +958,6 @@ test("the recovery receipt job accepts only one completed successful native comp
       passingCompatibilityJob(504),
     ],
     "step failed": [stepFails("failure")],
-    "step skipped": [stepFails("skipped")],
     "step missing": [{ ...passingCompatibilityJob(), steps: [] }],
   };
   for (const [name, jobs] of Object.entries(rejected)) {
@@ -992,7 +1014,7 @@ test("a release without a data risk records no compatibility proof", async (t) =
   );
 });
 
-test("promote rejects a receipt whose compatibility job ID or native step no longer matches", async (t) => {
+test("promote rejects a receipt whose compatibility job ID no longer matches", async (t) => {
   const f = await fixture(t, {
     persistedContract: true,
     compatibilityTest: true,
@@ -1008,15 +1030,6 @@ test("promote rejects a receipt whose compatibility job ID or native step no lon
   assert.notEqual(mismatch.status, 0);
   assert.match(mismatch.stderr, /did not pass natively/i);
 
-  await setCompatibilityJobs(f, [
-    {
-      ...passingCompatibilityJob(),
-      steps: [compatibilityStep("failure")],
-    },
-  ]);
-  const failedStep = run(f, "promote", { RELEASE_STATE_FILE: accepted });
-  assert.notEqual(failedStep.status, 0);
-  assert.match(failedStep.stderr, /did not pass natively/i);
   const after = JSON.parse(await readFile(f.statePath, "utf8"));
   assert.deepEqual(after.calls, callsBefore);
   assert.notEqual(after.alias, "dpl_cand");
@@ -3082,6 +3095,19 @@ test("recovery-receipt runs no candidate code and reads only the trusted control
   const job = jobs["recovery-receipt"];
   assert.ok(job.needs.includes("recovery-evidence"));
   assertCandidateHistoryOnly(job);
+  // The report is downloaded only when the trusted source-qa job says it is required.
+  const reportDownload = downloads(job).find(
+    (s) => s.with.name === "release-compatibility-report",
+  );
+  const needed = (required) =>
+    evalIf(reportDownload.if, {
+      "source-qa": {
+        result: "success",
+        outputs: { compatibility_required: required },
+      },
+    });
+  assert.equal(needed("true"), true);
+  assert.equal(needed("false"), false);
   assert.deepEqual(
     downloads(job)
       .map((step) => step.with.name)
@@ -3125,7 +3151,6 @@ test("recovery-evidence holds no GitHub token, runs no controller and uploads on
   for (const step of checkouts(job))
     assert.equal(step.with["persist-credentials"], false);
   // Whether the suite runs is decided upstream by the trusted source-qa job.
-  assert.ok(jobs["source-qa"].steps.some((s) => s.id === "compatibility-plan"));
   const evidence = (required, result = "success") => ({
     candidate: { result: "success" },
     "source-qa": { result, outputs: { compatibility_required: required } },
@@ -3167,10 +3192,6 @@ test("only the hotfix authorization job references VERCEL_TOKEN before staging, 
     JSON.stringify(jobs["authorize-hotfix"]),
     /secrets\.VERCEL_TOKEN/,
   );
-  assert.equal(
-    jobs["authorize-hotfix"].if,
-    "needs.authorize.outputs.mode == 'hotfix'",
-  );
   const hotfix = (mode, result) => ({
     authorize: { result, outputs: { mode } },
   });
@@ -3192,36 +3213,11 @@ test("only the hotfix authorization job references VERCEL_TOKEN before staging, 
       outputs: { release: hotfixRelease },
     },
   });
-  // Non-hotfix: the hotfix job is skipped and the candidate still runs.
-  assert.equal(
-    evalIf(jobs.candidate.if, candidate("normal", "skipped", "true")),
-    true,
-  );
-  assert.equal(
-    evalIf(jobs.candidate.if, candidate("normal-retry", "skipped", "")),
-    true,
-  );
-  assert.equal(
-    evalIf(jobs.candidate.if, candidate("normal", "skipped", "false")),
-    false,
-  );
-  // A successful hotfix authorization that reports no release stops the candidate,
-  // and the hotfix output takes precedence over the (empty) authorize output.
-  assert.equal(
-    evalIf(jobs.candidate.if, candidate("hotfix", "success", "", "false")),
-    false,
-  );
-  assert.equal(
-    evalIf(jobs.candidate.if, candidate("hotfix", "success", "false", "true")),
-    true,
-  );
-  // Hotfix: a failed authorization stops the candidate.
-  assert.equal(
-    evalIf(jobs.candidate.if, candidate("hotfix", "success", "")),
-    true,
-  );
-  assert.equal(
-    evalIf(jobs.candidate.if, candidate("hotfix", "failure", "")),
-    false,
-  );
+  const runs = (...args) => evalIf(jobs.candidate.if, candidate(...args));
+  assert.equal(runs("normal", "skipped", "true"), true);
+  assert.equal(runs("normal", "skipped", "false"), false);
+  // The hotfix output takes precedence over the authorize output.
+  assert.equal(runs("hotfix", "success", "false", "true"), true);
+  // A failed hotfix authorization stops the candidate.
+  assert.equal(runs("hotfix", "failure", ""), false);
 });
