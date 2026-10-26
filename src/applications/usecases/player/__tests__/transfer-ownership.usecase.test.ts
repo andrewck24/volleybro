@@ -8,13 +8,21 @@ import type { ITransferOwnershipUseCase } from "@/applications/usecases/player/t
 import { TransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
 import {
   AuthorizationError,
+  CommonReason,
   ConflictError,
   NotFoundError,
   PlayerReason,
   UnexpectedError,
 } from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 describe("TransferOwnershipUseCase", () => {
   let useCase: ITransferOwnershipUseCase;
@@ -51,13 +59,26 @@ describe("TransferOwnershipUseCase", () => {
         currentOwner,
       );
       mockPlayerRepository.findById.mockResolvedValue(newOwner);
-      mockPlayerRepository.update
-        .mockResolvedValueOnce({ ...newOwner, role: PlayerRole.OWNER })
-        .mockResolvedValueOnce({ ...currentOwner, role: PlayerRole.ADMIN });
+      mockPlayerRepository.updateRoleIf.mockResolvedValue({
+        ...currentOwner,
+        role: PlayerRole.ADMIN,
+      });
+      mockPlayerRepository.update.mockResolvedValue({
+        ...newOwner,
+        role: PlayerRole.OWNER,
+      });
 
       const result = await useCase.execute({ teamId, newOwnerId, userId });
 
       expect(result).toMatchObject({ role: PlayerRole.OWNER });
+      expect(mockPlayerRepository.updateRoleIf).toHaveBeenCalledWith(
+        currentOwner.id,
+        PlayerRole.OWNER,
+        PlayerRole.ADMIN,
+      );
+      expect(mockPlayerRepository.update).toHaveBeenCalledWith(newOwnerId, {
+        role: PlayerRole.OWNER,
+      });
     });
 
     it("should reject if current owner not found in team", async () => {
@@ -172,19 +193,99 @@ describe("TransferOwnershipUseCase", () => {
         reason: PlayerReason.TARGET_ALREADY_OWNER,
       });
       // No write at all, so the team keeps the one owner it had.
+      expect(mockPlayerRepository.updateRoleIf).not.toHaveBeenCalled();
       expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
 
-    it("should reject if update fails", async () => {
+    describe("when the second write goes wrong", () => {
+      beforeEach(() => {
+        mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+          currentOwner,
+        );
+        mockPlayerRepository.findById.mockResolvedValue(newOwner);
+        mockPlayerRepository.updateRoleIf.mockResolvedValue({
+          ...currentOwner,
+          role: PlayerRole.ADMIN,
+        });
+      });
+
+      it("should restore the current owner and rethrow the promotion error", async () => {
+        const failure = new ConflictError(
+          CommonReason.DUPLICATE_RESOURCE,
+          "duplicate owner",
+        );
+        mockPlayerRepository.update
+          .mockRejectedValueOnce(failure)
+          .mockResolvedValueOnce({ ...currentOwner, role: PlayerRole.OWNER });
+
+        await expect(
+          useCase.execute({ teamId, newOwnerId, userId }),
+        ).rejects.toBe(failure);
+
+        expect(mockPlayerRepository.update).toHaveBeenLastCalledWith(
+          currentOwner.id,
+          { role: PlayerRole.OWNER },
+        );
+      });
+
+      it("should restore the current owner when the promotion finds no player", async () => {
+        mockPlayerRepository.update
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ ...currentOwner, role: PlayerRole.OWNER });
+
+        await expect(
+          useCase.execute({ teamId, newOwnerId, userId }),
+        ).rejects.toBeInstanceOf(UnexpectedError);
+
+        expect(mockPlayerRepository.update).toHaveBeenLastCalledWith(
+          currentOwner.id,
+          { role: PlayerRole.OWNER },
+        );
+      });
+
+      describe("and the restore fails too", () => {
+        let consoleError: jest.SpiedFunction<typeof console.error>;
+
+        beforeEach(() => {
+          consoleError = jest
+            .spyOn(console, "error")
+            .mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+          consoleError.mockRestore();
+        });
+
+        it("should still surface the promotion error", async () => {
+          const failure = new UnexpectedError(
+            CommonReason.UNHANDLED_ERROR,
+            "promotion failed",
+          );
+          mockPlayerRepository.update
+            .mockRejectedValueOnce(failure)
+            .mockRejectedValueOnce(new Error("restore failed"));
+
+          await expect(
+            useCase.execute({ teamId, newOwnerId, userId }),
+          ).rejects.toBe(failure);
+        });
+      });
+    });
+
+    it("should stop with a conflict when another transfer already demoted the owner", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
         currentOwner,
       );
       mockPlayerRepository.findById.mockResolvedValue(newOwner);
-      mockPlayerRepository.update.mockResolvedValue(null);
+      mockPlayerRepository.updateRoleIf.mockResolvedValue(null);
 
-      await expect(
-        useCase.execute({ teamId, newOwnerId, userId }),
-      ).rejects.toBeInstanceOf(UnexpectedError);
+      const attempt = useCase.execute({ teamId, newOwnerId, userId });
+
+      await expect(attempt).rejects.toBeInstanceOf(ConflictError);
+      await expect(attempt).rejects.toMatchObject({
+        reason: PlayerReason.NOT_TEAM_OWNER,
+      });
+      expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
   });
 });

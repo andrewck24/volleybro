@@ -73,8 +73,8 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // Both writes below would land on this one document, which would end as
-    // ADMIN and leave the team without an owner.
+    // Demoting and promoting the same document would leave the team without an
+    // owner.
     if (newOwner.id === currentOwner.id) {
       throw new ConflictError(
         PlayerReason.TARGET_ALREADY_OWNER,
@@ -90,23 +90,46 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // 5. Transfer: update new owner to OWNER, demote current owner to ADMIN
-    const updatedNewOwner = await this.playerRepository.update(newOwnerId, {
-      role: PlayerRole.OWNER,
-    });
-
-    if (!updatedNewOwner) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to update new owner",
+    // 5. Demote first, only while the owner we read still holds OWNER. A
+    // concurrent transfer that got there first leaves nothing to demote, so
+    // this one stops before it can create a second owner.
+    const demoted = await this.playerRepository.updateRoleIf(
+      currentOwner.id,
+      PlayerRole.OWNER,
+      PlayerRole.ADMIN,
+    );
+    if (!demoted) {
+      throw new ConflictError(
+        PlayerReason.NOT_TEAM_OWNER,
+        "Ownership was transferred by someone else; reload and retry",
       );
     }
 
-    // 6. Demote current owner to ADMIN
-    await this.playerRepository.update(currentOwner.id, {
-      role: PlayerRole.ADMIN,
-    });
-
-    return updatedNewOwner;
+    // 6. Promote. If that fails the team has no owner, so put the old one
+    // back; the unique owner index rejects a second OWNER should one appear.
+    try {
+      const updatedNewOwner = await this.playerRepository.update(newOwnerId, {
+        role: PlayerRole.OWNER,
+      });
+      if (!updatedNewOwner) {
+        throw new UnexpectedError(
+          CommonReason.UNHANDLED_ERROR,
+          "Failed to update new owner",
+        );
+      }
+      return updatedNewOwner;
+    } catch (error) {
+      try {
+        await this.playerRepository.update(currentOwner.id, {
+          role: PlayerRole.OWNER,
+        });
+      } catch (restoreError) {
+        console.error(
+          `Failed to restore owner ${currentOwner.id} of team ${teamId}`,
+          restoreError,
+        );
+      }
+      throw error;
+    }
   }
 }

@@ -4,6 +4,7 @@ import {
   NewPlayer,
   Player,
   PlayerFields,
+  PlayerRole,
   PlayerStatus,
 } from "@/entities/player";
 import {
@@ -83,6 +84,23 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
         );
       }
       return fromDocument(updated);
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
+  async updateRoleIf(
+    id: string,
+    from: PlayerRole,
+    to: PlayerRole,
+  ): Promise<Player | null> {
+    try {
+      const updated = await PlayerModel.findOneAndUpdate(
+        { _id: id, role: from },
+        { $set: { role: to } },
+        { returnDocument: "after" },
+      ).exec();
+      return updated ? fromDocument(updated) : null;
     } catch (error) {
       throw translateRepositoryError(error);
     }
