@@ -858,10 +858,7 @@ async function verifyCompatibilityReport() {
       fail(`Compatibility report is missing a passing assertion: ${title}`);
   }
 
-  await appendFile(
-    required("GITHUB_OUTPUT"),
-    `result=success\nbaseline_sha=${baselineSha}\nsource_sha=${process.env.RELEASE_CANDIDATE_SHA}\nsource_tree=${process.env.RELEASE_CANDIDATE_TREE}\n`,
-  );
+  await appendFile(required("GITHUB_OUTPUT"), "result=success\n");
 }
 
 async function recoveryReceiptFacts(state) {
@@ -1558,7 +1555,7 @@ async function stage() {
   const fs = await import("node:fs/promises");
   await fs.appendFile(
     outputPath,
-    `candidate_id=${output.candidateId}\ncandidate_url=${output.candidateUrl}\nbaseline=${baseline.deploymentId}\nsha=${sha}\ncontroller_sha=${controllerSha}\n`,
+    `candidate_id=${output.candidateId}\nbaseline=${baseline.deploymentId}\nsha=${sha}\n`,
   );
   await fs.writeFile(
     required("RELEASE_STATE_FILE"),
@@ -1780,19 +1777,6 @@ async function verifyReusableSourceQA(state, receipt, expectedName) {
     fail("Reusable source QA native job receipt changed");
 }
 
-async function inspectSourceQA() {
-  const state = await loadState();
-  validateConfiguredPlatform(state);
-  const sourceQAPlan = await reusableSourceQA(state);
-  if (!sourceQAPlan.unit || !sourceQAPlan.integration)
-    fail(
-      "Missing trusted CI evidence for this source tree; complete CI before retrying release",
-    );
-  state.sourceQA = null;
-  state.sourceQAPlan = sourceQAPlan;
-  await writeState(required("RELEASE_STATE_FILE"), state);
-}
-
 function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
   const receipt = state.sourceQA;
   if (
@@ -1814,21 +1798,16 @@ function assertSourceQAReceipt(state, expectedRunId = state.releaseRunId) {
     })
   )
     fail("No exact-source QA receipt is bound to this release run");
-  if (state.sourceQAGap || receipt.preview)
-    fail("Current release state cannot contain release-only Preview evidence");
 }
 
 async function recordSourceQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
-  const scopes = {};
-  for (const [scope, reusedName] of SOURCE_QA_SCOPES) {
-    const reused = state.sourceQAPlan?.[scope];
-    if (!reused)
-      fail("Missing trusted CI evidence; release cannot run functional tests");
-    await verifyReusableSourceQA(state, reused, reusedName);
-    scopes[scope] = reused;
-  }
+  const scopes = await reusableSourceQA(state);
+  if (!scopes.unit || !scopes.integration)
+    fail(
+      "Missing trusted CI evidence for this source tree; complete CI before retrying release",
+    );
   state.sourceQA = {
     sourceSha: state.sha,
     boundRunId: state.releaseRunId,
@@ -1836,7 +1815,6 @@ async function recordSourceQA() {
     scopes,
   };
   assertSourceQAReceipt(state);
-  delete state.sourceQAPlan;
   await writeState(required("RELEASE_STATE_FILE"), state);
 }
 
@@ -1976,7 +1954,6 @@ async function planRecoveryCompatibility() {
     baseline_sha: state.baseline.sha,
     source_sha: state.sha,
     source_tree: state.sourceQA?.scopes?.integration?.testedTree || "",
-    unclassified_paths: plan.unclassifiedPaths.join(","),
   });
 }
 
@@ -2775,7 +2752,6 @@ const actions = {
   "authorize-hotfix": authorizeHotfix,
   "validate-version-pr": validateOpenVersionPr,
   stage,
-  "inspect-source-qa": inspectSourceQA,
   "record-source-qa": recordSourceQA,
   "plan-recovery-compatibility": planRecoveryCompatibility,
   "verify-compatibility-report": verifyCompatibilityReport,

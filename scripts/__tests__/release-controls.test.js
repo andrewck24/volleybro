@@ -686,9 +686,7 @@ async function prepareSourceRelease(f, { env = {}, staged = false } = {}) {
       },
     });
   }
-  let result = run(f, "inspect-source-qa", env);
-  assert.equal(result.status, 0, result.stderr);
-  result = run(f, "record-source-qa", env);
+  const result = run(f, "record-source-qa", env);
   assert.equal(result.status, 0, result.stderr);
   return { sourceSha, env };
 }
@@ -1268,9 +1266,7 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
       ],
     },
   });
-  let result = run(f, "inspect-source-qa");
-  assert.equal(result.status, 0, result.stderr);
-  result = run(f, "record-source-qa");
+  let result = run(f, "record-source-qa");
   assert.equal(result.status, 0, result.stderr);
   const receipt = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
   assert.equal(receipt.sourceQA.scopes.unit.kind, "ci-reuse");
@@ -1295,7 +1291,7 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
         })),
       },
     });
-    const denied = run(f, "inspect-source-qa");
+    const denied = run(f, "record-source-qa");
     assert.notEqual(denied.status, 0);
     assert.match(denied.stderr, /trusted CI evidence/);
   }
@@ -1314,9 +1310,26 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
     workflowBlobs: { ...untrusted.workflowBlobs, [f.head]: "b".repeat(40) },
   });
   await writeFile(f.env.GITHUB_OUTPUT, "");
-  result = run(f, "inspect-source-qa");
+  result = run(f, "record-source-qa");
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /trusted CI evidence/);
+});
+
+test("source QA fails when unit or integration CI evidence is missing", async (t) => {
+  const f = await fixture(t);
+  assert.equal(run(f, "stage").status, 0);
+  const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  for (const missing of ["Test", "Integration"]) {
+    await updateApi(f, {
+      jobs: {
+        ...api.jobs,
+        77: api.jobs[77].filter((job) => job.name !== missing),
+      },
+    });
+    const denied = run(f, "record-source-qa");
+    assert.notEqual(denied.status, 0, missing);
+    assert.match(denied.stderr, /trusted CI evidence/);
+  }
 });
 
 test("owner CI correction proves an unchanged old application tree with the trusted new workflow", async (t) => {
@@ -1344,10 +1357,8 @@ test("owner CI correction proves an unchanged old application tree with the trus
     jobs: { ...api.jobs, 77: jobs },
     workflowBlobs: { ...api.workflowBlobs, [f.merge]: "b".repeat(40) },
   });
-  let result = run(f, "inspect-source-qa");
-  assert.equal(result.status, 0, result.stderr);
-  const plan = await readFile(f.env.RELEASE_STATE_FILE, "utf8");
-  result = run(f, "record-source-qa");
+  const staged = await readFile(f.env.RELEASE_STATE_FILE, "utf8");
+  let result = run(f, "record-source-qa");
   assert.equal(result.status, 0, result.stderr);
   const state = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
   assert.equal(state.sha, f.merge);
@@ -1357,11 +1368,14 @@ test("owner CI correction proves an unchanged old application tree with the trus
     { ...ciRun, head_branch: "foreign" },
     { ...ciRun, triggering_actor: { login: "outsider" } },
   ]) {
-    await updateApi(f, { runs: { ...api.runs, 77: invalid } });
-    await writeFile(f.env.RELEASE_STATE_FILE, plan);
+    await updateApi(f, {
+      ciRuns: [invalid],
+      runs: { ...api.runs, 77: invalid },
+    });
+    await writeFile(f.env.RELEASE_STATE_FILE, staged);
     result = run(f, "record-source-qa");
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /owner-dispatched/);
+    assert.match(result.stderr, /trusted CI evidence/);
   }
 });
 
