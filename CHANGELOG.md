@@ -1,5 +1,29 @@
 # VolleyBro CHANGELOG
 
+## [0.18.5](https://github.com/andrewck24/volleybro/compare/v0.18.4...v0.18.5) 2026-10-26
+
+### Fixed
+
+#### Team
+
+- Fix a failed team creation leaving behind a team with no owner
+- Fix an ownership transfer that fails partway or runs twice at once leaving a team with two owners
+
+### Changed
+
+#### Infrastructure
+
+- A decision record, including a new `decision` body or `supersededBy`, takes the delivery mode its size calls for; the developer still states the decision explicitly and the pull request names what it supersedes.
+- Security risks for auth, session, production-gate or secrets work are settled before implementation and the diff gets its security check at the Pre-PR review; test-audit rules apply once, on the Standards axis.
+- A bug fixed in passing stays within that bug, and its pull request is its Fast-path confirmation.
+- Every pull request to `main`, including a single-commit Fast-path change, merges with a merge commit; squash merging is no longer used, so merged branches stay ancestors of `main` and commits keep their trailers.
+- The production release now writes its recovery receipt in a separate job from the candidate's compatibility tests, so candidate code never runs next to the trusted controller; the receipt job is named `Record release recovery receipt`.
+- The Vercel token reaches only the hotfix authorization job, not the authorization of normal and retry releases.
+
+#### Record
+
+- Summary drawer rows no longer swipe; tap a row to show its actions
+
 ## [0.18.4](https://github.com/andrewck24/volleybro/compare/v0.18.2...v0.18.4) 2026-10-26
 
 ### Fixed
