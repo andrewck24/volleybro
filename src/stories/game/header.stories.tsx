@@ -1,5 +1,5 @@
 import { GameHeader } from "@/components/game/header";
-import { MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import {
   PendingWritesContext,
   usePendingWrites,
@@ -12,10 +12,6 @@ import { makeStore } from "@/lib/redux/store";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
-import {
-  createRecordedRally,
-  toEntryView,
-} from "@test/support/fixtures/entries";
 import { fn } from "storybook/test";
 
 // SyncIndicator reads enqueue/flush/retry from context now that
@@ -74,14 +70,16 @@ const game: GameView = {
       lineups: { home: lineup },
       options: { serve: "home" },
       entries: [
-        toEntryView(
-          createRecordedRally({
-            id: "e1",
-            seq: 0,
-            home: { score: 6, type: MoveType.ATTACK, num: 4 },
-            away: { score: 3, type: MoveType.DEFENSE, num: 7 },
-          }),
-        ),
+        {
+          type: EntryType.RALLY,
+          id: "e1",
+          seq: 0,
+          win: true,
+          recordedBy: "p1",
+          recordedAt: "2026-01-01T10:00:00.000Z",
+          home: { score: 6, type: MoveType.ATTACK, num: 4 },
+          away: { score: 3, type: MoveType.DEFENSE, num: 7 },
+        },
       ],
     },
   ],

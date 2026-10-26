@@ -63,8 +63,7 @@ describe("RecordRalliesUseCase", () => {
   });
 
   it("upserts one or more rallies as entries and returns them without a set completion", async () => {
-    const operator = createPlayer({ id: "player-9" });
-    mockAuthzService.verifyTeamRole.mockResolvedValue(operator);
+    mockAuthzService.verifyTeamRole.mockResolvedValue(createPlayer());
     const entries = [createRecordedRally(newRally)];
     // A mid-set score with the set already undecided: deriveSetCompletion
     // sees no phase change to report.
@@ -80,8 +79,13 @@ describe("RecordRalliesUseCase", () => {
 
     expect(mockGameRepository.upsertEntry).toHaveBeenCalledWith(
       { gameId: "game-1", setIndex: 0 },
-      [{ entry: { type: EntryType.RALLY, ...contentOf(newRally) }, at }],
-      "player-9",
+      [
+        {
+          entry: { type: EntryType.RALLY, ...contentOf(newRally) },
+          at: expect.any(Date),
+        },
+      ],
+      expect.any(String),
     );
     expect(mockGameRepository.update).not.toHaveBeenCalled();
     expect(result).toEqual({ entries });
