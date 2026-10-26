@@ -53,7 +53,7 @@ A cycle holds 20 points (cycles 2–4 averaged about 23; the figure is lowered f
 
 ## Per-Cycle audit
 
-Each Cycle, run a whole-repository audit (`ponytail-audit` when available) and list the deferred shortcuts (`ponytail-debt` when available). Open an issue for each finding that has no existing owner, and merge a finding into its owner when one exists. This routine is a recurring tracker issue, not a lifecycle step in `WORKFLOW.md`; Linear's recurrence setting is the schedule.
+Each Cycle, run a whole-repository audit for bugs, security, load, untested risk and removable code (`ponytail-audit` when available), and list the deferred `shortcut:` comments (`ponytail-debt` when available). Open an issue for each finding that has no existing owner, and merge a finding into its owner when one exists. This routine is a recurring tracker issue, not a lifecycle step in `WORKFLOW.md`; Linear's recurrence setting is the schedule.
 
 ## Grill decisions
 
