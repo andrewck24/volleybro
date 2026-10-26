@@ -124,10 +124,8 @@ jobs:
       actions: read
     outputs:
       candidate_id: ${{ steps.stage.outputs.candidate_id }}
-      candidate_url: ${{ steps.stage.outputs.candidate_url }}
       baseline: ${{ steps.stage.outputs.baseline }}
       sha: ${{ steps.stage.outputs.sha }}
-      controller_sha: ${{ needs.authorize.outputs.controller_sha }}
       mode: ${{ needs.authorize.outputs.mode }}
     steps:
       - uses: actions/download-artifact@v8
@@ -169,8 +167,8 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  source-inspection:
-    name: Inspect source QA
+  source-qa:
+    name: Record source QA
     needs: candidate
     runs-on: ubuntu-latest
     permissions:
@@ -184,39 +182,6 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: production-release-state
-          path: ${{ runner.temp }}
-      - name: Reuse trusted source evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
-        run: node "$RUNNER_TEMP/release-controls.js" inspect-source-qa
-      - uses: actions/upload-artifact@v7
-        with:
-          name: production-release-source-plan
-          path: ${{ runner.temp }}/release-state.json
-          if-no-files-found: error
-          retention-days: 1
-
-  source-receipt:
-    name: Record source QA
-    needs: [candidate, source-inspection]
-    if: >-
-      always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.source-inspection.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: trusted-release-controller
-          path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v8
-        with:
-          name: production-release-source-plan
           path: ${{ runner.temp }}
       - name: Bind passing source evidence to this release
         env:
@@ -234,10 +199,10 @@ jobs:
 
   recovery-evidence:
     name: Verify release recovery evidence
-    needs: [candidate, source-receipt]
+    needs: [candidate, source-qa]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.source-receipt.result == 'success'
+      needs.source-qa.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     cache-mode: none
@@ -274,10 +239,6 @@ jobs:
         with:
           install: false
           node-version-file: false
-      - uses: actions/setup-node@v7
-        if: steps.compatibility-plan.outputs.required == 'true'
-        with:
-          node-version-file: .nvmrc
       - name: Install dependencies for exact-baseline compatibility proof
         if: steps.compatibility-plan.outputs.required == 'true'
         run: pnpm install --frozen-lockfile
@@ -342,10 +303,6 @@ jobs:
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
-      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
-        with:
-          install: false
-          node-version-file: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -620,10 +577,6 @@ jobs:
         with:
           name: production-release-accepted-state
           path: ${{ runner.temp }}
-      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
-        with:
-          install: false
-          node-version-file: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -763,8 +716,7 @@ jobs:
       - finalize-release
       - merge-back
       - recover
-      - source-inspection
-      - source-receipt
+      - source-qa
     if: always() && contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:
