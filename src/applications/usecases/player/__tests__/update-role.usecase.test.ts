@@ -48,7 +48,7 @@ describe("UpdateRoleUseCase", () => {
   const expectRefusal = async (attempt: Promise<unknown>, reason: string) => {
     await expect(attempt).rejects.toBeInstanceOf(AuthorizationError);
     await expect(attempt).rejects.toMatchObject({ reason });
-    expect(mockPlayerRepository.update).not.toHaveBeenCalled();
+    expect(mockPlayerRepository.updateRoleIf).not.toHaveBeenCalled();
   };
 
   const update = () =>
@@ -61,7 +61,7 @@ describe("UpdateRoleUseCase", () => {
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
     useCase = new UpdateRoleUseCase(mockPlayerRepository);
-    mockPlayerRepository.update.mockResolvedValue(
+    mockPlayerRepository.updateRoleIf.mockResolvedValue(
       createPlayer({
         id: "target",
         userId: "user-target",
@@ -115,7 +115,7 @@ describe("UpdateRoleUseCase", () => {
       await expect(attempt).rejects.toMatchObject({
         reason: PlayerReason.TARGET_NOT_LINKED,
       });
-      expect(mockPlayerRepository.update).not.toHaveBeenCalled();
+      expect(mockPlayerRepository.updateRoleIf).not.toHaveBeenCalled();
     });
   });
 
@@ -126,6 +126,36 @@ describe("UpdateRoleUseCase", () => {
     mockPlayerRepository.findById.mockResolvedValue(targets.admin);
 
     expect(await update()).toMatchObject({ role: PlayerRole.ADMIN });
+  });
+
+  it("preserves a role changed after it was read", async () => {
+    let stored = targets.admin;
+    mockPlayerRepository.findById.mockImplementation(async () => {
+      const read = stored;
+      stored = { ...stored, role: PlayerRole.OWNER };
+      return read;
+    });
+    mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+      actor(PlayerRole.ADMIN),
+    );
+    mockPlayerRepository.updateRoleIf.mockImplementation(
+      async (_id, expected, role) => {
+        if (stored.role !== expected) return null;
+        stored = { ...stored, role };
+        return stored;
+      },
+    );
+
+    const attempt = useCase.execute({
+      playerId: "target",
+      newRole: PlayerRole.MEMBER,
+      userId: caller,
+    });
+    await expect(attempt).rejects.toBeInstanceOf(ConflictError);
+    await expect(attempt).rejects.toMatchObject({
+      reason: PlayerReason.TARGET_ROLE_CHANGED,
+    });
+    expect(stored.role).toBe(PlayerRole.OWNER);
   });
 
   it("refuses a caller who is a member without a role to grant", async () => {

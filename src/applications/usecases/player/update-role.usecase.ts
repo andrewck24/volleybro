@@ -1,12 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { authorizeManagePlayer } from "@/applications/usecases/player/membership";
-import {
-  ConflictError,
-  NotFoundError,
-  UnexpectedError,
-  CommonReason,
-  PlayerReason,
-} from "@/entities/errors";
+import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
 import type { Player, PlayerRole } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
@@ -61,14 +55,16 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
       );
     }
 
-    const updatedPlayer = await this.playerRepository.update(playerId, {
-      role: newRole,
-    });
+    const updatedPlayer = await this.playerRepository.updateRoleIf(
+      playerId,
+      player.role,
+      newRole,
+    );
 
     if (!updatedPlayer) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to update player role",
+      throw new ConflictError(
+        PlayerReason.TARGET_ROLE_CHANGED,
+        "Player role changed; please try again",
       );
     }
 
