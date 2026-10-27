@@ -1,3 +1,4 @@
+import { createPlayer } from "@test/support/fixtures/entities";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 
@@ -9,7 +10,7 @@ export function createMockAuthenticationService(): jest.Mocked<IAuthenticationSe
 
 export function createMockAuthorizationService(): jest.Mocked<IAuthorizationService> {
   return {
-    verifyTeamRole: jest.fn(),
+    verifyTeamRole: jest.fn().mockResolvedValue(createPlayer()),
     verifyIsTeamAdmin: jest.fn(),
   };
 }

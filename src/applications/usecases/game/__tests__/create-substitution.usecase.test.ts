@@ -18,7 +18,6 @@ beforeEach(() => {
   mockAuthService = createMockAuthenticationService();
   mockAuthzService = createMockAuthorizationService();
   mockAuthService.verifySession.mockResolvedValue(createUser());
-  mockAuthzService.verifyTeamRole.mockResolvedValue(undefined);
 });
 
 describe("CreateSubstitutionUseCase", () => {
@@ -33,7 +32,7 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
-        data: {} as unknown as Substitution & EntryIdentity,
+        data: {} as unknown as Substitution & EntryIdentity & { at: Date },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -52,7 +51,7 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
-        data: {} as unknown as Substitution & EntryIdentity,
+        data: {} as unknown as Substitution & EntryIdentity & { at: Date },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -73,6 +72,7 @@ describe("CreateSubstitutionUseCase", () => {
           players: { in: "p-in", out: "p-out" },
           id: "entry-1",
           seq: 1,
+          at: new Date("2026-03-01T10:00:00.000Z"),
         },
       }),
     ).rejects.toThrow(

@@ -1,12 +1,10 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { NotFoundError } from "@/entities/errors";
+import { MoveType, Side, type Game, type Set } from "@/entities/game";
 import {
-  EntryType,
-  MoveType,
-  Side,
-  type Game,
-  type Set,
-} from "@/entities/game";
+  createRecordedRally,
+  createRecordedSubstitution,
+} from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { oid, seedGame } from "../support/seed";
@@ -32,7 +30,7 @@ describe("game reads and writes", () => {
 
   it("stores the sets an update writes with every player id readable as a string", async () => {
     const { gameId, playerIds } = await seedGame();
-    const [scorer, incoming, outgoing] = playerIds;
+    const [scorer, incoming, outgoing] = playerIds as [string, string, string];
     const set = {
       win: null,
       lineups: {
@@ -51,11 +49,8 @@ describe("game reads and writes", () => {
       },
       options: { serve: Side.HOME, time: { start: "10:00", end: "" } },
       entries: [
-        {
-          type: EntryType.RALLY,
+        createRecordedRally({
           id: "rally-1",
-          seq: 0,
-          win: true,
           home: {
             score: 1,
             type: MoveType.ATTACK,
@@ -63,14 +58,12 @@ describe("game reads and writes", () => {
             player: { id: scorer, zone: 4 },
           },
           away: { score: 0, type: MoveType.ATTACK, num: 1 },
-        },
-        {
-          type: EntryType.SUBSTITUTION,
+        }),
+        createRecordedSubstitution({
           id: "sub-1",
-          seq: 1,
           team: Side.HOME,
           players: { in: incoming, out: outgoing },
-        },
+        }),
       ],
     } as unknown as Set;
 

@@ -23,6 +23,7 @@ const gameBody = () => ({
 const rally = () => ({
   id: "r1",
   seq: 0,
+  at: "2026-03-01T10:00:00.000Z",
   win: true,
   home: { score: 1, type: MoveType.ATTACK, num: 0 },
   away: { score: 0, type: MoveType.ATTACK, num: 0 },
@@ -116,6 +117,11 @@ describe("RecordRalliesSchema", () => {
     expect(() => RecordRalliesSchema.parse([over])).toThrow();
   });
 
+  it("rejects a time that is not an ISO 8601 instant", () => {
+    const r = { ...rally(), at: "yesterday" };
+    expect(() => RecordRalliesSchema.parse([r])).toThrow();
+  });
+
   it("rejects a body that is not an array", () => {
     expect(() => RecordRalliesSchema.parse({})).toThrow();
   });
@@ -144,6 +150,7 @@ describe("CreateSubstitutionSchema", () => {
     const body = {
       id: "s1",
       seq: 0,
+      at: "2026-03-01T10:00:00.000Z",
       team: Side.HOME,
       players: { in: "", out: OID },
     };

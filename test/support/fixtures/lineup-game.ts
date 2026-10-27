@@ -1,7 +1,8 @@
-import { EntryType, MoveType } from "@/entities/game";
+import { MoveType } from "@/entities/game";
 import { Position } from "@/entities/player";
 import type { LineupPlayer } from "@/entities/team";
 import { createGame } from "./entities";
+import { createRecordedRally } from "./entries";
 
 type Slot = Partial<LineupPlayer>;
 
@@ -26,14 +27,14 @@ const defaultPositions = [
 ];
 
 /** A rally the home side won (`true`) or lost, with scores that keep the set in progress. */
-export const homeRally = (win: boolean, seq: number) => ({
-  id: `e${seq}`,
-  seq,
-  type: EntryType.RALLY as const,
-  win,
-  home: { score: 1, type: MoveType.ATTACK, num: 1 },
-  away: { score: 0, type: MoveType.RECEPTION, num: 1 },
-});
+export const homeRally = (win: boolean, seq: number) =>
+  createRecordedRally({
+    id: `e${seq}`,
+    seq,
+    win,
+    home: { score: 1, type: MoveType.ATTACK, num: 1 },
+    away: { score: 0, type: MoveType.RECEPTION, num: 1 },
+  });
 
 /**
  * A one-set game whose home roster is p1-p6 (numbers 1-6), libero l1 (10) and

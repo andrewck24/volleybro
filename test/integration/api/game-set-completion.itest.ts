@@ -18,6 +18,7 @@ const decidingRally = (
 ) => ({
   id: `entry-${homeScore}-${awayScore}`,
   seq,
+  at: "2026-03-01T10:00:00.000Z",
   win: homeWinsPoint,
   home: { score: homeScore, type: MoveType.ATTACK, num: 0 },
   away: { score: awayScore, type: MoveType.ATTACK, num: 0 },

@@ -155,22 +155,35 @@ const EntryIdentityResponseSchema = z.object({
   seq: z.number(),
 });
 
+// Optional because an optimistic entry has no recorder until the server
+// stamps one; every stored entry carries recordedBy and recordedAt.
+const EntryRecordResponseSchema = z.object({
+  recordedBy: z.string().optional(),
+  recordedAt: z.string().optional(),
+  editedBy: z.string().optional(),
+  editedAt: z.string().optional(),
+});
+
 export const EntryResponseSchema = z.discriminatedUnion("type", [
   z
     .object({ type: z.literal(EntryType.RALLY) })
     .merge(EntryIdentityResponseSchema)
+    .merge(EntryRecordResponseSchema)
     .merge(RallyResponseSchema),
   z
     .object({ type: z.literal(EntryType.SUBSTITUTION) })
     .merge(EntryIdentityResponseSchema)
+    .merge(EntryRecordResponseSchema)
     .merge(SubstitutionResponseSchema),
   z
     .object({ type: z.literal(EntryType.TIMEOUT) })
     .merge(EntryIdentityResponseSchema)
+    .merge(EntryRecordResponseSchema)
     .merge(TimeoutResponseSchema),
   z
     .object({ type: z.literal(EntryType.CHALLENGE) })
     .merge(EntryIdentityResponseSchema)
+    .merge(EntryRecordResponseSchema)
     .merge(ChallengeResponseSchema),
 ]);
 
@@ -360,8 +373,11 @@ export type WriteError = {
   status: number;
 };
 
+// `at` is the action time the client decided once; every resend carries it.
+export type PendingRally = RallyView & EntryIdentity & { at: string };
+
 export type PendingEntry = {
-  entry: RallyView & EntryIdentity;
+  entry: PendingRally;
   gameId: string;
   setIndex: number;
   attempts: number;
@@ -395,7 +411,9 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
   version: z.number(),
   items: z.array(
     z.object({
-      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema),
+      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema).extend({
+        at: z.string(),
+      }),
       gameId: z.string(),
       setIndex: z.number(),
       lastError: z

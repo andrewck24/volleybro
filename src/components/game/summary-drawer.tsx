@@ -4,13 +4,13 @@ import { isLatestEntry } from "@/components/game/entry/last-entry-rule";
 import { PreviewCard, useEntryDraftPreview } from "@/components/game/preview";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
-import { useGame } from "@/hooks/use-data";
+import { useGame, useTeamPlayers } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { hasFailedWrite } from "@/lib/features/game/pending-writes";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export type SummaryDrawerState = "idle" | "expanded";
 
@@ -70,6 +70,7 @@ export const SummaryDrawerCard = ({
   onEntryRollback,
   failedEntryIds,
   onEntryRetry,
+  recorderNames,
   className,
 }: {
   entries: IndexedEntry[];
@@ -87,6 +88,7 @@ export const SummaryDrawerCard = ({
   // projection of the pending-write queue -- not stored here.
   failedEntryIds?: Set<string>;
   onEntryRetry?: () => void;
+  recorderNames?: ReadonlyMap<string, string>;
   className?: string;
 }) => {
   const expanded = state === "expanded";
@@ -220,6 +222,7 @@ export const SummaryDrawerCard = ({
                     onRollbackToHere={() => onEntryRollback?.(index)}
                     failed={failedEntryIds?.has(entry.id) ?? false}
                     onRetry={onEntryRetry}
+                    recorderNames={recorderNames}
                   />
                 </div>
               ))}
@@ -261,6 +264,11 @@ export const SummaryDrawer = ({
   const { game } = useGame(gameId);
   const { setIndex } = useAppSelector((s) => s.game);
   const preview = useEntryDraftPreview(gameId, "general");
+  const { players: teamPlayers } = useTeamPlayers(game?.teamId ?? "");
+  const recorderNames = useMemo(
+    () => teamPlayers && new Map(teamPlayers.map((p) => [p.id, p.name])),
+    [teamPlayers],
+  );
   const failedEntryIds = useAppSelector(
     (s) =>
       new Set(
@@ -300,6 +308,7 @@ export const SummaryDrawer = ({
       onEntryClick={handleEntryClick}
       failedEntryIds={failedEntryIds}
       onEntryRetry={onEntryRetry}
+      recorderNames={recorderNames}
       className={className}
     />
   );

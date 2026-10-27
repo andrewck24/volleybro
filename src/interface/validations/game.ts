@@ -143,10 +143,14 @@ const RallyDetailSchema = z
   })
   .strict();
 
+/** When the client performed the action, as `toISOString()` writes it. */
+const actionTime = z.iso.datetime().transform((value) => new Date(value));
+
 const RallySchema = z
   .object({
     id: z.string().min(1),
     seq: z.number().int(),
+    at: actionTime,
     win: z.boolean(),
     home: RallyDetailSchema,
     away: RallyDetailSchema,
@@ -163,6 +167,7 @@ export const CreateSubstitutionSchema = z
   .object({
     id: z.string().min(1),
     seq: z.number().int(),
+    at: actionTime,
     team: z.nativeEnum(Side),
     players: z
       .object({

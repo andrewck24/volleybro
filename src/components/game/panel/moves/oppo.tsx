@@ -33,6 +33,7 @@ export const useSubmitEntryDraft = (
       ...(draft as RallyView),
       id: crypto.randomUUID(),
       seq: entryIndex,
+      at: new Date().toISOString(),
     };
     const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
     mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
@@ -44,7 +45,12 @@ export const useSubmitEntryDraft = (
   };
 
   const update = async () => {
-    const entry = { ...(draft as RallyView), id: draft.id, seq: draft.seq };
+    const entry = {
+      ...(draft as RallyView),
+      id: draft.id,
+      seq: draft.seq,
+      at: new Date().toISOString(),
+    };
     assertRallyAt(game!, setIndex, entryIndex);
     const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
     mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {

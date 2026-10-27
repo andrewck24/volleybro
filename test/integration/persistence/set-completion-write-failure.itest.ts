@@ -51,6 +51,7 @@ describe("a set-result write that fails after the deciding rally is stored", () 
             {
               id: "deciding",
               seq: 0,
+              at: new Date(),
               win: true,
               home: { score: 25, type: MoveType.ATTACK, num: 0 },
               away: { score: 20, type: MoveType.ATTACK, num: 0 },

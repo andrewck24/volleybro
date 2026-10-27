@@ -227,8 +227,21 @@ export type TimeoutEntry = { type: EntryType.TIMEOUT } & EntryIdentity &
 export type ChallengeEntry = { type: EntryType.CHALLENGE } & EntryIdentity &
   Challenge;
 
-export type Entry =
+export type EntryContent =
   RallyEntry | SubstitutionEntry | TimeoutEntry | ChallengeEntry;
+
+/** Server-stamped authorship of an entry; see ADR 0144. */
+export type EntryRecord = {
+  recordedBy: string;
+  recordedAt: Date;
+  editedBy?: string;
+  editedAt?: Date;
+};
+
+export type Entry = EntryContent & EntryRecord;
+
+/** An entry's content and the instant the client performed the action. */
+export type EntryWrite = { entry: EntryContent; at: Date };
 
 export const createRallyEntry = (rally: Rally & EntryIdentity): RallyEntry => ({
   type: EntryType.RALLY,

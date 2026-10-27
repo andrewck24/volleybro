@@ -14,7 +14,7 @@ import {
 // reducers says they always fill those in; nothing observed it until here.
 const submitted = (store: ReturnType<typeof makeStore>) => {
   const { entryDraft } = store.getState().game.general;
-  return { ...entryDraft, id: "e1", seq: 0 };
+  return { ...entryDraft, id: "e1", seq: 0, at: new Date().toISOString() };
 };
 
 const passesSchema = (store: ReturnType<typeof makeStore>) =>

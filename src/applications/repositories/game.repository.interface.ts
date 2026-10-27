@@ -1,4 +1,10 @@
-import type { Entry, Game, GameSummary, Set } from "@/entities/game";
+import type {
+  Entry,
+  EntryWrite,
+  Game,
+  GameSummary,
+  Set,
+} from "@/entities/game";
 
 export interface EntryRef {
   gameId: string;
@@ -14,14 +20,21 @@ export interface IGameRepository {
    */
   update(id: string, data: Partial<Game>): Promise<Game>;
   /**
-   * Writes or overwrites each entry by identity and returns the set's
-   * entries in sequence order, regardless of arrival order. A substitution
-   * also changes who is on court, so the lineup the entry produces is
-   * written with it rather than after it.
+   * Writes each entry by identity and returns the set's entries in sequence
+   * order, regardless of arrival order. Whether an entry exists is decided
+   * before anything is written:
+   * - absent: created, recorded by `operator` at the write's `at`;
+   * - present, `at` equal to its `recordedAt` and `operator` its `recordedBy`:
+   *   a resend of the creation, so nothing is written;
+   * - otherwise an edit: the content is replaced and `editedBy`/`editedAt`
+   *   set; `recordedBy` and `recordedAt` never change.
+   * A substitution also changes who is on court, so the lineup the entry
+   * produces is written with it rather than after it.
    */
   upsertEntry(
     ref: EntryRef,
-    entries: Entry[],
+    writes: EntryWrite[],
+    operator: string,
     lineups?: Partial<Set["lineups"]>,
   ): Promise<Entry[]>;
   /**

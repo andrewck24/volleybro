@@ -18,6 +18,8 @@ const rawEntries: EntryView[] = [
     id: "entry-0",
     seq: 0,
     win: true,
+    recordedBy: "p1",
+    recordedAt: new Date(2026, 0, 1, 14, 5).toISOString(),
     home: {
       score: 1,
       type: MoveType.SERVING,
@@ -31,6 +33,10 @@ const rawEntries: EntryView[] = [
     id: "entry-1",
     seq: 1,
     win: false,
+    recordedBy: "p1",
+    recordedAt: new Date(2026, 0, 1, 14, 6).toISOString(),
+    editedBy: "gone",
+    editedAt: new Date(2026, 0, 1, 14, 9).toISOString(),
     home: {
       score: 1,
       type: MoveType.DEFENSE,
@@ -60,6 +66,7 @@ const meta = {
     entries,
     totalEntries: entries.length,
     players,
+    recorderNames: new Map([["p1", "選手一"]]),
     onToggle: fn(),
     onEntryClick: fn(),
   },

@@ -318,6 +318,10 @@ interface EntryDocument extends Document {
   id: string;
   seq: number;
   type: EntryType;
+  recordedBy: Types.ObjectId;
+  recordedAt: Date;
+  editedBy?: Types.ObjectId;
+  editedAt?: Date;
 }
 
 const entrySchema = new Schema<EntryDocument>(
@@ -325,6 +329,14 @@ const entrySchema = new Schema<EntryDocument>(
     id: { type: String, required: true },
     seq: { type: Number, required: true },
     type: { type: String, required: true, enum: Object.values(EntryType) },
+    recordedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "Player",
+      required: true,
+    },
+    recordedAt: { type: Date, required: true },
+    editedBy: { type: Schema.Types.ObjectId, ref: "Player" },
+    editedAt: { type: Date },
   },
   { discriminatorKey: "type", _id: false },
 );

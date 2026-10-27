@@ -1,4 +1,9 @@
-import { createGame, createUser } from "@test/support/fixtures/entities";
+import {
+  createGame,
+  createPlayer,
+  createUser,
+} from "@test/support/fixtures/entities";
+import { createRecordedRally } from "@test/support/fixtures/entries";
 import {
   createMockAuthenticationService,
   createMockAuthorizationService,
@@ -11,7 +16,6 @@ import {
   MoveType,
   type EntryIdentity,
   type Rally,
-  createRallyEntry,
 } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -19,13 +23,18 @@ let mockGameRepository: ReturnType<typeof createMockGameRepository>;
 let mockAuthService: ReturnType<typeof createMockAuthenticationService>;
 let mockAuthzService: ReturnType<typeof createMockAuthorizationService>;
 
-const newRally: Rally & EntryIdentity = {
+const at = new Date("2026-03-01T10:00:00.000Z");
+
+const newRally: Rally & EntryIdentity & { at: Date } = {
   id: "entry-1",
+  at,
   seq: 1,
   win: true,
   home: { score: 2, type: MoveType.ATTACK, num: 1 },
   away: { score: 0, type: MoveType.RECEPTION, num: 1 },
 };
+
+const contentOf = ({ at: _at, ...content }: typeof newRally) => content;
 
 const useCase = () =>
   new RecordRalliesUseCase(
@@ -39,7 +48,6 @@ beforeEach(() => {
   mockAuthService = createMockAuthenticationService();
   mockAuthzService = createMockAuthorizationService();
   mockAuthService.verifySession.mockResolvedValue(createUser());
-  mockAuthzService.verifyTeamRole.mockResolvedValue(undefined);
 });
 
 describe("RecordRalliesUseCase", () => {
@@ -49,13 +57,15 @@ describe("RecordRalliesUseCase", () => {
     await expect(
       useCase().execute({
         params: { gameId: "game-1", setIndex: 0 },
-        data: [{} as unknown as Rally & EntryIdentity],
+        data: [{} as unknown as Rally & EntryIdentity & { at: Date }],
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("upserts one or more rallies as entries and returns them without a set completion", async () => {
-    const entries = [createRallyEntry(newRally)];
+    const operator = createPlayer({ id: "player-9" });
+    mockAuthzService.verifyTeamRole.mockResolvedValue(operator);
+    const entries = [createRecordedRally(newRally)];
     // A mid-set score with the set already undecided: deriveSetCompletion
     // sees no phase change to report.
     const game = createGame();
@@ -70,7 +80,8 @@ describe("RecordRalliesUseCase", () => {
 
     expect(mockGameRepository.upsertEntry).toHaveBeenCalledWith(
       { gameId: "game-1", setIndex: 0 },
-      [{ type: EntryType.RALLY, ...newRally }],
+      [{ entry: { type: EntryType.RALLY, ...contentOf(newRally) }, at }],
+      "player-9",
     );
     expect(mockGameRepository.update).not.toHaveBeenCalled();
     expect(result).toEqual({ entries });
@@ -95,14 +106,15 @@ describe("RecordRalliesUseCase", () => {
   });
 
   it("reports the set result as confirmed once completeSet succeeds", async () => {
-    const decidingRally: Rally & EntryIdentity = {
+    const decidingRally: Rally & EntryIdentity & { at: Date } = {
       id: "entry-25",
+      at,
       seq: 24,
       win: true,
       home: { score: 25, type: MoveType.ATTACK, num: 1 },
       away: { score: 20, type: MoveType.RECEPTION, num: 1 },
     };
-    const entries = [createRallyEntry(decidingRally)];
+    const entries = [createRecordedRally(decidingRally)];
     const game = createGame();
     game.sets[0]!.win = null;
     mockGameRepository.findById.mockResolvedValue(game);
@@ -119,14 +131,15 @@ describe("RecordRalliesUseCase", () => {
   });
 
   it("still returns the persisted entries when completeSet fails, marked unconfirmed", async () => {
-    const decidingRally: Rally & EntryIdentity = {
+    const decidingRally: Rally & EntryIdentity & { at: Date } = {
       id: "entry-25",
+      at,
       seq: 24,
       win: true,
       home: { score: 25, type: MoveType.ATTACK, num: 1 },
       away: { score: 20, type: MoveType.RECEPTION, num: 1 },
     };
-    const entries = [createRallyEntry(decidingRally)];
+    const entries = [createRecordedRally(decidingRally)];
     const game = createGame();
     game.sets[0]!.win = null;
     mockGameRepository.findById.mockResolvedValue(game);
