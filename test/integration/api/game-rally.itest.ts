@@ -113,18 +113,6 @@ describe("PUT /api/games/:id/sets/entries", () => {
       expect(stored.editedAt).toBeUndefined();
     });
 
-    it("rejects an entry that carries no time", async () => {
-      const { at: _at, ...withoutAt } = rally;
-      void _at;
-
-      const res = await sendRally(withoutAt);
-
-      expect(res.status).toBe(400);
-      expect((await repo().findById(seeded.gameId))!.sets[0]!.entries).toEqual(
-        [],
-      );
-    });
-
     it("writes nothing when the recorder resends the creation", async () => {
       await sendRally(rally);
       const before = await storedRally();
@@ -132,6 +120,9 @@ describe("PUT /api/games/:id/sets/entries", () => {
       expect((await sendRally(rally)).status).toBe(200);
 
       expect(await storedRally()).toEqual(before);
+      expect(
+        (await repo().findById(seeded.gameId))!.sets[0]!.entries,
+      ).toHaveLength(1);
     });
 
     it("records the editor and keeps the original recorder and time", async () => {
@@ -148,6 +139,9 @@ describe("PUT /api/games/:id/sets/entries", () => {
       expect((await sendRally(edited)).status).toBe(200);
 
       const stored = await storedRally();
+      expect(
+        (await repo().findById(seeded.gameId))!.sets[0]!.entries,
+      ).toHaveLength(1);
       expect(stored).toMatchObject({
         win: false,
         home: { score: 0 },

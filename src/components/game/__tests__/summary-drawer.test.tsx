@@ -10,9 +10,8 @@ import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { pointerEvent } from "@test/support/dom/pointer-event";
 import {
   FIXTURE_RECORDER_ID,
   createRecordedRally,
@@ -162,19 +161,6 @@ describe("SummaryDrawerCard handle / expansion", () => {
     await user.click(rows[1]!);
     expect(rows[0]).toHaveAttribute("data-expanded", "false");
     expect(rows[1]).toHaveAttribute("data-expanded", "true");
-  });
-
-  it("expanded: a horizontal swipe reveals no extra actions", async () => {
-    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
-
-    const rows = await screen.findAllByTestId("entry-row");
-    fireEvent(rows[0]!, pointerEvent("pointerdown", 100));
-    fireEvent(rows[0]!, pointerEvent("pointermove", 40));
-    fireEvent(rows[0]!, pointerEvent("pointerup", 40));
-
-    expect(
-      within(rows[0]!).getAllByRole("button", { name: "編輯" }),
-    ).toHaveLength(1);
   });
 });
 

@@ -1,4 +1,4 @@
-import { MoveType } from "@/entities/game";
+import { MoveType, recomputeLineups } from "@/entities/game";
 import { Position } from "@/entities/player";
 import type { LineupPlayer } from "@/entities/team";
 import { createGame } from "./entities";
@@ -89,7 +89,7 @@ export const createLineupGame = ({
         ...firstSet!,
         options: { serve },
         startingLineups: lineups,
-        lineups,
+        lineups: recomputeLineups(lineups, entries).lineups,
         entries,
       },
     ],
