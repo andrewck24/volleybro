@@ -1,6 +1,5 @@
 import { highlight } from "fumadocs-core/highlight";
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { bundledLanguages, type BundledLanguage } from "shiki";
 
@@ -44,12 +43,16 @@ export async function renderHighlightedLinesHtml(
       },
     ],
     components: {
-      pre: (props) =>
-        createElement(
-          CodeBlock,
-          { ...props, title, allowCopy: false, "data-language": language },
-          createElement(Pre, null, props.children),
-        ),
+      pre: (props) => (
+        <CodeBlock
+          {...props}
+          title={title}
+          allowCopy={false}
+          data-language={language}
+        >
+          <Pre>{props.children}</Pre>
+        </CodeBlock>
+      ),
     },
   });
 
