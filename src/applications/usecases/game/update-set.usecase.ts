@@ -1,13 +1,8 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { NotFoundError, ValidationError, GameReason } from "@/entities/errors";
-import {
-  type Game,
-  type Set,
-  recomputeLineups,
-  validateLineupPlayers,
-} from "@/entities/game";
+import { NotFoundError, GameReason } from "@/entities/errors";
+import { type Game, type Set, validateLineupPlayers } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { type Lineup } from "@/entities/team";
 import { TYPES } from "@/infrastructure/di/types";
@@ -58,23 +53,6 @@ export class UpdateSetUseCase implements IUpdateSetUseCase {
     if (data.lineup) {
       validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
     }
-    set.options = data.options;
-    if (data.lineup) {
-      set.startingLineups.home = data.lineup;
-      const { lineups, invalid } = recomputeLineups(
-        set.startingLineups,
-        set.entries,
-      );
-      if (invalid)
-        throw new ValidationError(
-          GameReason.INVALID_SUBSTITUTION,
-          "The starting lineup invalidates a recorded substitution",
-        );
-      set.lineups = lineups;
-    }
-
-    const updatedGame = await this.gameRepository.update(params.gameId, game);
-
-    return updatedGame;
+    return this.gameRepository.updateSet(params, data);
   }
 }

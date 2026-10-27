@@ -12,7 +12,7 @@ import { lineupFor, oid, seedGame, type SeededGame } from "../support/seed";
 
 const operator = oid();
 const recordedAt = new Date("2026-03-01T10:00:00.000Z");
-const options = { serve: "home", time: { start: "10:00", end: "" } };
+const options = { serve: "home" as const, time: { start: "10:00", end: "" } };
 
 describe("the lineup a set stores with its entries", () => {
   let seeded: SeededGame;
@@ -55,12 +55,6 @@ describe("the lineup a set stores with its entries", () => {
     expect(created.status).toBe(201);
   });
 
-  it("applies a written substitution to the stored lineup", async () => {
-    await write([substitution("sub-1", 1, benchIds[0]!)]);
-
-    expect((await onCourt())[0]).toBe(benchIds[0]);
-  });
-
   it("keeps the stored lineup in step with the stored entry when a resend carries other content", async () => {
     await write([substitution("sub-1", 1, benchIds[0]!)]);
 
@@ -73,29 +67,59 @@ describe("the lineup a set stores with its entries", () => {
     expect((await onCourt())[0]).toBe(benchIds[0]);
   });
 
-  it("recomputes the lineup when an edit changes a past substitution", async () => {
+  it("re-plans a substitution written from a stale read, so the second of two conflicting ones is refused", async () => {
+    const instance = repo();
+    const internals = instance as unknown as {
+      findSet: (ref: unknown) => Promise<object>;
+    };
+    const stale = await internals.findSet(ref());
+    // Another device records its substitution after this one read the set.
     await write([substitution("sub-1", 1, benchIds[0]!)]);
+    jest.spyOn(internals, "findSet").mockResolvedValueOnce(stale);
 
-    await write(
-      [substitution("sub-1", 1, benchIds[1]!)],
-      new Date("2026-03-01T10:05:00.000Z"),
-    );
-
-    expect((await onCourt())[0]).toBe(benchIds[1]);
-  });
-
-  it("refuses a write that makes the substitutions inconsistent and stores nothing", async () => {
-    await write([substitution("sub-1", 1, benchIds[0]!)]);
-    // Player 0 already left the court at seq 1.
-    const second = substitution("sub-2", 2, benchIds[1]!, 0);
-
-    await expect(write([second])).rejects.toMatchObject({
+    // Player 0 is already out, which the stale read cannot show.
+    await expect(
+      instance.upsertEntry(
+        ref(),
+        [{ entry: substitution("sub-2", 2, benchIds[1]!, 0), at: recordedAt }],
+        operator,
+      ),
+    ).rejects.toMatchObject({
       reason: GameReason.INVALID_SUBSTITUTION,
       httpStatus: 400,
     });
 
+    expect((await storedSet()).entries.map((e) => e.id)).toEqual(["sub-1"]);
+    expect((await onCourt())[0]).toBe(benchIds[0]);
+  });
+
+  it("keeps lineups and entries in step when two devices substitute different players at once", async () => {
+    await Promise.all([
+      write([substitution("sub-a", 1, benchIds[0]!, 0)]),
+      write([substitution("sub-b", 2, benchIds[1]!, 1)]),
+    ]);
+
+    const set = await storedSet();
+    expect(set.entries.map((e) => e.id)).toEqual(["sub-a", "sub-b"]);
+    expect(await onCourt()).toEqual(
+      expect.arrayContaining([benchIds[0], benchIds[1]]),
+    );
+  });
+
+  it("does not lose an entry written while the set options are being updated", async () => {
+    const instance = repo();
+    const internals = instance as unknown as {
+      findSet: (ref: unknown) => Promise<object>;
+    };
+    const stale = await internals.findSet(ref());
+    await write([substitution("sub-1", 1, benchIds[0]!)]);
+    jest.spyOn(internals, "findSet").mockResolvedValueOnce(stale);
+
+    await instance.updateSet(ref(), { options: { ...options, serve: "away" } });
+
     const set = await storedSet();
     expect(set.entries.map((e) => e.id)).toEqual(["sub-1"]);
+    expect(set.options.serve).toBe("away");
     expect((await onCourt())[0]).toBe(benchIds[0]);
   });
 });

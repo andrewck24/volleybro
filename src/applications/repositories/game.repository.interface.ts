@@ -1,4 +1,11 @@
-import type { Entry, EntryWrite, Game, GameSummary } from "@/entities/game";
+import type {
+  Entry,
+  EntryWrite,
+  Game,
+  GameSummary,
+  Set,
+} from "@/entities/game";
+import type { Lineup } from "@/entities/team";
 
 export interface EntryRef {
   gameId: string;
@@ -14,6 +21,16 @@ export interface IGameRepository {
    */
   update(id: string, data: Partial<Game>): Promise<Game>;
   /**
+   * Replaces a set's options and, when given, its home starting lineup,
+   * leaving every other field — entries included — as stored. The current
+   * lineups are recomputed from the entries the set holds at write time; a
+   * starting lineup that invalidates one is refused with INVALID_SUBSTITUTION.
+   */
+  updateSet(
+    ref: EntryRef,
+    changes: { options: Set["options"]; lineup?: Lineup },
+  ): Promise<Game>;
+  /**
    * Writes each entry by identity and returns the set's entries in sequence
    * order, regardless of arrival order. Whether an entry exists is decided
    * before anything is written:
@@ -23,7 +40,7 @@ export interface IGameRepository {
    * - otherwise an edit: the content is replaced and `editedBy`/`editedAt`
    *   set; `recordedBy` and `recordedAt` never change.
    * The set's current lineups are recomputed from its starting lineups and
-   * the entries it will hold, and written with them. A write that leaves a
+   * the entries it will hold, and written with the last entry. A write that leaves a
    * substitution invalid is refused whole with INVALID_SUBSTITUTION.
    */
   upsertEntry(
