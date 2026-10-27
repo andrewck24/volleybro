@@ -39,29 +39,54 @@ export const Substitutes = ({
     entryDraft: draft,
   });
 
-  const onSubmit = () => {
+  const isEditing = mode === "editing";
+
+  const onSubmit = async () => {
     // A new substitution gets a fresh identity generated here, before it is
-    // applied; editing reuses the id setEditingEntryStatus already loaded
-    // onto the draft.
+    // applied; an edit keeps the id and seq setEditingEntryStatus loaded onto
+    // the draft and stamps the time of the edit.
+    const { team, players } = draft.substitution!;
     const entry = {
-      ...draft.substitution!,
       type: EntryType.SUBSTITUTION as const,
-      id: draft.id || crypto.randomUUID(),
-      seq: entryIndex,
+      team,
+      players,
+      id: isEditing ? draft.id : crypto.randomUUID(),
+      seq: isEditing ? draft.seq : entryIndex,
       at: new Date().toISOString(),
     };
     // Checked against what the recorder sees, applied to what the cache holds:
     // the queue merges its own entries over the cache on every read.
-    if (!applySubstitution(game!, setIndex, entry)) {
-      toast({ ...ERROR_MESSAGES.INVALID_SUBSTITUTION, variant: "error" });
+    const checked = applySubstitution(game!, setIndex, entry);
+    if ("invalid" in checked) {
+      const { id, points } = checked.invalid;
+      toast(
+        id === entry.id
+          ? { ...ERROR_MESSAGES.INVALID_SUBSTITUTION, variant: "error" }
+          : {
+              title: `這次修改會讓第 ${points} 分的換人無效`,
+              description: "請調整換上或換下的球員，或先修改後面的換人",
+              variant: "error",
+            },
+      );
       return;
     }
-    mutate((raw) => applySubstitution(raw!, setIndex, entry) ?? raw, {
-      revalidate: false,
-    });
+    mutate(
+      (raw) => {
+        const applied = applySubstitution(raw!, setIndex, entry);
+        return "game" in applied ? applied.game : raw;
+      },
+      { revalidate: false },
+    );
     enqueue(entry);
+    if (!isEditing) {
+      dispatch(gameActions.confirmEntryDraftSubstitution());
+      void flush();
+      return;
+    }
+    const result = await flush();
+    if (!result.ok) return;
     dispatch(gameActions.confirmEntryDraftSubstitution());
-    void flush();
+    dispatch(gameActions.setGameMode("general"));
   };
 
   return (

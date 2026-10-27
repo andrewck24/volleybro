@@ -170,6 +170,16 @@ describe("useSubstitutes", () => {
       await settled(result, [11, 12]);
     });
 
+    it("offers the replacement, not the starter, when editing the entry they went on in after swapping back", async () => {
+      const { result } = edit(
+        { 1: { id: "p2", sub: { id: "s1", entryIndex: { in: 1, out: 4 } } } },
+        "p2",
+        1,
+      );
+
+      await settled(result, [11, 12]);
+    });
+
     it("lets a replacement swap back only with the starter they replaced", async () => {
       const { result } = edit(
         { 1: { id: "s1", sub: { id: "p2", entryIndex: { in: 1 } } } },
@@ -199,6 +209,24 @@ describe("useSubstitutes", () => {
 
       await gameLoaded();
       expect(result.current).toEqual([]);
+    });
+
+    it("reads the marks as entry seq, which need not equal the entry's position", async () => {
+      const entries = [10, 11, 12, 13, 14, 15].map((seq) =>
+        homeRally(true, seq),
+      );
+      const { result } = renderSubstitutes(
+        createLineupGame({
+          entries,
+          starting: {
+            1: { id: "p2", sub: { id: "s1", entryIndex: { in: 11, out: 13 } } },
+          },
+        }),
+        "s1",
+        2,
+      );
+
+      await settled(result, [2]);
     });
   });
 });

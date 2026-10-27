@@ -38,11 +38,11 @@ const substitution = (players: {
 
 describe("applySubstitution", () => {
   it("records the substitution and swaps the players in the lineup", () => {
-    const result = applySubstitution(
+    const { game: result } = applySubstitution(
       game(),
       0,
       substitution({ in: "player-8", out: "player-1" }),
-    )!;
+    ) as { game: GameView };
 
     expect(result.sets[0]!.entries).toHaveLength(1);
     expect(result.sets[0]!.lineups.home.starting[0]).toMatchObject({
@@ -58,6 +58,6 @@ describe("applySubstitution", () => {
         0,
         substitution({ in: "player-8", out: "player-9" }),
       ),
-    ).toBeNull();
+    ).toEqual({ invalid: { id: "sub-1", points: 0 } });
   });
 });

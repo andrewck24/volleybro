@@ -13,7 +13,12 @@ export const useSubstitutes = (
   const substitutes =
     entryIndex === game.sets[setIndex]?.entries.length
       ? getGeneralModeSubstitutes(game, entryDraft, setIndex)
-      : getEditingModeSubstitutes(game, entryDraft, setIndex, entryIndex);
+      : getEditingModeSubstitutes(
+          game,
+          entryDraft,
+          setIndex,
+          game.sets[setIndex]!.entries[entryIndex]?.seq ?? entryIndex,
+        );
 
   return substitutes.filter((s): s is NonNullable<typeof s> => s != null);
 };
@@ -55,7 +60,7 @@ const getEditingModeSubstitutes = (
   game: GameView,
   entryDraft: ReduxEntryDraft,
   setIndex: number,
-  entryIndex: number,
+  seq: number,
 ) => {
   // setIndex references the active set being recorded; guaranteed in bounds
   const { starting, substitutes } = game.sets[setIndex]!.lineups.home;
@@ -72,10 +77,10 @@ const getEditingModeSubstitutes = (
   const { sub } = player;
 
   // 檢查此位置是否已使用完兩次替補
-  if ((sub?.entryIndex?.out ?? Infinity) < entryIndex) return [];
+  if ((sub?.entryIndex?.out ?? Infinity) < seq) return [];
 
   // 若所編輯的時間點為替補狀態，則只能與原本的球員互換
-  if ((sub?.entryIndex?.in ?? Infinity) < entryIndex) {
+  if ((sub?.entryIndex?.in ?? Infinity) < seq) {
     return [
       players.find(
         (p) =>
@@ -94,7 +99,11 @@ const getEditingModeSubstitutes = (
     .filter((sub) => !usedIds.has(sub.id))
     .map((s) => s.id);
 
-  if (sub?.entryIndex?.in !== undefined) availablePlayers.push(player.id);
+  // The replacement is the id on court, or, once swapped back, the sub id.
+  if (sub?.entryIndex?.in !== undefined)
+    availablePlayers.push(
+      sub.entryIndex.out !== undefined ? sub.id : player.id,
+    );
 
   return availablePlayers.map((id) => players.find((p) => p.id === id));
 };
