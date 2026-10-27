@@ -1,12 +1,11 @@
-import { EntryType, MoveType } from "@/entities/game";
+import { MoveType } from "@/entities/game";
 import { Position } from "@/entities/player";
 import { createGame } from "./entities";
+import { createRecordedRally } from "./entries";
 
 /** A one-set game with a single rally, for tests that open a game's edit dialogs. */
-export const rally = {
+export const rally = createRecordedRally({
   id: "e1",
-  seq: 0,
-  type: EntryType.RALLY as const,
   win: true,
   home: {
     score: 1,
@@ -15,7 +14,7 @@ export const rally = {
     player: { id: "p1", zone: 1 },
   },
   away: { score: 0, type: MoveType.SERVING, num: 1 },
-};
+});
 
 const base = createGame();
 const [firstSet] = base.sets;

@@ -21,6 +21,7 @@ import { useSelector } from "react-redux";
 const entry = (id: string): PendingEntry["entry"] => ({
   id,
   seq: 0,
+  at: "2026-10-27T01:02:03.000Z",
   win: true,
   home: { score: 1, type: MoveType.ATTACK, num: 7 },
   away: { score: 0, type: MoveType.DEFENSE, num: 3 },

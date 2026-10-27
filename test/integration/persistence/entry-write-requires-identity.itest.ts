@@ -1,11 +1,12 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { EntryType, MoveType, type Entry } from "@/entities/game";
+import { MoveType, type Entry } from "@/entities/game";
+import { createRecordedRally } from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
-import { seedGame, type SeededGame } from "../support/seed";
+import { oid, seedGame, type SeededGame } from "../support/seed";
 import mongoose from "mongoose";
 
 const rally = (
@@ -13,25 +14,29 @@ const rally = (
   seq: number | undefined,
   score: number,
 ): Entry =>
-  ({
-    type: EntryType.RALLY,
+  createRecordedRally({
     id,
     seq,
-    win: true,
     home: {
       score,
       type: MoveType.ATTACK,
       num: 0,
       player: { id: null, zone: 1 },
     },
-    away: { score: 0, type: MoveType.ATTACK, num: 0 },
-  }) as unknown as Entry;
+  } as never);
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
 describe("a write whose entry carries no identity", () => {
   let seeded: SeededGame;
   const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
+  const operator = oid();
+  const write = (ref: { gameId: string; setIndex: number }, entry: Entry) =>
+    repo().upsertEntry(
+      ref,
+      [{ entry, at: new Date("2026-03-01T10:00:00.000Z") }],
+      operator,
+    );
 
   beforeEach(async () => {
     useFakeAuth();
@@ -53,8 +58,8 @@ describe("a write whose entry carries no identity", () => {
   // `null` and the arrayFilters then match all of them at once.
   it("refuses a write whose entry carries no identity, leaving the set untouched", async () => {
     const ref = { gameId: seeded.gameId, setIndex: 0 };
-    await repo().upsertEntry(ref, [rally("a", 0, 1)]);
-    await repo().upsertEntry(ref, [rally("b", 1, 2)]);
+    await write(ref, rally("a", 0, 1));
+    await write(ref, rally("b", 1, 2));
 
     const model = mongoose.models.Game!;
     await model.updateOne(
@@ -69,9 +74,9 @@ describe("a write whose entry carries no identity", () => {
       },
     );
 
-    await expect(
-      repo().upsertEntry(ref, [rally(undefined, undefined, 99)]),
-    ).rejects.toThrow(/id and a seq/);
+    await expect(write(ref, rally(undefined, undefined, 99))).rejects.toThrow(
+      /id and a seq/,
+    );
 
     const doc = (await model.findById(seeded.gameId).lean()) as unknown as {
       sets: { entries: { home?: { score?: number } }[] }[];

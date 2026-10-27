@@ -1,4 +1,9 @@
-import { EntryType, MoveType, Side, type Game } from "@/entities/game";
+import { MoveType, Side, type Game } from "@/entities/game";
+import {
+  createRecordedRally,
+  createRecordedSubstitution,
+  FIXTURE_RECORDER_ID,
+} from "@test/support/fixtures/entries";
 import {
   toGame,
   toGameDoc,
@@ -67,9 +72,7 @@ describe("game document mapping", () => {
             },
           },
           entries: [
-            {
-              type: EntryType.RALLY,
-              win: true,
+            createRecordedRally({
               home: {
                 score: 1,
                 type: MoveType.ATTACK,
@@ -77,12 +80,11 @@ describe("game document mapping", () => {
                 player: { id: playerHexId, zone: 4 },
               },
               away: { score: 0, type: MoveType.ATTACK, num: 1 },
-            },
-            {
-              type: EntryType.SUBSTITUTION,
+            }),
+            createRecordedSubstitution({
               team: Side.HOME,
               players: { in: inHexId, out: "" },
-            },
+            }),
           ],
         },
       ],
@@ -112,5 +114,39 @@ describe("game document mapping", () => {
     ];
     expect(rally.home.player).toEqual({ playerId: playerHexId, zone: 4 });
     expect(substitution.players).toEqual({ in: inHexId, out: null });
+  });
+
+  describe("an entry's recorder on read", () => {
+    const storedGame = (entry: Record<string, unknown>) =>
+      ({
+        _id: new Types.ObjectId(),
+        teamId: new Types.ObjectId(teamHexId),
+        teams: {},
+        sets: [{ entries: [entry] }],
+      }) as unknown as RawGame;
+
+    const storedRally = () => ({
+      ...createRecordedRally(),
+      recordedBy: new Types.ObjectId(FIXTURE_RECORDER_ID),
+    });
+
+    it("exposes the recorder as a string id and keeps the time", () => {
+      const [entry] = toGame(storedGame(storedRally())).sets[0]!.entries;
+
+      expect(entry!.recordedBy).toBe(FIXTURE_RECORDER_ID);
+      expect(entry!.recordedAt).toEqual(createRecordedRally().recordedAt);
+    });
+
+    it.each(["recordedBy", "recordedAt"])(
+      "rejects an entry stored without %s",
+      (field) => {
+        const entry: Record<string, unknown> = storedRally();
+        delete entry[field];
+
+        expect(() => toGame(storedGame(entry))).toThrow(
+          expect.objectContaining({ httpStatus: 400 }),
+        );
+      },
+    );
   });
 });

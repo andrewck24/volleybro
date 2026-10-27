@@ -1,3 +1,4 @@
+import { CommonReason, ValidationError } from "@/entities/errors";
 import { EntryType, type Game } from "@/entities/game";
 import type { Types } from "mongoose";
 
@@ -24,6 +25,9 @@ type RawRallyDetail = {
 } & Record<string, unknown>;
 type RawEntry = {
   type?: EntryType;
+  recordedBy?: RawRef;
+  recordedAt?: Date;
+  editedBy?: RawRef;
   home?: RawRallyDetail;
   away?: RawRallyDetail;
   players?: { in?: RawRef; out?: RawRef };
@@ -84,7 +88,22 @@ function mapRallyDetailRead(detail: RawRallyDetail | undefined) {
   };
 }
 
-export function mapEntryRead(entry: RawEntry) {
+/** A stored entry always names its recorder; one that does not is unreadable. */
+function mapRecorderRead(entry: RawEntry) {
+  if (!entry?.recordedBy || !entry.recordedAt)
+    throw new ValidationError(
+      CommonReason.INVALID_INPUT,
+      "An entry must have a recordedBy and a recordedAt",
+    );
+  return {
+    ...entry,
+    recordedBy: entry.recordedBy.toString(),
+    editedBy: entry.editedBy?.toString(),
+  };
+}
+
+export function mapEntryRead(raw: RawEntry) {
+  const entry = mapRecorderRead(raw);
   if (entry?.type === EntryType.RALLY) {
     return {
       ...entry,

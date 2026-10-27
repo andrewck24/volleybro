@@ -39,6 +39,7 @@ describe("POST /api/games/[gameId]/sets/substitutions", () => {
       {
         id: "entry-1",
         seq: 0,
+        at: "2026-03-01T10:00:00.000Z",
         team: 1,
         players: { in: VALID_OBJECT_ID, out: VALID_OBJECT_ID },
         extra: true,

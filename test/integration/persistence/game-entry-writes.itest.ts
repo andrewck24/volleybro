@@ -1,6 +1,7 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { GameReason } from "@/entities/errors";
 import { EntryType, MoveType, type Entry } from "@/entities/game";
+import { createRecordedRally } from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
@@ -14,25 +15,36 @@ const rally = (
   score: number,
   playerId: string | null = null,
 ): Entry =>
-  ({
-    type: EntryType.RALLY,
+  createRecordedRally({
     id,
     seq,
-    win: true,
     home: {
       score,
       type: MoveType.ATTACK,
       num: 0,
       player: { id: playerId, zone: 1 },
     },
-    away: { score: 0, type: MoveType.ATTACK, num: 0 },
-  }) as unknown as Entry;
+  });
+
+const operator = oid();
+const recordedAt = new Date("2026-03-01T10:00:00.000Z");
+const editedAt = new Date("2026-03-01T10:05:00.000Z");
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
 describe("identity-keyed entry writes", () => {
   let seeded: SeededGame;
   const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
+  const write = (
+    ref: { gameId: string; setIndex: number },
+    entries: Entry[],
+    at = recordedAt,
+  ) =>
+    repo().upsertEntry(
+      ref,
+      entries.map((entry) => ({ entry, at })),
+      operator,
+    );
 
   beforeEach(async () => {
     useFakeAuth();
@@ -48,15 +60,14 @@ describe("identity-keyed entry writes", () => {
 
   it("writes new entries and returns the set's entries", async () => {
     expect(
-      await repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
+      await write({ gameId: seeded.gameId, setIndex: 0 }, [
         rally("entry-1", 0, 1),
       ]),
     ).toHaveLength(1);
 
-    const entries = await repo().upsertEntry(
-      { gameId: seeded.gameId, setIndex: 0 },
-      [rally("entry-2", 1, 2, seeded.playerIds[0]!)],
-    );
+    const entries = await write({ gameId: seeded.gameId, setIndex: 0 }, [
+      rally("entry-2", 1, 2, seeded.playerIds[0]!),
+    ]);
 
     expect(entries).toHaveLength(2);
     expect(entries[1]).toMatchObject({
@@ -68,17 +79,16 @@ describe("identity-keyed entry writes", () => {
   });
 
   it("resending an entry writes nothing new and is not an error", async () => {
-    await repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
+    await write({ gameId: seeded.gameId, setIndex: 0 }, [
       rally("entry-1", 0, 1),
     ]);
-    await repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
+    await write({ gameId: seeded.gameId, setIndex: 0 }, [
       rally("entry-2", 1, 2),
     ]);
 
-    const entries = await repo().upsertEntry(
-      { gameId: seeded.gameId, setIndex: 0 },
-      [rally("entry-1", 0, 1)],
-    );
+    const entries = await write({ gameId: seeded.gameId, setIndex: 0 }, [
+      rally("entry-1", 0, 1),
+    ]);
 
     expect(entries).toHaveLength(2);
     expect(entries.filter((e) => e.id === "entry-1")).toHaveLength(1);
@@ -86,41 +96,95 @@ describe("identity-keyed entry writes", () => {
     expect(persisted!.sets[0]!.entries).toHaveLength(2);
   });
 
-  it("overwrites an existing identity's payload rather than duplicating it", async () => {
-    await repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
+  it("replaces an existing identity's content as an edit rather than duplicating it", async () => {
+    await write({ gameId: seeded.gameId, setIndex: 0 }, [
       rally("entry-1", 0, 1),
     ]);
 
-    const entries = await repo().upsertEntry(
+    const entries = await write(
       { gameId: seeded.gameId, setIndex: 0 },
       [rally("entry-1", 0, 9)],
+      editedAt,
     );
 
     expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({ home: { score: 9 } });
+    expect(entries[0]).toMatchObject({
+      home: { score: 9 },
+      recordedBy: operator,
+      editedBy: operator,
+      editedAt,
+    });
+    expect(entries[0]!.recordedAt).toEqual(recordedAt);
+  });
+
+  it("keeps the edit when a create and an edit of one id share a batch", async () => {
+    const entries = await repo().upsertEntry(
+      { gameId: seeded.gameId, setIndex: 0 },
+      [
+        { entry: rally("entry-1", 0, 1), at: recordedAt },
+        { entry: rally("entry-1", 0, 9), at: editedAt },
+      ],
+      operator,
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      home: { score: 9 },
+      recordedBy: operator,
+      editedBy: operator,
+      editedAt,
+    });
+    expect(entries[0]!.recordedAt).toEqual(recordedAt);
+  });
+
+  it("re-classifies a create that lost a race to another create instead of dropping it", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    const other = oid();
+    const instance = repo();
+    await instance.upsertEntry(
+      ref,
+      [{ entry: rally("entry-1", 0, 1), at: recordedAt }],
+      other,
+    );
+    // The pre-read ran before the other create landed.
+    jest
+      .spyOn(
+        instance as unknown as { findSet: () => Promise<unknown> },
+        "findSet",
+      )
+      .mockResolvedValueOnce({ entries: [] });
+
+    const entries = await instance.upsertEntry(
+      ref,
+      [{ entry: rally("entry-1", 0, 9), at: editedAt }],
+      operator,
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      home: { score: 9 },
+      recordedBy: other,
+      editedBy: operator,
+      editedAt,
+    });
   });
 
   it("stores a lower-sequence entry ahead of a higher one that arrived first", async () => {
-    await repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
+    await write({ gameId: seeded.gameId, setIndex: 0 }, [
       rally("entry-8", 8, 8),
     ]);
 
-    const entries = await repo().upsertEntry(
-      { gameId: seeded.gameId, setIndex: 0 },
-      [rally("entry-7", 7, 7)],
-    );
+    const entries = await write({ gameId: seeded.gameId, setIndex: 0 }, [
+      rally("entry-7", 7, 7),
+    ]);
 
     expect(entries.map((e) => e.id)).toEqual(["entry-7", "entry-8"]);
   });
 
   it("keeps both entries when two different identities are written concurrently", async () => {
     await Promise.all([
-      repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
-        rally("entry-a", 0, 1),
-      ]),
-      repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
-        rally("entry-b", 1, 2),
-      ]),
+      write({ gameId: seeded.gameId, setIndex: 0 }, [rally("entry-a", 0, 1)]),
+      write({ gameId: seeded.gameId, setIndex: 0 }, [rally("entry-b", 1, 2)]),
     ]);
 
     const persisted = await repo().findById(seeded.gameId);
@@ -131,12 +195,12 @@ describe("identity-keyed entry writes", () => {
   });
 
   it("rejects an entry the database cannot store without touching the set", async () => {
-    await repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
+    await write({ gameId: seeded.gameId, setIndex: 0 }, [
       rally("entry-1", 0, 1),
     ]);
 
     await expect(
-      repo().upsertEntry({ gameId: seeded.gameId, setIndex: 0 }, [
+      write({ gameId: seeded.gameId, setIndex: 0 }, [
         rally("entry-2", 1, 2, "not-an-object-id"),
       ]),
     ).rejects.toMatchObject({ httpStatus: 400 });
@@ -150,9 +214,7 @@ describe("identity-keyed entry writes", () => {
 
   it("reports GAME_NOT_FOUND for a game that does not exist", async () => {
     await expect(
-      repo().upsertEntry({ gameId: oid(), setIndex: 0 }, [
-        rally("entry-1", 0, 1),
-      ]),
+      write({ gameId: oid(), setIndex: 0 }, [rally("entry-1", 0, 1)]),
     ).rejects.toMatchObject({
       reason: GameReason.GAME_NOT_FOUND,
       httpStatus: 404,
@@ -161,9 +223,7 @@ describe("identity-keyed entry writes", () => {
 
   it("reports SET_NOT_FOUND for a set index the game does not have", async () => {
     await expect(
-      repo().upsertEntry({ gameId: seeded.gameId, setIndex: 3 }, [
-        rally("entry-1", 0, 1),
-      ]),
+      write({ gameId: seeded.gameId, setIndex: 3 }, [rally("entry-1", 0, 1)]),
     ).rejects.toMatchObject({
       reason: GameReason.SET_NOT_FOUND,
       httpStatus: 404,

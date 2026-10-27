@@ -75,6 +75,7 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
     const draft = {
       id: "entry-1",
       seq: 0,
+      at: new Date().toISOString(),
       win: true,
       home: {
         score: 1,

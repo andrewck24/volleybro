@@ -70,9 +70,15 @@ describe("Substitutes.onSubmit", () => {
     // The candidate list is built from the loaded game.
     await screen.findByRole("button", { name: /選手二/ });
 
+    const before = Date.now();
     await userEvent.click(screen.getByRole("button", { name: /確認/ }));
+    const after = Date.now();
 
     expect(await screen.findByText("連線逾時")).toBeInTheDocument();
+    const { at } = (posted as unknown as { body: { at: string } }).body;
+    expect(new Date(at).toISOString()).toBe(at);
+    expect(Date.parse(at)).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(at)).toBeLessThanOrEqual(after);
     expect(posted).toEqual({
       si: "0",
       ei: "0",

@@ -1,19 +1,30 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { EntryType, MoveType, type Game } from "@/entities/game";
+import { MoveType, type Game } from "@/entities/game";
+import { createRecordedRally } from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { oid } from "../support/seed";
 
 const games = () => container.get<IGameRepository>(TYPES.GameRepository);
 
-const rally = (seq: number, home: number, away: number) => ({
-  type: EntryType.RALLY,
-  id: `rally-${seq}`,
-  seq,
-  win: home > away,
-  home: { score: home, type: MoveType.ATTACK, num: 1, player: { id: null } },
-  away: { score: away, type: MoveType.ATTACK, num: 1, player: { id: null } },
-});
+const rally = (seq: number, home: number, away: number) =>
+  createRecordedRally({
+    id: `rally-${seq}`,
+    seq,
+    win: home > away,
+    home: {
+      score: home,
+      type: MoveType.ATTACK,
+      num: 1,
+      player: { id: null, zone: 1 },
+    },
+    away: {
+      score: away,
+      type: MoveType.ATTACK,
+      num: 1,
+      player: { id: null, zone: 1 },
+    },
+  });
 
 const finishedSet = (win: boolean, home: number, away: number) => ({
   win,

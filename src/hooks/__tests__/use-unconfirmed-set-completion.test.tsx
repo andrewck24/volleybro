@@ -168,6 +168,7 @@ describe("useUnconfirmedSetCompletion", () => {
           {
             id: "e1",
             seq: 0,
+            at: expect.any(String),
             win: true,
             home: lastRally.home,
             away: lastRally.away,
@@ -176,6 +177,72 @@ describe("useUnconfirmedSetCompletion", () => {
       },
     ]);
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
+  });
+
+  // An entry already on the server is resent as the same creation: the same
+  // `at` and sender makes the server treat it as a resend, where a fresh `at`
+  // would stamp a false editor on it.
+  it("retry resends a stored entry with its recordedAt so the server sees a resend, not an edit", async () => {
+    const requests = answerRallies(() =>
+      HttpResponse.json({ entries: [lastRally] }),
+    );
+    const recordedAt = "2026-01-01T10:00:00.000Z";
+    recordCompletion(false);
+    cachedGame = gameWithSet(true);
+    cachedGame.sets[0]!.entries = [
+      { ...lastRally, recordedBy: "p1", recordedAt, editedBy: "p2" },
+    ] as never;
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(requests[0]!.body).toEqual([
+      {
+        id: "e1",
+        seq: 0,
+        at: recordedAt,
+        win: true,
+        home: lastRally.home,
+        away: lastRally.away,
+      },
+    ]);
+  });
+
+  // An optimistic entry has no recordedAt yet, but carries the `at` it was
+  // first sent with. A write that landed with a lost response must read as a
+  // resend, so that `at` has to survive instead of being replaced by now.
+  it("retry resends an optimistic entry with its own at, not a fresh one", async () => {
+    const requests = answerRallies(() =>
+      HttpResponse.json({ entries: [lastRally] }),
+    );
+    const at = "2026-01-01T10:00:00.000Z";
+    recordCompletion(false);
+    cachedGame = gameWithSet(true);
+    cachedGame.sets[0]!.entries = [{ ...lastRally, at }] as never;
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(requests[0]!.body).toEqual([
+      {
+        id: "e1",
+        seq: 0,
+        at,
+        win: true,
+        home: lastRally.home,
+        away: lastRally.away,
+      },
+    ]);
   });
 
   // The manual retry bypasses the queue: it sends the entry itself, so

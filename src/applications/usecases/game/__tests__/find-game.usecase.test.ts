@@ -17,7 +17,6 @@ beforeEach(() => {
   mockAuthService = createMockAuthenticationService();
   mockAuthzService = createMockAuthorizationService();
   mockAuthService.verifySession.mockResolvedValue(createUser());
-  mockAuthzService.verifyTeamRole.mockResolvedValue(undefined);
 });
 
 describe("FindGameUseCase", () => {

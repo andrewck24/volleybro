@@ -1,6 +1,11 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { hasTeamRole, isTeamMember, PlayerRole } from "@/entities/player";
+import {
+  hasTeamRole,
+  isTeamMember,
+  PlayerRole,
+  type TeamMember,
+} from "@/entities/player";
 import { AuthorizationError, AuthReason } from "@/entities/errors";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
@@ -27,7 +32,7 @@ export class AuthorizationService implements IAuthorizationService {
     teamId: string,
     userId: string,
     role: PlayerRole = PlayerRole.MEMBER,
-  ): Promise<void> {
+  ): Promise<TeamMember> {
     const player = await this.playerRepository.findByTeamIdAndUserId(
       teamId,
       userId,
@@ -35,6 +40,7 @@ export class AuthorizationService implements IAuthorizationService {
 
     if (!player || !isTeamMember(player)) throw notTeamMember();
     if (!hasTeamRole(player, role)) throw insufficientRole();
+    return player;
   }
 
   /**

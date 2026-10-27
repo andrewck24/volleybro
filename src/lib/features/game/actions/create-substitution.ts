@@ -7,7 +7,7 @@ import type {
 
 export const createSubstitution = async (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  substitution: SubstitutionView,
+  substitution: SubstitutionView & { at: string },
   game: GameView,
 ) => {
   const { gameId, setIndex, entryIndex } = params;

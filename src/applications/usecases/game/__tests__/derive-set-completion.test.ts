@@ -1,21 +1,16 @@
+import { createRecordedRally } from "@test/support/fixtures/entries";
 import { deriveSetCompletion } from "@/applications/usecases/game/derive-set-completion";
-import {
-  EntryType,
-  MoveType,
-  type Entry,
-  type Game,
-  type Set,
-} from "@/entities/game";
+import { MoveType, type Entry, type Game, type Set } from "@/entities/game";
 import { describe, expect, it } from "@jest/globals";
 
-const rally = (home: number, away: number, seq = 0): Entry => ({
-  type: EntryType.RALLY,
-  id: `entry-${home}-${away}`,
-  seq,
-  win: home > away,
-  home: { score: home, type: MoveType.ATTACK, num: 1 },
-  away: { score: away, type: MoveType.RECEPTION, num: 1 },
-});
+const rally = (home: number, away: number, seq = 0): Entry =>
+  createRecordedRally({
+    id: `entry-${home}-${away}`,
+    seq,
+    win: home > away,
+    home: { score: home, type: MoveType.ATTACK, num: 1 },
+    away: { score: away, type: MoveType.RECEPTION, num: 1 },
+  });
 
 const set = (win: boolean | null, entries: Entry[] = []): Set => ({
   win,

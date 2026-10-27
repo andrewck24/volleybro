@@ -22,6 +22,7 @@ const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
 const entry = (id: string): PendingEntry["entry"] => ({
   id,
   seq: 0,
+  at: "2026-10-27T01:02:03.000Z",
   win: true,
   home: { score: 1, type: MoveType.ATTACK, num: 7 },
   away: { score: 0, type: MoveType.DEFENSE, num: 3 },
@@ -605,6 +606,25 @@ describe("restorePendingWrites", () => {
     );
 
     expect(cleared).toHaveLength(2);
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+  });
+
+  it("discards a queued item written before entries carried an action time", async () => {
+    const { at: _at, ...withoutAt } = entry("old");
+    const cleared: string[] = [];
+    const store = makeStore(stored(null));
+
+    await restorePendingWrites(store.dispatch, {
+      ...stored({
+        version: 1,
+        items: [{ entry: withoutAt as never, gameId: "game-1", setIndex: 0 }],
+      }),
+      clear: async () => {
+        cleared.push("cleared");
+      },
+    });
+
+    expect(cleared).toHaveLength(1);
     expect(store.getState().pendingWrites.pending).toEqual([]);
   });
 

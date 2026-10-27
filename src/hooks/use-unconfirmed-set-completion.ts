@@ -77,14 +77,32 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
 
   const retry = useCallback(async () => {
     const lastRally = set?.entries.findLast(
-      (entry): entry is Extract<EntryView, { type: EntryType.RALLY }> =>
-        entry.type === EntryType.RALLY,
+      (
+        entry,
+      ): entry is Extract<EntryView, { type: EntryType.RALLY }> & {
+        // Only an optimistic entry still in the cache carries it.
+        at?: string;
+      } => entry.type === EntryType.RALLY,
     );
     if (!lastRally) return;
 
     setRetrying(true);
-    const { type: _type, ...pendingEntry } = lastRally;
-    const result = await flushPendingWrites(gameId, setIndex, [pendingEntry]);
+    // The write schema is strict, so the server-stamped fields are dropped.
+    // A stored entry keeps its recordedAt as `at`, and an optimistic one the
+    // `at` it was first sent with: the server then reads this as a resend of
+    // the creation instead of an edit.
+    const {
+      type: _type,
+      recordedBy: _recordedBy,
+      recordedAt,
+      at,
+      editedBy: _editedBy,
+      editedAt: _editedAt,
+      ...pendingEntry
+    } = lastRally;
+    const result = await flushPendingWrites(gameId, setIndex, [
+      { ...pendingEntry, at: recordedAt ?? at ?? new Date().toISOString() },
+    ]);
     if (result.ok) {
       mutate(
         (current) =>
