@@ -27,6 +27,14 @@ describe("user lookups", () => {
     expect(await users().findById(oid())).toBeNull();
   });
 
+  it("finds an account regardless of email case", async () => {
+    await UserModel.create({ name: "Alice", email: "Alice@example.com" });
+
+    expect(
+      await users().findAllByEmailInsensitive("alice@EXAMPLE.com"),
+    ).toMatchObject([{ name: "Alice" }]);
+  });
+
   it("finds the user holding an address exactly, and none for another", async () => {
     await UserModel.create({ name: "Alice", email: "alice@example.com" });
     await UserModel.create({ name: "Bob", email: "bob@example.com" });

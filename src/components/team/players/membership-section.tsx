@@ -109,7 +109,12 @@ export function MembershipSection({
   return (
     <>
       {status === PlayerStatus.NONE && (
-        <InviteSection player={player} onSuccess={revalidate} toast={toast} />
+        <InviteSection
+          player={player}
+          teamId={teamId}
+          onSuccess={revalidate}
+          toast={toast}
+        />
       )}
 
       {status === PlayerStatus.INVITED && (
@@ -226,10 +231,12 @@ type FoundUser = { id: string; name: string; image?: string };
 // --- NONE: invite section with user search ---
 function InviteSection({
   player,
+  teamId,
   onSuccess,
   toast,
 }: {
   player: PlayerView;
+  teamId: string;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -248,7 +255,7 @@ function InviteSection({
 
     try {
       const data = await apiClient<FoundUser>(
-        `/api/users?email=${encodeURIComponent(email)}`,
+        `/api/users?email=${encodeURIComponent(email)}&teamId=${encodeURIComponent(teamId)}`,
       );
       setFoundUser(data);
     } catch {
