@@ -2,7 +2,10 @@ import type { IGameRepository } from "@/applications/repositories/game.repositor
 import { GameReason } from "@/entities/errors";
 import { type Entry } from "@/entities/game";
 import { Position } from "@/entities/team";
-import { createRecordedSubstitution } from "@test/support/fixtures/entries";
+import {
+  createRecordedRally,
+  createRecordedSubstitution,
+} from "@test/support/fixtures/entries";
 import mongoose from "mongoose";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -93,6 +96,32 @@ describe("the lineup a set stores with its entries", () => {
     });
 
     expect((await storedSet()).entries.map((e) => e.id)).toEqual(["sub-1"]);
+    expect((await onCourt())[0]).toBe(benchIds[0]);
+  });
+
+  it("aborts a multi-entry batch another write overtook, leaving none of it", async () => {
+    // The competing substitution lands between planning the batch and writing
+    // it, so the batch's version guards were computed from the earlier set.
+    const games = mongoose.model("Game");
+    const bulkWrite = games.bulkWrite.bind(games);
+    jest
+      .spyOn(games, "bulkWrite")
+      .mockImplementationOnce(async (...args: Parameters<typeof bulkWrite>) => {
+        await write([substitution("other-sub", 1, benchIds[0]!)]);
+        return bulkWrite(...args);
+      });
+
+    await expect(
+      write([
+        substitution("stale-sub", 2, benchIds[1]!),
+        createRecordedRally({ id: "stale-rally", seq: 3 }) as Entry,
+      ]),
+    ).rejects.toMatchObject({
+      reason: GameReason.INVALID_SUBSTITUTION,
+      httpStatus: 400,
+    });
+
+    expect((await storedSet()).entries.map((e) => e.id)).toEqual(["other-sub"]);
     expect((await onCourt())[0]).toBe(benchIds[0]);
   });
 

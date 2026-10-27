@@ -9,6 +9,7 @@ The repository speaks in domain operations, not in documents. Recording a rally 
 
 - `IGameRepository` exposes `upsertEntry` and `completeSet`. Each is a write touching only what it names.
 - An entry carries a client-generated identity and a sequence number, both set before it leaves the client. `upsertEntry` takes one or more entries and issues a bulkWrite in which exactly one operation lands per entry: a `$set` through `arrayFilters` matching the identity when it already exists, or a `$push` guarded by `$ne` on that identity when it does not. The `$push` sorts on the sequence, so an entry that arrives late is placed by the order it was recorded in rather than the order it arrived.
+- A batch commits all its entry and lineup writes together. If a version guard misses, the batch aborts and is re-planned against the current set.
 - Resending the same entry is therefore a no-op rather than a duplicate, which is what makes a retry safe after a lost response.
 - An entry reaching the repository without an identity is rejected. `undefined` would reach MongoDB as `null` and the arrayFilters would then match every entry that also lacks one, so a single edit would overwrite all of them.
 - A substitution writes its entry and the lineup it produces in one update, so the two cannot disagree. Its entry carries the players as bare id strings, where rally entries and lineups carry `{ id }` objects.

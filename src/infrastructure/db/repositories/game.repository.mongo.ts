@@ -338,10 +338,24 @@ export class GameRepositoryImpl implements IGameRepository {
               };
         });
 
-        const result = ops.length
-          ? await this.model.bulkWrite(ops, { ordered: true })
-          : undefined;
-        return !result || result.matchedCount === ops.length;
+        if (!ops.length) return true;
+        const session = await this.model.db.startSession();
+        const conflict = new Error("Entry batch lost a race");
+        try {
+          await session.withTransaction(async () => {
+            const result = await this.model.bulkWrite(ops, {
+              ordered: true,
+              session,
+            });
+            if (result.matchedCount !== ops.length) throw conflict;
+          });
+          return true;
+        } catch (error) {
+          if (error === conflict) return false;
+          throw error;
+        } finally {
+          await session.endSession();
+        }
       });
       const set = await this.findSet(ref);
       return (set.entries ?? []).map((e) => mapEntryRead(e)) as Entry[];
