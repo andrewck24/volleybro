@@ -15,7 +15,8 @@
  *   3. the manifest still contains build chunks (/_next/static) and public
  *      assets (Decision 3: only the nav shells leave the precache).
  *
- * Run after the app build; chained into verify:all so CI fails if any holds.
+ * Run after the app build: by verify:all locally, and by the Vercel build
+ * command a pull request must pass.
  */
 import assert from "node:assert/strict";
 import { globSync, readFileSync } from "node:fs";
