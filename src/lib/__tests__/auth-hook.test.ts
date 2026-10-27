@@ -97,13 +97,17 @@ describe("handleUserCreated (auth hook)", () => {
     expect(playerRepository.linkUserToInvitations).toHaveBeenCalledTimes(2);
   });
 
-  it("should log and continue if profile creation fails", async () => {
+  it("links pending invitations if profile creation fails", async () => {
     profileRepository.create.mockRejectedValue(new Error("DB timeout"));
+    playerRepository.linkUserToInvitations.mockResolvedValue(1);
 
     await expect(
       handleUserCreated({ id: "user-1", email: "test@example.com" }),
     ).resolves.not.toThrow();
 
-    expect(playerRepository.linkUserToInvitations).not.toHaveBeenCalled();
+    expect(playerRepository.linkUserToInvitations).toHaveBeenCalledWith(
+      "test@example.com",
+      "user-1",
+    );
   });
 });

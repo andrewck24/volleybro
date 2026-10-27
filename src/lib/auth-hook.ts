@@ -10,8 +10,10 @@ import { TYPES } from "@/infrastructure/di/types";
  *
  * Flow:
  * 1. Create Profile via CreateProfileUseCase (throws on failure)
- * 2. If profile creation succeeds, link pending email invitations via
- *    LinkPendingInvitationsUseCase with retry-once-on-transient-failure
+ * 2. Link pending email invitations via LinkPendingInvitationsUseCase, with
+ *    retry-once-on-transient-failure. This runs even when step 1 fails: linking
+ *    does not need the profile, and a missing profile is recreated on the next
+ *    profile read, while nothing else would ever link the invitations.
  * 3. All failures are logged but do NOT propagate — the hook must not
  *    block the auth flow.
  */
@@ -33,7 +35,6 @@ export async function handleUserCreated(user: {
       `[Auth Hook] Failed to create profile for user ${user.id}:`,
       error,
     );
-    return;
   }
 
   const linkUseCase = container.get<ILinkPendingInvitationsUseCase>(
