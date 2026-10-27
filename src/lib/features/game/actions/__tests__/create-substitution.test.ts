@@ -6,7 +6,7 @@ import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 import { server } from "@test/support/msw/server";
 
 describe("createSubstitution", () => {
-  const params = { gameId: "game-1", setIndex: 0, entryIndex: 2 };
+  const params = { gameId: "game-1", setIndex: 0 };
   const substitution = {
     id: "sub-1",
     at: "2026-10-27T01:02:03.000Z",
@@ -14,15 +14,13 @@ describe("createSubstitution", () => {
   const makeGame = (): GameView =>
     ({ sets: [{ entries: [] }] }) as unknown as GameView;
 
-  it("posts the substitution at the given set and entry index", async () => {
-    let sent: { si: string | null; ei: string | null; body: unknown } | null =
-      null;
+  it("posts the substitution to the given set", async () => {
+    let sent: { si: string | null; body: unknown } | null = null;
     server.use(
       http.post("/api/games/game-1/sets/substitutions", async ({ request }) => {
         const { searchParams } = new URL(request.url);
         sent = {
           si: searchParams.get("si"),
-          ei: searchParams.get("ei"),
           body: await request.json(),
         };
         return HttpResponse.json([{ id: "e1" }]);
@@ -31,7 +29,7 @@ describe("createSubstitution", () => {
 
     await createSubstitution(params, substitution, makeGame());
 
-    expect(sent).toEqual({ si: "0", ei: "2", body: substitution });
+    expect(sent).toEqual({ si: "0", body: substitution });
   });
 
   it("writes the returned entries onto the active set", async () => {

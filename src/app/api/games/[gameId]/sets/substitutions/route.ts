@@ -14,10 +14,9 @@ export const POST = (
     const substitution = CreateSubstitutionSchema.parse(await req.json());
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
-    const entryIndex = parseInt(searchParams.get("ei") || "0", 10);
 
     const entries = await createSubstitutionController({
-      params: { gameId, setIndex, entryIndex },
+      params: { gameId, setIndex },
       data: substitution,
     });
     return NextResponse.json(entries, { status: 200 });

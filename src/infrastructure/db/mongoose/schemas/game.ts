@@ -343,6 +343,10 @@ const entrySchema = new Schema<EntryDocument>(
 
 interface SetDocument extends Document {
   win: boolean;
+  startingLineups: {
+    home: LineupDocument;
+    away: LineupDocument;
+  };
   lineups: {
     home: LineupDocument;
     away: LineupDocument;
@@ -359,6 +363,10 @@ interface SetDocument extends Document {
 
 const setSchema = new Schema<SetDocument>({
   win: { type: Boolean },
+  startingLineups: {
+    home: { type: lineupSchema },
+    away: { type: lineupSchema },
+  },
   lineups: {
     home: { type: lineupSchema },
     away: { type: lineupSchema },

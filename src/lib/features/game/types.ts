@@ -189,6 +189,10 @@ export const EntryResponseSchema = z.discriminatedUnion("type", [
 
 export const SetResponseSchema = z.object({
   win: z.boolean().nullable(),
+  startingLineups: z.object({
+    home: LineupResponseSchema,
+    away: LineupResponseSchema.optional(),
+  }),
   lineups: z.object({
     home: LineupResponseSchema,
     away: LineupResponseSchema.optional(),

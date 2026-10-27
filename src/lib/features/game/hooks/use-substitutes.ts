@@ -32,7 +32,7 @@ const getGeneralModeSubstitutes = (
   const player = starting.find((p) => p.id === startingId);
 
   // 若此位置之球員已替補兩次，則無法再進行替補
-  if (player?.sub?.entryIndex?.out) return [];
+  if (player?.sub?.entryIndex?.out !== undefined) return [];
 
   // 若是替補球員，只能與原本的球員互換
   if (player?.sub?.entryIndex?.in !== undefined) {
@@ -72,13 +72,14 @@ const getEditingModeSubstitutes = (
   const { sub } = player;
 
   // 檢查此位置是否已使用完兩次替補
-  if (sub?.entryIndex?.out && sub.entryIndex.out < entryIndex) return [];
+  if ((sub?.entryIndex?.out ?? Infinity) < entryIndex) return [];
 
   // 若所編輯的時間點為替補狀態，則只能與原本的球員互換
   if ((sub?.entryIndex?.in ?? Infinity) < entryIndex) {
     return [
       players.find(
-        (p) => p.id === (sub?.entryIndex?.out ? player.id : sub?.id),
+        (p) =>
+          p.id === (sub?.entryIndex?.out !== undefined ? player.id : sub?.id),
       ),
     ];
   }

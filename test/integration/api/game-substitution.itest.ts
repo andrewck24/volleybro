@@ -52,7 +52,7 @@ describe("POST /api/games/:id/sets/substitutions", () => {
     const res = await callRoute(createSubstitution, {
       gameId: seeded.gameId,
       method: "POST",
-      query: { si: 0, ei: 0 },
+      query: { si: 0 },
       body: {
         id: "entry-sub-1",
         seq: 0,
@@ -75,7 +75,7 @@ describe("POST /api/games/:id/sets/substitutions", () => {
     const res = await callRoute(createSubstitution, {
       gameId: seeded.gameId,
       method: "POST",
-      query: { si: 0, ei: 0 },
+      query: { si: 0 },
       body: {
         id: "entry-sub-1",
         seq: 0,
@@ -100,7 +100,7 @@ describe("POST /api/games/:id/sets/substitutions", () => {
     const res = await callRoute(createSubstitution, {
       gameId: seeded.gameId,
       method: "POST",
-      query: { si: 0, ei: 1 },
+      query: { si: 0 },
       body: {
         id: "entry-sub-1",
         seq: 1,
@@ -127,5 +127,49 @@ describe("POST /api/games/:id/sets/substitutions", () => {
       id: seeded.playerIds[0],
       sub: { id: benchId, entryIndex: { in: 1 } },
     });
+  });
+
+  const substitution = {
+    id: "entry-sub-1",
+    seq: 1,
+    at: "2026-03-01T10:01:00.000Z",
+    team: Side.HOME,
+  };
+
+  it("leaves the lineup as it was when the same substitution is sent again", async () => {
+    const body = {
+      ...substitution,
+      players: { in: benchId, out: seeded.playerIds[0] },
+    };
+    const send = () =>
+      callRoute(createSubstitution, {
+        gameId: seeded.gameId,
+        method: "POST",
+        query: { si: 0 },
+        body,
+      });
+
+    expect((await send()).status).toBe(200);
+    const once = (await repo().findById(seeded.gameId))!.sets[0]!;
+    expect((await send()).status).toBe(200);
+    const twice = (await repo().findById(seeded.gameId))!.sets[0]!;
+
+    expect(twice.lineups).toEqual(once.lineups);
+    expect(twice.entries).toHaveLength(1);
+    expect(twice.lineups.home.starting[0]).toMatchObject({ id: benchId });
+  });
+
+  it("rejects a substitution whose outgoing player is not on court and changes nothing", async () => {
+    const res = await callRoute(createSubstitution, {
+      gameId: seeded.gameId,
+      method: "POST",
+      query: { si: 0 },
+      body: { ...substitution, players: { in: benchId, out: oid() } },
+    });
+
+    expect(res.status).toBe(400);
+    const set = (await repo().findById(seeded.gameId))!.sets[0]!;
+    expect(set.entries).toHaveLength(0);
+    expect(set.lineups).toEqual(set.startingLineups);
   });
 });

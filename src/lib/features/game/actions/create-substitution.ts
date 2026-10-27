@@ -6,16 +6,16 @@ import type {
 } from "@/lib/features/game/types";
 
 export const createSubstitution = async (
-  params: { gameId: string; setIndex: number; entryIndex: number },
+  params: { gameId: string; setIndex: number },
   substitution: SubstitutionView & { at: string },
   game: GameView,
 ) => {
-  const { gameId, setIndex, entryIndex } = params;
+  const { gameId, setIndex } = params;
   // A thrown request error propagates as-is, letting the optimistic SWR
   // mutate roll back to the previous game instead of caching `undefined`
   // (which would crash every `game!` reader).
   const entries = await apiClient<EntryView[]>(
-    `/api/games/${gameId}/sets/substitutions?si=${setIndex}&ei=${entryIndex}`,
+    `/api/games/${gameId}/sets/substitutions?si=${setIndex}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

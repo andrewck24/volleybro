@@ -1,21 +1,20 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { NotFoundError, GameReason } from "@/entities/errors";
+import { NotFoundError, ValidationError, GameReason } from "@/entities/errors";
 import {
   type Entry,
   type EntryIdentity,
   type Substitution,
-  Side,
   createSubstitutionEntry,
+  recomputeLineups,
 } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
-import { type Lineup } from "@/entities/team";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
 export interface ICreateSubstitutionInput {
-  params: { gameId: string; setIndex: number; entryIndex: number };
+  params: { gameId: string; setIndex: number };
   data: Substitution & EntryIdentity & { at: Date };
 }
 
@@ -56,69 +55,22 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
     if (!set)
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
 
-    const side = substitution.team === Side.HOME ? "home" : "away";
-    const lineup = set.lineups[side];
-    if (!lineup)
-      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Lineup not found");
-
-    this.updateLineup(lineup, substitution, params.entryIndex);
-
-    return this.gameRepository.upsertEntry(
-      { gameId: params.gameId, setIndex: params.setIndex },
-      [{ entry: createSubstitutionEntry(substitution), at }],
-      operator.id,
-      { [side]: lineup },
-    );
-  }
-
-  private updateLineup(
-    lineup: Lineup,
-    substitution: Substitution,
-    entryIndex: number,
-  ) {
-    const startingIndex = lineup.starting.findIndex(
-      (p) => p.id?.toString() === substitution.players.out,
-    );
-    const subIndex = lineup.substitutes.findIndex(
-      (p) => p.id?.toString() === substitution.players.in,
-    );
-
-    const startingPlayer = lineup.starting[startingIndex];
-    const subPlayer = lineup.substitutes[subIndex];
-    if (!startingPlayer || !subPlayer)
-      throw new NotFoundError(
-        GameReason.STALE_LINEUP,
+    const entry = createSubstitutionEntry(substitution);
+    const { lineups, invalid } = recomputeLineups(set.startingLineups, [
+      ...set.entries.filter((e) => e.id !== entry.id),
+      entry,
+    ]);
+    if (invalid)
+      throw new ValidationError(
+        GameReason.INVALID_SUBSTITUTION,
         "Substitution player not found in lineup",
       );
 
-    lineup.starting[startingIndex] = {
-      id: substitution.players.in,
-      position: startingPlayer.position,
-      sub: {
-        id: substitution.players.out,
-        entryIndex:
-          startingPlayer.sub?.entryIndex?.in !== undefined
-            ? {
-                ...startingPlayer.sub.entryIndex,
-                out: entryIndex,
-              }
-            : { in: entryIndex },
-      },
-    };
-
-    lineup.substitutes[subIndex] = {
-      ...subPlayer,
-      id: substitution.players.out,
-      sub: {
-        id: substitution.players.in,
-        entryIndex:
-          subPlayer.sub?.entryIndex?.in !== undefined
-            ? {
-                ...subPlayer.sub.entryIndex,
-                out: entryIndex,
-              }
-            : { in: entryIndex },
-      },
-    };
+    return this.gameRepository.upsertEntry(
+      { gameId: params.gameId, setIndex: params.setIndex },
+      [{ entry, at }],
+      operator.id,
+      lineups,
+    );
   }
 }

@@ -31,7 +31,7 @@ describe("CreateSubstitutionUseCase", () => {
 
     await expect(
       useCase.execute({
-        params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
+        params: { gameId: "game-1", setIndex: 0 },
         data: {} as unknown as Substitution & EntryIdentity & { at: Date },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
@@ -50,13 +50,13 @@ describe("CreateSubstitutionUseCase", () => {
 
     await expect(
       useCase.execute({
-        params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
+        params: { gameId: "game-1", setIndex: 0 },
         data: {} as unknown as Substitution & EntryIdentity & { at: Date },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("throws NotFoundError when the substitution players are not in the lineup", async () => {
+  it("rejects a substitution whose players do not fit the lineup", async () => {
     mockGameRepository.findById.mockResolvedValue(createGame());
     const useCase = new CreateSubstitutionUseCase(
       mockGameRepository,
@@ -66,7 +66,7 @@ describe("CreateSubstitutionUseCase", () => {
 
     await expect(
       useCase.execute({
-        params: { gameId: "game-1", setIndex: 0, entryIndex: 1 },
+        params: { gameId: "game-1", setIndex: 0 },
         data: {
           team: Side.HOME,
           players: { in: "p-in", out: "p-out" },
@@ -76,7 +76,7 @@ describe("CreateSubstitutionUseCase", () => {
         },
       }),
     ).rejects.toThrow(
-      expect.objectContaining({ reason: GameReason.STALE_LINEUP }),
+      expect.objectContaining({ reason: GameReason.INVALID_SUBSTITUTION }),
     );
   });
 });

@@ -135,6 +135,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "名單已變動",
     description: "這位球員已不在出賽名單中，請重新整理後再試",
   },
+  INVALID_SUBSTITUTION: {
+    title: "換人與目前陣容不符",
+    description: "被換下的球員不在場上，或換上的球員不在替補席",
+  },
   SET_NOT_FOUND: {
     title: "找不到這一局",
     description: "比賽資料可能已變動，請重新整理後再試",

@@ -52,7 +52,7 @@ export const Substitutes = ({
       // the server; awaiting afterwards is what routes a rejection into the
       // catch below rather than leaving it unhandled.
       const write = mutate(
-        createSubstitution({ gameId, setIndex, entryIndex }, entry, game!),
+        createSubstitution({ gameId, setIndex }, entry, game!),
         {
           revalidate: false,
           optimisticData: createSubstitutionHelper(

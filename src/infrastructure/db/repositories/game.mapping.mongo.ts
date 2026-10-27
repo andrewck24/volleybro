@@ -33,6 +33,7 @@ type RawEntry = {
   players?: { in?: RawRef; out?: RawRef };
 } & Record<string, unknown>;
 export type RawSet = {
+  startingLineups?: { home?: RawLineup; away?: RawLineup };
   lineups?: { home?: RawLineup; away?: RawLineup };
   entries?: RawEntry[];
 } & Record<string, unknown>;
@@ -124,8 +125,19 @@ export function mapEntryRead(raw: RawEntry) {
 }
 
 function mapSetRead(set: RawSet) {
+  if (!set.startingLineups?.home)
+    throw new ValidationError(
+      CommonReason.INVALID_INPUT,
+      "A set must have starting lineups",
+    );
   return {
     ...set,
+    startingLineups: {
+      home: toLineupRead(set.startingLineups.home),
+      away: set.startingLineups.away
+        ? toLineupRead(set.startingLineups.away)
+        : set.startingLineups.away,
+    },
     lineups: {
       home: toLineupRead(set.lineups?.home),
       away: set.lineups?.away
@@ -273,29 +285,32 @@ export function mapEntryWrite(
   return entry;
 }
 
+type RawLineupsWrite = {
+  home?: { starting?: unknown[] };
+  away?: { starting?: unknown[] };
+};
+
+function mapLineupsWrite(lineups: RawLineupsWrite | undefined) {
+  if (!lineups) return lineups;
+  return {
+    home: toLineupWrite(lineups.home as Parameters<typeof toLineupWrite>[0]),
+    away: lineups.away
+      ? toLineupWrite(lineups.away as Parameters<typeof toLineupWrite>[0])
+      : lineups.away,
+  };
+}
+
 function mapSetWrite(
   set: Record<string, unknown> & {
-    lineups?: {
-      home?: { starting?: unknown[] };
-      away?: { starting?: unknown[] };
-    };
+    startingLineups?: RawLineupsWrite;
+    lineups?: RawLineupsWrite;
     entries?: unknown[];
   },
 ) {
   return {
     ...set,
-    lineups: set.lineups
-      ? {
-          home: toLineupWrite(
-            set.lineups.home as Parameters<typeof toLineupWrite>[0],
-          ),
-          away: set.lineups.away
-            ? toLineupWrite(
-                set.lineups.away as Parameters<typeof toLineupWrite>[0],
-              )
-            : set.lineups.away,
-        }
-      : set.lineups,
+    startingLineups: mapLineupsWrite(set.startingLineups),
+    lineups: mapLineupsWrite(set.lineups),
     entries: (set.entries ?? []).map((e) =>
       mapEntryWrite(e as Record<string, unknown> & { type?: EntryType }),
     ),

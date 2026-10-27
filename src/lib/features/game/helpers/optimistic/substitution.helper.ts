@@ -1,4 +1,8 @@
-import { EntryType, Side, type EntryIdentity } from "@/entities/game";
+import {
+  EntryType,
+  recomputeLineups,
+  type EntryIdentity,
+} from "@/entities/game";
 import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 
 export const createSubstitutionHelper = (
@@ -7,56 +11,18 @@ export const createSubstitutionHelper = (
   game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;
-  const side = substitution.team === Side.HOME ? "home" : "away";
   // setIndex is the active set being recorded; guaranteed in bounds
   const set = game.sets[setIndex]!;
-  const lineup = set.lineups[side]!;
+  const entry = { type: EntryType.SUBSTITUTION, ...substitution } as const;
 
-  // Update lineup
-  const startingIndex = lineup.starting.findIndex(
-    (p) => p.id?.toString() === substitution.players.out,
-  );
-  const subIndex = lineup.substitutes.findIndex(
-    (p) => p.id?.toString() === substitution.players.in,
-  );
-  const starter = lineup.starting[startingIndex];
-  const substitute = lineup.substitutes[subIndex];
-  if (!starter || !substitute) return game;
+  const entries = set.entries.slice();
+  entries[entryIndex] = entry as (typeof entries)[number];
 
-  lineup.starting[startingIndex] = {
-    id: substitution.players.in,
-    position: starter.position,
-    sub: {
-      id: substitution.players.out,
-      entryIndex:
-        starter.sub?.entryIndex?.in !== undefined
-          ? {
-              ...starter.sub.entryIndex,
-              out: entryIndex,
-            }
-          : { in: entryIndex },
-    },
-  };
+  const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
+  if (invalid) return game;
 
-  lineup.substitutes[subIndex] = {
-    ...substitute,
-    id: substitution.players.out,
-    sub: {
-      id: substitution.players.in,
-      entryIndex:
-        substitute.sub?.entryIndex?.in !== undefined
-          ? {
-              ...substitute.sub.entryIndex,
-              out: entryIndex,
-            }
-          : { in: entryIndex },
-    },
-  };
-
-  set.entries[entryIndex] = {
-    type: EntryType.SUBSTITUTION,
-    ...substitution,
-  };
+  set.lineups = lineups;
+  set.entries = entries;
 
   return game;
 };

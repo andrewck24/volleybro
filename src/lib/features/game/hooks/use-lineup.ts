@@ -107,12 +107,11 @@ const getEditingModeLineup = (
     // Current game state shows this player is a substitute
     const isSub =
       player?.sub?.entryIndex?.in !== undefined &&
-      !player?.sub?.entryIndex?.out;
+      player?.sub?.entryIndex?.out === undefined;
     // At the editing point, this player was a substitute
     const wasSub =
       (player?.sub?.entryIndex?.in ?? Infinity) < entryIndex &&
-      (!player?.sub?.entryIndex?.out ||
-        player?.sub?.entryIndex?.out >= entryIndex);
+      (player?.sub?.entryIndex?.out ?? Infinity) >= entryIndex;
     // When a player (LineupPlayer) is substituted, their id and sub.id are swapped
     // So when isSub and wasSub are the same, it means no need to swap id and sub.id
     const toSwap = isSub === wasSub;

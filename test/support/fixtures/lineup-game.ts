@@ -59,6 +59,18 @@ export const createLineupGame = ({
 } = {}) => {
   const base = createGame();
   const [firstSet] = base.sets;
+  const lineups = {
+    home: {
+      options: { liberoReplaceMode: 0 as const, liberoReplacePosition },
+      starting: defaultPositions.map((position, i) => ({
+        id: `p${i + 1}`,
+        position,
+        ...starting[i],
+      })) as never,
+      liberos: liberos as never,
+      substitutes: [{ id: "s1" }, { id: "s2" }] as never,
+    },
+  };
   return createGame({
     teams: {
       ...base.teams,
@@ -76,18 +88,8 @@ export const createLineupGame = ({
       {
         ...firstSet!,
         options: { serve },
-        lineups: {
-          home: {
-            options: { liberoReplaceMode: 0, liberoReplacePosition },
-            starting: defaultPositions.map((position, i) => ({
-              id: `p${i + 1}`,
-              position,
-              ...starting[i],
-            })) as never,
-            liberos: liberos as never,
-            substitutes: [{ id: "s1" }, { id: "s2" }] as never,
-          },
-        },
+        startingLineups: lineups,
+        lineups,
         entries,
       },
     ],

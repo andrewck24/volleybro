@@ -31,22 +31,24 @@ describe("game reads and writes", () => {
   it("stores the sets an update writes with every player id readable as a string", async () => {
     const { gameId, playerIds } = await seedGame();
     const [scorer, incoming, outgoing] = playerIds as [string, string, string];
+    const lineups = {
+      home: {
+        options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+        starting: [{ id: scorer, position: "OH" }, { id: null }],
+        liberos: [],
+        substitutes: [],
+      },
+      away: {
+        options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+        starting: [],
+        liberos: [],
+        substitutes: [],
+      },
+    };
     const set = {
       win: null,
-      lineups: {
-        home: {
-          options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
-          starting: [{ id: scorer, position: "OH" }, { id: null }],
-          liberos: [],
-          substitutes: [],
-        },
-        away: {
-          options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
-          starting: [],
-          liberos: [],
-          substitutes: [],
-        },
-      },
+      startingLineups: lineups,
+      lineups,
       options: { serve: Side.HOME, time: { start: "10:00", end: "" } },
       entries: [
         createRecordedRally({

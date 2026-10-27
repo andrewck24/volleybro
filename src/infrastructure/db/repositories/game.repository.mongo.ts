@@ -142,15 +142,17 @@ export class GameRepositoryImpl implements IGameRepository {
     const { setIndex } = ref;
     const path = `sets.${setIndex}`;
     const guard = { _id: ref.gameId, [path]: { $exists: true } };
-    const setLineups = Object.entries(lineups ?? {}).map(
-      ([side, lineup]) =>
-        [
-          `${path}.lineups.${side}`,
-          toLineupWrite(
-            lineup as unknown as Parameters<typeof toLineupWrite>[0],
-          ),
-        ] as const,
-    );
+    const setLineups = Object.entries(lineups ?? {})
+      .filter(([, lineup]) => lineup)
+      .map(
+        ([side, lineup]) =>
+          [
+            `${path}.lineups.${side}`,
+            toLineupWrite(
+              lineup as unknown as Parameters<typeof toLineupWrite>[0],
+            ),
+          ] as const,
+      );
     const lineupSet = setLineups.length
       ? Object.fromEntries(setLineups)
       : undefined;

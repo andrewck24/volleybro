@@ -10,6 +10,15 @@ import { Provider } from "react-redux";
 
 import { server } from "@test/support/msw/server";
 
+const lineups = {
+  home: {
+    options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+    starting: [{ id: "p1", position: "OH" }],
+    liberos: [],
+    substitutes: [{ id: "p2", position: "" }],
+  },
+};
+
 const game = {
   id: "game-1",
   info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
@@ -24,14 +33,8 @@ const game = {
   sets: [
     {
       options: { serve: "home" },
-      lineups: {
-        home: {
-          options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
-          starting: [{ id: "p1", position: "OH" }],
-          liberos: [],
-          substitutes: [{ id: "p2", position: "" }],
-        },
-      },
+      startingLineups: lineups,
+      lineups,
       entries: [],
     },
   ],
@@ -39,15 +42,13 @@ const game = {
 
 describe("Substitutes.onSubmit", () => {
   it("posts the substitution and tells the recorder when the write fails", async () => {
-    let posted: { si: string | null; ei: string | null; body: unknown } | null =
-      null;
+    let posted: { si: string | null; body: unknown } | null = null;
     server.use(
       http.get("/api/games/game-1", () => HttpResponse.json(game)),
       http.post("/api/games/game-1/sets/substitutions", async ({ request }) => {
         const { searchParams } = new URL(request.url);
         posted = {
           si: searchParams.get("si"),
-          ei: searchParams.get("ei"),
           body: await request.json(),
         };
         return HttpResponse.error();
@@ -81,7 +82,6 @@ describe("Substitutes.onSubmit", () => {
     expect(Date.parse(at)).toBeLessThanOrEqual(after);
     expect(posted).toEqual({
       si: "0",
-      ei: "0",
       body: expect.objectContaining({ players: { in: "p2", out: "p1" } }),
     });
   });

@@ -27,6 +27,29 @@ describe("substitution.helper.ts", () => {
     sets: [
       {
         win: false,
+        startingLineups: {
+          home: {
+            options: {
+              liberoReplaceMode: 0,
+              liberoReplacePosition: Position.NONE,
+            },
+            starting: [
+              { id: "player-1", position: Position.OH },
+              { id: "player-2", position: Position.MB },
+            ],
+            liberos: [{ id: "player-7", position: Position.L }],
+            substitutes: [{ id: "player-8", position: Position.OH }],
+          },
+          away: {
+            options: {
+              liberoReplaceMode: 0,
+              liberoReplacePosition: Position.NONE,
+            },
+            starting: [{ id: "rival-1", position: Position.OH }],
+            liberos: [],
+            substitutes: [{ id: "rival-2", position: Position.OH }],
+          },
+        },
         lineups: {
           home: {
             options: {
@@ -150,30 +173,11 @@ describe("substitution.helper.ts", () => {
     test("should handle second substitution correctly", () => {
       const mockGame = createMockGame();
 
-      // Assume a previous substitution has already occurred
-      mockGame.sets[0]!.lineups.home.starting[0] = {
-        id: "player-8",
-        position: Position.OH,
-        sub: {
-          id: "player-1",
-          entryIndex: {
-            in: 1,
-            out: undefined,
-          },
-        },
-      };
-
-      mockGame.sets[0]!.lineups.home.substitutes[0] = {
-        id: "player-1",
-        position: Position.OH,
-        sub: {
-          id: "player-8",
-          entryIndex: {
-            in: 1,
-            out: undefined,
-          },
-        },
-      };
+      // The first substitution is already recorded at seq 1
+      mockGame.sets[0]!.entries.push({
+        type: EntryType.SUBSTITUTION,
+        ...mockSubstitution,
+      } as GameView["sets"][number]["entries"][number]);
 
       // Now perform a second substitution, original player returns to court
       const secondSubstitution: SubstitutionView & EntryIdentity = {

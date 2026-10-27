@@ -63,6 +63,7 @@ describe("game document mapping", () => {
       sets: [
         {
           win: null,
+          startingLineups: { home: { starting: [] } },
           lineups: {
             home: {
               options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
@@ -122,7 +123,7 @@ describe("game document mapping", () => {
         _id: new Types.ObjectId(),
         teamId: new Types.ObjectId(teamHexId),
         teams: {},
-        sets: [{ entries: [entry] }],
+        sets: [{ startingLineups: { home: {} }, entries: [entry] }],
       }) as unknown as RawGame;
 
     const storedRally = () => ({
@@ -135,6 +136,15 @@ describe("game document mapping", () => {
 
       expect(entry!.recordedBy).toBe(FIXTURE_RECORDER_ID);
       expect(entry!.recordedAt).toEqual(createRecordedRally().recordedAt);
+    });
+
+    it("rejects a set stored without starting lineups", () => {
+      const stored = storedGame(storedRally());
+      delete (stored.sets![0] as Record<string, unknown>).startingLineups;
+
+      expect(() => toGame(stored)).toThrow(
+        expect.objectContaining({ httpStatus: 400 }),
+      );
     });
 
     it.each(["recordedBy", "recordedAt"])(

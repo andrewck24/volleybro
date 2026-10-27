@@ -28,6 +28,7 @@ const rally = (seq: number, home: number, away: number) =>
 
 const finishedSet = (win: boolean, home: number, away: number) => ({
   win,
+  startingLineups: { home: { starting: [], liberos: [], substitutes: [] } },
   entries: [rally(0, 1, 0), rally(1, home, away)],
 });
 
