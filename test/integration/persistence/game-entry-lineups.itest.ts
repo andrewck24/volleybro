@@ -132,12 +132,12 @@ describe("the lineup a set stores with its entries", () => {
 
   it("keeps an existing set's entries and version when the next set is created", async () => {
     await write([substitution("sub-1", 1, benchIds[0]!)]);
-    const revOf = async () =>
+    const verOf = async () =>
       (await mongoose.connection
         .collection("games")
         .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) }))!.sets[0]
         .ver;
-    const before = await revOf();
+    const before = await verOf();
     expect(before).toBeGreaterThan(0);
 
     const created = await callRoute(createSet, {
@@ -148,7 +148,7 @@ describe("the lineup a set stores with its entries", () => {
     });
 
     expect(created.status).toBe(201);
-    expect(await revOf()).toBe(before);
+    expect(await verOf()).toBe(before);
     const game = await repo().findById(seeded.gameId);
     expect(game!.sets).toHaveLength(2);
     expect(game!.sets[0]!.entries.map((e) => e.id)).toEqual(["sub-1"]);
