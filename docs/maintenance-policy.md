@@ -10,7 +10,7 @@ See also: [Testing Strategy](./testing-strategy.md) · [Contributing Guide](../C
 
 When upgrading any package to a new major version:
 
-1. Create a **dedicated branch** (e.g., `chore/upgrade-jest-30`) — do not mix upgrade work with feature work
+1. Create a **dedicated branch** named by the `WORKFLOW.md` branch rules (e.g., `fast/upgrade-jest-30`) — do not mix upgrade work with feature work
 2. Read the package's official **migration guide** and apply all required changes
 3. Run the full test suite and fix all failures before merging
 4. Update any affected setup files (`test/setup/`, config files) if the upgrade changes their API
