@@ -22,10 +22,9 @@ import { AuthorizationService } from "@/infrastructure/services/auth/authorizati
 
 import { CreateGameUseCase } from "@/applications/usecases/game/create-game.usecase";
 import { CreateSetUseCase } from "@/applications/usecases/game/create-set.usecase";
-import { CreateSubstitutionUseCase } from "@/applications/usecases/game/create-substitution.usecase";
 import { FindGameSummariesUseCase } from "@/applications/usecases/game/find-game-summaries.usecase";
 import { FindGameUseCase } from "@/applications/usecases/game/find-game.usecase";
-import { RecordRalliesUseCase } from "@/applications/usecases/game/record-rallies.usecase";
+import { RecordEntriesUseCase } from "@/applications/usecases/game/record-entries.usecase";
 import { UpdateSetUseCase } from "@/applications/usecases/game/update-set.usecase";
 import { AcceptInvitationUseCase } from "@/applications/usecases/player/accept-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
@@ -118,11 +117,8 @@ container
 container.bind<CreateSetUseCase>(TYPES.CreateSetUseCase).to(CreateSetUseCase);
 container.bind<UpdateSetUseCase>(TYPES.UpdateSetUseCase).to(UpdateSetUseCase);
 container
-  .bind<RecordRalliesUseCase>(TYPES.RecordRalliesUseCase)
-  .to(RecordRalliesUseCase);
-container
-  .bind<CreateSubstitutionUseCase>(TYPES.CreateSubstitutionUseCase)
-  .to(CreateSubstitutionUseCase);
+  .bind<RecordEntriesUseCase>(TYPES.RecordEntriesUseCase)
+  .to(RecordEntriesUseCase);
 
 // player usecases
 container

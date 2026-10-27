@@ -1,6 +1,6 @@
-import { Side } from "@/entities/game";
+import { EntryType, Side } from "@/entities/game";
 import { Position, type Lineup } from "@/entities/team";
-import { POST as createSubstitution } from "@/app/api/games/[gameId]/sets/substitutions/route";
+import { PUT as recordEntries } from "@/app/api/games/[gameId]/sets/entries/route";
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -70,17 +70,20 @@ describe("PUT /api/games/:id/sets", () => {
         query: { si: 0 },
         body: { lineup: withBench, options },
       });
-      const sub = await callRoute(createSubstitution, {
+      const sub = await callRoute(recordEntries, {
         gameId: seeded.gameId,
-        method: "POST",
+        method: "PUT",
         query: { si: 0 },
-        body: {
-          id: "entry-sub-1",
-          seq: 0,
-          at: "2026-03-01T10:01:00.000Z",
-          team: Side.HOME,
-          players: { in: benchId, out: seeded.playerIds[0] },
-        },
+        body: [
+          {
+            type: EntryType.SUBSTITUTION,
+            id: "entry-sub-1",
+            seq: 0,
+            at: "2026-03-01T10:01:00.000Z",
+            team: Side.HOME,
+            players: { in: benchId, out: seeded.playerIds[0] },
+          },
+        ],
       });
       expect(sub.status).toBe(200);
     });

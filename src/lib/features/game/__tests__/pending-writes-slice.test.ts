@@ -1,3 +1,4 @@
+import { EntryType } from "@/entities/game";
 import {
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
   deriveSyncStatus,
@@ -19,7 +20,14 @@ import {
 } from "@jest/globals";
 
 const entry = (id: string) =>
-  ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
+  ({
+    type: EntryType.RALLY,
+    id,
+    seq: 0,
+    win: true,
+    home: {},
+    away: {},
+  }) as PendingEntry["entry"];
 
 beforeEach(() => {
   jest.useFakeTimers().setSystemTime(1_000_000);
@@ -342,6 +350,53 @@ describe("pending order", () => {
     );
 
     expect(state.pending.map((p) => p.entry.id)).toEqual(["e1", "e2"]);
+  });
+
+  it("replaces a failed entry with the corrected one under the same id", () => {
+    const failed: PendingWritesState = {
+      storageUnavailable: false,
+      pending: [
+        {
+          ...seeded.pending[0]!,
+          attempts: 1,
+          nextAttemptAt: null,
+          lastError: {
+            code: "VALIDATION",
+            reason: "INVALID_SUBSTITUTION",
+            status: 400,
+          },
+        },
+      ],
+    };
+
+    const state = pendingWritesReducer(
+      failed,
+      pendingWritesActions.enqueued({
+        entry: { ...entry("e1"), win: false } as PendingEntry["entry"],
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    expect(state.pending).toHaveLength(1);
+    expect(state.pending[0]).toMatchObject({
+      entry: { id: "e1", win: false },
+      attempts: 0,
+    });
+    expect(state.pending[0]!.lastError).toBeUndefined();
+  });
+
+  it("keeps an entry that may still be sent when the same id is queued again", () => {
+    const state = pendingWritesReducer(
+      seeded,
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    expect(state.pending.map((p) => p.entry.id)).toEqual(["e1", "e1"]);
   });
 
   it("puts restored entries ahead of what is in memory", () => {

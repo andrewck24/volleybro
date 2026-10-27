@@ -2,6 +2,7 @@
 import { Container, MoveButton } from "@/components/game/panel/moves";
 import { useGame } from "@/hooks/use-data";
 import type { PendingWritesApi } from "@/hooks/use-pending-writes";
+import { EntryType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
   applyEntry,
@@ -31,6 +32,7 @@ export const useSubmitEntryDraft = (
   const create = () => {
     const entry = {
       ...(draft as RallyView),
+      type: EntryType.RALLY as const,
       id: crypto.randomUUID(),
       seq: entryIndex,
       at: new Date().toISOString(),
@@ -47,6 +49,7 @@ export const useSubmitEntryDraft = (
   const update = async () => {
     const entry = {
       ...(draft as RallyView),
+      type: EntryType.RALLY as const,
       id: draft.id,
       seq: draft.seq,
       at: new Date().toISOString(),

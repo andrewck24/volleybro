@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import type { IRecordRalliesUseCase } from "@/applications/usecases/game/record-rallies.usecase";
-import { MoveType } from "@/entities/game";
+import type { IRecordEntriesUseCase } from "@/applications/usecases/game/record-entries.usecase";
+import { EntryType, MoveType } from "@/entities/game";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
@@ -44,11 +44,12 @@ describe("a set-result write that fails after the deciding rally is stored", () 
     let output;
     try {
       output = await container
-        .get<IRecordRalliesUseCase>(TYPES.RecordRalliesUseCase)
+        .get<IRecordEntriesUseCase>(TYPES.RecordEntriesUseCase)
         .execute({
           params: { gameId: seeded.gameId, setIndex: 0 },
           data: [
             {
+              type: EntryType.RALLY,
               id: "deciding",
               seq: 0,
               at: new Date(),

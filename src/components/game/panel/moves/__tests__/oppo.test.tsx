@@ -12,7 +12,7 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { useSWRConfig } from "swr";
 
-import { answerRallies } from "@test/support/msw/rallies";
+import { answerEntries } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
 
 const rally = {
@@ -67,7 +67,7 @@ const editFirstEntry = (game: ReturnType<typeof gameWith>) => {
 
 describe("useSubmitEntryDraft update path", () => {
   it("stays in editing mode and keeps the edit queued when the write fails", async () => {
-    const puts = answerRallies(() => HttpResponse.error());
+    const puts = answerEntries(() => HttpResponse.error());
     const { result } = await editFirstEntry(gameWith([rally]));
     act(() => {
       store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
@@ -88,7 +88,7 @@ describe("useSubmitEntryDraft update path", () => {
   });
 
   it("confirms the edit and returns to general mode once the write succeeds", async () => {
-    const puts = answerRallies(() =>
+    const puts = answerEntries(() =>
       HttpResponse.json({ entries: [{ id: "e1" }] }),
     );
     const { result } = await editFirstEntry(gameWith([rally]));
@@ -110,7 +110,7 @@ const sentAt = (put: { body: unknown }) =>
 
 describe("useSubmitEntryDraft action time", () => {
   it("stamps an edit with the moment it was made and resends it unchanged", async () => {
-    const puts = answerRallies(
+    const puts = answerEntries(
       () => HttpResponse.error(),
       () => HttpResponse.json({ entries: [{ id: "e1" }] }),
     );
@@ -134,7 +134,7 @@ describe("useSubmitEntryDraft action time", () => {
   });
 
   it("stamps a new rally with the moment it was created", async () => {
-    const puts = answerRallies(() =>
+    const puts = answerEntries(() =>
       HttpResponse.json({ entries: [{ id: "x" }] }),
     );
     store = makeStore();
@@ -168,7 +168,7 @@ describe("useSubmitEntryDraft against a cache the server has cut back", () => {
   it("writes the edited rally by its identity, leaving no gap in the cache", async () => {
     // The queue still holds e1 (unsent) while the server's copy of the set is
     // empty; a positional write would leave a hole at index 0.
-    answerRallies(() =>
+    answerEntries(() =>
       HttpResponse.json(
         { code: "VALIDATION", reason: "BAD_REQUEST" },
         { status: 400 },
@@ -206,7 +206,7 @@ describe("useSubmitEntryDraft against a cache the server has cut back", () => {
   });
 
   it("throws before queuing anything when the entry is not a rally", async () => {
-    const puts = answerRallies(() => HttpResponse.json({ entries: [] }));
+    const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     const timeout = {
       id: "e1",
       seq: 0,

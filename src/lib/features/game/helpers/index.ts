@@ -8,12 +8,12 @@ import {
   assertRallyAt,
   deriveEntryPhase,
 } from "@/lib/features/game/helpers/optimistic/rally.helper";
-import { createSubstitutionHelper } from "@/lib/features/game/helpers/optimistic/substitution.helper";
+import { applySubstitution } from "@/lib/features/game/helpers/optimistic/substitution.helper";
 
 export {
   applyEntry,
   assertRallyAt,
-  createSubstitutionHelper,
+  applySubstitution,
   deriveEntryPhase,
   getPreviousScores,
   getSetLineup,

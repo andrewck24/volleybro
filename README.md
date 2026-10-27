@@ -150,7 +150,7 @@ Crossing a boundary inward uses **dependency inversion**: the Use Cases layer de
 src/
 ├── entities/         # Domain layer — User, Team, Player, Profile, Game
 ├── applications/     # Application layer
-│   ├── usecases/     #   Business use cases (CreateGame, RecordRallies, …)
+│   ├── usecases/     #   Business use cases (CreateGame, RecordEntries, …)
 │   ├── repositories/ #   Abstract data-access interfaces
 │   └── services/     #   Abstract external-service interfaces
 ├── interface/        # Interface layer — controllers orchestrating use cases

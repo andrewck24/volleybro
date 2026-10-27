@@ -304,7 +304,7 @@ describe("SyncIndicator", () => {
       release = resolve;
     });
     server.use(
-      http.put("/api/games/game-1/sets/rallies", async () => {
+      http.put("/api/games/game-1/sets/entries", async () => {
         await gate;
         return HttpResponse.json({ entries: [{ id: "e1" }] });
       }),
@@ -330,7 +330,7 @@ describe("SyncIndicator", () => {
   it("retry sends the queued rally, closes the popover, and acknowledges the recovery", async () => {
     const sent: { si: string | null; body: unknown }[] = [];
     server.use(
-      http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
         sent.push({
           si: new URL(request.url).searchParams.get("si"),
           body: await request.json(),
@@ -364,7 +364,7 @@ describe("SyncIndicator", () => {
   it("counts and clears entries from every pending set of this game, not just the current one", async () => {
     const sent: { si: string | null; ids: string[] }[] = [];
     server.use(
-      http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
         const entries = (await request.json()) as { id: string }[];
         sent.push({
           si: new URL(request.url).searchParams.get("si"),

@@ -249,12 +249,12 @@ export type ChallengeView = z.infer<typeof ChallengeResponseSchema>;
 export type EntryView = z.infer<typeof EntryResponseSchema>;
 
 /**
- * The rally endpoint's response: entries land whenever the entry write
+ * The entries endpoint's response: entries land whenever the entry write
  * succeeds, and `setCompletionConfirmed` is only present when a set result
  * was attempted, stating whether that second write landed. Undefined means
  * no set result was attempted for this write.
  */
-export type RecordRalliesResponse = {
+export type RecordEntriesResponse = {
   entries: EntryView[];
   setCompletionConfirmed?: boolean;
 };
@@ -367,7 +367,7 @@ export type ReduxGameState = {
   };
 };
 
-// For the pending-write queue: unconfirmed rally writes, kept in their own
+// For the pending-write queue: unconfirmed entry writes, kept in their own
 // slice because their lifetime differs from the per-set draft above.
 // The part of a failed write worth keeping. `detail` and `message` are absent
 // on purpose: they move with copy and translation, and nothing can act on them.
@@ -378,10 +378,16 @@ export type WriteError = {
 };
 
 // `at` is the action time the client decided once; every resend carries it.
-export type PendingRally = RallyView & EntryIdentity & { at: string };
+// The shape is what the entries endpoint takes, so a queued entry is sent as it
+// is held.
+export type PendingEntryContent = (
+  | (RallyView & { type: EntryType.RALLY })
+  | (SubstitutionView & { type: EntryType.SUBSTITUTION })
+) &
+  EntryIdentity & { at: string };
 
 export type PendingEntry = {
-  entry: PendingRally;
+  entry: PendingEntryContent;
   gameId: string;
   setIndex: number;
   attempts: number;
@@ -415,9 +421,18 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
   version: z.number(),
   items: z.array(
     z.object({
-      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema).extend({
-        at: z.string(),
-      }),
+      entry: z.discriminatedUnion("type", [
+        z
+          .object({ type: z.literal(EntryType.RALLY) })
+          .merge(EntryIdentityResponseSchema)
+          .merge(RallyResponseSchema)
+          .extend({ at: z.string() }),
+        z
+          .object({ type: z.literal(EntryType.SUBSTITUTION) })
+          .merge(EntryIdentityResponseSchema)
+          .merge(SubstitutionResponseSchema)
+          .extend({ at: z.string() }),
+      ]),
       gameId: z.string(),
       setIndex: z.number(),
       lastError: z

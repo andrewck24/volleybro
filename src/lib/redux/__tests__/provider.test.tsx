@@ -1,4 +1,4 @@
-import { MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { PENDING_WRITES_KEY } from "@/lib/features/game/pending-writes-storage";
 import type {
@@ -19,6 +19,7 @@ import { useSelector } from "react-redux";
 // mounted cold once per file -- which is what a cold start is.
 
 const entry = (id: string): PendingEntry["entry"] => ({
+  type: EntryType.RALLY,
   id,
   seq: 0,
   at: "2026-10-27T01:02:03.000Z",

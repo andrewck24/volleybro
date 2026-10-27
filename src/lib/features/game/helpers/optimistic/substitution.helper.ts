@@ -1,28 +1,22 @@
-import {
-  EntryType,
-  recomputeLineups,
-  type EntryIdentity,
-} from "@/entities/game";
-import type { GameView, SubstitutionView } from "@/lib/features/game/types";
+import { recomputeLineups, upsertEntries } from "@/entities/game";
+import type { GameView, PendingEntryContent } from "@/lib/features/game/types";
 
-export const createSubstitutionHelper = (
-  params: { gameId: string; setIndex: number; entryIndex: number },
-  substitution: SubstitutionView & EntryIdentity,
+/**
+ * The game with the substitution recorded and the lineup recomputed, or null
+ * when the lineup rules refuse it. The same check the server makes, so a
+ * refused write is stopped before it is queued.
+ */
+export const applySubstitution = (
   game: GameView,
-) => {
-  const { setIndex, entryIndex } = params;
-  // setIndex is the active set being recorded; guaranteed in bounds
+  setIndex: number,
+  entry: Extract<PendingEntryContent, { team: unknown }>,
+): GameView | null => {
   const set = game.sets[setIndex]!;
-  const entry = { type: EntryType.SUBSTITUTION, ...substitution } as const;
-
-  const entries = set.entries.slice();
-  entries[entryIndex] = entry as (typeof entries)[number];
-
+  const entries = upsertEntries(set.entries, [entry]);
   const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
-  if (invalid) return game;
+  if (invalid) return null;
 
-  set.lineups = lineups;
-  set.entries = entries;
-
-  return game;
+  const sets = game.sets.slice();
+  sets[setIndex] = { ...set, entries, lineups };
+  return { ...game, sets };
 };

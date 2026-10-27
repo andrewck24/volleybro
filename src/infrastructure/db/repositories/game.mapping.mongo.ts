@@ -124,7 +124,7 @@ export function mapEntryRead(raw: RawEntry) {
   return entry;
 }
 
-function mapSetRead(set: RawSet) {
+export function mapSetRead(set: RawSet) {
   if (!set.startingLineups?.home)
     throw new ValidationError(
       CommonReason.INVALID_INPUT,

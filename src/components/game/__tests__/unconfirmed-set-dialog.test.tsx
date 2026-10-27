@@ -110,7 +110,7 @@ describe("UnconfirmedSetDialog", () => {
     let sent: unknown;
     let url!: URL;
     server.use(
-      http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
         url = new URL(request.url);
         sent = await request.json();
         return HttpResponse.json({

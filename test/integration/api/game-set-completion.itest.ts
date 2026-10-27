@@ -1,8 +1,8 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as recordEntries } from "@/app/api/games/[gameId]/sets/entries/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
@@ -16,6 +16,7 @@ const decidingRally = (
   homeWinsPoint: boolean,
   seq = 0,
 ) => ({
+  type: EntryType.RALLY,
   id: `entry-${homeScore}-${awayScore}`,
   seq,
   at: "2026-03-01T10:00:00.000Z",
@@ -46,7 +47,7 @@ describe("set and match completion", () => {
     });
     expect(created.status).toBe(201);
 
-    const res = await callRoute(createRally, {
+    const res = await callRoute(recordEntries, {
       gameId: seeded.gameId,
       method: "PUT",
       query: { si: setIndex },
@@ -89,7 +90,7 @@ describe("set and match completion", () => {
     });
     expect(created.status).toBe(201);
 
-    await callRoute(createRally, {
+    await callRoute(recordEntries, {
       gameId: seeded.gameId,
       method: "PUT",
       query: { si: 0 },
@@ -97,7 +98,7 @@ describe("set and match completion", () => {
     });
     expect((await repo().findById(seeded.gameId))!.sets[0]!.win).toBeNull();
 
-    await callRoute(createRally, {
+    await callRoute(recordEntries, {
       gameId: seeded.gameId,
       method: "PUT",
       query: { si: 0 },

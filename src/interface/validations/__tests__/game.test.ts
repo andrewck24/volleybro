@@ -1,10 +1,9 @@
-import { MatchCategory, MoveType, Side } from "@/entities/game";
+import { EntryType, MatchCategory, MoveType, Side } from "@/entities/game";
 import { scoringMoves } from "@/lib/scoring-moves";
 import {
   CreateGameSchema,
   CreateSetSchema,
-  CreateSubstitutionSchema,
-  RecordRalliesSchema,
+  RecordEntriesSchema,
 } from "../game";
 
 const OID = "507f1f77bcf86cd799439011";
@@ -21,6 +20,7 @@ const gameBody = () => ({
 });
 
 const rally = () => ({
+  type: EntryType.RALLY,
   id: "r1",
   seq: 0,
   at: "2026-03-01T10:00:00.000Z",
@@ -90,40 +90,40 @@ describe("CreateGameSchema", () => {
   });
 });
 
-describe("RecordRalliesSchema", () => {
+describe("RecordEntriesSchema", () => {
   it.each([
     ["turns the recorder's empty player id into null", "", null],
     ["leaves a real player id alone", OID, OID],
   ])("%s", (_label, sent, stored) => {
     const r = rally();
     (r.home as Record<string, unknown>).player = { id: sent, zone: 1 };
-    const [parsed] = RecordRalliesSchema.parse([r]);
-    expect(parsed?.home.player?.id).toBe(stored);
+    const [parsed] = RecordEntriesSchema.parse([r]);
+    expect(parsed).toMatchObject({ home: { player: { id: stored } } });
   });
 
   it("rejects a player id that is neither empty nor an ObjectId", () => {
     const r = rally();
     (r.home as Record<string, unknown>).player = { id: "nope", zone: 1 };
-    expect(() => RecordRalliesSchema.parse([r])).toThrow();
+    expect(() => RecordEntriesSchema.parse([r])).toThrow();
   });
 
   it("bounds num by the scoring-moves table", () => {
     const ok = rally();
     ok.home.num = scoringMoves.length - 1;
-    expect(() => RecordRalliesSchema.parse([ok])).not.toThrow();
+    expect(() => RecordEntriesSchema.parse([ok])).not.toThrow();
 
     const over = rally();
     over.home.num = scoringMoves.length;
-    expect(() => RecordRalliesSchema.parse([over])).toThrow();
+    expect(() => RecordEntriesSchema.parse([over])).toThrow();
   });
 
   it("rejects a time that is not an ISO 8601 instant", () => {
     const r = { ...rally(), at: "yesterday" };
-    expect(() => RecordRalliesSchema.parse([r])).toThrow();
+    expect(() => RecordEntriesSchema.parse([r])).toThrow();
   });
 
   it("rejects a body that is not an array", () => {
-    expect(() => RecordRalliesSchema.parse({})).toThrow();
+    expect(() => RecordEntriesSchema.parse({})).toThrow();
   });
 });
 
@@ -145,15 +145,29 @@ describe("CreateSetSchema", () => {
   });
 });
 
-describe("CreateSubstitutionSchema", () => {
+describe("RecordEntriesSchema substitutions", () => {
+  const substitution = () => ({
+    type: EntryType.SUBSTITUTION,
+    id: "s1",
+    seq: 0,
+    at: "2026-03-01T10:00:00.000Z",
+    team: Side.HOME,
+    players: { in: OID, out: OID },
+  });
+
+  it("takes a substitution beside a rally", () => {
+    expect(() =>
+      RecordEntriesSchema.parse([rally(), substitution()]),
+    ).not.toThrow();
+  });
+
   it("rejects an empty string for either substituted player", () => {
-    const body = {
-      id: "s1",
-      seq: 0,
-      at: "2026-03-01T10:00:00.000Z",
-      team: Side.HOME,
-      players: { in: "", out: OID },
-    };
-    expect(() => CreateSubstitutionSchema.parse(body)).toThrow();
+    const body = { ...substitution(), players: { in: "", out: OID } };
+    expect(() => RecordEntriesSchema.parse([body])).toThrow();
+  });
+
+  it("rejects an entry whose type it does not record", () => {
+    const body = { ...substitution(), type: EntryType.TIMEOUT };
+    expect(() => RecordEntriesSchema.parse([body])).toThrow();
   });
 });

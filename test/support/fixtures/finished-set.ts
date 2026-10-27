@@ -10,8 +10,8 @@ export const lastRally = {
   away: { score: 20, type: 2, num: 0 },
 };
 
-/** The same rally as the write queue holds it: the client sends no `type`. */
-export const { type: _type, ...pendingRally } = lastRally;
+/** The same rally as the write queue holds it, before the server stamps it. */
+export const pendingRally = lastRally;
 
 /** A one-set game whose recorded result is `win`, `null` while it is unconfirmed. */
 export const gameWithSet = (win: boolean | null): GameView =>

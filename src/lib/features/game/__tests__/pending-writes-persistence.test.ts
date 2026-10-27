@@ -1,4 +1,4 @@
-import { MoveType } from "@/entities/game";
+import { EntryType, MoveType, Side } from "@/entities/game";
 import { PENDING_WRITE_EXPIRY_MS } from "@/lib/features/game/pending-writes";
 import {
   probePendingWritesStorage,
@@ -6,6 +6,7 @@ import {
 } from "@/lib/features/game/pending-writes-persistence";
 import {
   PENDING_WRITES_KEY,
+  PENDING_WRITES_VERSION,
   localStoragePendingWrites,
   type PendingWritesStorage,
 } from "@/lib/features/game/pending-writes-storage";
@@ -20,6 +21,7 @@ const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
 // A real rally shape, not a cast: restore parses what it reads, so a fixture
 // that could never have been stored would not survive the round trip.
 const entry = (id: string): PendingEntry["entry"] => ({
+  type: EntryType.RALLY,
   id,
   seq: 0,
   at: "2026-10-27T01:02:03.000Z",
@@ -72,14 +74,14 @@ describe("pending-writes persistence", () => {
     );
     expect(saved).toHaveLength(1);
     expect(saved[0]).toEqual({
-      version: 1,
+      version: PENDING_WRITES_VERSION,
       items: [{ entry: entry("e1"), gameId: "game-1", setIndex: 0 }],
     });
 
     store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     await settled();
     expect(saved).toHaveLength(2);
-    expect(saved[1]).toEqual({ version: 1, items: [] });
+    expect(saved[1]).toEqual({ version: PENDING_WRITES_VERSION, items: [] });
   });
 
   it("writes the failure reason but neither the schedule nor what is on the wire", async () => {
@@ -261,7 +263,10 @@ describe("localStoragePendingWrites", () => {
   afterEach(() => localStorage.clear());
 
   it("has returned by the time the bytes are on disk", async () => {
-    const snapshot: PersistedQueue = { version: 1, items: [] };
+    const snapshot: PersistedQueue = {
+      version: PENDING_WRITES_VERSION,
+      items: [],
+    };
     const saving = localStoragePendingWrites.save(snapshot);
 
     // Read before awaiting: the synchronous setItem runs inside the async
@@ -276,7 +281,7 @@ describe("localStoragePendingWrites", () => {
     expect(await localStoragePendingWrites.load()).toBeNull();
 
     const snapshot: PersistedQueue = {
-      version: 1,
+      version: PENDING_WRITES_VERSION,
       items: [{ entry: entry("e1"), gameId: "game-1", setIndex: 0 }],
     };
     await localStoragePendingWrites.save(snapshot);
@@ -287,7 +292,10 @@ describe("localStoragePendingWrites", () => {
   });
 
   it("probes with its own key and leaves the queue's untouched", async () => {
-    const snapshot: PersistedQueue = { version: 1, items: [] };
+    const snapshot: PersistedQueue = {
+      version: PENDING_WRITES_VERSION,
+      items: [],
+    };
     await localStoragePendingWrites.save(snapshot);
 
     await expect(localStoragePendingWrites.probe()).resolves.toBeUndefined();
@@ -339,7 +347,10 @@ describe("localStoragePendingWrites", () => {
       });
 
     await expect(
-      localStoragePendingWrites.save({ version: 1, items: [] }),
+      localStoragePendingWrites.save({
+        version: PENDING_WRITES_VERSION,
+        items: [],
+      }),
     ).rejects.toThrow("QuotaExceededError");
 
     setItem.mockRestore();
@@ -429,12 +440,14 @@ describe("restorePendingWrites", () => {
   });
 
   it("puts a previous run's entries back, ready to send", async () => {
-    const store = makeStore(stored({ version: 1, items: [persisted("e1")] }));
+    const store = makeStore(
+      stored({ version: PENDING_WRITES_VERSION, items: [persisted("e1")] }),
+    );
 
     await restorePendingWrites(
       store.dispatch,
       stored({
-        version: 1,
+        version: PENDING_WRITES_VERSION,
         items: [persisted("e1")],
       }),
     );
@@ -465,7 +478,7 @@ describe("restorePendingWrites", () => {
     await restorePendingWrites(
       store.dispatch,
       stored({
-        version: 1,
+        version: PENDING_WRITES_VERSION,
         items: [persisted("e1"), persisted("e2")],
       }),
     );
@@ -487,7 +500,7 @@ describe("restorePendingWrites", () => {
     await restorePendingWrites(
       store.dispatch,
       stored({
-        version: 1,
+        version: PENDING_WRITES_VERSION,
         items: [{ ...persisted("e1"), setIndex: 0 }],
       }),
     );
@@ -502,7 +515,7 @@ describe("restorePendingWrites", () => {
     await restorePendingWrites(
       store.dispatch,
       stored({
-        version: 1,
+        version: PENDING_WRITES_VERSION,
         items: [
           persisted("transient", {
             code: "TRANSIENT",
@@ -550,6 +563,51 @@ describe("restorePendingWrites", () => {
     expect(store.getState().pendingWrites.pending).toEqual([]);
   });
 
+  it("drops a queue written before substitutions could be queued", async () => {
+    let cleared = false;
+    const storage: PendingWritesStorage = {
+      load: async () => ({
+        version: PENDING_WRITES_VERSION - 1,
+        items: [persisted("e1")],
+      }),
+      save: async () => {},
+      clear: async () => {
+        cleared = true;
+      },
+      probe: async () => {},
+    };
+    const store = makeStore(stored(null));
+
+    await restorePendingWrites(store.dispatch, storage);
+
+    expect(cleared).toBe(true);
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+  });
+
+  it("puts a queued substitution back as it was sent", async () => {
+    const substitution: PendingEntry["entry"] = {
+      type: EntryType.SUBSTITUTION,
+      id: "sub-1",
+      seq: 3,
+      at: "2026-10-27T01:02:03.000Z",
+      team: Side.HOME,
+      players: { in: "p2", out: "p1" },
+    };
+    const store = makeStore(stored(null));
+
+    await restorePendingWrites(
+      store.dispatch,
+      stored({
+        version: PENDING_WRITES_VERSION,
+        items: [{ entry: substitution, gameId: "game-1", setIndex: 0 }],
+      }),
+    );
+
+    expect(store.getState().pendingWrites.pending.map((p) => p.entry)).toEqual([
+      substitution,
+    ]);
+  });
+
   it("starts empty when there is nothing stored, and sends nothing", async () => {
     const store = makeStore(stored(null));
     const dispatch = jest.spyOn(store, "dispatch");
@@ -557,7 +615,7 @@ describe("restorePendingWrites", () => {
     await restorePendingWrites(store.dispatch, stored(null));
     await restorePendingWrites(
       store.dispatch,
-      stored({ version: 1, items: [] }),
+      stored({ version: PENDING_WRITES_VERSION, items: [] }),
     );
 
     expect(dispatch).not.toHaveBeenCalled();
@@ -571,7 +629,10 @@ describe("restorePendingWrites", () => {
     // Valid JSON, wrong shape. Storage is writable by anything on this
     // origin, and whatever comes back goes on to be sent to the server.
     await restorePendingWrites(store.dispatch, {
-      load: async () => ({ version: 1, items: [{ gameId: "game-1" }] }),
+      load: async () => ({
+        version: PENDING_WRITES_VERSION,
+        items: [{ gameId: "game-1" }],
+      }),
       save: async () => {},
       clear: async () => {},
       probe: async () => {},
@@ -602,7 +663,7 @@ describe("restorePendingWrites", () => {
     await restorePendingWrites(store.dispatch, junk("{ not json"));
     await restorePendingWrites(
       store.dispatch,
-      junk({ version: 1, items: [{ gameId: "game-1" }] }),
+      junk({ version: PENDING_WRITES_VERSION, items: [{ gameId: "game-1" }] }),
     );
 
     expect(cleared).toHaveLength(2);
@@ -616,7 +677,7 @@ describe("restorePendingWrites", () => {
 
     await restorePendingWrites(store.dispatch, {
       ...stored({
-        version: 1,
+        version: PENDING_WRITES_VERSION,
         items: [{ entry: withoutAt as never, gameId: "game-1", setIndex: 0 }],
       }),
       clear: async () => {
@@ -688,7 +749,10 @@ describe("restorePendingWrites expiry", () => {
 
   const restore = async (items: PersistedQueue["items"]) => {
     const store = makeStore(stored(null));
-    await restorePendingWrites(store.dispatch, stored({ version: 1, items }));
+    await restorePendingWrites(
+      store.dispatch,
+      stored({ version: PENDING_WRITES_VERSION, items }),
+    );
     return store.getState().pendingWrites.pending.map((p) => p.entry.id);
   };
 
@@ -744,7 +808,7 @@ describe("restorePendingWrites expiry", () => {
     let cleared = false;
     const storage: PendingWritesStorage = {
       load: async () => ({
-        version: 1,
+        version: PENDING_WRITES_VERSION,
         items: [aged("stale", week + 1000, deleted)],
       }),
       save: async () => {},
@@ -767,7 +831,7 @@ describe("restorePendingWrites expiry", () => {
     const saved: PersistedQueue[] = [];
     const storage: PendingWritesStorage = {
       load: async () => ({
-        version: 1,
+        version: PENDING_WRITES_VERSION,
         items: [
           aged("stale", week + 1000, deleted),
           aged("live", 0, transient),

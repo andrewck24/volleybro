@@ -92,7 +92,6 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
     // `at` it was first sent with: the server then reads this as a resend of
     // the creation instead of an edit.
     const {
-      type: _type,
       recordedBy: _recordedBy,
       recordedAt,
       at,

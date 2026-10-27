@@ -1,10 +1,4 @@
-import type {
-  Entry,
-  EntryWrite,
-  Game,
-  GameSummary,
-  Set,
-} from "@/entities/game";
+import type { Entry, EntryWrite, Game, GameSummary } from "@/entities/game";
 
 export interface EntryRef {
   gameId: string;
@@ -28,14 +22,14 @@ export interface IGameRepository {
    *   a resend of the creation, so nothing is written;
    * - otherwise an edit: the content is replaced and `editedBy`/`editedAt`
    *   set; `recordedBy` and `recordedAt` never change.
-   * A substitution also changes who is on court, so the lineup the entry
-   * produces is written with it rather than after it.
+   * The set's current lineups are recomputed from its starting lineups and
+   * the entries it will hold, and written with them. A write that leaves a
+   * substitution invalid is refused whole with INVALID_SUBSTITUTION.
    */
   upsertEntry(
     ref: EntryRef,
     writes: EntryWrite[],
     operator: string,
-    lineups?: Partial<Set["lineups"]>,
   ): Promise<Entry[]>;
   /**
    * Records a set's result, and the match's when the match is decided. Both

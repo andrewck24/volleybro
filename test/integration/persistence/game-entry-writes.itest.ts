@@ -147,12 +147,13 @@ describe("identity-keyed entry writes", () => {
       other,
     );
     // The pre-read ran before the other create landed.
+    const internals = instance as unknown as {
+      findSet: (ref: unknown) => Promise<object>;
+    };
+    const set = await internals.findSet(ref);
     jest
-      .spyOn(
-        instance as unknown as { findSet: () => Promise<unknown> },
-        "findSet",
-      )
-      .mockResolvedValueOnce({ entries: [] });
+      .spyOn(internals, "findSet")
+      .mockResolvedValueOnce({ ...set, entries: [] });
 
     const entries = await instance.upsertEntry(
       ref,

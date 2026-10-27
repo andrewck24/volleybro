@@ -7,7 +7,7 @@ import {
 import { PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import type { PendingEntry } from "@/lib/features/game/types";
 
-import { answerRallies } from "@test/support/msw/rallies";
+import { answerEntries } from "@test/support/msw/entries";
 
 const entries = [
   { id: "e1", seq: 0, at: "2026-10-27T01:02:03.000Z" },
@@ -38,7 +38,7 @@ describe("flushPendingWrites", () => {
   });
 
   it("sends the whole batch in a single PUT to the rally endpoint", async () => {
-    const requests = answerRallies(() => HttpResponse.json(confirmed));
+    const requests = answerEntries(() => HttpResponse.json(confirmed));
 
     await flushPendingWrites("game-1", 3, entries);
 
@@ -46,7 +46,7 @@ describe("flushPendingWrites", () => {
   });
 
   it("succeeds without retrying when the first attempt succeeds", async () => {
-    const requests = answerRallies(() => HttpResponse.json(confirmed));
+    const requests = answerEntries(() => HttpResponse.json(confirmed));
 
     const result = await flushPendingWrites("game-1", 0, entries);
 
@@ -55,7 +55,7 @@ describe("flushPendingWrites", () => {
   });
 
   it("retries a retryable failure inline, then succeeds", async () => {
-    const requests = answerRallies(unavailable, unavailable, () =>
+    const requests = answerEntries(unavailable, unavailable, () =>
       HttpResponse.json(confirmed),
     );
 
@@ -70,7 +70,7 @@ describe("flushPendingWrites", () => {
   });
 
   it("reports a retryable failure once the inline attempts are exhausted", async () => {
-    const requests = answerRallies(unavailable);
+    const requests = answerEntries(unavailable);
 
     const promise = flushPendingWrites("game-1", 0, entries);
     for (const delay of PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS) {
@@ -85,7 +85,7 @@ describe("flushPendingWrites", () => {
   });
 
   it("does not retry a 4xx at all", async () => {
-    const requests = answerRallies(() =>
+    const requests = answerEntries(() =>
       HttpResponse.json(
         { code: "VALIDATION", reason: "INVALID_INPUT" },
         { status: 400 },

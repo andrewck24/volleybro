@@ -145,6 +145,7 @@ const queueRally = () =>
   store.dispatch(
     pendingWritesActions.enqueued({
       entry: {
+        type: EntryType.RALLY,
         id: "pending-1",
         seq: 1,
         at: "2026-10-27T01:02:03.000Z",

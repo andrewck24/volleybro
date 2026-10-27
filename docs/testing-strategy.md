@@ -164,7 +164,7 @@ Shared test code lives under `test/support/`, outside `src/`, so production tool
 | ----------- | ------------------------------------------------------------------------------- | ----------------------------------- |
 | `fixtures/` | Builders that return domain data, `createX(overrides?)`                         | `createGame`                        |
 | `doubles/`  | Mock repositories and services for use-case tests                               | `createMockTeamRepository`          |
-| `msw/`      | The MSW server and handlers for this application's own API                      | `answerRallies`                     |
+| `msw/`      | The MSW server and handlers for this application's own API                      | `answerEntries`                     |
 | `react/`    | Render wrappers and providers                                                   | `SwrIsolation`, `renderEditingGame` |
 | `http/`     | Request builders for route tests                                                | `routeRequest`                      |
 | `dom/`      | Walkers over rendered output                                                    | `collect`                           |

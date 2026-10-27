@@ -24,6 +24,15 @@ const moveStats = () => ({
   [MoveType.SETTING]: { success: 0, error: 0 },
 });
 
+const lineups = {
+  home: {
+    options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+    starting: ["p1", "p2", "p3", "p4", "p5", "p6"].map((id) => ({ id })),
+    liberos: [],
+    substitutes: [],
+  },
+};
+
 const makeMockGame = () => ({
   id: "game-1",
   win: null,
@@ -33,14 +42,8 @@ const makeMockGame = () => ({
     {
       win: null,
       options: { serve: "home" },
-      lineups: {
-        home: {
-          options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
-          starting: ["p1", "p2", "p3", "p4", "p5", "p6"].map((id) => ({ id })),
-          liberos: [],
-          substitutes: [],
-        },
-      },
+      startingLineups: lineups,
+      lineups,
       entries: [
         {
           type: EntryType.RALLY,
@@ -105,7 +108,7 @@ const setUpGame = () => {
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(game)),
     // The server appends what it is sent and answers with the set's entries.
-    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+    http.put("/api/games/game-1/sets/entries", async ({ request }) => {
       const sent = (await request.json()) as typeof puts;
       puts.push(...sent);
       game.sets[0]!.entries.push(

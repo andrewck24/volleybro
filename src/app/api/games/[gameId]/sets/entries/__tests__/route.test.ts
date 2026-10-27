@@ -4,13 +4,13 @@ import {
 } from "@test/support/http/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-import { MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 
-const mockRecordRalliesController =
+const mockRecordEntriesController =
   jest.fn<(input: unknown) => Promise<unknown>>();
 
-jest.mock("@/interface/controllers/game/rally.controller", () => ({
-  recordRalliesController: mockRecordRalliesController,
+jest.mock("@/interface/controllers/game/entry.controller", () => ({
+  recordEntriesController: mockRecordEntriesController,
 }));
 
 jest.mock("@/lib/auth", () => ({
@@ -26,7 +26,7 @@ let PUT: (
   props: { params: Promise<{ gameId: string }> },
 ) => Promise<RouteResponse>;
 
-describe("PUT /api/games/[gameId]/sets/rallies", () => {
+describe("PUT /api/games/[gameId]/sets/entries", () => {
   beforeEach(async () => {
     jest.resetModules();
     jest.clearAllMocks();
@@ -36,7 +36,7 @@ describe("PUT /api/games/[gameId]/sets/rallies", () => {
   it("returns 400 when the body is not an array", async () => {
     const consoleSpy = silenceConsoleError();
     const req = routeRequest(
-      `http://localhost/api/games/${VALID_OBJECT_ID}/sets/rallies`,
+      `http://localhost/api/games/${VALID_OBJECT_ID}/sets/entries`,
       "PUT",
       {},
     );
@@ -47,11 +47,12 @@ describe("PUT /api/games/[gameId]/sets/rallies", () => {
 
     expect(res.status).toBe(400);
     expect(body.code).toBe("VALIDATION");
-    expect(mockRecordRalliesController).not.toHaveBeenCalled();
+    expect(mockRecordEntriesController).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
   const rally = (overrides: Record<string, unknown> = {}) => ({
+    type: EntryType.RALLY,
     id: "entry-1",
     seq: 0,
     at: "2026-03-01T10:00:00.000Z",
@@ -64,7 +65,7 @@ describe("PUT /api/games/[gameId]/sets/rallies", () => {
   const put = (body: unknown) =>
     PUT(
       routeRequest(
-        `http://localhost/api/games/${VALID_OBJECT_ID}/sets/rallies`,
+        `http://localhost/api/games/${VALID_OBJECT_ID}/sets/entries`,
         "PUT",
         body,
       ) as never,
@@ -103,7 +104,7 @@ describe("PUT /api/games/[gameId]/sets/rallies", () => {
         code: "VALIDATION",
         reason: "INVALID_INPUT",
       });
-      expect(mockRecordRalliesController).not.toHaveBeenCalled();
+      expect(mockRecordEntriesController).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     },
   );

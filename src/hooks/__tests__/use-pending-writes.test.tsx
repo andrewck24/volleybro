@@ -7,7 +7,7 @@ import {
   usePendingWrites,
   usePendingWritesContext,
 } from "@/hooks/use-pending-writes";
-import { EntryType } from "@/entities/game";
+import { EntryType, Side } from "@/entities/game";
 import {
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
   PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS,
@@ -17,24 +17,39 @@ import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 
-import { answerRallies, type RallyPut } from "@test/support/msw/rallies";
+import { answerEntries, type EntryPut } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
 
 const entry = (id: string) =>
-  ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
+  ({
+    type: EntryType.RALLY,
+    id,
+    seq: 0,
+    win: true,
+    home: {},
+    away: {},
+  }) as PendingEntry["entry"];
 
-const rally = (id: string) => ({ type: EntryType.RALLY, ...entry(id) });
+const lineup = {
+  options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+  starting: [{ id: "p1", position: "OH" }],
+  liberos: [],
+  substitutes: [{ id: "p2", position: "OH" }],
+};
+const emptySet = () => ({
+  win: null,
+  startingLineups: { home: lineup },
+  lineups: { home: lineup },
+  entries: [],
+});
 
 const storedGame = () => ({
   id: "game-1",
   win: null,
-  sets: [
-    { win: null, entries: [] },
-    { win: null, entries: [] },
-  ],
+  sets: [emptySet(), emptySet()],
 });
 
-const confirmed = (...ids: string[]) => ({ entries: ids.map(rally) });
+const confirmed = (...ids: string[]) => ({ entries: ids.map(entry) });
 
 const unavailable = () =>
   HttpResponse.json(
@@ -52,10 +67,10 @@ const serve = (
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(storedGame())),
   );
-  return answerRallies(({ si }, n) => respond({ si: Number(si), n }));
+  return answerEntries(({ si }, n) => respond({ si: Number(si), n }));
 };
 
-const sent = (puts: RallyPut[]) =>
+const sent = (puts: EntryPut[]) =>
   puts.map(({ si, body }) => ({
     si: Number(si),
     ids: (body as { id: string }[]).map((e) => e.id),
@@ -127,7 +142,7 @@ describe("usePendingWrites", () => {
     expect(sent(puts)).toEqual([{ si: 0, ids: ["e1"] }]);
     expect(pendingIds()).toEqual([]);
     await waitFor(() =>
-      expect(result.current.game.game?.sets[0]?.entries).toEqual([rally("e1")]),
+      expect(result.current.game.game?.sets[0]?.entries).toEqual([entry("e1")]),
     );
   });
 
@@ -154,6 +169,83 @@ describe("usePendingWrites", () => {
     });
 
     expect(store.getState().setCompletion["game-1:0"]).toBe(expected);
+  });
+
+  describe("a queued substitution", () => {
+    const substitution = {
+      type: EntryType.SUBSTITUTION,
+      id: "sub-1",
+      seq: 1,
+      at: "2026-10-27T01:02:03.000Z",
+      team: Side.HOME,
+      players: { in: "p2", out: "p1" },
+    } as PendingEntry["entry"];
+
+    it("is sent as it was queued and leaves the queue once the server has it", async () => {
+      const puts = serve(() => HttpResponse.json({ entries: [substitution] }));
+      const { result } = renderQueue();
+
+      act(() => result.current.queue.enqueue(substitution));
+      await act(async () => {
+        await result.current.queue.flush();
+      });
+
+      expect(puts.map(({ body }) => body)).toEqual([[substitution]]);
+      expect(pendingIds()).toEqual([]);
+    });
+
+    it("stays queued as failed when the server refuses it, and is not retried", async () => {
+      const puts = serve(() =>
+        HttpResponse.json(
+          { code: "VALIDATION", reason: "INVALID_SUBSTITUTION" },
+          { status: 400 },
+        ),
+      );
+      const { result } = renderQueue();
+
+      act(() => result.current.queue.enqueue(substitution));
+      await act(async () => {
+        await result.current.queue.flush();
+      });
+
+      expect(puts).toHaveLength(1);
+      expect(pendingIds()).toEqual(["sub-1"]);
+      expect(store.getState().pendingWrites.pending[0]).toMatchObject({
+        nextAttemptAt: null,
+        lastError: { status: 400, reason: "INVALID_SUBSTITUTION" },
+      });
+    });
+
+    it("is retried in the background after a server error, like a rally", async () => {
+      jest.useFakeTimers({ doNotFake: ["nextTick"] });
+      try {
+        const puts = serve(({ n }) =>
+          n <= 3
+            ? unavailable()
+            : HttpResponse.json({ entries: [substitution] }),
+        );
+        const { result } = renderQueue();
+
+        act(() => result.current.queue.enqueue(substitution));
+        let flushed!: Promise<unknown>;
+        act(() => {
+          flushed = result.current.queue.flush();
+        });
+        await advanceUntilSettled(flushed);
+        expect(pendingIds()).toEqual(["sub-1"]);
+
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(
+            PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
+          );
+        });
+        await advanceUntil(() => pendingIds().length === 0);
+
+        expect(puts).toHaveLength(4);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   it("dedupes concurrent flush calls into a single in-flight request", async () => {

@@ -9,7 +9,7 @@ import type {
 // look somewhere else entirely, leaving the old snapshot unread, undiscarded
 // and unreachable -- so the version check below could never fire.
 export const PENDING_WRITES_KEY = "pending-writes";
-export const PENDING_WRITES_VERSION = 1;
+export const PENDING_WRITES_VERSION = 2;
 
 const PROBE_VALUE = "1";
 
