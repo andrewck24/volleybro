@@ -37,7 +37,7 @@ describe("flushPendingWrites", () => {
     jest.useRealTimers();
   });
 
-  it("sends the whole batch in a single PUT to the rally endpoint", async () => {
+  it("sends the whole batch with the set index", async () => {
     const requests = answerEntries(() => HttpResponse.json(confirmed));
 
     await flushPendingWrites("game-1", 3, entries);
