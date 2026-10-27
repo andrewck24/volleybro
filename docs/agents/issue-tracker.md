@@ -53,7 +53,7 @@ A cycle holds 20 points (cycles 2–4 averaged about 23; the figure is lowered f
 
 ## Per-Cycle maintenance
 
-Each Cycle runs one recurring tracker issue (title prefix `[Cycle]`) that reviews the repository, its dependencies and the issues waiting on outside conditions, and turns what it finds into tracked work; it is not a lifecycle step in `WORKFLOW.md`. Its description is the single home of the routine's steps, and Linear's recurrence setting is its schedule.
+Each Cycle runs one recurring tracker issue (title prefix `[Cycle]`) that reviews the repository, its dependency and security updates and the issues waiting on outside conditions, runs the Cycle retro, and turns what it finds into tracked work; it is not a lifecycle step in `WORKFLOW.md`. Its description is the single home of the routine's steps, and Linear's recurrence setting is its schedule.
 
 ## Grill decisions
 
