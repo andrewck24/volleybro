@@ -53,19 +53,17 @@ export class CreateSetUseCase implements ICreateSetUseCase {
 
     validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
 
-    if (params.setIndex === 0) delete game.teams.home.lineup;
-
     const startingLineups = { home: data.lineup };
-    game.sets[params.setIndex] = {
-      win: null,
-      startingLineups,
-      lineups: recomputeLineups(startingLineups, []).lineups,
-      options: data.options,
-      entries: [],
-    };
-
-    const updatedGame = await this.gameRepository.update(params.gameId, game);
-
-    return updatedGame;
+    return this.gameRepository.addSet(
+      params,
+      {
+        win: null,
+        startingLineups,
+        lineups: recomputeLineups(startingLineups, []).lineups,
+        options: data.options,
+        entries: [],
+      },
+      { clearTeamLineup: params.setIndex === 0 },
+    );
   }
 }

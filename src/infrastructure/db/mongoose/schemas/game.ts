@@ -380,7 +380,7 @@ const setSchema = new Schema<SetDocument>({
     },
   },
   entries: [entrySchema],
-  // Bumped by every set-level write so a write planned from a stale read
+  // Bumped by entry writes and updateSet, so a write planned from a stale read
   // matches nothing.
   rev: { type: Number, default: 0 },
 });

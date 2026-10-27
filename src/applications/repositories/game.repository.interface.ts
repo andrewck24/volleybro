@@ -21,6 +21,16 @@ export interface IGameRepository {
    */
   update(id: string, data: Partial<Game>): Promise<Game>;
   /**
+   * Appends a new set as the game's next, touching nothing else, so sets and
+   * entries written meanwhile are kept. `clearTeamLineup` also drops the home
+   * team's lineup, which the first set supersedes.
+   */
+  addSet(
+    ref: EntryRef,
+    set: Set,
+    options?: { clearTeamLineup?: boolean },
+  ): Promise<Game>;
+  /**
    * Replaces a set's options and, when given, its home starting lineup,
    * leaving every other field — entries included — as stored. The current
    * lineups are recomputed from the entries the set holds at write time; a
@@ -40,8 +50,8 @@ export interface IGameRepository {
    * - otherwise an edit: the content is replaced and `editedBy`/`editedAt`
    *   set; `recordedBy` and `recordedAt` never change.
    * The set's current lineups are recomputed from its starting lineups and
-   * the entries it will hold, and written with the last entry. A write that leaves a
-   * substitution invalid is refused whole with INVALID_SUBSTITUTION.
+   * the entries it will hold, and written with the last entry. A write that
+   * leaves a substitution invalid is refused whole with INVALID_SUBSTITUTION.
    */
   upsertEntry(
     ref: EntryRef,

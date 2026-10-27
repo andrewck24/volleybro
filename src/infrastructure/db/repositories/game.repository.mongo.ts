@@ -161,6 +161,35 @@ export class GameRepositoryImpl implements IGameRepository {
     throw new Error("Set writes kept losing to concurrent writes");
   }
 
+  async addSet(
+    { gameId, setIndex }: EntryRef,
+    set: Set,
+    { clearTeamLineup = false } = {},
+  ): Promise<Game> {
+    try {
+      const [doc] = toGameDoc({ sets: [set] }).sets as unknown[];
+      const result = await this.model.updateOne(
+        { _id: gameId, sets: { $size: setIndex } },
+        {
+          $push: { sets: doc },
+          ...(clearTeamLineup && { $unset: { "teams.home.lineup": "" } }),
+        },
+      );
+      if (result.matchedCount === 0) {
+        const game = await this.model.exists({ _id: gameId }).exec();
+        throw game
+          ? new ValidationError(
+              CommonReason.INVALID_INPUT,
+              "A set can only be added after the game's last set",
+            )
+          : new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
+      }
+      return (await this.findById(gameId))!;
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
   async updateSet(
     ref: EntryRef,
     { options, lineup }: { options: Set["options"]; lineup?: Lineup },
@@ -289,15 +318,12 @@ export class GameRepositoryImpl implements IGameRepository {
           );
         const lineupSet = lineupWrites(path, lineups);
 
-        // Each op is conditional on the revision the previous one left, so a
-        // set-level write landing in between (or an op that matches nothing)
-        // breaks the chain and everything after it matches nothing. The
-        // lineups ride on the last op, so they never run ahead of the entries.
+        // Each op is conditioned on the rev the previous op left; lineups go
+        // only on the last op, so they never lead the entries.
         const last = plan.length - 1;
         const ops = plan.map((step, i): AnyBulkWriteOperation<GameDocument> => {
           const filter = { ...guard, ...atRev(path, rev + i) };
           const bump = { [`${path}.rev`]: 1 };
-          const withLineups = i === last ? lineupSet : {};
           return "created" in step
             ? {
                 updateOne: {
@@ -313,7 +339,7 @@ export class GameRepositoryImpl implements IGameRepository {
                       },
                     },
                     $inc: bump,
-                    $set: withLineups,
+                    ...(i === last && { $set: lineupSet }),
                   },
                 },
               }
@@ -323,7 +349,7 @@ export class GameRepositoryImpl implements IGameRepository {
                   update: {
                     $set: {
                       [`${path}.entries.$[e]`]: step.edited,
-                      ...withLineups,
+                      ...(i === last && lineupSet),
                     },
                     $inc: bump,
                   },

@@ -3,6 +3,7 @@ import { GameReason } from "@/entities/errors";
 import { type Entry } from "@/entities/game";
 import { Position } from "@/entities/team";
 import { createRecordedSubstitution } from "@test/support/fixtures/entries";
+import mongoose from "mongoose";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
@@ -35,6 +36,8 @@ describe("the lineup a set stores with its entries", () => {
     (await repo().findById(seeded.gameId))!.sets[0]!;
   const onCourt = async () =>
     (await storedSet()).lineups.home.starting.map((p) => p.id);
+
+  afterEach(() => jest.restoreAllMocks());
 
   beforeEach(async () => {
     useFakeAuth();
@@ -106,7 +109,7 @@ describe("the lineup a set stores with its entries", () => {
     );
   });
 
-  it("does not lose an entry written while the set options are being updated", async () => {
+  it("does not lose an entry written while the starting lineup is being updated", async () => {
     const instance = repo();
     const internals = instance as unknown as {
       findSet: (ref: unknown) => Promise<object>;
@@ -114,12 +117,36 @@ describe("the lineup a set stores with its entries", () => {
     const stale = await internals.findSet(ref());
     await write([substitution("sub-1", 1, benchIds[0]!)]);
     jest.spyOn(internals, "findSet").mockResolvedValueOnce(stale);
+    const game = (await repo().findById(seeded.gameId))!;
+    const lineup = game.sets[0]!.startingLineups.home;
 
-    await instance.updateSet(ref(), { options: { ...options, serve: "away" } });
+    await instance.updateSet(ref(), { options, lineup });
 
-    const set = await storedSet();
-    expect(set.entries.map((e) => e.id)).toEqual(["sub-1"]);
-    expect(set.options.serve).toBe("away");
+    expect((await storedSet()).entries.map((e) => e.id)).toEqual(["sub-1"]);
     expect((await onCourt())[0]).toBe(benchIds[0]);
+  });
+
+  it("keeps an existing set's entries and revision when the next set is created", async () => {
+    await write([substitution("sub-1", 1, benchIds[0]!)]);
+    const revOf = async () =>
+      (await mongoose.connection
+        .collection("games")
+        .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) }))!.sets[0]
+        .rev;
+    const before = await revOf();
+    expect(before).toBeGreaterThan(0);
+
+    const created = await callRoute(createSet, {
+      gameId: seeded.gameId,
+      method: "POST",
+      query: { si: 1 },
+      body: { lineup: lineupFor(seeded.playerIds), options },
+    });
+
+    expect(created.status).toBe(201);
+    expect(await revOf()).toBe(before);
+    const game = await repo().findById(seeded.gameId);
+    expect(game!.sets).toHaveLength(2);
+    expect(game!.sets[0]!.entries.map((e) => e.id)).toEqual(["sub-1"]);
   });
 });
