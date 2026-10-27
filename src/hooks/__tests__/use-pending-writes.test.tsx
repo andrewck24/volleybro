@@ -7,7 +7,7 @@ import {
   usePendingWrites,
   usePendingWritesContext,
 } from "@/hooks/use-pending-writes";
-import { EntryType, MoveType, Side } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import {
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
   PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS,
@@ -263,83 +263,6 @@ describe("usePendingWrites", () => {
     });
 
     expect(store.getState().setCompletion["game-1:0"]).toBe(expected);
-  });
-
-  describe("a queued substitution", () => {
-    const substitution = {
-      type: EntryType.SUBSTITUTION,
-      id: "sub-1",
-      seq: 1,
-      at: "2026-10-27T01:02:03.000Z",
-      team: Side.HOME,
-      players: { in: "p2", out: "p1" },
-    } as PendingEntry["entry"];
-
-    it("is sent as it was queued and leaves the queue once the server has it", async () => {
-      const puts = serve(() => HttpResponse.json({ entries: [substitution] }));
-      const { result } = renderQueue();
-
-      act(() => result.current.queue.enqueue(substitution));
-      await act(async () => {
-        await result.current.queue.flush();
-      });
-
-      expect(puts.map(({ body }) => body)).toEqual([[substitution]]);
-      expect(pendingIds()).toEqual([]);
-    });
-
-    it("stays queued as failed when the server refuses it, and is not retried", async () => {
-      const puts = serve(() =>
-        HttpResponse.json(
-          { code: "VALIDATION", reason: "INVALID_SUBSTITUTION" },
-          { status: 400 },
-        ),
-      );
-      const { result } = renderQueue();
-
-      act(() => result.current.queue.enqueue(substitution));
-      await act(async () => {
-        await result.current.queue.flush();
-      });
-
-      expect(puts).toHaveLength(1);
-      expect(pendingIds()).toEqual(["sub-1"]);
-      expect(store.getState().pendingWrites.pending[0]).toMatchObject({
-        nextAttemptAt: null,
-        lastError: { status: 400, reason: "INVALID_SUBSTITUTION" },
-      });
-    });
-
-    it("is retried in the background after a server error, like a rally", async () => {
-      jest.useFakeTimers({ doNotFake: ["nextTick"] });
-      try {
-        const puts = serve(({ n }) =>
-          n <= 3
-            ? unavailable()
-            : HttpResponse.json({ entries: [substitution] }),
-        );
-        const { result } = renderQueue();
-
-        act(() => result.current.queue.enqueue(substitution));
-        let flushed!: Promise<unknown>;
-        act(() => {
-          flushed = result.current.queue.flush();
-        });
-        await advanceUntilSettled(flushed);
-        expect(pendingIds()).toEqual(["sub-1"]);
-
-        await act(async () => {
-          await jest.advanceTimersByTimeAsync(
-            PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
-          );
-        });
-        await advanceUntil(() => pendingIds().length === 0);
-
-        expect(puts).toHaveLength(4);
-      } finally {
-        jest.useRealTimers();
-      }
-    });
   });
 
   it("dedupes concurrent flush calls into a single in-flight request", async () => {

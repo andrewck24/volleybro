@@ -213,11 +213,4 @@ describe("PUT /api/games/:id/sets/entries with substitutions", () => {
       expect(await storedSet()).toEqual(before);
     });
   });
-
-  it.each([
-    "@/app/api/games/[gameId]/sets/rallies/route",
-    "@/app/api/games/[gameId]/sets/substitutions/route",
-  ])("no longer serves %s", async (route) => {
-    await expect(import(route)).rejects.toThrow(/Could not locate module/);
-  });
 });

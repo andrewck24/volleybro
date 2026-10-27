@@ -1,5 +1,5 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { MoveType, type Game } from "@/entities/game";
+import { MoveType, Side, type Game, type Set } from "@/entities/game";
 import { createRecordedRally } from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -26,13 +26,7 @@ const rally = (seq: number, home: number, away: number) =>
     },
   });
 
-const finishedSet = (win: boolean, home: number, away: number) => ({
-  win,
-  startingLineups: { home: { starting: [], liberos: [], substitutes: [] } },
-  entries: [rally(0, 1, 0), rally(1, home, away)],
-});
-
-const createGame = (teamId: string, name: string, sets: unknown[] = []) =>
+const createGame = (teamId: string, name: string) =>
   games().create({
     win: false,
     teamId,
@@ -41,7 +35,7 @@ const createGame = (teamId: string, name: string, sets: unknown[] = []) =>
       home: { id: oid(), name: `${name} home`, players: [], staffs: [] },
       away: { id: oid(), name: `${name} away`, players: [], staffs: [] },
     },
-    sets,
+    sets: [],
   } as unknown as Omit<Game, "id">);
 
 describe("game summaries", () => {
@@ -50,11 +44,33 @@ describe("game summaries", () => {
     data.map((summary) => summary.info.name);
 
   it("reads each set's final score and counts the sets each side won", async () => {
-    await createGame(teamId, "Match", [
-      finishedSet(true, 25, 20),
-      finishedSet(false, 18, 25),
-      finishedSet(true, 25, 23),
-    ]);
+    const game = await createGame(teamId, "Match");
+    const lineup = { starting: [], liberos: [], substitutes: [] };
+    const lineups = { home: lineup };
+    const finals: [win: boolean, home: number, away: number][] = [
+      [true, 25, 20],
+      [false, 18, 25],
+      [true, 25, 23],
+    ];
+    for (const [setIndex, [win, home, away]] of finals.entries()) {
+      const ref = { gameId: game.id, setIndex };
+      await games().addSet(ref, {
+        win: null,
+        startingLineups: lineups,
+        lineups,
+        options: { serve: Side.HOME, time: { start: "10:00", end: "" } },
+        entries: [],
+      } as unknown as Set);
+      await games().upsertEntry(
+        ref,
+        [rally(0, 1, 0), rally(1, home, away)].map((entry) => ({
+          entry,
+          at: new Date("2026-03-01T10:00:00Z"),
+        })),
+        oid(),
+      );
+      await games().completeSet(ref, win);
+    }
 
     const { data } = await games().findGameSummaries(teamId);
 

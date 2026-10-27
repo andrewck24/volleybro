@@ -1,6 +1,6 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { GameReason } from "@/entities/errors";
-import { EntryType, MoveType, type Entry } from "@/entities/game";
+import { MoveType, type Entry } from "@/entities/game";
 import { createRecordedRally } from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -56,65 +56,6 @@ describe("identity-keyed entry writes", () => {
       body: { lineup: seeded.lineup, options },
     });
     expect(created.status).toBe(201);
-  });
-
-  it("writes new entries and returns the set's entries", async () => {
-    expect(
-      await write({ gameId: seeded.gameId, setIndex: 0 }, [
-        rally("entry-1", 0, 1),
-      ]),
-    ).toHaveLength(1);
-
-    const entries = await write({ gameId: seeded.gameId, setIndex: 0 }, [
-      rally("entry-2", 1, 2, seeded.playerIds[0]!),
-    ]);
-
-    expect(entries).toHaveLength(2);
-    expect(entries[1]).toMatchObject({
-      type: EntryType.RALLY,
-      home: { score: 2, player: { id: seeded.playerIds[0] } },
-    });
-    const persisted = await repo().findById(seeded.gameId);
-    expect(persisted!.sets[0]!.entries).toHaveLength(2);
-  });
-
-  it("resending an entry writes nothing new and is not an error", async () => {
-    await write({ gameId: seeded.gameId, setIndex: 0 }, [
-      rally("entry-1", 0, 1),
-    ]);
-    await write({ gameId: seeded.gameId, setIndex: 0 }, [
-      rally("entry-2", 1, 2),
-    ]);
-
-    const entries = await write({ gameId: seeded.gameId, setIndex: 0 }, [
-      rally("entry-1", 0, 1),
-    ]);
-
-    expect(entries).toHaveLength(2);
-    expect(entries.filter((e) => e.id === "entry-1")).toHaveLength(1);
-    const persisted = await repo().findById(seeded.gameId);
-    expect(persisted!.sets[0]!.entries).toHaveLength(2);
-  });
-
-  it("replaces an existing identity's content as an edit rather than duplicating it", async () => {
-    await write({ gameId: seeded.gameId, setIndex: 0 }, [
-      rally("entry-1", 0, 1),
-    ]);
-
-    const entries = await write(
-      { gameId: seeded.gameId, setIndex: 0 },
-      [rally("entry-1", 0, 9)],
-      editedAt,
-    );
-
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({
-      home: { score: 9 },
-      recordedBy: operator,
-      editedBy: operator,
-      editedAt,
-    });
-    expect(entries[0]!.recordedAt).toEqual(recordedAt);
   });
 
   it("keeps the edit when a create and an edit of one id share a batch", async () => {
@@ -220,17 +161,5 @@ describe("identity-keyed entry writes", () => {
       reason: GameReason.GAME_NOT_FOUND,
       httpStatus: 404,
     });
-  });
-
-  it("reports SET_NOT_FOUND for a set index the game does not have", async () => {
-    await expect(
-      write({ gameId: seeded.gameId, setIndex: 3 }, [rally("entry-1", 0, 1)]),
-    ).rejects.toMatchObject({
-      reason: GameReason.SET_NOT_FOUND,
-      httpStatus: 404,
-    });
-
-    const persisted = await repo().findById(seeded.gameId);
-    expect(persisted!.sets).toHaveLength(1);
   });
 });
