@@ -53,7 +53,7 @@ jobs:
             node scripts/chromatic-scope.js --base "$BASE_SHA" --head "$HEAD_SHA"
           fi
 
-      - uses: chromaui/action@e24559fbc78e0cda863f3889f0e40ac249b07e20 # v18.13.1
+      - uses: chromaui/action@5bcadb5104b09e360e210c54f95a7437c2d82bab # v18.13.3
         env:
           CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
           CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
