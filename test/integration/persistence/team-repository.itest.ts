@@ -27,14 +27,6 @@ describe("team reads and writes", () => {
     expect(await teams().findById(id)).toMatchObject({ name: "After" });
   });
 
-  it("deletes a stored team", async () => {
-    const { id } = await teams().create({ name: "Gone", lineups: [] });
-
-    await teams().delete(id);
-
-    expect(await teams().findById(id)).toBeNull();
-  });
-
   it("refuses to update a team that does not exist", async () => {
     await expect(
       teams().update(oid(), { name: "Nobody" }),

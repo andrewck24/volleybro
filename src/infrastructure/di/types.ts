@@ -9,6 +9,7 @@ export const TYPES = {
   // services
   AuthenticationService: Symbol.for("AuthenticationService"),
   AuthorizationService: Symbol.for("AuthorizationService"),
+  TransactionRunner: Symbol.for("TransactionRunner"),
 
   // usecases
   // team usecases

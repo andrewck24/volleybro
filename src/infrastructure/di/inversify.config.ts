@@ -19,6 +19,8 @@ import {
 } from "@/infrastructure/db/repositories";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
+import { MongooseTransactionRunner } from "@/infrastructure/db/transaction-runner.mongo";
+import { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 
 import { CreateGameUseCase } from "@/applications/usecases/game/create-game.usecase";
 import { CreateSetUseCase } from "@/applications/usecases/game/create-set.usecase";
@@ -72,6 +74,9 @@ container
 container
   .bind<IAuthorizationService>(TYPES.AuthorizationService)
   .to(AuthorizationService);
+container
+  .bind<ITransactionRunner>(TYPES.TransactionRunner)
+  .to(MongooseTransactionRunner);
 
 // register usecases
 // team usecases

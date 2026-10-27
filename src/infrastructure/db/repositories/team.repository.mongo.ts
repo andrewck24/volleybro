@@ -56,14 +56,6 @@ export class TeamRepositoryImpl implements ITeamRepository {
     }
   }
 
-  async delete(id: string): Promise<void> {
-    try {
-      await TeamModel.findByIdAndDelete(id).exec();
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   async updateLineups(teamId: string, lineups: Lineup[]): Promise<Lineup[]> {
     try {
       const doc = await TeamModel.findByIdAndUpdate(
