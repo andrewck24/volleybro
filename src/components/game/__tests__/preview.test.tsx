@@ -15,6 +15,7 @@ import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
 import { server } from "@test/support/msw/server";
+import { answerSignedInUser } from "@test/support/msw/user";
 
 // GamePreview reads enqueue/flush/retry from context now that `usePendingWrites`
 // mounts once in `Game` -- this harness stands in for that single owner so
@@ -125,6 +126,8 @@ const setUpPreview = (
   );
   return { store, onSubmit, onExpandDrawer };
 };
+
+beforeEach(() => answerSignedInUser());
 
 describe("GamePreview send affordance", () => {
   it("does not show the send icon while a step is incomplete", () => {

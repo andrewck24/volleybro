@@ -1,4 +1,5 @@
 import {
+  isQueuedBy,
   mayBeAttemptedAgain,
   nextAttemptDelayMs,
 } from "@/lib/features/game/pending-writes";
@@ -21,7 +22,7 @@ const initialState: PendingWritesState = {
 
 const enqueued: CaseReducer<
   PendingWritesState,
-  PayloadAction<Pick<PendingEntry, "entry" | "gameId" | "setIndex">>
+  PayloadAction<Pick<PendingEntry, "entry" | "gameId" | "setIndex" | "userId">>
 > = (state, action) => {
   // A failed entry can never be sent as it is; the corrected one with its id
   // replaces it, or the batch would carry the refused content with it.
@@ -78,10 +79,11 @@ const flushFailed: CaseReducer<
 // nothing left to ever attempt them.
 const retryRequested: CaseReducer<
   PendingWritesState,
-  PayloadAction<{ gameId: string }>
+  PayloadAction<{ gameId: string; userId?: string }>
 > = (state, action) => {
+  const { gameId, userId } = action.payload;
   for (const item of state.pending) {
-    if (item.gameId !== action.payload.gameId) continue;
+    if (item.gameId !== gameId || !isQueuedBy(item, userId)) continue;
     if (item.nextAttemptAt === null) {
       item.nextAttemptAt = Date.now();
     }

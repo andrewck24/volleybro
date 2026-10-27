@@ -395,6 +395,7 @@ export type PendingEntry = {
   entry: PendingEntryContent;
   gameId: string;
   setIndex: number;
+  userId?: string;
   attempts: number;
   // Timestamp of the next scheduled attempt; null means the backoff budget
   // is exhausted or the error itself is not retryable.
@@ -412,7 +413,7 @@ export type PendingEntry = {
 // not used rather than migrated, and only an older one is cleared -- see D2.
 export type PersistedPendingEntry = Pick<
   PendingEntry,
-  "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt"
+  "entry" | "gameId" | "setIndex" | "userId" | "lastError" | "firstFailedAt"
 >;
 
 export type PersistedQueue = {
@@ -440,6 +441,7 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
       ]),
       gameId: z.string(),
       setIndex: z.number(),
+      userId: z.string().optional(),
       lastError: z
         .object({
           // A string rather than the union, which lives in the error model.

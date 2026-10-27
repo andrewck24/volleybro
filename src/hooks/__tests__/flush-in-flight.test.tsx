@@ -10,6 +10,7 @@ import { makeStore, type AppStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 
 import { server } from "@test/support/msw/server";
+import { answerSignedInUser } from "@test/support/msw/user";
 
 const entry = (id: string, seq: number) =>
   ({
@@ -42,6 +43,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 beforeEach(() => {
+  answerSignedInUser();
   store = makeStore();
 });
 
