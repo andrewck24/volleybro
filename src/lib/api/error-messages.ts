@@ -35,9 +35,9 @@ export const ABSORBED_REASONS = [
 
 export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
   SESSION_EXPIRED: { title: "登入逾期", description: "請重新登入" },
-  // `{points}` is the score total the caller fills in.
+  // `{home}` and `{away}` are the scores the caller fills in.
   LATER_SUBSTITUTION_INVALID: {
-    title: "這次修改會讓第 {points} 分的換人無效",
+    title: "這次修改會讓比分 {home}:{away} 時的換人無效",
     description: "請調整換上或換下的球員，或先修改後面的換人",
   },
   NETWORK_TIMEOUT: {

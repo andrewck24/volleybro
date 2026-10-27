@@ -192,7 +192,7 @@ describe("Substitutes while editing a substitution", () => {
     ]);
   });
 
-  it("blocks an edit that would invalidate a later substitution and names the point it falls on", async () => {
+  it("blocks an edit that would invalidate a later substitution and names the score it falls on", async () => {
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     await renderPanel(gameWith(swappedBack), 0);
 
@@ -201,7 +201,7 @@ describe("Substitutes while editing a substitution", () => {
     await userEvent.click(screen.getByRole("button", { name: /確認/ }));
 
     expect(
-      await screen.findByText("這次修改會讓第 3 分的換人無效"),
+      await screen.findByText("這次修改會讓比分 2:1 時的換人無效"),
     ).toBeInTheDocument();
     expect(puts).toHaveLength(0);
   });

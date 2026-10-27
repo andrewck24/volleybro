@@ -7,7 +7,7 @@ import type { GameView, PendingSubstitution } from "@/lib/features/game/types";
 
 /**
  * The game with the substitution recorded and the lineup recomputed, or the
- * first substitution the lineup rules refuse and the points played before it.
+ * first substitution the lineup rules refuse and the score of the last rally before it.
  * That substitution is the written one or a later one the write breaks. The
  * same check the server makes, so a refused write is stopped before it is
  * queued.
@@ -16,14 +16,18 @@ export const applySubstitution = (
   game: GameView,
   setIndex: number,
   entry: PendingSubstitution,
-): { game: GameView } | { invalid: { id: string; points: number } } => {
+):
+  | { game: GameView }
+  | { invalid: { id: string; score: { home: number; away: number } } } => {
   const set = game.sets[setIndex]!;
   const entries = upsertEntries(set.entries, [entry]);
   const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
   if (invalid) {
     const previous = getPreviousRally(entries, entries.indexOf(invalid));
-    const points = previous ? previous.home.score + previous.away.score : 0;
-    return { invalid: { id: invalid.id, points } };
+    const score = previous
+      ? { home: previous.home.score, away: previous.away.score }
+      : { home: 0, away: 0 };
+    return { invalid: { id: invalid.id, score } };
   }
 
   const sets = game.sets.slice();

@@ -37,13 +37,13 @@ const substitution = (players: {
 });
 
 describe("applySubstitution", () => {
-  it("refuses a substitution whose outgoing player is not on court", () => {
+  it("refuses, at score 0:0, a substitution whose outgoing player is not on court", () => {
     expect(
       applySubstitution(
         game(),
         0,
         substitution({ in: "player-8", out: "player-9" }),
       ),
-    ).toEqual({ invalid: { id: "sub-1", points: 0 } });
+    ).toEqual({ invalid: { id: "sub-1", score: { home: 0, away: 0 } } });
   });
 });

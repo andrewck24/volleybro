@@ -55,16 +55,15 @@ export const Substitutes = ({
     // the queue merges its own entries over the cache on every read.
     const checked = applySubstitution(game!, setIndex, entry);
     if ("invalid" in checked) {
-      const { id, points } = checked.invalid;
+      const { id, score } = checked.invalid;
       toast(
         id === entry.id
           ? { ...ERROR_MESSAGES.INVALID_SUBSTITUTION, variant: "error" }
           : {
               ...ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID,
-              title: ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID.title.replace(
-                "{points}",
-                String(points),
-              ),
+              title: ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID.title
+                .replace("{home}", String(score.home))
+                .replace("{away}", String(score.away)),
               variant: "error",
             },
       );
