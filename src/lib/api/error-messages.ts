@@ -91,6 +91,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "無法對自己的球員操作",
     description: "要離開這支隊伍，請使用離開隊伍",
   },
+  TARGET_ROLE_CHANGED: {
+    title: "成員角色剛被變更",
+    description: "請重新整理後再試一次",
+  },
   TARGET_NOT_LINKED: {
     title: "這位球員沒有帳號",
     description: "先邀請對方加入，才能設定角色",
