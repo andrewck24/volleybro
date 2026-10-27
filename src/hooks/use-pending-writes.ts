@@ -6,13 +6,20 @@ import {
   useEffect,
   useRef,
 } from "react";
-import { useGame } from "@/hooks/use-data";
+import { useGame, useUser } from "@/hooks/use-data";
 import {
   flushPendingWrites,
   toWriteError,
 } from "@/lib/features/game/actions/flush-pending-writes";
-import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
+import {
+  applyFlushedEntries,
+  isQueuedBy,
+} from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
+import {
+  recalledRecorder,
+  rememberRecorder,
+} from "@/lib/features/game/pending-writes-storage";
 import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/lib/redux/hooks";
@@ -37,6 +44,11 @@ export type FlushResult = { ok: true } | { ok: false; error: unknown };
  * reachable by its retry.
  */
 export function usePendingWrites(gameId: string, setIndex: number) {
+  const sessionUserId = useUser().user?.id;
+  useEffect(() => {
+    if (sessionUserId) rememberRecorder(sessionUserId);
+  }, [sessionUserId]);
+  const userId = sessionUserId ?? recalledRecorder();
   const dispatch = useAppDispatch();
   const store = useAppStore();
   const { mutate } = useGame(gameId);
@@ -45,7 +57,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
   const runFlush = useCallback(async (): Promise<FlushResult> => {
     const bySetIndex = new Map<number, PendingEntry[]>();
     for (const p of store.getState().pendingWrites.pending) {
-      if (p.gameId !== gameId) continue;
+      if (p.gameId !== gameId || !isQueuedBy(p, userId)) continue;
       const items = bySetIndex.get(p.setIndex) ?? [];
       items.push(p);
       bySetIndex.set(p.setIndex, items);
@@ -106,7 +118,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     return firstFailure === undefined
       ? { ok: true }
       : { ok: false, error: firstFailure.error };
-  }, [dispatch, gameId, mutate, store]);
+  }, [dispatch, gameId, mutate, store, userId]);
 
   // Only one flush in flight at a time; callers that ask for a flush while
   // one is running get the same promise rather than a second overlapping
@@ -122,17 +134,19 @@ export function usePendingWrites(gameId: string, setIndex: number) {
 
   const enqueue = useCallback(
     (entry: PendingEntry["entry"]) => {
-      dispatch(pendingWritesActions.enqueued({ entry, gameId, setIndex }));
+      dispatch(
+        pendingWritesActions.enqueued({ entry, gameId, setIndex, userId }),
+      );
     },
-    [dispatch, gameId, setIndex],
+    [dispatch, gameId, setIndex, userId],
   );
 
   // The one retry gesture: reset this game's exhausted items' backoff and
   // flush.
   const retry = useCallback((): Promise<FlushResult> => {
-    dispatch(pendingWritesActions.retryRequested({ gameId }));
+    dispatch(pendingWritesActions.retryRequested({ gameId, userId }));
     return flush();
-  }, [dispatch, flush, gameId]);
+  }, [dispatch, flush, gameId, userId]);
 
   // Background retry: schedule the next flush for whenever the earliest
   // still-pending item comes due, and re-flush as soon as connectivity
@@ -142,7 +156,12 @@ export function usePendingWrites(gameId: string, setIndex: number) {
   // scheduled.
   const earliestNextAttempt = useAppSelector((state) => {
     const due = state.pendingWrites.pending
-      .filter((p) => p.gameId === gameId && p.nextAttemptAt !== null)
+      .filter(
+        (p) =>
+          p.gameId === gameId &&
+          isQueuedBy(p, userId) &&
+          p.nextAttemptAt !== null,
+      )
       .map((p) => p.nextAttemptAt as number);
     return due.length === 0 ? null : Math.min(...due);
   });

@@ -35,6 +35,7 @@ const toPersisted = (item: PendingEntry): PersistedPendingEntry => ({
   entry: item.entry,
   gameId: item.gameId,
   setIndex: item.setIndex,
+  ...(item.userId === undefined ? {} : { userId: item.userId }),
   ...(item.lastError ? { lastError: item.lastError } : {}),
   ...(item.firstFailedAt === undefined
     ? {}
@@ -45,6 +46,35 @@ export const snapshotOf = (pending: PendingEntry[]): PersistedQueue => ({
   version: PENDING_WRITES_VERSION,
   items: pending.map(toPersisted),
 });
+
+// Offline the signed-in user may not be readable, and offline is when the
+// queue matters, so entries take their writer from the last signed-in user
+// this device saw.
+const RECORDER_KEY = "pending-writes-recorder";
+
+export const rememberRecorder = (userId: string): void => {
+  try {
+    localStorage.setItem(RECORDER_KEY, userId);
+  } catch {
+    // Storage unavailable is already reported by the queue's own probe.
+  }
+};
+
+export const forgetRecorder = (): void => {
+  try {
+    localStorage.removeItem(RECORDER_KEY);
+  } catch {
+    // As above.
+  }
+};
+
+export const recalledRecorder = (): string | undefined => {
+  try {
+    return localStorage.getItem(RECORDER_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 /**
  * The synchronous `setItem` runs inside the asynchronous body, so returning

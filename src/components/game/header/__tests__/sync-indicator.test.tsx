@@ -17,6 +17,7 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
 import { server } from "@test/support/msw/server";
+import { answerSignedInUser } from "@test/support/msw/user";
 
 const entry = (id: string) =>
   ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
@@ -96,6 +97,7 @@ const renderIndicator = (onSurroundingClick?: () => void) =>
 const twoSetGame = { id: "game-1", sets: [{ entries: [] }, { entries: [] }] };
 
 beforeEach(() => {
+  answerSignedInUser();
   store = makeStore();
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(twoSetGame)),

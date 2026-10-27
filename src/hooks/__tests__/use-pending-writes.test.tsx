@@ -1,17 +1,19 @@
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
-import { useGame } from "@/hooks/use-data";
+import { useGame, useUser } from "@/hooks/use-data";
 import {
   PendingWritesContext,
   usePendingWrites,
   usePendingWritesContext,
 } from "@/hooks/use-pending-writes";
-import { EntryType, Side } from "@/entities/game";
+import { EntryType, MoveType, Side } from "@/entities/game";
 import {
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
   PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS,
 } from "@/lib/features/game/pending-writes";
+import { restorePendingWrites } from "@/lib/features/game/pending-writes-persistence";
+import { localStoragePendingWrites } from "@/lib/features/game/pending-writes-storage";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
@@ -19,6 +21,17 @@ import { SwrIsolation } from "@test/support/react/swr-isolation";
 
 import { answerEntries, type EntryPut } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
+
+// null is a signed-in user that cannot be read, as when the device is offline.
+let currentUserId: string | null = "user-a";
+const answerCurrentUser = () =>
+  server.use(
+    http.get("/api/users", () =>
+      currentUserId === null
+        ? HttpResponse.error()
+        : HttpResponse.json({ id: currentUserId }),
+    ),
+  );
 
 const entry = (id: string) =>
   ({
@@ -108,9 +121,19 @@ const renderQueue = (setIndex = 0) =>
     () => ({
       queue: usePendingWrites("game-1", setIndex),
       game: useGame("game-1"),
+      user: useUser(),
     }),
     { wrapper },
   );
+
+// The writer comes from /api/users, which answers after the first render.
+const renderSignedIn = async (setIndex = 0) => {
+  const view = renderQueue(setIndex);
+  await waitFor(() =>
+    expect(view.result.current.user.user?.id).toBe(currentUserId),
+  );
+  return view;
+};
 
 const pendingIds = () =>
   store.getState().pendingWrites.pending.map((p) => p.entry.id);
@@ -121,14 +144,85 @@ const enqueueDirectly = (id: string, setIndex: number) =>
       entry: entry(id),
       gameId: "game-1",
       setIndex,
+      userId: currentUserId ?? undefined,
     }),
   );
 
 beforeEach(() => {
+  currentUserId = "user-a";
+  answerCurrentUser();
+  localStorage.clear();
   store = makeStore();
 });
 
 describe("usePendingWrites", () => {
+  it("keeps another recorder’s entries until that recorder returns", async () => {
+    const puts = serve(() => HttpResponse.json(confirmed("e1")));
+    const { result: asA, unmount: leaveA } = await renderSignedIn();
+    act(() =>
+      // Restore parses the snapshot, so this entry has to be a valid rally.
+      asA.current.queue.enqueue({
+        ...entry("e1"),
+        at: "2026-10-27T01:02:03.000Z",
+        home: { score: 1, type: MoveType.ATTACK, num: 7 },
+        away: { score: 0, type: MoveType.DEFENSE, num: 3 },
+      } as PendingEntry["entry"]),
+    );
+    leaveA();
+    store = makeStore();
+    await restorePendingWrites(store.dispatch, localStoragePendingWrites);
+    currentUserId = "user-b";
+    const { result: asB, unmount: leaveB } = await renderSignedIn();
+    await act(async () => {
+      await asB.current.queue.flush();
+    });
+    expect(sent(puts)).toEqual([]);
+    expect(pendingIds()).toEqual(["e1"]);
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem("pending-writes")!).items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ userId: "user-a" })]),
+      ),
+    );
+    leaveB();
+    currentUserId = "user-a";
+    const { result: asAAgain, unmount: leaveAAgain } = await renderSignedIn();
+    await act(async () => {
+      await asAAgain.current.queue.flush();
+    });
+    expect(sent(puts)).toEqual([{ si: 0, ids: ["e1"] }]);
+    expect(pendingIds()).toEqual([]);
+    leaveAAgain();
+  });
+  it("binds an entry recorded offline to the last signed-in user", async () => {
+    serve(() => HttpResponse.error());
+    (await renderSignedIn()).unmount();
+    currentUserId = null;
+    const { result } = renderQueue();
+    await waitFor(() => expect(result.current.user.error).toBeDefined());
+
+    act(() => result.current.queue.enqueue(entry("e1")));
+
+    expect(store.getState().pendingWrites.pending).toMatchObject([
+      { entry: { id: "e1" }, userId: "user-a" },
+    ]);
+  });
+  it("sends an entry recorded before any session was seen with whoever signs in", async () => {
+    const puts = serve(() => HttpResponse.json(confirmed("e1")));
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    currentUserId = "user-b";
+    const { result } = await renderSignedIn();
+    await act(async () => {
+      await result.current.queue.flush();
+    });
+    expect(sent(puts)).toEqual([{ si: 0, ids: ["e1"] }]);
+    expect(pendingIds()).toEqual([]);
+  });
   it("enqueue + flush sends the entry once, writes the server's entries to the game and empties the queue", async () => {
     const puts = serve(() => HttpResponse.json(confirmed("e1")));
     const { result } = renderQueue();
@@ -356,8 +450,8 @@ describe("usePendingWrites", () => {
             )
           : unavailable(),
       );
+      const { result } = await renderSignedIn(1);
       enqueueDirectly("e0", 0);
-      const { result } = renderQueue(1);
       act(() => result.current.queue.enqueue(entry("e1")));
 
       let flushed!: Promise<unknown>;
@@ -415,8 +509,8 @@ describe("usePendingWrites", () => {
     const puts = serve(({ si }) =>
       HttpResponse.json(confirmed(si === 0 ? "e0" : "e1")),
     );
+    const { result } = await renderSignedIn(1);
     enqueueDirectly("e0", 0);
-    const { result } = renderQueue(1);
     act(() => result.current.queue.enqueue(entry("e1")));
 
     await act(async () => {

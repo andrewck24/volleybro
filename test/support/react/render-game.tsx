@@ -8,6 +8,7 @@ import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
 import { Provider } from "react-redux";
 import { server } from "../msw/server";
+import { answerSignedInUser } from "../msw/user";
 import { SwrIsolation } from "./swr-isolation";
 
 type Options = { editingEntryIndex?: number; selectedPlayerId?: string };
@@ -16,6 +17,7 @@ function gameProviders(game: Game, options: Options) {
   const { editingEntryIndex, selectedPlayerId } = options;
   const view = game as unknown as GameView;
   server.use(http.get(`/api/games/${game.id}`, () => HttpResponse.json(game)));
+  answerSignedInUser();
   const store = makeStore();
   store.dispatch(gameActions.initialize({ game: view, setIndex: 0 }));
   if (editingEntryIndex !== undefined)

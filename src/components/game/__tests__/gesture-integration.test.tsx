@@ -10,6 +10,7 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
 import { server } from "@test/support/msw/server";
+import { answerSignedInUser } from "@test/support/msw/user";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),
@@ -133,6 +134,8 @@ const setUpGame = () => {
   );
   return { store, puts };
 };
+
+beforeEach(() => answerSignedInUser());
 
 describe("Game gesture split, wired through the real composition", () => {
   it("tapping the handle expands the drawer from the idle peek", async () => {

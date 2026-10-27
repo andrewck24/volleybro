@@ -14,6 +14,7 @@ import { useSWRConfig } from "swr";
 
 import { answerEntries } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
+import { answerSignedInUser } from "@test/support/msw/user";
 
 const rally = {
   id: "e1",
@@ -64,6 +65,8 @@ const editFirstEntry = (game: ReturnType<typeof gameWith>) => {
     () => view,
   );
 };
+
+beforeEach(() => answerSignedInUser());
 
 describe("useSubmitEntryDraft update path", () => {
   it("stays in editing mode and keeps the edit queued when the write fails", async () => {

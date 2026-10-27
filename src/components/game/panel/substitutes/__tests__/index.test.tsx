@@ -12,6 +12,7 @@ import {
 } from "@test/support/fixtures/entries";
 import { answerEntries } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
+import { answerSignedInUser } from "@test/support/msw/user";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -86,6 +87,8 @@ const renderPanel = async (
   // The candidate list is built from the loaded game.
   await screen.findByRole("button", { name: benchPlayer });
 };
+
+beforeEach(() => answerSignedInUser());
 
 describe("Substitutes.onSubmit", () => {
   it("sends the substitution through the entries endpoint with the time it was made", async () => {

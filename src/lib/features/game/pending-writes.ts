@@ -44,6 +44,14 @@ export const hasFailedWrite = (
     (p) => p.entry.id === entryId && !mayBeAttemptedAgain(p.lastError),
   );
 
+// No writer means no session was ever seen on this device when it was
+// recorded -- a first sign-in still loading -- so the recorder is whoever
+// signed in, and the entry goes out with them.
+export const isQueuedBy = (
+  item: Pick<PendingEntry, "userId">,
+  userId: string | undefined,
+): boolean => item.userId === undefined || item.userId === userId;
+
 export const isPendingWrite = (
   state: PendingWritesState,
   entryId: string,
