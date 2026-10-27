@@ -1,5 +1,6 @@
 import { deriveSetStats } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
+import { seqAt } from "@/lib/features/game/helpers";
 import type { GameView, ReduxStatus } from "@/lib/features/game/types";
 import type { LineupView } from "@/lib/features/team/types";
 
@@ -99,7 +100,7 @@ const getEditingModeLineup = (
   ).home;
   const rotation = usedRotation % 6;
   // Substitution marks are entry seqs, not positions.
-  const seq = set.entries[entryIndex]?.seq ?? entryIndex;
+  const seq = seqAt(set.entries, entryIndex);
 
   const { starting, liberos } = structuredClone(set.lineups.home);
 

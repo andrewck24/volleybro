@@ -3,7 +3,7 @@ import {
   recomputeLineups,
   upsertEntries,
 } from "@/entities/game";
-import type { GameView, PendingEntryContent } from "@/lib/features/game/types";
+import type { GameView, PendingSubstitution } from "@/lib/features/game/types";
 
 /**
  * The game with the substitution recorded and the lineup recomputed, or the
@@ -15,7 +15,7 @@ import type { GameView, PendingEntryContent } from "@/lib/features/game/types";
 export const applySubstitution = (
   game: GameView,
   setIndex: number,
-  entry: Extract<PendingEntryContent, { team: unknown }>,
+  entry: PendingSubstitution,
 ): { game: GameView } | { invalid: { id: string; points: number } } => {
   const set = game.sets[setIndex]!;
   const entries = upsertEntries(set.entries, [entry]);

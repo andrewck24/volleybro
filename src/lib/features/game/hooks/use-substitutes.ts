@@ -1,4 +1,5 @@
 import { useGame } from "@/hooks/use-data";
+import { seqAt } from "@/lib/features/game/helpers";
 import type { GameView, ReduxEntryDraft } from "@/lib/features/game/types";
 
 export const useSubstitutes = (
@@ -17,7 +18,7 @@ export const useSubstitutes = (
           game,
           entryDraft,
           setIndex,
-          game.sets[setIndex]!.entries[entryIndex]?.seq ?? entryIndex,
+          seqAt(game.sets[setIndex]!.entries, entryIndex),
         );
 
   return substitutes.filter((s): s is NonNullable<typeof s> => s != null);

@@ -9,7 +9,11 @@ import {
 export type ErrorMessage = { title: string; description: string };
 
 type ClassKey =
-  "SESSION_EXPIRED" | "NETWORK_TIMEOUT" | "SERVER_ERROR" | "UNKNOWN";
+  | "SESSION_EXPIRED"
+  | "NETWORK_TIMEOUT"
+  | "SERVER_ERROR"
+  | "LATER_SUBSTITUTION_INVALID"
+  | "UNKNOWN";
 
 type AbsorbedReason = (typeof ABSORBED_REASONS)[number];
 // Derived, so renaming a reason is a compile error rather than a silent miss.
@@ -31,6 +35,11 @@ export const ABSORBED_REASONS = [
 
 export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
   SESSION_EXPIRED: { title: "登入逾期", description: "請重新登入" },
+  // `{points}` is the score total the caller fills in.
+  LATER_SUBSTITUTION_INVALID: {
+    title: "這次修改會讓第 {points} 分的換人無效",
+    description: "請調整換上或換下的球員，或先修改後面的換人",
+  },
   NETWORK_TIMEOUT: {
     title: "連線逾時",
     description: "請稍後再試，若問題持續請確認網路連線",

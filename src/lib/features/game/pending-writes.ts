@@ -56,10 +56,8 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
-// Who is on court follows from the entries, so every change to them goes
-// through here. An entry history the lineup rules reject (another device got
-// there first) keeps the lineup the server last confirmed; the write that
-// caused it fails on its own.
+// Lineups follow from the entries. A history the lineup rules reject keeps the
+// last confirmed lineup; the write that caused it fails on its own.
 const withEntries = (set: SetView, entries: SetView["entries"]): SetView => {
   const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
   return { ...set, entries, lineups: invalid ? set.lineups : lineups };

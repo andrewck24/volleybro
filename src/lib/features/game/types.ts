@@ -386,6 +386,11 @@ export type PendingEntryContent = (
 ) &
   EntryIdentity & { at: string };
 
+export type PendingSubstitution = Extract<
+  PendingEntryContent,
+  { team: unknown }
+>;
+
 export type PendingEntry = {
   entry: PendingEntryContent;
   gameId: string;

@@ -1,3 +1,4 @@
+import { seqAt } from "@/lib/features/game/helpers/queries/entry-seq.helper";
 import { getPreviousScores } from "@/lib/features/game/helpers/queries/previous-scores.helper";
 import { getSetLineup } from "@/lib/features/game/helpers/queries/set-lineup.helper";
 import { getSetOptions } from "@/lib/features/game/helpers/queries/set-options.helper";
@@ -16,6 +17,7 @@ export {
   applySubstitution,
   deriveEntryPhase,
   getPreviousScores,
+  seqAt,
   getSetLineup,
   getSetOptions,
   getTeamsStats,

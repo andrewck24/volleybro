@@ -42,9 +42,6 @@ export const Substitutes = ({
   const isEditing = mode === "editing";
 
   const onSubmit = async () => {
-    // A new substitution gets a fresh identity generated here, before it is
-    // applied; an edit keeps the id and seq setEditingEntryStatus loaded onto
-    // the draft and stamps the time of the edit.
     const { team, players } = draft.substitution!;
     const entry = {
       type: EntryType.SUBSTITUTION as const,
@@ -63,8 +60,11 @@ export const Substitutes = ({
         id === entry.id
           ? { ...ERROR_MESSAGES.INVALID_SUBSTITUTION, variant: "error" }
           : {
-              title: `這次修改會讓第 ${points} 分的換人無效`,
-              description: "請調整換上或換下的球員，或先修改後面的換人",
+              ...ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID,
+              title: ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID.title.replace(
+                "{points}",
+                String(points),
+              ),
               variant: "error",
             },
       );
