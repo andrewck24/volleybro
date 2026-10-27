@@ -51,9 +51,9 @@ Estimate in points, set in two steps:
 
 A cycle holds 20 points (cycles 2–4 averaged about 23; the figure is lowered for weekly dev-notes and articles); revisit it after a few more cycles. A Change whose slices landed in an earlier cycle counts only its remaining point.
 
-## Per-Cycle audit
+## Per-Cycle maintenance
 
-Each Cycle runs one recurring tracker issue, not a lifecycle step in `WORKFLOW.md`: the issue's description is the routine's checklist and Linear's recurrence setting is its schedule. Merge each finding into its existing owner, or open an issue when it has none; the routine issue keeps only summaries and links, and notes that apply to one Cycle go in a comment rather than the description.
+Each Cycle runs one recurring tracker issue (title prefix `[Cycle]`) that reviews the repository, its dependencies and the issues waiting on outside conditions, and turns what it finds into tracked work; it is not a lifecycle step in `WORKFLOW.md`. Its description is the single home of the routine's steps, and Linear's recurrence setting is its schedule.
 
 ## Grill decisions
 
