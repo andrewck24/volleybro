@@ -90,7 +90,6 @@ describe("RecordEntriesUseCase", () => {
       [{ entry: contentOf(newRally), at }],
       "player-9",
     );
-    expect(mockGameRepository.update).not.toHaveBeenCalled();
     expect(result).toEqual({ entries });
     expect(result.setCompletionConfirmed).toBeUndefined();
   });

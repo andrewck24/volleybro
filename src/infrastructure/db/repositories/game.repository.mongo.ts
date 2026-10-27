@@ -81,26 +81,6 @@ export class GameRepositoryImpl implements IGameRepository {
     }
   }
 
-  async update(id: string, data: Partial<Game>): Promise<Game> {
-    try {
-      const doc = await this.model
-        .findByIdAndUpdate(
-          id,
-          { $set: toGameDoc(data) },
-          { returnDocument: "after" },
-        )
-        .exec();
-      if (!doc)
-        throw new NotFoundError(
-          CommonReason.RESOURCE_NOT_FOUND,
-          "The game to update was not found",
-        );
-      return fromDocument(doc);
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   /**
    * A positional write touches one entry, so the guard has to keep the write
    * off a path that does not exist yet — an out-of-range index would otherwise

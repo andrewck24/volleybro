@@ -16,11 +16,6 @@ export interface IGameRepository {
   findById(id: string): Promise<Game | null>;
   create(data: Omit<Game, "id">): Promise<Game>;
   /**
-   * Serves set-level writes only. It overwrites the whole document, so new
-   * write paths must not use it — add a domain operation instead.
-   */
-  update(id: string, data: Partial<Game>): Promise<Game>;
-  /**
    * Appends a new set as the game's next, touching nothing else, so sets and
    * entries written meanwhile are kept. `clearTeamLineup` also drops the home
    * team's lineup, which the first set supersedes.
