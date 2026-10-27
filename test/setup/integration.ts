@@ -18,6 +18,9 @@ jest.mock("next/headers", () => ({
 // placeholder client is lazy and never connects — auth is stubbed.
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/integration-placeholder";
 
+// Mirrors connectToMongoDB, which the app uses instead of this connect call.
+mongoose.set("transactionAsyncLocalStorage", true);
+
 beforeAll(async () => {
   const name = `itest-${randomUUID()}`;
   // appName lets a failpoint target this file's connection alone.

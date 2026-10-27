@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "id": "0146",
+  "title": "Writes that must be born together run in one transaction rather than a compensating delete",
+  "capabilities": ["platform/clean-architecture"],
+  "context": "Creating a team wrote the team and then its owner player, and when the owner write failed it deleted the team by hand. The two aggregates had no shared transaction, so a failed delete left a team with no owner that no one could reach. The Mongo deployment is a replica set, which supports multi-document transactions, and Mongoose can carry a transaction's session into writes without threading it through every repository.",
+  "decision": "A use case that must write more than one aggregate atomically runs those writes through the ITransactionRunner application port. The Mongo implementation wraps connection.transaction, and Mongoose's transactionAsyncLocalStorage passes the session to repository writes, so repository interfaces take no session parameter. Cross-aggregate writes do not undo a failed sibling write with a compensating delete.",
+  "alternatives": [
+    {
+      "option": "Keep the compensating delete and log a failed delete",
+      "reason": "A failed delete leaves the ownerless team in place. The log only reports the orphan after it exists, and nothing reconciles it later."
+    },
+    {
+      "option": "Pass the database session explicitly through the repository interfaces",
+      "reason": "Every repository method and every use case would take a Mongo session type, which moves database syntax into the application layer that the repository boundary keeps out of it."
+    },
+    {
+      "option": "Write the owner first, then the team",
+      "reason": "The two writes still have no shared fate. A failed team write would leave an owner pointing at a team that does not exist."
+    }
+  ],
+  "consequences": [
+    "Team creation fails as a whole when the owner write fails, so no team is left without an owner.",
+    "Every write made inside a runner callback joins its transaction, so a write meant to persist regardless of failure cannot run inside one.",
+    "A transaction needs a replica set. A standalone MongoDB server rejects it, so local development and integration tests run one.",
+    "A transient transaction error reaches the driver untranslated, so the driver reruns the whole callback; a runner callback must be safe to run more than once.",
+    "ITeamRepository no longer has delete, because nothing else needed it."
+  ],
+  "revisitTriggers": [
+    "A cross-aggregate write has to call an external service whose effect cannot roll back with the transaction.",
+    "The production database stops supporting multi-document transactions."
+  ]
+}

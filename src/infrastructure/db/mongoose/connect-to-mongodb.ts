@@ -7,6 +7,9 @@ declare global {
 
 const options = {};
 
+// Writes inside connection.transaction() join its session without threading it through repositories.
+mongoose.set("transactionAsyncLocalStorage", true);
+
 export const connectToMongoDB = async () => {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("Please add MONGODB_URI to env");

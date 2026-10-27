@@ -1,5 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import type { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import type { Team } from "@/entities/team";
 import { TYPES } from "@/infrastructure/di/types";
@@ -28,6 +29,8 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
     private teamRepository: ITeamRepository,
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
+    @inject(TYPES.TransactionRunner)
+    private transactionRunner: ITransactionRunner,
   ) {}
 
   async execute({
@@ -36,21 +39,21 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
     userId,
     userName,
   }: ICreateTeamInput): Promise<Team> {
-    const team = await this.teamRepository.create({
-      name: name,
-      nickname: nickname,
-      lineups: new Array(3).fill({
-        options: {
-          liberoReplaceMode: 0,
-          liberoReplacePosition: "",
-        },
-        starting: new Array(6).fill({ id: null }),
-        liberos: [],
-        substitutes: [],
-      }),
-    });
+    return this.transactionRunner.run(async () => {
+      const team = await this.teamRepository.create({
+        name: name,
+        nickname: nickname,
+        lineups: new Array(3).fill({
+          options: {
+            liberoReplaceMode: 0,
+            liberoReplacePosition: "",
+          },
+          starting: new Array(6).fill({ id: null }),
+          liberos: [],
+          substitutes: [],
+        }),
+      });
 
-    try {
       await this.playerRepository.create({
         name: userName,
         status: PlayerStatus.JOINED,
@@ -59,20 +62,8 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
         teamId: team.id,
         userId,
       });
-    } catch (error) {
-      // Team and owner are separate aggregates with no shared transaction, so
-      // undo the team: an ownerless team is unreachable by anyone.
-      try {
-        await this.teamRepository.delete(team.id);
-      } catch (cleanupError) {
-        console.error(
-          `Failed to delete ownerless team ${team.id}`,
-          cleanupError,
-        );
-      }
-      throw error;
-    }
 
-    return team;
+      return team;
+    });
   }
 }

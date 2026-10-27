@@ -2,35 +2,44 @@ import {
   createMockPlayerRepository,
   createMockTeamRepository,
 } from "@test/support/doubles/repositories";
+import { createMockTransactionRunner } from "@test/support/doubles/services";
 import { createPlayer, createTeam } from "@test/support/fixtures/entities";
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 import { CreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("CreateTeamUseCase", () => {
   let mockTeamRepository: jest.Mocked<ITeamRepository>;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
+  let mockTransactionRunner: jest.Mocked<ITransactionRunner>;
   const mockTeam = createTeam();
+  const input = {
+    name: "Test Team",
+    nickname: "TT",
+    userId: "user-1",
+    userName: "John Doe",
+  };
 
   let useCase: CreateTeamUseCase;
 
   beforeEach(() => {
     mockTeamRepository = createMockTeamRepository();
     mockPlayerRepository = createMockPlayerRepository();
-    useCase = new CreateTeamUseCase(mockTeamRepository, mockPlayerRepository);
+    mockTransactionRunner = createMockTransactionRunner();
+    useCase = new CreateTeamUseCase(
+      mockTeamRepository,
+      mockPlayerRepository,
+      mockTransactionRunner,
+    );
   });
 
   it("creates the team with the caller as its joined owner", async () => {
     mockTeamRepository.create.mockResolvedValue(mockTeam);
     mockPlayerRepository.create.mockResolvedValue(createPlayer());
 
-    const result = await useCase.execute({
-      name: "Test Team",
-      nickname: "TT",
-      userId: "user-1",
-      userName: "John Doe",
-    });
+    const result = await useCase.execute(input);
 
     expect(result).toBe(mockTeam);
     expect(mockPlayerRepository.create).toHaveBeenCalledWith(
@@ -43,29 +52,11 @@ describe("CreateTeamUseCase", () => {
     );
   });
 
-  describe("when the owner cannot be created", () => {
-    const input = { name: "Test Team", userId: "user-1", userName: "John Doe" };
+  it("rethrows the owner error so the transaction can roll the team back", async () => {
     const ownerError = new Error("owner write failed");
+    mockTeamRepository.create.mockResolvedValue(mockTeam);
+    mockPlayerRepository.create.mockRejectedValue(ownerError);
 
-    beforeEach(() => {
-      mockTeamRepository.create.mockResolvedValue(mockTeam);
-      mockPlayerRepository.create.mockRejectedValue(ownerError);
-    });
-
-    it("deletes the new team and rethrows the owner error", async () => {
-      mockTeamRepository.delete.mockResolvedValue();
-
-      await expect(useCase.execute(input)).rejects.toBe(ownerError);
-      expect(mockTeamRepository.delete).toHaveBeenCalledWith(mockTeam.id);
-    });
-
-    it("still rethrows the owner error when the delete also fails", async () => {
-      jest.spyOn(console, "error").mockImplementation(() => undefined);
-      mockTeamRepository.delete.mockRejectedValue(new Error("delete failed"));
-
-      await expect(useCase.execute(input)).rejects.toBe(ownerError);
-    });
-
-    afterEach(() => jest.restoreAllMocks());
+    await expect(useCase.execute(input)).rejects.toBe(ownerError);
   });
 });
