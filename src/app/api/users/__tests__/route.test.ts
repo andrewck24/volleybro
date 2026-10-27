@@ -71,14 +71,26 @@ describe("GET /api/users", () => {
     const found = { id: "user-2" };
     mockSearchUserController.mockResolvedValue({ ok: true, value: found });
 
-    const res = await get("?email=b%40example.com");
+    const res = await get(
+      "?email=b%40example.com&teamId=aaaaaaaaaaaaaaaaaaaaaaaa",
+    );
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(found);
     expect(mockSearchUserController).toHaveBeenCalledWith({
       email: "b@example.com",
+      teamId: "aaaaaaaaaaaaaaaaaaaaaaaa",
+      userId: SESSION.user.id,
     });
     expect(mockGetUserByIdController).not.toHaveBeenCalled();
+  });
+
+  it("requires a teamId for email searches", async () => {
+    const consoleSpy = silenceConsoleError();
+    const res = await get("?email=b%40example.com");
+    expect(res.status).toBe(400);
+    expect(mockSearchUserController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 
   it("returns the status of the error the controller reports", async () => {
@@ -88,7 +100,9 @@ describe("GET /api/users", () => {
       error: new NotFoundError("USER_NOT_FOUND", "User not found"),
     });
 
-    const res = await get("?email=nobody%40example.com");
+    const res = await get(
+      "?email=nobody%40example.com&teamId=aaaaaaaaaaaaaaaaaaaaaaaa",
+    );
     const body = (await res.json()) as { code: string };
 
     expect(res.status).toBe(404);
