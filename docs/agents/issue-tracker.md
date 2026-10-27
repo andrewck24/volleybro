@@ -55,10 +55,11 @@ A cycle holds 20 points (cycles 2–4 averaged about 23; the figure is lowered f
 
 Each Cycle runs one recurring tracker issue, not a lifecycle step in `WORKFLOW.md`; Linear's recurrence setting is the schedule. Merge each finding into its existing owner, or open an issue when it has none; the routine issue keeps only summaries and links.
 
-- **Repository review**, each step skipping what an earlier one already reported: a whole-repository audit for bugs, security, load, untested risk and removable code (`ponytail-audit` when available); the deferred `shortcut:` comments (`ponytail-debt` when available); module-depth candidates in the Cycle's hot spots (`improve-codebase-architecture`, which the developer invokes); and a `test-audit` sweep of the tests the Cycle added or changed. Security review of each diff stays at the Pre-PR gate.
-- **Dependencies**: open Dependabot alerts and pull requests, then `pnpm outdated -r` across the workspaces. Non-major updates within declared ranges ship as one Fast path; each major gets its own branch under `docs/maintenance-policy.md`. Drop a `pnpm-workspace.yaml` override once upstream fixes its pin, and keep `minimumReleaseAgeExclude`, when present, to exact versions still inside the release-age window.
-- **Waiting issues**: recheck the start conditions of issues that wait on an upstream release or external support, and start any whose conditions now hold.
-- **Retro**: the developer invokes `retro` on the Cycle's Change sessions.
+- **Repository review**, each step skipping what an earlier one already reported: a whole-repository audit for bugs, security, load, untested risk and removable code (`ponytail-audit` when available); the deferred `shortcut:` comments (`ponytail-debt` when available); and a `test-audit` sweep of the tests the Cycle added or changed. Security review of each diff stays at the Pre-PR gate.
+- **Architecture**: the developer invokes `improve-codebase-architecture` on the Cycle's hot spots; candidates the repository review already reported are not reopened.
+- **Dependencies**: open Dependabot alerts (an urgent production vulnerability takes the hotfix route in `WORKFLOW.md`) and pull requests, then `pnpm outdated -r`. Merge green minor and patch Dependabot pull requests after review, on the developer's explicit merge instruction; ship the remaining non-major updates within declared ranges as one Fast path; deliver each major on its own, following the major-bump steps in `docs/maintenance-policy.md`. Drop a `pnpm-workspace.yaml` override once upstream fixes its pin, and keep `minimumReleaseAgeExclude` for exact versions that must be adopted inside the release-age window (such as a security fix): drop entries that have left the window, and drop the section once it is empty.
+- **Waiting issues**: recheck the start conditions of issues that wait on an upstream release or external support, and return any whose conditions now hold to intake.
+- **Retro**: the developer invokes `retro` on the Cycle's Change sessions, in addition to the per-Change recommendation in `WORKFLOW.md`.
 
 ## Grill decisions
 
