@@ -120,8 +120,12 @@ describe("the lineup a set stores with its entries", () => {
     const game = (await repo().findById(seeded.gameId))!;
     const lineup = game.sets[0]!.startingLineups.home;
 
-    await instance.updateSet(ref(), { options, lineup });
+    await instance.updateSet(ref(), {
+      options: { ...options, serve: "away" },
+      lineup,
+    });
 
+    expect((await storedSet()).options.serve).toBe("away");
     expect((await storedSet()).entries.map((e) => e.id)).toEqual(["sub-1"]);
     expect((await onCourt())[0]).toBe(benchIds[0]);
   });

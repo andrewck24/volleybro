@@ -1,10 +1,11 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { NotFoundError } from "@/entities/errors";
+import { GameReason, NotFoundError, ValidationError } from "@/entities/errors";
 import { MoveType, Side, type Game, type Set } from "@/entities/game";
 import {
   createRecordedRally,
   createRecordedSubstitution,
 } from "@test/support/fixtures/entries";
+import mongoose from "mongoose";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { Position, type Lineup } from "@/entities/team";
@@ -91,5 +92,51 @@ describe("game reads and writes", () => {
 
     expect(written).toMatchObject({ id: gameId, teamId, win: false });
     expect(written.teams.home.name).toBe("Home");
+  });
+
+  describe("adding a set", () => {
+    const rawGame = (id: string) =>
+      mongoose.connection
+        .collection("games")
+        .findOne({ _id: new mongoose.Types.ObjectId(id) });
+
+    it.each([
+      ["a game that does not exist", NotFoundError, "missing", 0],
+      ["a gap before the last set", ValidationError, "empty", 1],
+      ["an index a set already holds", ValidationError, "started", 0],
+    ])("refuses %s and writes nothing", async (_name, error, kind, index) => {
+      const { gameId, playerIds } = await seedGame();
+      const set = startedSet(lineupFor(playerIds));
+      if (kind === "started")
+        await games().addSet({ gameId, setIndex: 0 }, set);
+      const target = kind === "missing" ? oid() : gameId;
+      const before = await rawGame(gameId);
+
+      await expect(
+        games().addSet({ gameId: target, setIndex: index }, set),
+      ).rejects.toBeInstanceOf(error);
+      if (kind === "missing")
+        await expect(
+          games().addSet({ gameId: target, setIndex: index }, set),
+        ).rejects.toMatchObject({ reason: GameReason.GAME_NOT_FOUND });
+
+      expect(await rawGame(gameId)).toEqual(before);
+    });
+
+    it("drops the home team's lineup when asked to", async () => {
+      const { gameId, playerIds } = await seedGame();
+      const id = new mongoose.Types.ObjectId(gameId);
+      await mongoose.connection
+        .collection("games")
+        .updateOne({ _id: id }, { $set: { "teams.home.lineup": {} } });
+
+      await games().addSet(
+        { gameId, setIndex: 0 },
+        startedSet(lineupFor(playerIds)),
+        { clearTeamLineup: true },
+      );
+
+      expect((await rawGame(gameId))!.teams.home).not.toHaveProperty("lineup");
+    });
   });
 });
