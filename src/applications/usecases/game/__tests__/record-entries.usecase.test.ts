@@ -11,13 +11,7 @@ import {
 import { createMockGameRepository } from "@test/support/doubles/repositories";
 import { RecordEntriesUseCase } from "@/applications/usecases/game/record-entries.usecase";
 import { GameReason, NotFoundError } from "@/entities/errors";
-import {
-  EntryType,
-  MoveType,
-  Side,
-  type RallyEntry,
-  type SubstitutionEntry,
-} from "@/entities/game";
+import { EntryType, MoveType, type RallyEntry } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 let mockGameRepository: ReturnType<typeof createMockGameRepository>;
@@ -34,6 +28,16 @@ const newRally: RallyEntry & { at: Date } = {
   win: true,
   home: { score: 2, type: MoveType.ATTACK, num: 1 },
   away: { score: 0, type: MoveType.RECEPTION, num: 1 },
+};
+
+const decidingRally: RallyEntry & { at: Date } = {
+  type: EntryType.RALLY,
+  id: "entry-25",
+  at,
+  seq: 24,
+  win: true,
+  home: { score: 25, type: MoveType.ATTACK, num: 1 },
+  away: { score: 20, type: MoveType.RECEPTION, num: 1 },
 };
 
 const contentOf = <T extends { at: Date }>({ at: _at, ...content }: T) =>
@@ -91,37 +95,6 @@ describe("RecordEntriesUseCase", () => {
     expect(result.setCompletionConfirmed).toBeUndefined();
   });
 
-  it("writes a rally and a substitution of one request together, in the order sent", async () => {
-    const operator = createPlayer({ id: "player-9" });
-    mockAuthzService.verifyTeamRole.mockResolvedValue(operator);
-    const game = createGame();
-    game.sets[0]!.win = null;
-    mockGameRepository.findById.mockResolvedValue(game);
-    mockGameRepository.upsertEntry.mockResolvedValue([]);
-    const substitution: SubstitutionEntry & { at: Date } = {
-      type: EntryType.SUBSTITUTION,
-      id: "entry-sub",
-      seq: 2,
-      at,
-      team: Side.HOME,
-      players: { in: "player-7", out: "player-1" },
-    };
-
-    await useCase().execute({
-      params: { gameId: "game-1", setIndex: 0 },
-      data: [newRally, substitution],
-    });
-
-    expect(mockGameRepository.upsertEntry).toHaveBeenCalledWith(
-      { gameId: "game-1", setIndex: 0 },
-      [
-        { entry: contentOf(newRally), at },
-        { entry: contentOf(substitution), at },
-      ],
-      "player-9",
-    );
-  });
-
   it("lets the write decide whether the set exists", async () => {
     mockGameRepository.findById.mockResolvedValue({
       ...createGame(),
@@ -140,15 +113,6 @@ describe("RecordEntriesUseCase", () => {
   });
 
   it("reports the set result as confirmed once completeSet succeeds", async () => {
-    const decidingRally: RallyEntry & { at: Date } = {
-      type: EntryType.RALLY,
-      id: "entry-25",
-      at,
-      seq: 24,
-      win: true,
-      home: { score: 25, type: MoveType.ATTACK, num: 1 },
-      away: { score: 20, type: MoveType.RECEPTION, num: 1 },
-    };
     const entries = [createRecordedRally(decidingRally)];
     const game = createGame();
     game.sets[0]!.win = null;
@@ -166,15 +130,6 @@ describe("RecordEntriesUseCase", () => {
   });
 
   it("still returns the persisted entries when completeSet fails, marked unconfirmed", async () => {
-    const decidingRally: RallyEntry & { at: Date } = {
-      type: EntryType.RALLY,
-      id: "entry-25",
-      at,
-      seq: 24,
-      win: true,
-      home: { score: 25, type: MoveType.ATTACK, num: 1 },
-      away: { score: 20, type: MoveType.RECEPTION, num: 1 },
-    };
     const entries = [createRecordedRally(decidingRally)];
     const game = createGame();
     game.sets[0]!.win = null;

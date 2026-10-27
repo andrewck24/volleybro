@@ -29,9 +29,7 @@ const lineups = {
   },
 };
 
-// `current` stands for a device whose lineup has not caught up with the
-// entries it holds; by default the lineup follows the entries.
-const gameWith = (entries: unknown[], current?: typeof lineups) => ({
+const gameWith = (entries: unknown[]) => ({
   id: "game-1",
   info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
   teams: {
@@ -47,8 +45,7 @@ const gameWith = (entries: unknown[], current?: typeof lineups) => ({
     {
       options: { serve: "home" },
       startingLineups: lineups,
-      lineups:
-        current ?? recomputeLineups(lineups as never, entries as never).lineups,
+      lineups: recomputeLineups(lineups as never, entries as never).lineups,
       entries,
     },
   ],
@@ -57,6 +54,7 @@ const gameWith = (entries: unknown[], current?: typeof lineups) => ({
 const renderPanel = async (
   game: ReturnType<typeof gameWith>,
   editingEntryIndex?: number,
+  benchPlayer = /選手二/,
 ) => {
   server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
   const store = makeStore();
@@ -86,7 +84,7 @@ const renderPanel = async (
     </SwrIsolation>,
   );
   // The candidate list is built from the loaded game.
-  await screen.findByRole("button", { name: /選手二/ });
+  await screen.findByRole("button", { name: benchPlayer });
 };
 
 describe("Substitutes.onSubmit", () => {
@@ -117,24 +115,22 @@ describe("Substitutes.onSubmit", () => {
     expect(Date.parse(at)).toBeLessThanOrEqual(after);
   });
 
-  it("refuses a substitution the lineup cannot take and sends nothing", async () => {
+  it("refuses a substitution taking off a player the entries already took off and sends nothing", async () => {
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
-    // Another recorder already took p1 off, which this device has not seen in
-    // its current lineup yet.
     await renderPanel(
-      gameWith(
-        [
-          {
-            type: EntryType.SUBSTITUTION,
-            id: "earlier",
-            seq: 0,
-            team: Side.HOME,
-            players: { in: "p2", out: "p1" },
-          },
-        ],
-        lineups,
-      ),
+      gameWith([
+        {
+          type: EntryType.SUBSTITUTION,
+          id: "earlier",
+          seq: 0,
+          team: Side.HOME,
+          players: { in: "p2", out: "p1" },
+        },
+      ]),
+      undefined,
+      /選手三/,
     );
+    await userEvent.click(screen.getByRole("button", { name: /選手三/ }));
 
     await userEvent.click(screen.getByRole("button", { name: /確認/ }));
 

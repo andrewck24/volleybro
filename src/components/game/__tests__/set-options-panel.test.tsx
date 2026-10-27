@@ -60,6 +60,17 @@ describe("Options (set-options panel) submitting state", () => {
     server.use(http.get("/api/games/rec-1", () => HttpResponse.json(game)));
   });
 
+  it("names the serving choices as serving, apart from the starting lineup", async () => {
+    await setUp();
+
+    expect(
+      screen.getByRole("radio", { name: "我方先發球" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: "對方先發球" }),
+    ).toBeInTheDocument();
+  });
+
   it("disables the submit button and shows progress while saving, then posts the set and moves on", async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => (release = resolve));
