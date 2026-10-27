@@ -55,26 +55,36 @@ describe("TransferOwnershipUseCase", () => {
 
   describe("execute", () => {
     it("should transfer ownership and demote current owner to ADMIN", async () => {
-      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
-        currentOwner,
+      const players = new Map([
+        [currentOwner.id, currentOwner],
+        [newOwner.id, newOwner],
+      ]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockImplementation(
+        async () => players.get(currentOwner.id) ?? null,
       );
-      mockPlayerRepository.findById.mockResolvedValue(newOwner);
-      mockPlayerRepository.updateRoleIf
-        .mockResolvedValueOnce({ ...currentOwner, role: PlayerRole.ADMIN })
-        .mockResolvedValueOnce({ ...newOwner, role: PlayerRole.OWNER });
+      mockPlayerRepository.findById.mockImplementation(
+        async (id) => players.get(id) ?? null,
+      );
+      mockPlayerRepository.updateRoleIf.mockImplementation(
+        async (id, from, to) => {
+          const player = players.get(id);
+          if (!player || player.role !== from) return null;
+          const updated = { ...player, role: to };
+          players.set(id, updated);
+          return updated;
+        },
+      );
 
       await useCase.execute({ teamId, newOwnerId, userId });
 
-      expect(mockPlayerRepository.updateRoleIf).toHaveBeenCalledWith(
-        currentOwner.id,
-        PlayerRole.OWNER,
-        PlayerRole.ADMIN,
-      );
-      expect(mockPlayerRepository.updateRoleIf).toHaveBeenCalledWith(
-        newOwnerId,
-        PlayerRole.ADMIN,
-        PlayerRole.OWNER,
-      );
+      expect(
+        await mockPlayerRepository.findById(currentOwner.id),
+      ).toMatchObject({
+        role: PlayerRole.ADMIN,
+      });
+      expect(await mockPlayerRepository.findById(newOwnerId)).toMatchObject({
+        role: PlayerRole.OWNER,
+      });
     });
 
     it("should reject if current owner not found in team", async () => {
