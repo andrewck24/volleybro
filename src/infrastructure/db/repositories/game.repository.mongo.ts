@@ -41,10 +41,10 @@ type PlanStep =
 
 const MAX_ATTEMPTS = 5;
 
-// Sets written before revisions existed have none, read as zero. Not `null`:
+// Sets written before versions existed have none, read as zero. Not `null`:
 // under an array index it would also match any set.
-const atRev = (path: string, rev: number) => ({
-  [`${path}.rev`]: rev ? rev : { $not: { $gt: 0 } },
+const atVer = (path: string, ver: number) => ({
+  [`${path}.ver`]: ver ? ver : { $not: { $gt: 0 } },
 });
 
 const lineupWrites = (path: string, lineups: Set["lineups"]) =>
@@ -200,9 +200,9 @@ export class GameRepositoryImpl implements IGameRepository {
           {
             _id: ref.gameId,
             [`${path}`]: { $exists: true },
-            ...atRev(path, current.rev ?? 0),
+            ...atVer(path, current.ver ?? 0),
           },
-          { $set: set, $inc: { [`${path}.rev`]: 1 } },
+          { $set: set, $inc: { [`${path}.ver`]: 1 } },
         );
         return result.matchedCount === 1;
       });
@@ -240,7 +240,7 @@ export class GameRepositoryImpl implements IGameRepository {
       // becomes an edit) and re-validates the lineups instead of dropping it.
       await this.retryOnConflict(async () => {
         const current = await this.findSet(ref);
-        const rev = current.rev ?? 0;
+        const ver = current.ver ?? 0;
         const stored = new Map(
           (current.entries ?? []).map((e) => [e.id as string, e]),
         );
@@ -298,12 +298,12 @@ export class GameRepositoryImpl implements IGameRepository {
           );
         const lineupSet = lineupWrites(path, lineups);
 
-        // Each op is conditioned on the rev the previous op left; lineups go
+        // Each op is conditioned on the ver the previous op left; lineups go
         // only on the last op, so they never lead the entries.
         const last = plan.length - 1;
         const ops = plan.map((step, i): AnyBulkWriteOperation<GameDocument> => {
-          const filter = { ...guard, ...atRev(path, rev + i) };
-          const bump = { [`${path}.rev`]: 1 };
+          const filter = { ...guard, ...atVer(path, ver + i) };
+          const bump = { [`${path}.ver`]: 1 };
           return "created" in step
             ? {
                 updateOne: {

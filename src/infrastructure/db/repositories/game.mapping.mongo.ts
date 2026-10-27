@@ -36,7 +36,7 @@ export type RawSet = {
   startingLineups?: { home?: RawLineup; away?: RawLineup };
   lineups?: { home?: RawLineup; away?: RawLineup };
   entries?: RawEntry[];
-  rev?: number;
+  ver?: number;
 } & Record<string, unknown>;
 
 function mapLineupPlayerRead(p: RawLineupPlayer) {
@@ -126,8 +126,8 @@ export function mapEntryRead(raw: RawEntry) {
 }
 
 export function mapSetRead(rawSet: RawSet) {
-  const { rev: _rev, ...set } = rawSet;
-  void _rev;
+  const { ver: _ver, ...set } = rawSet;
+  void _ver;
   if (!set.startingLineups?.home)
     throw new ValidationError(
       CommonReason.INVALID_INPUT,

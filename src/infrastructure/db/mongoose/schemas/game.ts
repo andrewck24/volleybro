@@ -359,7 +359,7 @@ interface SetDocument extends Document {
     };
   };
   entries: EntryDocument[];
-  rev: number;
+  ver: number;
 }
 
 const setSchema = new Schema<SetDocument>({
@@ -382,7 +382,7 @@ const setSchema = new Schema<SetDocument>({
   entries: [entrySchema],
   // Bumped by entry writes and updateSet, so a write planned from a stale read
   // matches nothing.
-  rev: { type: Number, default: 0 },
+  ver: { type: Number, default: 0 },
 });
 
 const entriesPath = setSchema.path("entries") as Schema.Types.DocumentArray;

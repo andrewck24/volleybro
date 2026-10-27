@@ -130,13 +130,13 @@ describe("the lineup a set stores with its entries", () => {
     expect((await onCourt())[0]).toBe(benchIds[0]);
   });
 
-  it("keeps an existing set's entries and revision when the next set is created", async () => {
+  it("keeps an existing set's entries and version when the next set is created", async () => {
     await write([substitution("sub-1", 1, benchIds[0]!)]);
     const revOf = async () =>
       (await mongoose.connection
         .collection("games")
         .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) }))!.sets[0]
-        .rev;
+        .ver;
     const before = await revOf();
     expect(before).toBeGreaterThan(0);
 
