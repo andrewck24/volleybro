@@ -11,3 +11,5 @@ The schema in `blueprint/src/lib/decision-record.ts` is the sole executable defi
 A decision record's lifecycle has two events: birth, and replacement by setting `supersededBy` on the record being replaced, pointing at the record that replaces it, or at the pull request that retires a workflow rule without a successor record. Archive does not promote, reconcile, or renumber decision records — a record already lives at its permanent path from the moment it was written.
 
 Before changing domain language or a decision, read the affected Feature pages, active Change, code, and tests. Surface contradictions rather than silently rewriting an authority.
+
+Before judging a conflict with in-flight design, read that active Change's working spec and adopted decisions. Compare scope, readers/writers and conflict behavior on both sides; identify the unit each rule governs before declaring a contradiction.
