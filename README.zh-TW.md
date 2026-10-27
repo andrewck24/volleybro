@@ -150,7 +150,7 @@ VolleyBro 採用 Clean Architecture：同心分層，**原始碼依賴一律只�
 src/
 ├── entities/         # 領域層 — User、Team、Player、Profile、Game
 ├── applications/     # 應用層
-│   ├── usecases/     #   商業使用案例（CreateGame、RecordRallies…）
+│   ├── usecases/     #   商業使用案例（CreateGame、RecordEntries…）
 │   ├── repositories/ #   資料存取抽象介面
 │   └── services/     #   外部服務抽象介面
 ├── interface/        # 介面層 — 協調 use case 的 controller

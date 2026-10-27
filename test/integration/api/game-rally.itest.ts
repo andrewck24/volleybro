@@ -1,9 +1,9 @@
-import { MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import { GameReason } from "@/entities/errors";
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as recordEntries } from "@/app/api/games/[gameId]/sets/entries/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
@@ -13,6 +13,7 @@ const recordedAt = "2026-03-01T10:00:00.000Z";
 const editedAt = "2026-03-01T10:05:00.000Z";
 
 const rally = {
+  type: EntryType.RALLY,
   id: "entry-1",
   seq: 0,
   at: recordedAt,
@@ -23,7 +24,7 @@ const rally = {
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
-describe("PUT /api/games/:id/sets/rallies", () => {
+describe("PUT /api/games/:id/sets/entries", () => {
   let seeded: SeededGame;
 
   beforeEach(async () => {
@@ -48,7 +49,7 @@ describe("PUT /api/games/:id/sets/rallies", () => {
     const afterSet = await repo().findById(seeded.gameId);
     expect(afterSet!.sets).toHaveLength(1);
 
-    const res = await callRoute(createRally, {
+    const res = await callRoute(recordEntries, {
       gameId: seeded.gameId,
       method: "PUT",
       query: { si: 0 },
@@ -66,7 +67,7 @@ describe("PUT /api/games/:id/sets/rallies", () => {
   });
 
   it("returns 404 SET_NOT_FOUND for a set index that does not exist", async () => {
-    const res = await callRoute(createRally, {
+    const res = await callRoute(recordEntries, {
       gameId: seeded.gameId,
       method: "PUT",
       query: { si: 0 },
@@ -82,7 +83,7 @@ describe("PUT /api/games/:id/sets/rallies", () => {
     const recorder = oid();
     const editor = oid();
     const sendRally = (body: unknown) =>
-      callRoute(createRally, {
+      callRoute(recordEntries, {
         gameId: seeded.gameId,
         method: "PUT",
         query: { si: 0 },

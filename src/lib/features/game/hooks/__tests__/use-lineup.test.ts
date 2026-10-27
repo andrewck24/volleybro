@@ -288,5 +288,21 @@ describe("useLineup", () => {
         sub: { id: "s1", number: 11 },
       });
     });
+
+    it("reads the marks as entry seq, which need not equal the entry's position", async () => {
+      const game = createLineupGame({
+        entries: [10, 11, 12, 13, 14, 15].map((seq) => homeRally(true, seq)),
+        starting: {
+          1: { id: "p2", sub: { id: "s1", entryIndex: { in: 11, out: 13 } } },
+        },
+      });
+      const { result } = renderLineup(game, { editingEntryIndex: 2 });
+      await loaded(result);
+
+      expect(result.current.starting[1]).toMatchObject({
+        number: 11,
+        sub: { id: "p2", number: 2 },
+      });
+    });
   });
 });

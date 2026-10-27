@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0145",
+  "title": "The current lineup is recomputed from the starting lineup and the substitutions",
+  "capabilities": ["game-recording/rally-recording"],
+  "context": "A set stored only the current lineup and overwrote it on every substitution. The lineup a set began with could not be recovered, so a past substitution could not be edited, and a resent substitution was applied to the already-substituted lineup and refused as a stale lineup.",
+  "decision": "A set stores its starting lineup, written when the set is created and changed only by editing the set. The current lineup is never updated step by step: every write that can change it recomputes it from the starting lineup by applying the set's substitutions in seq order, and stores the result so reads stay direct. One pure function in the domain layer does the recomputation for both the client's optimistic update and the server's write; it also returns the lineup in effect at each seq and the first substitution it cannot apply. A substitution is valid only when the outgoing player is on court and the incoming player is on the bench. A write that leaves any substitution invalid is refused whole with a 400, whether it adds or edits a substitution or changes the starting lineup. Each substitution mark in the lineup stores the seq of the entry, not its position in the list. Liberos are not substitutions and are carried over unchanged.",
+  "alternatives": [
+    {
+      "option": "The client sends a lineup snapshot with each substitution",
+      "reason": "The server would store a lineup it cannot check against the entries, and two devices recording at once would overwrite each other's snapshot. Editing a past substitution would still need every later snapshot rebuilt by the client."
+    },
+    {
+      "option": "Keep updating the lineup incrementally and skip the update when a substitution is resent",
+      "reason": "It fixes the resend but not editing: a changed past substitution leaves every later lineup wrong, and the starting lineup stays unrecoverable."
+    }
+  ],
+  "consequences": [
+    "A set without a starting lineup fails to read; there is no compatibility path for sets written before it existed.",
+    "The next set is pre-filled from the previous set's starting lineup, so it does not inherit substitution marks.",
+    "Scoring is not checked against the lineup. The per-seq lineups the function returns are there for a later warning, not for refusing writes."
+  ],
+  "revisitTriggers": [
+    "A set grows large enough that recomputing on every write is measurable.",
+    "Timeouts or challenges start to change who is on court."
+  ],
+  "originChange": "substitution-entries"
+}

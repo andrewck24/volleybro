@@ -343,6 +343,10 @@ const entrySchema = new Schema<EntryDocument>(
 
 interface SetDocument extends Document {
   win: boolean;
+  startingLineups: {
+    home: LineupDocument;
+    away: LineupDocument;
+  };
   lineups: {
     home: LineupDocument;
     away: LineupDocument;
@@ -355,10 +359,15 @@ interface SetDocument extends Document {
     };
   };
   entries: EntryDocument[];
+  ver: number;
 }
 
 const setSchema = new Schema<SetDocument>({
   win: { type: Boolean },
+  startingLineups: {
+    home: { type: lineupSchema },
+    away: { type: lineupSchema },
+  },
   lineups: {
     home: { type: lineupSchema },
     away: { type: lineupSchema },
@@ -371,6 +380,9 @@ const setSchema = new Schema<SetDocument>({
     },
   },
   entries: [entrySchema],
+  // Bumped by entry writes and updateSet, so a write planned from a stale read
+  // matches nothing.
+  ver: { type: Number, default: 0 },
 });
 
 const entriesPath = setSchema.path("entries") as Schema.Types.DocumentArray;

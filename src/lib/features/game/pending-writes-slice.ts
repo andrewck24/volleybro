@@ -23,6 +23,15 @@ const enqueued: CaseReducer<
   PendingWritesState,
   PayloadAction<Pick<PendingEntry, "entry" | "gameId" | "setIndex">>
 > = (state, action) => {
+  // A failed entry can never be sent as it is; the corrected one with its id
+  // replaces it, or the batch would carry the refused content with it.
+  const { entry, gameId } = action.payload;
+  state.pending = state.pending.filter(
+    (p) =>
+      p.gameId !== gameId ||
+      p.entry.id !== entry.id ||
+      mayBeAttemptedAgain(p.lastError),
+  );
   state.pending.push({
     ...action.payload,
     attempts: 0,

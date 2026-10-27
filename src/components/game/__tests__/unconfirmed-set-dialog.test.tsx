@@ -10,11 +10,7 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
-import {
-  gameWithSet,
-  lastRally,
-  pendingRally,
-} from "@test/support/fixtures/finished-set";
+import { gameWithSet, lastRally } from "@test/support/fixtures/finished-set";
 import { server } from "@test/support/msw/server";
 
 jest.mock("next/navigation", () => ({
@@ -59,7 +55,7 @@ describe("UnconfirmedSetDialog", () => {
   it("shows the neutral attempting state while the initial write is in flight", () => {
     store.dispatch(
       pendingWritesActions.enqueued({
-        entry: pendingRally as never,
+        entry: lastRally as never,
         gameId: "game-1",
         setIndex: 0,
       }),
@@ -110,7 +106,7 @@ describe("UnconfirmedSetDialog", () => {
     let sent: unknown;
     let url!: URL;
     server.use(
-      http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
         url = new URL(request.url);
         sent = await request.json();
         return HttpResponse.json({
@@ -134,6 +130,6 @@ describe("UnconfirmedSetDialog", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(url.searchParams.get("si")).toBe("0");
-    expect(sent).toEqual([{ ...pendingRally, at: expect.any(String) }]);
+    expect(sent).toEqual([{ ...lastRally, at: expect.any(String) }]);
   });
 });

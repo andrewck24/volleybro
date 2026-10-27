@@ -15,6 +15,7 @@ import {
   type Game,
   type GameSummary,
   type Set,
+  recomputeLineups,
 } from "@/entities/game";
 import {
   GameDocument,
@@ -25,14 +26,36 @@ import {
   mapEntryWrite,
   toGame,
   toGameDoc,
+  mapSetRead,
   toLineupWrite,
   type RawGame,
   type RawSet,
 } from "@/infrastructure/db/repositories/game.mapping.mongo";
 import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
+import { type Lineup } from "@/entities/team";
 import mongoose, { type AnyBulkWriteOperation } from "mongoose";
 
 type RawEntry = NonNullable<RawSet["entries"]>[number];
+type PlanStep =
+  { id: string; created: RawEntry } | { id: string; edited: RawEntry };
+
+const MAX_ATTEMPTS = 5;
+
+// Sets written before versions existed have none, read as zero. Not `null`:
+// under an array index it would also match any set.
+const atVer = (path: string, ver: number) => ({
+  [`${path}.ver`]: ver ? ver : { $not: { $gt: 0 } },
+});
+
+const lineupWrites = (path: string, lineups: Set["lineups"]) =>
+  Object.fromEntries(
+    Object.entries(lineups)
+      .filter(([, lineup]) => lineup)
+      .map(([side, lineup]) => [
+        `${path}.lineups.${side}`,
+        toLineupWrite(lineup as unknown as Parameters<typeof toLineupWrite>[0]),
+      ]),
+  );
 
 const fromDocument = (doc: GameDocument): Game =>
   toGame(doc.toObject() as RawGame);
@@ -52,26 +75,6 @@ export class GameRepositoryImpl implements IGameRepository {
   async create(data: Omit<Game, "id">): Promise<Game> {
     try {
       const doc = await this.model.create(toGameDoc(data) as object);
-      return fromDocument(doc);
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
-  async update(id: string, data: Partial<Game>): Promise<Game> {
-    try {
-      const doc = await this.model
-        .findByIdAndUpdate(
-          id,
-          { $set: toGameDoc(data) },
-          { returnDocument: "after" },
-        )
-        .exec();
-      if (!doc)
-        throw new NotFoundError(
-          CommonReason.RESOURCE_NOT_FOUND,
-          "The game to update was not found",
-        );
       return fromDocument(doc);
     } catch (error) {
       throw translateRepositoryError(error);
@@ -133,27 +136,90 @@ export class GameRepositoryImpl implements IGameRepository {
     return set ?? {};
   }
 
+  private async retryOnConflict(attempt: () => Promise<boolean>) {
+    for (let i = 0; i < MAX_ATTEMPTS; i++) if (await attempt()) return;
+    throw new Error("Set writes kept losing to concurrent writes");
+  }
+
+  async addSet(
+    { gameId, setIndex }: EntryRef,
+    set: Set,
+    { clearTeamLineup = false } = {},
+  ): Promise<Game> {
+    try {
+      const [doc] = toGameDoc({ sets: [set] }).sets as unknown[];
+      const result = await this.model.updateOne(
+        { _id: gameId, sets: { $size: setIndex } },
+        {
+          $push: { sets: doc },
+          ...(clearTeamLineup && { $unset: { "teams.home.lineup": "" } }),
+        },
+      );
+      if (result.matchedCount === 0) {
+        const game = await this.model.exists({ _id: gameId }).exec();
+        throw game
+          ? new ValidationError(
+              CommonReason.INVALID_INPUT,
+              "A set can only be added after the game's last set",
+            )
+          : new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
+      }
+      return (await this.findById(gameId))!;
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
+  async updateSet(
+    ref: EntryRef,
+    { options, lineup }: { options: Set["options"]; lineup?: Lineup },
+  ): Promise<Game> {
+    const path = `sets.${ref.setIndex}`;
+    try {
+      await this.retryOnConflict(async () => {
+        const current = await this.findSet(ref);
+        const set: Record<string, unknown> = {
+          [`${path}.options`]: options,
+        };
+        if (lineup) {
+          const { startingLineups, entries } = mapSetRead(
+            current,
+          ) as unknown as Pick<Set, "startingLineups" | "entries">;
+          const starting = { ...startingLineups, home: lineup };
+          const { lineups, invalid } = recomputeLineups(starting, entries);
+          if (invalid)
+            throw new ValidationError(
+              GameReason.INVALID_SUBSTITUTION,
+              "The starting lineup invalidates a recorded substitution",
+            );
+          Object.assign(set, lineupWrites(path, lineups), {
+            [`${path}.startingLineups.home`]: toLineupWrite(lineup),
+          });
+        }
+        const result = await this.model.updateOne(
+          {
+            _id: ref.gameId,
+            [`${path}`]: { $exists: true },
+            ...atVer(path, current.ver ?? 0),
+          },
+          { $set: set, $inc: { [`${path}.ver`]: 1 } },
+        );
+        return result.matchedCount === 1;
+      });
+      return (await this.findById(ref.gameId))!;
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
   async upsertEntry(
     ref: EntryRef,
     writes: EntryWrite[],
     operator: string,
-    lineups?: Partial<Set["lineups"]>,
   ): Promise<Entry[]> {
     const { setIndex } = ref;
     const path = `sets.${setIndex}`;
     const guard = { _id: ref.gameId, [path]: { $exists: true } };
-    const setLineups = Object.entries(lineups ?? {}).map(
-      ([side, lineup]) =>
-        [
-          `${path}.lineups.${side}`,
-          toLineupWrite(
-            lineup as unknown as Parameters<typeof toLineupWrite>[0],
-          ),
-        ] as const,
-    );
-    const lineupSet = setLineups.length
-      ? Object.fromEntries(setLineups)
-      : undefined;
 
     // `id: undefined` reaches Mongo as null, which the arrayFilters below
     // match against every other entry that also has none -- one edit would
@@ -169,90 +235,114 @@ export class GameRepositoryImpl implements IGameRepository {
       );
 
     try {
-      // A create whose push matches nothing lost a race to another create of
-      // the same id; classifying again against a fresh read turns it into an
-      // edit instead of dropping it.
-      for (let attempt = 0; ; attempt++) {
+      // A write that matches nothing lost a race to another write on the set;
+      // planning again against a fresh read re-classifies it (a lost create
+      // becomes an edit) and re-validates the lineups instead of dropping it.
+      await this.retryOnConflict(async () => {
+        const current = await this.findSet(ref);
+        const ver = current.ver ?? 0;
         const stored = new Map(
-          ((await this.findSet(ref)).entries ?? []).map((e) => [
-            e.id as string,
-            e,
-          ]),
+          (current.entries ?? []).map((e) => [e.id as string, e]),
         );
 
-        const ops = writes.flatMap(
-          ({ entry, at }): AnyBulkWriteOperation<GameDocument>[] => {
-            const mapped = mapEntryWrite(entry);
-            const existing = stored.get(entry.id);
-            if (!existing) {
-              // Later writes of the same id in this batch classify against it.
-              stored.set(entry.id, {
-                ...mapped,
-                recordedBy: operator,
-                recordedAt: at,
-              } as unknown as RawEntry);
-              return [
-                {
-                  updateOne: {
-                    filter: {
-                      ...guard,
-                      [`${path}.entries.id`]: { $ne: entry.id },
-                    },
-                    update: {
-                      $push: {
-                        [`${path}.entries`]: {
-                          $each: [
-                            { ...mapped, recordedBy: operator, recordedAt: at },
-                          ],
-                          $sort: { seq: 1 },
-                        },
+        // What the set will hold once the writes land. Later writes of the
+        // same id in this batch classify against it.
+        const plan = writes.flatMap(({ entry, at }): PlanStep[] => {
+          const mapped = mapEntryWrite(entry);
+          const existing = stored.get(entry.id);
+          if (!existing) {
+            const created = {
+              ...mapped,
+              recordedBy: operator,
+              recordedAt: at,
+            } as unknown as RawEntry;
+            stored.set(entry.id, created);
+            return [{ id: entry.id, created }];
+          }
+
+          const isCreationResend =
+            existing.recordedBy?.toString() === operator &&
+            existing.recordedAt?.getTime() === at.getTime();
+          if (isCreationResend) return [];
+
+          // Mongoose drops a discriminator's field when an update names it
+          // through an array filter, so the slot is written whole -- from the
+          // stored entry, which carries the recorder over untouched.
+          const edited = {
+            ...existing,
+            ...mapped,
+            recordedBy: existing.recordedBy,
+            recordedAt: existing.recordedAt,
+            editedBy: operator,
+            editedAt: at,
+          } as unknown as RawEntry;
+          stored.set(entry.id, edited);
+          return [{ id: entry.id, edited }];
+        });
+
+        // The lineup is derived from what the set will hold, never from what
+        // was sent, so a resend that carries other content cannot leave the
+        // two disagreeing. A write that breaks it is refused before any lands.
+        const next = mapSetRead({
+          ...current,
+          entries: [...stored.values()],
+        }) as unknown as Pick<Set, "startingLineups" | "entries">;
+        const { lineups, invalid } = recomputeLineups(
+          next.startingLineups,
+          next.entries,
+        );
+        if (invalid)
+          throw new ValidationError(
+            GameReason.INVALID_SUBSTITUTION,
+            "The substitution does not fit the lineup",
+          );
+        const lineupSet = lineupWrites(path, lineups);
+
+        // Each op is conditioned on the ver the previous op left; lineups go
+        // only on the last op, so they never lead the entries.
+        const last = plan.length - 1;
+        const ops = plan.map((step, i): AnyBulkWriteOperation<GameDocument> => {
+          const filter = { ...guard, ...atVer(path, ver + i) };
+          const bump = { [`${path}.ver`]: 1 };
+          return "created" in step
+            ? {
+                updateOne: {
+                  filter: {
+                    ...filter,
+                    [`${path}.entries.id`]: { $ne: step.id },
+                  },
+                  update: {
+                    $push: {
+                      [`${path}.entries`]: {
+                        $each: [step.created],
+                        $sort: { seq: 1 },
                       },
-                      ...(lineupSet && { $set: lineupSet }),
                     },
+                    $inc: bump,
+                    ...(i === last && { $set: lineupSet }),
                   },
                 },
-              ];
-            }
-
-            const isCreationResend =
-              existing.recordedBy?.toString() === operator &&
-              existing.recordedAt?.getTime() === at.getTime();
-            if (isCreationResend) return [];
-
-            // Mongoose drops a discriminator's field when an update names it
-            // through an array filter, so the slot is written whole -- from the
-            // stored entry, which carries the recorder over untouched.
-            return [
-              {
+              }
+            : {
                 updateOne: {
-                  filter: { ...guard, [`${path}.entries.id`]: entry.id },
+                  filter: { ...filter, [`${path}.entries.id`]: step.id },
                   update: {
                     $set: {
-                      [`${path}.entries.$[e]`]: {
-                        ...existing,
-                        ...mapped,
-                        recordedBy: existing.recordedBy,
-                        recordedAt: existing.recordedAt,
-                        editedBy: operator,
-                        editedAt: at,
-                      },
-                      ...lineupSet,
+                      [`${path}.entries.$[e]`]: step.edited,
+                      ...(i === last && lineupSet),
                     },
+                    $inc: bump,
                   },
-                  arrayFilters: [{ "e.id": entry.id }],
+                  arrayFilters: [{ "e.id": step.id }],
                 },
-              },
-            ];
-          },
-        );
+              };
+        });
 
         const result = ops.length
           ? await this.model.bulkWrite(ops, { ordered: true })
           : undefined;
-        if (!result || result.matchedCount === ops.length) break;
-        if (attempt > 0)
-          throw new Error("Entry writes kept losing to concurrent writes");
-      }
+        return !result || result.matchedCount === ops.length;
+      });
       const set = await this.findSet(ref);
       return (set.entries ?? []).map((e) => mapEntryRead(e)) as Entry[];
     } catch (error) {

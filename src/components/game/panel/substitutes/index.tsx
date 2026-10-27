@@ -3,11 +3,12 @@ import { PickerRow } from "@/components/custom/picker-row";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import { showErrorToast } from "@/lib/api/error-toast";
-import { createSubstitution } from "@/lib/features/game/actions/create-substitution";
+import { usePendingWritesContext } from "@/hooks/use-pending-writes";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { gameActions } from "@/lib/features/game/game-slice";
-import { createSubstitutionHelper } from "@/lib/features/game/helpers";
+import { applySubstitution } from "@/lib/features/game/helpers";
 import { useSubstitutes } from "@/lib/features/game/hooks/use-substitutes";
 import type { ReduxGameState } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -26,6 +27,7 @@ export const Substitutes = ({
   const { toast } = useToast();
   const dispatch = useAppDispatch();
   const { game, mutate } = useGame(gameId);
+  const { enqueue, flush } = usePendingWritesContext();
   const { setIndex } = useAppSelector((state) => state.game);
   const { status, entryDraft: draft } = useAppSelector(
     (state) => state.game[mode],
@@ -37,36 +39,53 @@ export const Substitutes = ({
     entryDraft: draft,
   });
 
+  const isEditing = mode === "editing";
+
   const onSubmit = async () => {
-    try {
-      // A new substitution gets a fresh identity generated here, before the
-      // optimistic update below applies it; editing reuses the id
-      // setEditingEntryStatus already loaded onto the draft.
-      const entry = {
-        ...draft.substitution!,
-        id: draft.id || crypto.randomUUID(),
-        seq: entryIndex,
-        at: new Date().toISOString(),
-      };
-      // Advances the draft the instant the write starts, without waiting for
-      // the server; awaiting afterwards is what routes a rejection into the
-      // catch below rather than leaving it unhandled.
-      const write = mutate(
-        createSubstitution({ gameId, setIndex, entryIndex }, entry, game!),
-        {
-          revalidate: false,
-          optimisticData: createSubstitutionHelper(
-            { gameId, setIndex, entryIndex },
-            entry,
-            game!,
-          ),
-        },
+    const { team, players } = draft.substitution!;
+    const entry = {
+      type: EntryType.SUBSTITUTION as const,
+      team,
+      players,
+      id: isEditing ? draft.id : crypto.randomUUID(),
+      seq: isEditing ? draft.seq : entryIndex,
+      at: new Date().toISOString(),
+    };
+    // Checked against what the recorder sees, applied to what the cache holds:
+    // the queue merges its own entries over the cache on every read.
+    const checked = applySubstitution(game!, setIndex, entry);
+    if ("invalid" in checked) {
+      const { id, score } = checked.invalid;
+      toast(
+        id === entry.id
+          ? { ...ERROR_MESSAGES.INVALID_SUBSTITUTION, variant: "error" }
+          : {
+              ...ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID,
+              title: ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID.title
+                .replace("{home}", String(score.home))
+                .replace("{away}", String(score.away)),
+              variant: "error",
+            },
       );
-      dispatch(gameActions.confirmEntryDraftSubstitution());
-      await write;
-    } catch (error) {
-      showErrorToast(error, toast);
+      return;
     }
+    mutate(
+      (raw) => {
+        const applied = applySubstitution(raw!, setIndex, entry);
+        return "game" in applied ? applied.game : raw;
+      },
+      { revalidate: false },
+    );
+    enqueue(entry);
+    if (!isEditing) {
+      dispatch(gameActions.confirmEntryDraftSubstitution());
+      void flush();
+      return;
+    }
+    const result = await flush();
+    if (!result.ok) return;
+    dispatch(gameActions.confirmEntryDraftSubstitution());
+    dispatch(gameActions.setGameMode("general"));
   };
 
   return (

@@ -1,4 +1,5 @@
 import { useGame } from "@/hooks/use-data";
+import { seqAt } from "@/lib/features/game/helpers";
 import type { GameView, ReduxEntryDraft } from "@/lib/features/game/types";
 
 export const useSubstitutes = (
@@ -13,7 +14,12 @@ export const useSubstitutes = (
   const substitutes =
     entryIndex === game.sets[setIndex]?.entries.length
       ? getGeneralModeSubstitutes(game, entryDraft, setIndex)
-      : getEditingModeSubstitutes(game, entryDraft, setIndex, entryIndex);
+      : getEditingModeSubstitutes(
+          game,
+          entryDraft,
+          setIndex,
+          seqAt(game.sets[setIndex]!.entries, entryIndex),
+        );
 
   return substitutes.filter((s): s is NonNullable<typeof s> => s != null);
 };
@@ -32,7 +38,7 @@ const getGeneralModeSubstitutes = (
   const player = starting.find((p) => p.id === startingId);
 
   // 若此位置之球員已替補兩次，則無法再進行替補
-  if (player?.sub?.entryIndex?.out) return [];
+  if (player?.sub?.entryIndex?.out !== undefined) return [];
 
   // 若是替補球員，只能與原本的球員互換
   if (player?.sub?.entryIndex?.in !== undefined) {
@@ -55,7 +61,7 @@ const getEditingModeSubstitutes = (
   game: GameView,
   entryDraft: ReduxEntryDraft,
   setIndex: number,
-  entryIndex: number,
+  seq: number,
 ) => {
   // setIndex references the active set being recorded; guaranteed in bounds
   const { starting, substitutes } = game.sets[setIndex]!.lineups.home;
@@ -72,13 +78,14 @@ const getEditingModeSubstitutes = (
   const { sub } = player;
 
   // 檢查此位置是否已使用完兩次替補
-  if (sub?.entryIndex?.out && sub.entryIndex.out < entryIndex) return [];
+  if ((sub?.entryIndex?.out ?? Infinity) < seq) return [];
 
   // 若所編輯的時間點為替補狀態，則只能與原本的球員互換
-  if ((sub?.entryIndex?.in ?? Infinity) < entryIndex) {
+  if ((sub?.entryIndex?.in ?? Infinity) < seq) {
     return [
       players.find(
-        (p) => p.id === (sub?.entryIndex?.out ? player.id : sub?.id),
+        (p) =>
+          p.id === (sub?.entryIndex?.out !== undefined ? player.id : sub?.id),
       ),
     ];
   }
@@ -93,7 +100,11 @@ const getEditingModeSubstitutes = (
     .filter((sub) => !usedIds.has(sub.id))
     .map((s) => s.id);
 
-  if (sub?.entryIndex?.in !== undefined) availablePlayers.push(player.id);
+  // The replacement is the id on court, or, once swapped back, the sub id.
+  if (sub?.entryIndex?.in !== undefined)
+    availablePlayers.push(
+      sub.entryIndex.out !== undefined ? sub.id : player.id,
+    );
 
   return availablePlayers.map((id) => players.find((p) => p.id === id));
 };

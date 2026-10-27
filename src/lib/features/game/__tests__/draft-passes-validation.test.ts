@@ -1,5 +1,6 @@
+import { EntryType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
-import { RecordRalliesSchema } from "@/interface/validations/game";
+import { RecordEntriesSchema } from "@/interface/validations/game";
 import { makeStore } from "@/lib/redux/store";
 import {
   backMoves,
@@ -14,11 +15,17 @@ import {
 // reducers says they always fill those in; nothing observed it until here.
 const submitted = (store: ReturnType<typeof makeStore>) => {
   const { entryDraft } = store.getState().game.general;
-  return { ...entryDraft, id: "e1", seq: 0, at: new Date().toISOString() };
+  return {
+    ...entryDraft,
+    type: EntryType.RALLY,
+    id: "e1",
+    seq: 0,
+    at: new Date().toISOString(),
+  };
 };
 
 const passesSchema = (store: ReturnType<typeof makeStore>) =>
-  RecordRalliesSchema.safeParse([submitted(store)]).success;
+  RecordEntriesSchema.safeParse([submitted(store)]).success;
 
 // Everything the panel can offer for a home move: front row, back row, or --
 // with no player picked -- an opponent error.

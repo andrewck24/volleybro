@@ -1,4 +1,6 @@
+import { EntryType, Side } from "@/entities/game";
 import {
+  applyFlushedEntries,
   deriveSyncStatus,
   hasFailedWrite,
   isPendingWrite,
@@ -265,5 +267,75 @@ describe("mergePendingEntries", () => {
     expect(
       mergePendingEntries(undefined, [queued("q", 1)], "game-1"),
     ).toBeUndefined();
+  });
+});
+
+describe("queued substitutions", () => {
+  const lineup = {
+    options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+    starting: [{ id: "p1", position: "OH" }],
+    liberos: [],
+    substitutes: [{ id: "p2", position: "OH" }],
+  };
+  const game = () =>
+    ({
+      id: "game-1",
+      sets: [
+        {
+          startingLineups: { home: lineup },
+          lineups: { home: lineup },
+          entries: [],
+        },
+      ],
+    }) as unknown as GameView;
+  const substitution = (players: { in: string; out: string }) => ({
+    type: EntryType.SUBSTITUTION,
+    id: "sub-1",
+    seq: 0,
+    at: "2026-10-27T01:02:03.000Z",
+    team: Side.HOME,
+    players,
+  });
+  const onCourt = (merged: GameView | undefined) =>
+    merged?.sets[0]?.lineups.home.starting.map((p) => p.id);
+
+  it("puts a queued substitution on court before the server has it", () => {
+    const merged = mergePendingEntries(
+      game(),
+      [
+        makePendingEntry({
+          entry: substitution({ in: "p2", out: "p1" }) as never,
+        }),
+      ],
+      "game-1",
+    );
+
+    expect(onCourt(merged)).toEqual(["p2"]);
+    expect(merged?.sets[0]?.entries).toHaveLength(1);
+  });
+
+  it("keeps the confirmed lineup when a queued substitution cannot apply", () => {
+    const merged = mergePendingEntries(
+      game(),
+      [
+        makePendingEntry({
+          entry: substitution({ in: "p2", out: "p9" }) as never,
+        }),
+      ],
+      "game-1",
+    );
+
+    expect(onCourt(merged)).toEqual(["p1"]);
+    expect(merged?.sets[0]?.entries).toHaveLength(1);
+  });
+
+  it("derives the lineup from the entries the server confirms", () => {
+    const confirmed = [
+      { ...substitution({ in: "p2", out: "p1" }), recordedBy: "u1" },
+    ];
+
+    const merged = applyFlushedEntries(game(), 0, confirmed as never);
+
+    expect(onCourt(merged)).toEqual(["p2"]);
   });
 });

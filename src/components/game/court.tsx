@@ -57,7 +57,7 @@ export const GameCourt = ({
             zone={-(index + 1)}
             onClick={() => {}}
           >
-            {player.sub?.id && !player.sub?.entryIndex?.out && (
+            {player.sub?.id && player.sub?.entryIndex?.out === undefined && (
               <SubIndicator number={player.sub.number ?? 0} />
             )}
           </PlayerCard>
@@ -80,7 +80,7 @@ export const GameCourt = ({
               )
             }
           >
-            {player.sub?.id && !player.sub?.entryIndex?.out && (
+            {player.sub?.id && player.sub?.entryIndex?.out === undefined && (
               <SubIndicator number={player.sub.number ?? 0} />
             )}
           </PlayerCard>

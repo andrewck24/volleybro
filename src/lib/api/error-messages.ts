@@ -9,7 +9,11 @@ import {
 export type ErrorMessage = { title: string; description: string };
 
 type ClassKey =
-  "SESSION_EXPIRED" | "NETWORK_TIMEOUT" | "SERVER_ERROR" | "UNKNOWN";
+  | "SESSION_EXPIRED"
+  | "NETWORK_TIMEOUT"
+  | "SERVER_ERROR"
+  | "LATER_SUBSTITUTION_INVALID"
+  | "UNKNOWN";
 
 type AbsorbedReason = (typeof ABSORBED_REASONS)[number];
 // Derived, so renaming a reason is a compile error rather than a silent miss.
@@ -31,6 +35,10 @@ export const ABSORBED_REASONS = [
 
 export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
   SESSION_EXPIRED: { title: "登入逾期", description: "請重新登入" },
+  LATER_SUBSTITUTION_INVALID: {
+    title: "這次修改會讓比分 {home}:{away} 時的換人無效",
+    description: "請調整換上或換下的球員，或先修改後面的換人",
+  },
   NETWORK_TIMEOUT: {
     title: "連線逾時",
     description: "請稍後再試，若問題持續請確認網路連線",
@@ -134,6 +142,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
   STALE_LINEUP: {
     title: "名單已變動",
     description: "這位球員已不在出賽名單中，請重新整理後再試",
+  },
+  INVALID_SUBSTITUTION: {
+    title: "換人與目前陣容不符",
+    description: "被換下的球員不在場上，或換上的球員不在替補席",
   },
   SET_NOT_FOUND: {
     title: "找不到這一局",

@@ -124,16 +124,21 @@ function createDefaultGameTeam(overrides?: Partial<GameTeam>): GameTeam {
 }
 
 function createDefaultSet(): Set {
+  const lineups = () => ({
+    home: {
+      options: {
+        liberoReplaceMode: 0 as const,
+        liberoReplacePosition: Position.NONE as const,
+      },
+      starting: [],
+      liberos: [],
+      substitutes: [],
+    },
+  });
   return {
     win: true,
-    lineups: {
-      home: {
-        options: { liberoReplaceMode: 0, liberoReplacePosition: Position.NONE },
-        starting: [],
-        liberos: [],
-        substitutes: [],
-      },
-    },
+    startingLineups: lineups(),
+    lineups: lineups(),
     options: { serve: "home" },
     entries: [
       createRecordedRally({

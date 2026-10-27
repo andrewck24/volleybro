@@ -5,7 +5,7 @@ import {
 } from "@/lib/features/game/pending-writes";
 import type {
   PendingEntry,
-  RecordRalliesResponse,
+  RecordEntriesResponse,
   WriteError,
 } from "@/lib/features/game/types";
 import { withRetry, type RetryOutcome } from "@/lib/retry";
@@ -26,7 +26,7 @@ export function toWriteError(error: unknown): WriteError | undefined {
 }
 
 /**
- * Sends one batch of entries to the rally endpoint (the queue's flush, not
+ * Sends one batch of entries to the entries endpoint (the queue's flush, not
  * the individual submit, owns the network). Retries a retryable failure
  * inline per PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS before handing off to
  * the queue's own background backoff; a 4xx is never retried.
@@ -35,10 +35,10 @@ export async function flushPendingWrites(
   gameId: string,
   setIndex: number,
   entries: PendingEntry["entry"][],
-): Promise<RetryOutcome<RecordRalliesResponse>> {
+): Promise<RetryOutcome<RecordEntriesResponse>> {
   return withRetry(PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS, isRetryable, () =>
-    apiClient<RecordRalliesResponse>(
-      `/api/games/${gameId}/sets/rallies?si=${setIndex}`,
+    apiClient<RecordEntriesResponse>(
+      `/api/games/${gameId}/sets/entries?si=${setIndex}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

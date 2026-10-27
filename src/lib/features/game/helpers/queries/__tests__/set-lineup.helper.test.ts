@@ -11,7 +11,7 @@ const makeLineup = (marker: string): LineupView => ({
 });
 
 const makeGame = (
-  sets: { lineups: { home: LineupView } }[],
+  sets: { startingLineups: { home: LineupView } }[],
   teamLineup?: LineupView,
 ): GameView =>
   ({
@@ -20,13 +20,13 @@ const makeGame = (
   }) as unknown as GameView;
 
 describe("getSetLineup", () => {
-  it("returns the set's own lineup when the set exists", () => {
-    const game = makeGame([{ lineups: { home: makeLineup("set0") } }]);
+  it("returns the set's own starting lineup when the set exists", () => {
+    const game = makeGame([{ startingLineups: { home: makeLineup("set0") } }]);
     expect(getSetLineup(game, 0)).toEqual(makeLineup("set0"));
   });
 
-  it("carries the previous set's lineup forward for a new subsequent set", () => {
-    const game = makeGame([{ lineups: { home: makeLineup("set0") } }]);
+  it("carries the previous set's starting lineup forward for a new subsequent set", () => {
+    const game = makeGame([{ startingLineups: { home: makeLineup("set0") } }]);
     // Adding set 1: teams.home.lineup was deleted after set 0, so it must fall
     // back to set 0's lineup.
     expect(getSetLineup(game, 1)).toEqual(makeLineup("set0"));

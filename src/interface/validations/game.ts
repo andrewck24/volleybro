@@ -1,11 +1,11 @@
 import type { ICreateGameInput } from "@/applications/usecases/game/create-game.usecase";
 import type { ICreateSetInput } from "@/applications/usecases/game/create-set.usecase";
-import type { ICreateSubstitutionInput } from "@/applications/usecases/game/create-substitution.usecase";
-import type { IRecordRalliesInput } from "@/applications/usecases/game/record-rallies.usecase";
+import type { IRecordEntriesInput } from "@/applications/usecases/game/record-entries.usecase";
 import type { IUpdateSetInput } from "@/applications/usecases/game/update-set.usecase";
 import {
   MatchCategory,
   MatchDivision,
+  EntryType,
   MatchPhase,
   MoveType,
   Side,
@@ -146,8 +146,9 @@ const RallyDetailSchema = z
 /** When the client performed the action, as `toISOString()` writes it. */
 const actionTime = z.iso.datetime().transform((value) => new Date(value));
 
-const RallySchema = z
+const RallyEntrySchema = z
   .object({
+    type: z.literal(EntryType.RALLY),
     id: z.string().min(1),
     seq: z.number().int(),
     at: actionTime,
@@ -157,14 +158,9 @@ const RallySchema = z
   })
   .strict();
 
-/** PUT /api/games/{gameId}/sets/rallies */
-export const RecordRalliesSchema = z.array(RallySchema) satisfies z.ZodType<
-  IRecordRalliesInput["data"]
->;
-
-/** POST /api/games/{gameId}/sets/substitutions */
-export const CreateSubstitutionSchema = z
+const SubstitutionEntrySchema = z
   .object({
+    type: z.literal(EntryType.SUBSTITUTION),
     id: z.string().min(1),
     seq: z.number().int(),
     at: actionTime,
@@ -176,4 +172,9 @@ export const CreateSubstitutionSchema = z
       })
       .strict(),
   })
-  .strict() satisfies z.ZodType<ICreateSubstitutionInput["data"]>;
+  .strict();
+
+/** PUT /api/games/{gameId}/sets/entries */
+export const RecordEntriesSchema = z.array(
+  z.discriminatedUnion("type", [RallyEntrySchema, SubstitutionEntrySchema]),
+) satisfies z.ZodType<IRecordEntriesInput["data"]>;

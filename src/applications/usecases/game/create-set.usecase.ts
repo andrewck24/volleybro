@@ -2,7 +2,12 @@ import type { IGameRepository } from "@/applications/repositories/game.repositor
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { NotFoundError, GameReason } from "@/entities/errors";
-import { type Game, type Set, validateLineupPlayers } from "@/entities/game";
+import {
+  type Game,
+  type Set,
+  recomputeLineups,
+  validateLineupPlayers,
+} from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { type Lineup } from "@/entities/team";
 import { TYPES } from "@/infrastructure/di/types";
@@ -48,17 +53,17 @@ export class CreateSetUseCase implements ICreateSetUseCase {
 
     validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
 
-    if (params.setIndex === 0) delete game.teams.home.lineup;
-
-    game.sets[params.setIndex] = {
-      win: null,
-      lineups: { home: data.lineup },
-      options: data.options,
-      entries: [],
-    };
-
-    const updatedGame = await this.gameRepository.update(params.gameId, game);
-
-    return updatedGame;
+    const startingLineups = { home: data.lineup };
+    return this.gameRepository.addSet(
+      params,
+      {
+        win: null,
+        startingLineups,
+        lineups: recomputeLineups(startingLineups, []).lineups,
+        options: data.options,
+        entries: [],
+      },
+      { clearTeamLineup: params.setIndex === 0 },
+    );
   }
 }

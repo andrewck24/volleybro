@@ -53,13 +53,6 @@ export class UpdateSetUseCase implements IUpdateSetUseCase {
     if (data.lineup) {
       validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
     }
-    set.options = data.options;
-    if (data.lineup) {
-      set.lineups.home = data.lineup;
-    }
-
-    const updatedGame = await this.gameRepository.update(params.gameId, game);
-
-    return updatedGame;
+    return this.gameRepository.updateSet(params, data);
   }
 }

@@ -49,6 +49,29 @@ describe("rally.helper.ts", () => {
     sets: [
       {
         win: false,
+        startingLineups: {
+          home: {
+            options: {
+              liberoReplaceMode: 0,
+              liberoReplacePosition: Position.NONE,
+            },
+            starting: [
+              { id: "player-1", position: Position.OH },
+              { id: "player-2", position: Position.MB },
+            ],
+            liberos: [{ id: "player-7", position: Position.L }],
+            substitutes: [{ id: "player-8", position: Position.OH }],
+          },
+          away: {
+            options: {
+              liberoReplaceMode: 0,
+              liberoReplacePosition: Position.NONE,
+            },
+            starting: [{ id: "rival-1", position: Position.OH }],
+            liberos: [],
+            substitutes: [{ id: "rival-2", position: Position.OH }],
+          },
+        },
         lineups: {
           home: {
             options: {

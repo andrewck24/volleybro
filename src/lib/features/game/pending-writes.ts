@@ -1,9 +1,10 @@
-import { EntryType, upsertEntries } from "@/entities/game";
+import { recomputeLineups, upsertEntries } from "@/entities/game";
 import type {
   GameView,
   PendingEntry,
   PendingWritesState,
   PersistedPendingEntry,
+  SetView,
   WriteError,
 } from "@/lib/features/game/types";
 
@@ -55,6 +56,13 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
+// Lineups follow from the entries. A history the lineup rules reject keeps the
+// last confirmed lineup; the write that caused it fails on its own.
+const withEntries = (set: SetView, entries: SetView["entries"]): SetView => {
+  const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
+  return { ...set, entries, lineups: invalid ? set.lineups : lineups };
+};
+
 export const applyFlushedEntries = (
   game: GameView | undefined,
   setIndex: number,
@@ -63,7 +71,7 @@ export const applyFlushedEntries = (
   game && {
     ...game,
     sets: game.sets.map((set, i) =>
-      i === setIndex ? { ...set, entries } : set,
+      i === setIndex ? withEntries(set, entries) : set,
     ),
   };
 
@@ -89,13 +97,13 @@ export const mergePendingEntries = (
       const group = bySet.get(setIndex);
       if (!group) return set;
 
-      return {
-        ...set,
-        entries: upsertEntries(
+      return withEntries(
+        set,
+        upsertEntries(
           set.entries,
-          group.map(({ entry }) => ({ type: EntryType.RALLY, ...entry })),
+          group.map(({ entry }) => entry),
         ),
-      };
+      );
     }),
   };
 };

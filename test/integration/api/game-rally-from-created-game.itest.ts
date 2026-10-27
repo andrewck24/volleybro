@@ -1,10 +1,10 @@
-import { MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createGame } from "@/app/api/games/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
-import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as recordEntries } from "@/app/api/games/[gameId]/sets/entries/route";
 import { NextRequest } from "next/server";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
@@ -73,6 +73,7 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
     // The entry draft Redux actually submits: the home side carries the tapped
     // player, the away side keeps the initial-state placeholder `id: ""`.
     const draft = {
+      type: EntryType.RALLY,
       id: "entry-1",
       seq: 0,
       at: new Date().toISOString(),
@@ -91,7 +92,7 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
       },
     };
 
-    const rallyRes = await callRoute(createRally, {
+    const rallyRes = await callRoute(recordEntries, {
       gameId,
       method: "PUT",
       query: { si: 0 },

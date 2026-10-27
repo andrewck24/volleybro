@@ -1,3 +1,4 @@
+import { seqAt } from "@/lib/features/game/helpers/queries/entry-seq.helper";
 import { getPreviousScores } from "@/lib/features/game/helpers/queries/previous-scores.helper";
 import { getSetLineup } from "@/lib/features/game/helpers/queries/set-lineup.helper";
 import { getSetOptions } from "@/lib/features/game/helpers/queries/set-options.helper";
@@ -8,14 +9,15 @@ import {
   assertRallyAt,
   deriveEntryPhase,
 } from "@/lib/features/game/helpers/optimistic/rally.helper";
-import { createSubstitutionHelper } from "@/lib/features/game/helpers/optimistic/substitution.helper";
+import { applySubstitution } from "@/lib/features/game/helpers/optimistic/substitution.helper";
 
 export {
   applyEntry,
   assertRallyAt,
-  createSubstitutionHelper,
+  applySubstitution,
   deriveEntryPhase,
   getPreviousScores,
+  seqAt,
   getSetLineup,
   getSetOptions,
   getTeamsStats,

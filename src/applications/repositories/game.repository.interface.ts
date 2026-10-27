@@ -5,6 +5,7 @@ import type {
   GameSummary,
   Set,
 } from "@/entities/game";
+import type { Lineup } from "@/entities/team";
 
 export interface EntryRef {
   gameId: string;
@@ -15,10 +16,25 @@ export interface IGameRepository {
   findById(id: string): Promise<Game | null>;
   create(data: Omit<Game, "id">): Promise<Game>;
   /**
-   * Serves set-level writes only. It overwrites the whole document, so new
-   * write paths must not use it — add a domain operation instead.
+   * Appends a new set as the game's next, touching nothing else, so sets and
+   * entries written meanwhile are kept. `clearTeamLineup` also drops the home
+   * team's lineup, which the first set supersedes.
    */
-  update(id: string, data: Partial<Game>): Promise<Game>;
+  addSet(
+    ref: EntryRef,
+    set: Set,
+    options?: { clearTeamLineup?: boolean },
+  ): Promise<Game>;
+  /**
+   * Replaces a set's options and, when given, its home starting lineup,
+   * leaving every other field — entries included — as stored. The current
+   * lineups are recomputed from the entries the set holds at write time; a
+   * starting lineup that invalidates one is refused with INVALID_SUBSTITUTION.
+   */
+  updateSet(
+    ref: EntryRef,
+    changes: { options: Set["options"]; lineup?: Lineup },
+  ): Promise<Game>;
   /**
    * Writes each entry by identity and returns the set's entries in sequence
    * order, regardless of arrival order. Whether an entry exists is decided
@@ -28,14 +44,14 @@ export interface IGameRepository {
    *   a resend of the creation, so nothing is written;
    * - otherwise an edit: the content is replaced and `editedBy`/`editedAt`
    *   set; `recordedBy` and `recordedAt` never change.
-   * A substitution also changes who is on court, so the lineup the entry
-   * produces is written with it rather than after it.
+   * The set's current lineups are recomputed from its starting lineups and
+   * the entries it will hold, and written with the last entry. A write that
+   * leaves a substitution invalid is refused whole with INVALID_SUBSTITUTION.
    */
   upsertEntry(
     ref: EntryRef,
     writes: EntryWrite[],
     operator: string,
-    lineups?: Partial<Set["lineups"]>,
   ): Promise<Entry[]>;
   /**
    * Records a set's result, and the match's when the match is decided. Both

@@ -14,6 +14,20 @@ const side = (name: string, id: string) => ({ id, name, staffs: [] });
 
 const lineupPlayer = (id: string, position: Position) => ({ id, position });
 
+const startingLineups = {
+  home: {
+    options: {
+      liberoReplaceMode: 0 as const,
+      liberoReplacePosition: Position.NONE as const,
+    },
+    starting: HOME_PLAYERS.slice(0, 6).map((player) =>
+      lineupPlayer(player.id, player.position as Position),
+    ),
+    liberos: [lineupPlayer("p7", Position.L)],
+    substitutes: [],
+  },
+};
+
 export const demoGame: GameView = {
   id: DEMO_GAME_ID,
   win: null,
@@ -27,19 +41,8 @@ export const demoGame: GameView = {
     {
       win: null,
       options: { serve: "home" },
-      lineups: {
-        home: {
-          options: {
-            liberoReplaceMode: 0,
-            liberoReplacePosition: Position.NONE,
-          },
-          starting: HOME_PLAYERS.slice(0, 6).map((player) =>
-            lineupPlayer(player.id, player.position as Position),
-          ),
-          liberos: [lineupPlayer("p7", Position.L)],
-          substitutes: [],
-        },
-      },
+      startingLineups,
+      lineups: startingLineups,
       entries: entriesOf("seed", SEED_COUNT),
     },
   ],

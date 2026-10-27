@@ -55,18 +55,21 @@ const game: GameView = {
   sets: [
     {
       win: true,
+      startingLineups: { home: lineup },
       lineups: { home: lineup },
       options: { serve: "home" },
       entries: [],
     },
     {
       win: false,
+      startingLineups: { home: lineup },
       lineups: { home: lineup },
       options: { serve: "home" },
       entries: [],
     },
     {
       win: null,
+      startingLineups: { home: lineup },
       lineups: { home: lineup },
       options: { serve: "home" },
       entries: [
@@ -142,6 +145,7 @@ const queueRally = () =>
   store.dispatch(
     pendingWritesActions.enqueued({
       entry: {
+        type: EntryType.RALLY,
         id: "pending-1",
         seq: 1,
         at: "2026-10-27T01:02:03.000Z",

@@ -14,6 +14,9 @@ const rally = (home: number, away: number, seq = 0): Entry =>
 
 const set = (win: boolean | null, entries: Entry[] = []): Set => ({
   win,
+  startingLineups: {
+    home: { options: {}, starting: [], liberos: [], substitutes: [] } as never,
+  },
   lineups: {
     home: { options: {}, starting: [], liberos: [], substitutes: [] } as never,
   },

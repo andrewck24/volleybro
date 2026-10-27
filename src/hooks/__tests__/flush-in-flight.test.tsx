@@ -55,7 +55,7 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
   const sent: string[][] = [];
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(serverGame())),
-    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+    http.put("/api/games/game-1/sets/entries", async ({ request }) => {
       sent.push(((await request.json()) as { id: string }[]).map((r) => r.id));
       // Enqueuing schedules a background flush for the next macrotask, so a
       // second request goes out mid-test. Only the first is answered:

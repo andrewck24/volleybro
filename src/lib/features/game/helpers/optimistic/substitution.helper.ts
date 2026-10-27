@@ -1,62 +1,37 @@
-import { EntryType, Side, type EntryIdentity } from "@/entities/game";
-import type { GameView, SubstitutionView } from "@/lib/features/game/types";
+import {
+  getPreviousRally,
+  recomputeLineups,
+  upsertEntries,
+} from "@/entities/game";
+import type { GameView, PendingSubstitution } from "@/lib/features/game/types";
 
-export const createSubstitutionHelper = (
-  params: { gameId: string; setIndex: number; entryIndex: number },
-  substitution: SubstitutionView & EntryIdentity,
+/**
+ * The game with the substitution recorded and the lineup recomputed, or the
+ * first substitution the lineup rules refuse and the score of the last rally
+ * before it (0:0 if none).
+ * That substitution is the written one or a later one the write breaks. The
+ * same check the server makes, so a refused write is stopped before it is
+ * queued.
+ */
+export const applySubstitution = (
   game: GameView,
-) => {
-  const { setIndex, entryIndex } = params;
-  const side = substitution.team === Side.HOME ? "home" : "away";
-  // setIndex is the active set being recorded; guaranteed in bounds
+  setIndex: number,
+  entry: PendingSubstitution,
+):
+  | { game: GameView }
+  | { invalid: { id: string; score: { home: number; away: number } } } => {
   const set = game.sets[setIndex]!;
-  const lineup = set.lineups[side]!;
+  const entries = upsertEntries(set.entries, [entry]);
+  const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
+  if (invalid) {
+    const previous = getPreviousRally(entries, entries.indexOf(invalid));
+    const score = previous
+      ? { home: previous.home.score, away: previous.away.score }
+      : { home: 0, away: 0 };
+    return { invalid: { id: invalid.id, score } };
+  }
 
-  // Update lineup
-  const startingIndex = lineup.starting.findIndex(
-    (p) => p.id?.toString() === substitution.players.out,
-  );
-  const subIndex = lineup.substitutes.findIndex(
-    (p) => p.id?.toString() === substitution.players.in,
-  );
-  const starter = lineup.starting[startingIndex];
-  const substitute = lineup.substitutes[subIndex];
-  if (!starter || !substitute) return game;
-
-  lineup.starting[startingIndex] = {
-    id: substitution.players.in,
-    position: starter.position,
-    sub: {
-      id: substitution.players.out,
-      entryIndex:
-        starter.sub?.entryIndex?.in !== undefined
-          ? {
-              ...starter.sub.entryIndex,
-              out: entryIndex,
-            }
-          : { in: entryIndex },
-    },
-  };
-
-  lineup.substitutes[subIndex] = {
-    ...substitute,
-    id: substitution.players.out,
-    sub: {
-      id: substitution.players.in,
-      entryIndex:
-        substitute.sub?.entryIndex?.in !== undefined
-          ? {
-              ...substitute.sub.entryIndex,
-              out: entryIndex,
-            }
-          : { in: entryIndex },
-    },
-  };
-
-  set.entries[entryIndex] = {
-    type: EntryType.SUBSTITUTION,
-    ...substitution,
-  };
-
-  return game;
+  const sets = game.sets.slice();
+  sets[setIndex] = { ...set, entries, lineups };
+  return { game: { ...game, sets } };
 };

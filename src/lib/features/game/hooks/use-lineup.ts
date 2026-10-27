@@ -1,5 +1,6 @@
 import { deriveSetStats } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
+import { seqAt } from "@/lib/features/game/helpers";
 import type { GameView, ReduxStatus } from "@/lib/features/game/types";
 import type { LineupView } from "@/lib/features/team/types";
 
@@ -98,21 +99,22 @@ const getEditingModeLineup = (
     { options: set.options },
   ).home;
   const rotation = usedRotation % 6;
+  // Substitution marks are entry seqs, not positions.
+  const seq = seqAt(set.entries, entryIndex);
 
   const { starting, liberos } = structuredClone(set.lineups.home);
 
   const mapPlayer = (player: LineupView["starting"][number]) => {
     // Whether this player has been substituted in the game
-    const hasSub = (player?.sub?.entryIndex?.in ?? Infinity) < entryIndex;
+    const hasSub = (player?.sub?.entryIndex?.in ?? Infinity) < seq;
     // Current game state shows this player is a substitute
     const isSub =
       player?.sub?.entryIndex?.in !== undefined &&
-      !player?.sub?.entryIndex?.out;
+      player?.sub?.entryIndex?.out === undefined;
     // At the editing point, this player was a substitute
     const wasSub =
-      (player?.sub?.entryIndex?.in ?? Infinity) < entryIndex &&
-      (!player?.sub?.entryIndex?.out ||
-        player?.sub?.entryIndex?.out >= entryIndex);
+      (player?.sub?.entryIndex?.in ?? Infinity) < seq &&
+      (player?.sub?.entryIndex?.out ?? Infinity) >= seq;
     // When a player (LineupPlayer) is substituted, their id and sub.id are swapped
     // So when isSub and wasSub are the same, it means no need to swap id and sub.id
     const toSwap = isSub === wasSub;

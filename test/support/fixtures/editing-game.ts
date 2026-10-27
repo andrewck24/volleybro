@@ -19,6 +19,13 @@ export const rally = createRecordedRally({
 const base = createGame();
 const [firstSet] = base.sets;
 
+const lineups = {
+  home: {
+    ...firstSet!.lineups.home,
+    starting: [{ id: "p1", position: Position.OH }],
+  },
+};
+
 export const game = createGame({
   teams: {
     ...base.teams,
@@ -30,12 +37,8 @@ export const game = createGame({
   sets: [
     {
       ...firstSet!,
-      lineups: {
-        home: {
-          ...firstSet!.lineups.home,
-          starting: [{ id: "p1", position: Position.OH }],
-        },
-      },
+      startingLineups: lineups,
+      lineups,
       entries: [rally],
     },
   ],

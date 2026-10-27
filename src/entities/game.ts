@@ -1,5 +1,5 @@
 import { ValidationError, GameReason } from "@/entities/errors";
-import { Lineup } from "@/entities/team";
+import { Lineup, LineupPlayer } from "@/entities/team";
 
 export enum MatchPhase {
   NONE,
@@ -266,12 +266,17 @@ export const createChallengeEntry = (
   ...challenge,
 });
 
+export type SetLineups = {
+  home: Lineup;
+  away?: Lineup;
+};
+
 export type Set = {
   win: boolean | null;
-  lineups: {
-    home: Lineup;
-    away?: Lineup;
-  };
+  /** Who started the set; the only lineup a person edits. See ADR-0145. */
+  startingLineups: SetLineups;
+  /** Who is on court now, derived from `startingLineups` and the entries. */
+  lineups: SetLineups;
   options: {
     serve: "home" | "away";
     time?: {
@@ -437,6 +442,88 @@ export function upsertEntries<T extends EntryIdentity>(
   }
 
   return next.sort((a, b) => a.seq - b.seq);
+}
+
+/** What the lineup rules read of an entry; both `Entry` and `EntryView` satisfy it. */
+export type LineupEntry = {
+  type: EntryType;
+  seq: number;
+  team?: Side;
+  players?: { in: string; out: string };
+};
+
+export type LineupRecomputation<T extends LineupEntry> = {
+  /** The lineups after every valid substitution has been applied. */
+  lineups: SetLineups;
+  /** For each entry's seq, the lineups in effect just before it happens. */
+  atSeq: ReadonlyMap<number, SetLineups>;
+  /** The first substitution, in seq order, the lineup cannot apply. */
+  invalid?: T;
+};
+
+function applySubstitution(
+  lineup: Lineup | undefined,
+  players: { in: string; out: string },
+  seq: number,
+): Lineup | null {
+  const starterAt = lineup?.starting.findIndex((p) => p.id === players.out);
+  const benchAt = lineup?.substitutes.findIndex((p) => p.id === players.in);
+  if (!lineup || starterAt === undefined || benchAt === undefined) return null;
+  const starter = lineup.starting[starterAt];
+  const bench = lineup.substitutes[benchAt];
+  if (!starter || !bench) return null;
+
+  const swapped = (
+    player: LineupPlayer,
+    id: string,
+    other: string,
+  ): LineupPlayer => ({
+    ...player,
+    id,
+    sub: {
+      id: other,
+      entryIndex:
+        player.sub?.entryIndex.in !== undefined
+          ? { ...player.sub.entryIndex, out: seq }
+          : { in: seq },
+    },
+  });
+
+  return {
+    ...lineup,
+    starting: lineup.starting.map((p, i) =>
+      i === starterAt ? swapped(p, players.in, players.out) : p,
+    ),
+    substitutes: lineup.substitutes.map((p, i) =>
+      i === benchAt ? swapped(p, players.out, players.in) : p,
+    ),
+  };
+}
+
+/**
+ * Applies a set's substitutions to its starting lineups in seq order, so the
+ * result does not depend on the order the entries arrived in. A substitution
+ * is valid only when the player going out is on court and the player coming in
+ * is on the bench. Liberos are carried over untouched. See ADR-0145.
+ */
+export function recomputeLineups<T extends LineupEntry>(
+  startingLineups: SetLineups,
+  entries: readonly T[],
+): LineupRecomputation<T> {
+  let lineups = startingLineups;
+  const atSeq = new Map<number, SetLineups>();
+
+  for (const entry of [...entries].sort((a, b) => a.seq - b.seq)) {
+    atSeq.set(entry.seq, lineups);
+    if (entry.type !== EntryType.SUBSTITUTION || !entry.players) continue;
+
+    const side = entry.team === Side.AWAY ? "away" : "home";
+    const next = applySubstitution(lineups[side], entry.players, entry.seq);
+    if (!next) return { lineups, atSeq, invalid: entry };
+    lineups = { ...lineups, [side]: next };
+  }
+
+  return { lineups, atSeq };
 }
 
 export function isSetFinished(

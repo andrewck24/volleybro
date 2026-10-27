@@ -289,7 +289,7 @@ describe("GamePreview editing write status", () => {
     const user = userEvent.setup();
     let sent: unknown;
     server.use(
-      http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
         sent = await request.json();
         return HttpResponse.json({ entries: [queuedEntry] });
       }),
