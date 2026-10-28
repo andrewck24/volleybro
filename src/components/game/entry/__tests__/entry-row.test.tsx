@@ -68,8 +68,8 @@ describe("EntryRow", () => {
   });
 
   // Scenario: delete/rollback are computed by the last-entry rule but hidden
-  // (ponytail: no reducer wired until the sync-recording change) -- only
-  // edit renders, for both latest and non-latest entries.
+  // until their reducers exist -- only edit renders, for both latest and
+  // non-latest entries.
   it("shows only edit for the latest entry; delete/rollback are hidden", async () => {
     const user = userEvent.setup();
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
