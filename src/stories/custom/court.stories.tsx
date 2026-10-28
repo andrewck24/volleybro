@@ -13,11 +13,11 @@ import { fn } from "storybook/test";
 const meta = {
   title: "Design System/Composites/Court",
   component: Court,
-  parameters: { layout: "fullscreen" },
+  parameters: { layout: "centered" },
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="mx-auto flex size-full max-w-160 flex-col items-center justify-start p-4">
+      <div className="flex w-160 flex-col items-center p-4">
         <Story />
       </div>
     ),

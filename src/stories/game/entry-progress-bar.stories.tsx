@@ -12,12 +12,12 @@ const steps: ProgressStep[] = [
 const meta = {
   title: "Design System/Game/EntryProgressBar",
   component: EntryProgressBar,
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
   tags: ["autodocs"],
   args: { steps, onStepChange: fn() },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-md">
+      <div className="w-md">
         <Story />
       </div>
     ),
