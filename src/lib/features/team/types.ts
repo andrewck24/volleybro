@@ -49,6 +49,7 @@ export const TeamResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   nickname: z.string().optional(),
+  ownerPlayerId: z.string().optional(),
   lineups: z.array(LineupResponseSchema),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),

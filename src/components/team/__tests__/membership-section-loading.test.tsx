@@ -22,6 +22,7 @@ const basePlayer = {
 
 function renderSection(props: {
   player?: typeof basePlayer;
+  ownerPlayerId?: string;
   isCurrentOwner: boolean;
   isSelf: boolean;
 }) {
@@ -30,6 +31,7 @@ function renderSection(props: {
       <MembershipSection
         player={props.player ?? basePlayer}
         teamId="team-1"
+        ownerPlayerId={props.ownerPlayerId}
         isCurrentOwner={props.isCurrentOwner}
         isSelf={props.isSelf}
       />
@@ -82,7 +84,11 @@ describe("MembershipSection — transfer loading state", () => {
     const release = holdResponse("post", "/api/teams/team-1/ownership");
 
     const user = userEvent.setup();
-    renderSection({ isCurrentOwner: true, isSelf: false });
+    renderSection({
+      player: { ...basePlayer, role: PlayerRole.ADMIN },
+      isCurrentOwner: true,
+      isSelf: false,
+    });
 
     await user.click(
       screen.getByRole("button", { name: /移轉所有權給此球員/ }),
@@ -111,7 +117,8 @@ describe("MembershipSection — who the delete entry appears for", () => {
 
   it("does not appear for the owner's player", () => {
     renderSection({
-      player: { ...basePlayer, role: PlayerRole.OWNER },
+      player: { ...basePlayer, role: PlayerRole.ADMIN },
+      ownerPlayerId: basePlayer.id,
       isCurrentOwner: false,
       isSelf: false,
     });
@@ -123,5 +130,53 @@ describe("MembershipSection — who the delete entry appears for", () => {
     renderSection({ isCurrentOwner: false, isSelf: true });
 
     expect(deleteEntry()).not.toBeInTheDocument();
+  });
+});
+
+describe("MembershipSection — transfer target", () => {
+  const transferEntry = () =>
+    screen.getByRole("button", { name: /移轉所有權給此球員/ });
+
+  it("disables transfer to a member and says to promote them first", () => {
+    renderSection({ isCurrentOwner: true, isSelf: false });
+
+    expect(transferEntry()).toBeDisabled();
+    expect(transferEntry()).toHaveAccessibleDescription(
+      "請先將其設為管理員，才能移轉擁有權",
+    );
+  });
+
+  it("enables transfer to an admin", () => {
+    renderSection({
+      player: { ...basePlayer, role: PlayerRole.ADMIN },
+      isCurrentOwner: true,
+      isSelf: false,
+    });
+
+    expect(transferEntry()).toBeEnabled();
+  });
+});
+
+describe("MembershipSection — owner badge", () => {
+  it("labels the team's owner player even though its role is admin", () => {
+    renderSection({
+      player: { ...basePlayer, role: PlayerRole.ADMIN },
+      ownerPlayerId: basePlayer.id,
+      isCurrentOwner: false,
+      isSelf: false,
+    });
+
+    expect(screen.getByText("擁有者")).toBeInTheDocument();
+  });
+
+  it("does not label an admin who is not the owner", () => {
+    renderSection({
+      player: { ...basePlayer, role: PlayerRole.ADMIN },
+      ownerPlayerId: "someone-else",
+      isCurrentOwner: false,
+      isSelf: false,
+    });
+
+    expect(screen.queryByText("擁有者")).not.toBeInTheDocument();
   });
 });

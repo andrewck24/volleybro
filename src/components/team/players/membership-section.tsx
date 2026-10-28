@@ -30,6 +30,8 @@ import { useSWRConfig } from "swr";
 interface MembershipSectionProps {
   player: PlayerView;
   teamId: string;
+  /** The team's owner, from `team.ownerPlayerId`. */
+  ownerPlayerId?: string;
   isCurrentOwner: boolean;
   /** The caller is looking at their own player. */
   isSelf: boolean;
@@ -38,6 +40,7 @@ interface MembershipSectionProps {
 export function MembershipSection({
   player,
   teamId,
+  ownerPlayerId,
   isCurrentOwner,
   isSelf,
 }: MembershipSectionProps) {
@@ -46,7 +49,7 @@ export function MembershipSection({
   const router = useRouter();
   const status = player.status;
   const isJoined = status === PlayerStatus.JOINED;
-  const isOwnerPlayer = player.role === PlayerRole.OWNER;
+  const isOwnerPlayer = player.id === ownerPlayerId;
   const canManage = !isOwnerPlayer && !isSelf;
 
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -122,7 +125,12 @@ export function MembershipSection({
       )}
 
       {isJoined && (
-        <JoinedSection player={player} onSuccess={revalidate} toast={toast} />
+        <JoinedSection
+          player={player}
+          isOwnerPlayer={isOwnerPlayer}
+          onSuccess={revalidate}
+          toast={toast}
+        />
       )}
 
       {canManage && (
@@ -181,44 +189,63 @@ export function MembershipSection({
             <h3 className="text-sm font-medium text-destructive-text">
               移轉所有權
             </h3>
-            <AlertDialog
-              open={transferOpen}
-              onOpenChange={(open) => {
-                setTransferOpen(open);
-                if (!open) setTransferError(null);
-              }}
-            >
-              <AlertDialogTrigger asChild>
+            {player.role === PlayerRole.ADMIN ? (
+              <AlertDialog
+                open={transferOpen}
+                onOpenChange={(open) => {
+                  setTransferOpen(open);
+                  if (!open) setTransferError(null);
+                }}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    disabled={isTransferring}
+                  >
+                    移轉所有權給此球員
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      確定要將隊伍所有權移轉給 {player.name} 嗎？
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      移轉後你將被降級為管理員，{player.name} 將成為新擁有者。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {transferError && <ErrorNotice message={transferError} />}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <Button
+                      variant="destructive"
+                      onClick={handleTransferOwnership}
+                      loading={isTransferring}
+                    >
+                      確認移轉
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <>
                 <Button
                   variant="destructive"
                   className="w-full"
-                  disabled={isTransferring}
+                  disabled
+                  aria-describedby="transfer-requires-admin"
                 >
                   移轉所有權給此球員
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    確定要將隊伍所有權移轉給 {player.name} 嗎？
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    移轉後你將被降級為管理員，{player.name} 將成為新擁有者。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                {transferError && <ErrorNotice message={transferError} />}
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <Button
-                    variant="destructive"
-                    onClick={handleTransferOwnership}
-                    loading={isTransferring}
-                  >
-                    確認移轉
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                <p
+                  id="transfer-requires-admin"
+                  className="text-sm text-muted-foreground"
+                >
+                  請先將其設為管理員，才能移轉擁有權
+                </p>
+              </>
+            )}
           </div>
         </>
       )}
@@ -420,10 +447,12 @@ function InvitedSection({
 // --- JOINED: role management only ---
 function JoinedSection({
   player,
+  isOwnerPlayer,
   onSuccess,
   toast,
 }: {
   player: PlayerView;
+  isOwnerPlayer: boolean;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -456,7 +485,7 @@ function JoinedSection({
     }
   };
 
-  if (player.role === PlayerRole.OWNER) {
+  if (isOwnerPlayer) {
     return (
       <div className="space-y-3">
         <h3 className="text-sm font-medium">隊籍</h3>
