@@ -184,7 +184,8 @@ export const EntryRow = ({
   const expanded = expandedProp ?? localExpanded;
   const toggleExpand = onToggleExpand ?? (() => setLocalExpanded((v) => !v));
 
-  // only edit is wired yet; delete/rollback await sync-recording reducers
+  // shortcut: only edit is wired, delete/rollback stay hidden; show them once
+  // the sync-recording change adds their reducers.
   const actions = composeEntryActions(isLatest).filter((a) => a === "edit");
 
   return (
