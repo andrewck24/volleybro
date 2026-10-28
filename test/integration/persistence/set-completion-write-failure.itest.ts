@@ -1,5 +1,3 @@
-import mongoose from "mongoose";
-
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IRecordEntriesUseCase } from "@/applications/usecases/game/record-entries.usecase";
 import { EntryType, MoveType } from "@/entities/game";
@@ -7,23 +5,12 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
+import { withFailPoint } from "../support/failpoint";
 import { callRoute } from "../support/request";
 import { seedGame } from "../support/seed";
 
 // completeSet writes with findAndModify and the entry write with bulkWrite, so
-// failing that one command fails only the set result. The failpoint is
-// server-wide; appName keeps it off other test files' connections.
-const failFindAndModify = (mode: "alwaysOn" | "off") =>
-  mongoose.connection.db!.admin().command({
-    configureFailPoint: "failCommand",
-    mode,
-    data: {
-      failCommands: ["findAndModify"],
-      errorCode: 2,
-      appName: mongoose.connection.getClient().options.appName,
-    },
-  });
-
+// failing that one command fails only the set result.
 describe("a set-result write that fails after the deciding rally is stored", () => {
   beforeEach(() => useFakeAuth());
 
@@ -40,28 +27,27 @@ describe("a set-result write that fails after the deciding rally is stored", () 
     });
     expect(created.status).toBe(201);
 
-    await failFindAndModify("alwaysOn");
-    let output;
-    try {
-      output = await container
-        .get<IRecordEntriesUseCase>(TYPES.RecordEntriesUseCase)
-        .execute({
-          params: { gameId: seeded.gameId, setIndex: 0 },
-          data: [
-            {
-              type: EntryType.RALLY,
-              id: "deciding",
-              seq: 0,
-              at: new Date(),
-              win: true,
-              home: { score: 25, type: MoveType.ATTACK, num: 0 },
-              away: { score: 20, type: MoveType.ATTACK, num: 0 },
-            },
-          ] as never,
-        });
-    } finally {
-      await failFindAndModify("off");
-    }
+    const output = await withFailPoint(
+      "alwaysOn",
+      { failCommands: ["findAndModify"], errorCode: 2 },
+      () =>
+        container
+          .get<IRecordEntriesUseCase>(TYPES.RecordEntriesUseCase)
+          .execute({
+            params: { gameId: seeded.gameId, setIndex: 0 },
+            data: [
+              {
+                type: EntryType.RALLY,
+                id: "deciding",
+                seq: 0,
+                at: new Date(),
+                win: true,
+                home: { score: 25, type: MoveType.ATTACK, num: 0 },
+                away: { score: 20, type: MoveType.ATTACK, num: 0 },
+              },
+            ] as never,
+          }),
+    );
 
     expect(output.setCompletionConfirmed).toBe(false);
     const game = await container

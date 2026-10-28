@@ -4,7 +4,7 @@ import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import mongoose from "mongoose";
+import { withFailPoint } from "../support/failpoint";
 import { oid } from "../support/seed";
 
 const createTeam = (input: { name: string; userName: string }) =>
@@ -37,20 +37,16 @@ describe("creating a team with its owner", () => {
   });
 
   it("retries the whole creation when the database reports a transient conflict", async () => {
-    // Fails the first insert once as a write conflict the driver may retry;
-    // appName keeps the server-wide failpoint off other test files.
-    await mongoose.connection.db!.admin().command({
-      configureFailPoint: "failCommand",
-      mode: { times: 1 },
-      data: {
+    // Fails the first insert once as a write conflict the driver may retry.
+    const team = await withFailPoint(
+      { times: 1 },
+      {
         failCommands: ["insert"],
         errorCode: 112,
         errorLabels: ["TransientTransactionError"],
-        appName: mongoose.connection.getClient().options.appName,
       },
-    });
-
-    const team = await createTeam({ name: "Retried", userName: "Owner" });
+      () => createTeam({ name: "Retried", userName: "Owner" }),
+    );
 
     expect(await TeamModel.countDocuments({ name: "Retried" })).toBe(1);
     expect(await PlayerModel.countDocuments({ teamId: team.id })).toBe(1);
