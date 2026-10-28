@@ -3,13 +3,54 @@ title: Persistence
 description: How a game reaches the database — domain operations addressed by identity, with the failure radius limited to the entry being written.
 ---
 
+export const entryWriteSource =
+  'flowchart TB\n  subgraph UI["UI"]\n    panels["Panels: record and edit"]\n  end\n  subgraph CLIENT["Client state"]\n    opt["Optimistic update"]\n    queue["Pending queue"]\n  end\n  subgraph IFACE["Interface"]\n    route["PUT /sets/entries"]\n  end\n  subgraph APP["Application"]\n    uc["RecordEntriesUseCase"]\n  end\n  subgraph INFRA["Infrastructure"]\n    repo["Mongo adapter"]\n  end\n  subgraph ENT["Entities"]\n    plan["planEntryUpserts"]\n    up["upsertEntries"]\n  end\n  panels --> opt\n  panels --> queue\n  opt -.-> up\n  queue -.-> up\n  queue --> route\n  route --> uc\n  uc --> repo\n  repo -.-> plan\n  plan -.-> up';
+
+export const entryWriteDetails = {
+  opt: {
+    title: "Optimistic update",
+    body: "A substitution or rally is merged into the cached set before it is sent. A substitution the lineup refuses is stopped here with a toast and never queued.",
+  },
+  queue: {
+    title: "Pending queue",
+    body: "Shows the server's set with the queued entries laid over it, and flushes them to the route. A history the lineup rules refuse keeps the last valid lineup instead of failing the view.",
+  },
+  route: {
+    title: "Entries route",
+    body: "Receives a batch of entry writes for one set.",
+  },
+  uc: {
+    title: "Record entries",
+    body: "Decides the operator from the session; the client never stamps a recorder.",
+  },
+  repo: {
+    title: "Mongo adapter",
+    body: "Reads the set and its version, asks planEntryUpserts for steps, turns them into positional writes guarded by the version, and re-plans when the guard misses.",
+  },
+  plan: {
+    title: "planEntryUpserts",
+    body: "Server only. Classifies each write as create, creation resend or edit, stamps recorder and last editor, then calls upsertEntries. Returns the set and steps, or the refused substitution.",
+  },
+  up: {
+    title: "upsertEntries",
+    body: "Shared by client and server. Overwrites by id, orders by seq, recomputes the Current lineup. Returns the set, or the first refused substitution with the score before it and the merged set with the lineups it already had.",
+  },
+};
+
 The repository speaks in domain operations, not in documents. Recording a rally appends one entry; it does not rewrite the game.
+
+## Entry write flow
+
+What a batch of entry writes makes of a set is decided by two pure functions in entities. Dotted lines are calls to them; they write nothing and leave their input untouched. The client calls them directly and has no use case layer, which would only forward the call.
+
+<InteractiveFlowchart source={entryWriteSource} details={entryWriteDetails} />
 
 ## Current behavior
 
-- `IGameRepository` exposes `upsertEntry` and `completeSet`. Each is a write touching only what it names.
-- An entry carries a client-generated identity and a sequence number, both set before it leaves the client. `upsertEntry` takes one or more entries and issues a bulkWrite in which exactly one operation lands per entry: a `$set` through `arrayFilters` matching the identity when it already exists, or a `$push` guarded by `$ne` on that identity when it does not. The `$push` sorts on the sequence, so an entry that arrives late is placed by the order it was recorded in rather than the order it arrived.
+- `IGameRepository` exposes `upsertEntries` and `completeSet`. Each is a write touching only what it names.
+- An entry carries a client-generated identity and a sequence number, both set before it leaves the client. `upsertEntries` takes one or more entries and issues a bulkWrite in which exactly one operation lands per entry: a `$set` through `arrayFilters` matching the identity when it already exists, or a `$push` guarded by `$ne` on that identity when it does not. The `$push` sorts on the sequence, so an entry that arrives late is placed by the order it was recorded in rather than the order it arrived.
 - A batch commits all its entry and lineup writes together. If a version guard misses, the batch aborts and is re-planned against the current set.
+- Entry write rules sit in one entities module (ADR-0147): `upsertEntries` for client and server, `planEntryUpserts` for the server. The merge and the lineup recomputation are private to it, so a caller cannot skip them. A refused substitution comes back with the merged entries and the set's existing lineups, which is how the pending queue keeps showing entries after another recorder's write invalidates a queued substitution.
 - Resending the same entry is therefore a no-op rather than a duplicate, which is what makes a retry safe after a lost response.
 - An entry reaching the repository without an identity is rejected. `undefined` would reach MongoDB as `null` and the arrayFilters would then match every entry that also lacks one, so a single edit would overwrite all of them.
 - A substitution writes its entry and the lineup it produces in one update, so the two cannot disagree. Its entry carries the players as bare id strings, where rally entries and lineups carry `{ id }` objects.

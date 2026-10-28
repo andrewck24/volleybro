@@ -116,7 +116,7 @@
 送出時不需等待網路。這一球會先以樂觀更新寫入 SWR 的比賽快取，並加入保存在 localStorage 的待送佇列；佇列會批次送往伺服器、對可重試的失敗以退避重試，並把伺服器回應套用回快取。
 
 <p align="center">
-  <img src="docs/diagrams/rally-write.svg" alt="寫入路徑：送出後先樂觀更新 SWR 快取並加入佇列；待送佇列批次經由 route handler、controller、RecordRallies use case 與 game repository 寫入 MongoDB，回應再套用回快取" width="800">
+  <img src="docs/diagrams/rally-write.svg" alt="寫入路徑：送出後先樂觀更新 SWR 快取並加入佇列；待送佇列批次經由 route handler、controller、RecordEntries use case 與 game repository 寫入 MongoDB，回應再套用回快取" width="800">
 </p>
 
 一局與整場比賽是否結束屬於**推導結果，從不手動輸入**——每次寫入後，伺服器端會對僅供追加的記錄串列做一次 fold，判斷該局仍在進行中、來到局點，或已分出勝負（25 分且領先 2 分；決勝局為 15 分），並記錄結果。不需要手動結束任何一局。

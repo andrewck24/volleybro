@@ -116,7 +116,7 @@ A single rally moves through three tap-driven steps held in Redux as a draft; an
 Sending never waits on the network. The rally is applied optimistically to the SWR game cache and appended to a pending-writes queue persisted in localStorage; the queue flushes batches to the server, retries retryable failures with backoff, and applies the server's response back to the cache.
 
 <p align="center">
-  <img src="docs/diagrams/rally-write.svg" alt="Write path: send updates the SWR cache optimistically and enqueues the rally; the pending-writes queue flushes batches through the route handler, controller, RecordRallies use case, and game repository to MongoDB, and the response is applied back to the cache" width="800">
+  <img src="docs/diagrams/rally-write.svg" alt="Write path: send updates the SWR cache optimistically and enqueues the rally; the pending-writes queue flushes batches through the route handler, controller, RecordEntries use case, and game repository to MongoDB, and the response is applied back to the cache" width="800">
 </p>
 
 Set and match completion are **derived, never entered by hand** — after each write, the server folds the append-only entry list to decide whether a set is still in progress, at set point, or won (25 points with a two-point lead; 15 in a deciding set), and records the result. Nothing has to be manually closed out.
