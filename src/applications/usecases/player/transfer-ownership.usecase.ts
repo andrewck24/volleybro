@@ -1,12 +1,15 @@
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
   PlayerReason,
+  CommonReason,
+  ValidationError,
 } from "@/entities/errors";
-import type { Player } from "@/entities/player";
-import { hasTeamRole, isTeamMember, PlayerRole } from "@/entities/player";
+import type { Team } from "@/entities/team";
+import { isTeamMember, PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -17,7 +20,7 @@ export interface ITransferOwnershipInput {
 }
 
 export interface ITransferOwnershipUseCase {
-  execute(input: ITransferOwnershipInput): Promise<Player>;
+  execute(input: ITransferOwnershipInput): Promise<Team>;
 }
 
 @injectable()
@@ -25,29 +28,29 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
+    @inject(TYPES.TeamRepository)
+    private teamRepository: ITeamRepository,
   ) {}
 
   async execute({
     teamId,
     newOwnerId,
     userId,
-  }: ITransferOwnershipInput): Promise<Player> {
-    // 1. Find current owner by teamId + userId
+  }: ITransferOwnershipInput): Promise<Team> {
+    const team = await this.teamRepository.findById(teamId);
+    if (!team)
+      throw new NotFoundError(
+        CommonReason.RESOURCE_NOT_FOUND,
+        "Team not found",
+      );
     const currentOwner = await this.playerRepository.findByTeamIdAndUserId(
       teamId,
       userId,
     );
-    if (!currentOwner) {
-      throw new NotFoundError(
-        PlayerReason.PLAYER_NOT_FOUND,
-        "Current owner not found in team",
-      );
-    }
-
-    // 2. Verify current user is a member holding the OWNER role
     if (
+      !currentOwner ||
       !isTeamMember(currentOwner) ||
-      !hasTeamRole(currentOwner, PlayerRole.OWNER)
+      currentOwner.id !== team.ownerPlayerId
     ) {
       throw new AuthorizationError(
         PlayerReason.NOT_TEAM_OWNER,
@@ -55,7 +58,6 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // 3. Get new owner and verify they're in the same team
     const newOwner = await this.playerRepository.findById(newOwnerId);
     if (!newOwner) {
       throw new NotFoundError(
@@ -71,8 +73,6 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // Demoting and promoting the same document would leave the team without an
-    // owner.
     if (newOwner.id === currentOwner.id) {
       throw new ConflictError(
         PlayerReason.TARGET_ALREADY_OWNER,
@@ -80,7 +80,6 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // 4. Verify new owner has joined the team
     if (!isTeamMember(newOwner)) {
       throw new ConflictError(
         PlayerReason.TARGET_NOT_MEMBER,
@@ -88,51 +87,23 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // 5. Demote first, only while the owner we read still holds OWNER. A
-    // concurrent transfer that got there first leaves nothing to demote, so
-    // this one stops before it can create a second owner.
-    const demoted = await this.playerRepository.updateRoleIf(
+    if (newOwner.role !== PlayerRole.ADMIN) {
+      throw new ValidationError(
+        PlayerReason.TRANSFER_TARGET_NOT_ADMIN,
+        "Target player must be an administrator",
+      );
+    }
+    const updated = await this.teamRepository.transferOwnership(
+      teamId,
       currentOwner.id,
-      PlayerRole.OWNER,
-      PlayerRole.ADMIN,
+      newOwner.id,
     );
-    if (!demoted) {
+    if (!updated) {
       throw new AuthorizationError(
         PlayerReason.NOT_TEAM_OWNER,
         "Only the current team owner can transfer ownership",
       );
     }
-
-    // 6. Promote, only while the target still holds the role we read: leaving
-    // the team clears it. If that fails the team has no owner, so put the old
-    // one back, unless they left in the meantime too.
-    try {
-      const updatedNewOwner = await this.playerRepository.updateRoleIf(
-        newOwnerId,
-        newOwner.role,
-        PlayerRole.OWNER,
-      );
-      if (!updatedNewOwner) {
-        throw new ConflictError(
-          PlayerReason.TARGET_NOT_MEMBER,
-          "Target player must be an active member of the team",
-        );
-      }
-      return updatedNewOwner;
-    } catch (error) {
-      try {
-        await this.playerRepository.updateRoleIf(
-          currentOwner.id,
-          PlayerRole.ADMIN,
-          PlayerRole.OWNER,
-        );
-      } catch (restoreError) {
-        console.error(
-          `Failed to restore owner ${currentOwner.id} of team ${teamId}`,
-          restoreError,
-        );
-      }
-      throw error;
-    }
+    return updated;
   }
 }

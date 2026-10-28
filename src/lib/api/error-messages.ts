@@ -75,6 +75,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "對方不在這支隊伍",
     description: "只能把擁有權移轉給隊上的成員",
   },
+  TRANSFER_TARGET_NOT_ADMIN: {
+    title: "只能移轉給管理員",
+    description: "請先將對方設為管理員，再移轉擁有權。",
+  },
   TARGET_NOT_MEMBER: {
     title: "對方尚未加入",
     description: "受邀者要先接受邀請，才能成為擁有者",

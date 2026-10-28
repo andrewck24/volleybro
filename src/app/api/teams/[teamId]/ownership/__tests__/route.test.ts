@@ -2,7 +2,6 @@ import {
   routeRequest,
   silenceConsoleError,
 } from "@test/support/http/route-request";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockTransferOwnership = jest.fn<(input: unknown) => Promise<unknown>>();
@@ -56,12 +55,10 @@ describe("POST /api/teams/[teamId]/ownership", () => {
   // The exact body handleTransferOwnership sends (src/components/team/players/membership-section.tsx):
   it("returns 200 for the payload the transfer-ownership control actually sends", async () => {
     const updated = {
-      id: NEW_OWNER_ID,
-      name: "New Owner",
-      status: PlayerStatus.JOINED,
-      role: PlayerRole.OWNER,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      id: VALID_OBJECT_ID,
+      name: "Team",
+      ownerPlayerId: NEW_OWNER_ID,
+      lineups: [],
     };
     mockTransferOwnership.mockResolvedValue(updated);
     const req = routeRequest(
@@ -81,5 +78,25 @@ describe("POST /api/teams/[teamId]/ownership", () => {
       newOwnerId: NEW_OWNER_ID,
       userId: SESSION.user.id,
     });
+  });
+  it("returns 400 when the target is not an admin", async () => {
+    const spy = silenceConsoleError();
+    const { ValidationError, PlayerReason } = await import("@/entities/errors");
+    mockTransferOwnership.mockRejectedValue(
+      new ValidationError(PlayerReason.TRANSFER_TARGET_NOT_ADMIN, "Not admin"),
+    );
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
+      "POST",
+      { newOwnerId: NEW_OWNER_ID },
+    );
+    const res = await POST(req as never, {
+      params: Promise.resolve({ teamId: VALID_OBJECT_ID }),
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      reason: PlayerReason.TRANSFER_TARGET_NOT_ADMIN,
+    });
+    spy.mockRestore();
   });
 });

@@ -1,3 +1,4 @@
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { authorizeManagePlayer } from "@/applications/usecases/player/membership";
 import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
@@ -21,6 +22,8 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
+    @inject(TYPES.TeamRepository)
+    private teamRepository: ITeamRepository,
   ) {}
 
   async execute({
@@ -43,6 +46,7 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
       );
     await authorizeManagePlayer(
       this.playerRepository,
+      this.teamRepository,
       player.teamId,
       player,
       userId,

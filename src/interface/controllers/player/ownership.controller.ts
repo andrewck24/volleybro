@@ -2,7 +2,7 @@ import type {
   ITransferOwnershipInput,
   ITransferOwnershipUseCase,
 } from "@/applications/usecases/player/transfer-ownership.usecase";
-import type { Player } from "@/entities/player";
+import type { Team } from "@/entities/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
@@ -13,7 +13,7 @@ import { TYPES } from "@/infrastructure/di/types";
 
 export const transferOwnership = async (
   input: ITransferOwnershipInput,
-): Promise<Player> => {
+): Promise<Team> => {
   const useCase = container.get<ITransferOwnershipUseCase>(
     TYPES.TransferOwnershipUseCase,
   );

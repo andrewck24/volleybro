@@ -236,8 +236,8 @@ describe("Player Entity", () => {
       ) as TeamMember;
 
     const targets = {
-      "the owner": memberAs(PlayerRole.OWNER, "target"),
-      "an admin": memberAs(PlayerRole.ADMIN, "target"),
+      "the owner": memberAs(PlayerRole.ADMIN, "target"),
+      "an admin": memberAs(PlayerRole.OWNER, "target"),
       "a member": memberAs(PlayerRole.MEMBER, "target"),
       "an invitee": narrowPlayer(
         fields({
@@ -272,7 +272,11 @@ describe("Player Entity", () => {
 
     it.each(table)("%s managing %s: %s", (role, target, expected) => {
       expect(
-        refuseToManagePlayer(memberAs(role, "actor"), targets[target]),
+        refuseToManagePlayer(
+          memberAs(role, "actor"),
+          targets[target],
+          target === "the owner" ? "target" : "owner",
+        ),
       ).toBe(expected);
     });
 
@@ -283,7 +287,13 @@ describe("Player Entity", () => {
     ] as const)("%s targeting their own player: %s", (role, expected) => {
       const self = memberAs(role, "actor");
 
-      expect(refuseToManagePlayer(self, self)).toBe(expected);
+      expect(
+        refuseToManagePlayer(
+          self,
+          self,
+          role === PlayerRole.OWNER ? "actor" : "owner",
+        ),
+      ).toBe(expected);
     });
 
     it("refuses an invitee as the caller", () => {
@@ -296,7 +306,7 @@ describe("Player Entity", () => {
         }),
       );
 
-      expect(refuseToManagePlayer(invitee, targets["a member"])).toBe(
+      expect(refuseToManagePlayer(invitee, targets["a member"], "owner")).toBe(
         AuthReason.NOT_TEAM_MEMBER,
       );
     });
@@ -306,12 +316,13 @@ describe("Player Entity", () => {
         refuseToManagePlayer(
           narrowPlayer(fields({ id: "actor" })),
           targets["a member"],
+          "owner",
         ),
       ).toBe(AuthReason.NOT_TEAM_MEMBER);
     });
 
     it("refuses a caller with no player on the team", () => {
-      expect(refuseToManagePlayer(null, targets["a member"])).toBe(
+      expect(refuseToManagePlayer(null, targets["a member"], "owner")).toBe(
         AuthReason.NOT_TEAM_MEMBER,
       );
     });
@@ -321,6 +332,7 @@ describe("Player Entity", () => {
         refuseToManagePlayer(
           memberAs(PlayerRole.OWNER, "actor", "team-2"),
           targets["a member"],
+          "owner",
         ),
       ).toBe(AuthReason.NOT_TEAM_MEMBER);
     });

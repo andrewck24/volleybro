@@ -7,12 +7,7 @@ import {
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
-import {
-  hasTeamRole,
-  isTeamMember,
-  PlayerRole,
-  PlayerStatus,
-} from "@/entities/player";
+import { isTeamMember, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -53,18 +48,24 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       );
     }
 
-    if (hasTeamRole(player, PlayerRole.OWNER)) {
+    if (!player.teamId)
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
+    const team = await this.teamRepository.findById(player.teamId);
+    if (!team)
+      throw new NotFoundError(
+        CommonReason.RESOURCE_NOT_FOUND,
+        "Team not found",
+      );
+    if (team.ownerPlayerId === player.id) {
       throw new AuthorizationError(
         PlayerReason.OWNER_CANNOT_LEAVE,
         "Team owner cannot leave the team",
       );
     }
 
-    if (!player.teamId)
-      throw new NotFoundError(
-        PlayerReason.PLAYER_NOT_FOUND,
-        "Player has no team",
-      );
     // Lineups first: a failed update leaves a member who can leave again.
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 

@@ -1,10 +1,7 @@
 import * as ownershipController from "@/interface/controllers/player/ownership.controller";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
-import {
-  PlayerSchema,
-  TransferOwnershipSchema,
-} from "@/interface/validations/player";
+import { TransferOwnershipSchema } from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -22,12 +19,11 @@ export const POST = (
     const body = await req.json();
     const { newOwnerId } = TransferOwnershipSchema.parse(body);
 
-    const updatedPlayer = await ownershipController.transferOwnership({
+    const team = await ownershipController.transferOwnership({
       teamId,
       newOwnerId,
       userId,
     });
 
-    const validatedPlayer = PlayerSchema.parse(updatedPlayer);
-    return NextResponse.json(validatedPlayer, { status: 200 });
+    return NextResponse.json(team, { status: 200 });
   })(_req);

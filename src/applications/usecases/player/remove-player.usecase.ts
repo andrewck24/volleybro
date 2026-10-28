@@ -47,6 +47,7 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
       );
     await authorizeManagePlayer(
       this.playerRepository,
+      this.teamRepository,
       player.teamId,
       player,
       userId,

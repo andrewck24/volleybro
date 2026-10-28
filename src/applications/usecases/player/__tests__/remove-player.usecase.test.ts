@@ -1,6 +1,7 @@
 import {
   createInvitedPlayer,
   createPlayer,
+  createTeam,
   createUnlinkedPlayer,
 } from "@test/support/fixtures/entities";
 import {
@@ -60,6 +61,9 @@ describe("RemovePlayerUseCase", () => {
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
     mockTeamRepository = createMockTeamRepository();
+    mockTeamRepository.findById.mockResolvedValue(
+      createTeam({ ownerPlayerId: "owner" }),
+    );
     useCase = new RemovePlayerUseCase(mockPlayerRepository, mockTeamRepository);
     mockPlayerRepository.delete.mockResolvedValue(true);
     mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
@@ -98,6 +102,9 @@ describe("RemovePlayerUseCase", () => {
     });
 
     it("refuses the owner, who can only hand ownership over", async () => {
+      mockTeamRepository.findById.mockResolvedValue(
+        createTeam({ ownerPlayerId: targets.owner.id }),
+      );
       mockPlayerRepository.findById.mockResolvedValue(targets.owner);
 
       await expectRefusal(remove(), PlayerReason.TARGET_IS_OWNER);

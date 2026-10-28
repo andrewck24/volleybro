@@ -4,6 +4,7 @@ import {
 } from "@test/support/doubles/repositories";
 import {
   createPlayer,
+  createTeam,
   createUnlinkedPlayer,
 } from "@test/support/fixtures/entities";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
@@ -24,6 +25,9 @@ describe("LeaveTeamUseCase", () => {
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
     mockTeamRepository = createMockTeamRepository();
+    mockTeamRepository.findById.mockResolvedValue(
+      createTeam({ ownerPlayerId: "owner" }),
+    );
     useCase = new LeaveTeamUseCase(mockPlayerRepository, mockTeamRepository);
   });
 
@@ -34,6 +38,7 @@ describe("LeaveTeamUseCase", () => {
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",
+        role: PlayerRole.OWNER,
       });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
@@ -107,9 +112,12 @@ describe("LeaveTeamUseCase", () => {
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",
-        role: PlayerRole.OWNER,
+        role: PlayerRole.ADMIN,
       });
 
+      mockTeamRepository.findById.mockResolvedValue(
+        createTeam({ ownerPlayerId: owner.id }),
+      );
       mockPlayerRepository.findById.mockResolvedValue(owner);
 
       await expect(

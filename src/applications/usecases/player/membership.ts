@@ -1,8 +1,11 @@
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import {
   AuthorizationError,
   AuthReason,
   PlayerReason,
+  NotFoundError,
+  CommonReason,
 } from "@/entities/errors";
 import type { ManageRefusal, Player } from "@/entities/player";
 import { refuseToManagePlayer } from "@/entities/player";
@@ -22,11 +25,15 @@ const DETAILS: Record<ManageRefusal, string> = {
  */
 export const authorizeManagePlayer = async (
   players: IPlayerRepository,
+  teams: ITeamRepository,
   teamId: string,
   target: Player,
   userId: string,
 ): Promise<void> => {
   const actor = await players.findByTeamIdAndUserId(teamId, userId);
-  const refusal = refuseToManagePlayer(actor, target);
+  const team = await teams.findById(teamId);
+  if (!team)
+    throw new NotFoundError(CommonReason.RESOURCE_NOT_FOUND, "Team not found");
+  const refusal = refuseToManagePlayer(actor, target, team.ownerPlayerId);
   if (refusal) throw new AuthorizationError(refusal, DETAILS[refusal]);
 };

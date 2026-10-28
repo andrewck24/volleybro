@@ -183,12 +183,12 @@ export type ManageRefusal =
 export function refuseToManagePlayer(
   actor: Player | null,
   target: Player,
+  ownerPlayerId: string | undefined,
 ): ManageRefusal | null {
   if (!actor || !isTeamMember(actor) || actor.teamId !== target.teamId)
     return AuthReason.NOT_TEAM_MEMBER;
   if (!canManageTeam(actor)) return AuthReason.INSUFFICIENT_ROLE;
-  if (isTeamMember(target) && isTeamOwner(target))
-    return PlayerReason.TARGET_IS_OWNER;
+  if (target.id === ownerPlayerId) return PlayerReason.TARGET_IS_OWNER;
   if (actor.id === target.id) return PlayerReason.TARGET_IS_SELF;
   return null;
 }
