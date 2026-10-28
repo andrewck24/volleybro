@@ -72,15 +72,29 @@ const Button = ({
       aria-busy={isLoading ? true : undefined}
       {...props}
     >
-      {isLoading ? (
-        <>
-          <RiLoader4Line className="animate-spin" />
-          {loadingText ?? children}
-        </>
-      ) : (
-        children
-      )}
+      {isLoading ? loadingContent(children, loadingText) : children}
     </Comp>
+  );
+};
+
+const flatten = (nodes: React.ReactNode): React.ReactNode[] =>
+  React.Children.toArray(nodes).flatMap((node) =>
+    React.isValidElement<{ children?: React.ReactNode }>(node) &&
+    node.type === React.Fragment
+      ? flatten(node.props.children)
+      : [node],
+  );
+
+// Without loadingText the label stays, so the spinner takes the first icon's
+// place and the width holds. loadingText replaces everything, spinner first.
+const loadingContent = (children: React.ReactNode, loadingText?: string) => {
+  const spinner = <RiLoader4Line key="spinner" className="animate-spin" />;
+  const parts = flatten(children);
+  const iconAt = parts.findIndex((part) => React.isValidElement(part));
+  if (loadingText !== undefined || iconAt === -1)
+    return [spinner, loadingText ?? children];
+  return parts.map((part, i) =>
+    i === iconAt ? spinner : React.isValidElement(part) ? null : part,
   );
 };
 
