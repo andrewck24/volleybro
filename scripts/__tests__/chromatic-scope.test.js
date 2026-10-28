@@ -440,7 +440,7 @@ test("runs for lockfile changes only the graph check can see", async (t) => {
       "    devDependencies:\n      eslint:\n        specifier: ^9.0.0",
       `      eslint:\n        specifier: ^9.0.0\n        version: 9.0.0\n    devDependencies:\n      eslint:\n        specifier: ${specifier}`,
     );
-  const withOptional = (child) =>
+  const withOptional = (grandchild) =>
     lockfile()
       .replace(
         "    devDependencies:\n",
@@ -448,11 +448,11 @@ test("runs for lockfile changes only the graph check can see", async (t) => {
       )
       .replace(
         "packages:\n  app-lib@1.0.0:",
-        `packages:\n  opt-lib@1.0.0:\n    resolution: {integrity: sha512-opt}\n  opt-child@${child}:\n    resolution: {integrity: sha512-child-${child}}\n  app-lib@1.0.0:`,
+        `packages:\n  opt-lib@1.0.0:\n    resolution: {integrity: sha512-opt}\n  opt-child@1.0.0:\n    resolution: {integrity: sha512-child}\n  opt-grandchild@${grandchild}:\n    resolution: {integrity: sha512-grandchild-${grandchild}}\n  app-lib@1.0.0:`,
       )
       .replace(
         'snapshots:\n  "app-lib',
-        `snapshots:\n${snapshot("opt-lib", "1.0.0", { "opt-child": child })}${snapshot("opt-child", child)}  "app-lib`,
+        `snapshots:\n${snapshot("opt-lib", "1.0.0", { "opt-child": "1.0.0" }).replace("dependencies:", "optionalDependencies:")}${snapshot("opt-child", "1.0.0", { "opt-grandchild": grandchild })}${snapshot("opt-grandchild", grandchild)}  "app-lib`,
       );
   const linked = (eslint) =>
     lockfile({ eslint }).replace(
