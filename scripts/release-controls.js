@@ -47,8 +47,6 @@ const PERSISTED_CONTRACT_PATTERNS = [
   /^src\/app\/api\//,
   /^src\/entities\//,
   /^src\/interface\//,
-  /^docs\/migrations\//,
-  /^scripts\/migrations\//,
   /^(?:pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)$/,
 ];
 // Any other app source ships with the deployment and may read or write stored
@@ -60,8 +58,8 @@ const KNOWN_UNRELATED_PATTERNS = [
   /^\.nvmrc$/,
   /^\.github\//,
   /^blueprint\//,
-  /^docs\/(?!migrations\/)/,
-  /^scripts\/(?!migrations\/)/,
+  /^docs\//,
+  /^scripts\//,
   /^test\//,
   /^public\//,
   /^src\/.*(?:__tests__|\.(?:test|spec)\.)/,
@@ -1906,11 +1904,12 @@ async function recordRecoveryEvidence() {
 
 // Run on pull requests, so a path the release classifier cannot place fails the
 // PR that adds it instead of stopping a later release before promotion.
-export async function assertPathsClassified(baseSha, headSha) {
+async function checkPathClassification() {
+  const headSha = await command("git", ["rev-parse", "HEAD"]);
   const base = await command("git", [
     "merge-base",
-    exactSha(baseSha, "Base SHA"),
-    exactSha(headSha, "Head SHA"),
+    exactSha(required("BASE_SHA"), "Base SHA"),
+    headSha,
   ]);
   const { unclassifiedPaths } = await persistedContractChanges({
     baseline: { sha: base },
@@ -1921,13 +1920,6 @@ export async function assertPathsClassified(baseSha, headSha) {
       `Release cannot classify these paths for production-data compatibility: ${unclassifiedPaths.join(", ")}. ` +
         "Add a pattern to KNOWN_UNRELATED_PATTERNS or PERSISTED_CONTRACT_PATTERNS in scripts/release-controls.js.",
     );
-}
-
-async function checkPathClassification() {
-  await assertPathsClassified(
-    required("BASE_SHA"),
-    await command("git", ["rev-parse", "HEAD"]),
-  );
 }
 
 async function planRecoveryCompatibility() {

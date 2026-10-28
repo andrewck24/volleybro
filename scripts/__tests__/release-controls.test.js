@@ -12,10 +12,7 @@ import {
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import {
-  assertPathsClassified,
-  persistedContractChanges,
-} from "../release-controls.js";
+import { persistedContractChanges } from "../release-controls.js";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 
@@ -2430,20 +2427,37 @@ test("a pull request that adds an unclassified path fails before any release", a
     git(["commit", "-m", "c"]);
     return git(["rev-parse", "HEAD"]);
   };
+  const check = (baseSha, headSha) => {
+    git(["checkout", "--quiet", headSha]);
+    return spawnSync(process.execPath, [cli, "check-path-classification"], {
+      cwd: root,
+      env: { ...process.env, BASE_SHA: baseSha },
+      encoding: "utf8",
+    });
+  };
   const base = await commit("README.md");
   git(["checkout", "-b", "pr"]);
-  const known = await commit("src/lib/x.ts");
+  const classified = await commit("src/lib/x.ts");
   const unknown = await commit("middleware.ts");
   git(["checkout", "main"]);
   const moved = await commit("unrelated-on-main.txt");
-  const prev = process.cwd();
-  process.chdir(root);
-  t.after(() => process.chdir(prev));
-  await assertPathsClassified(base, known);
-  await assert.rejects(
-    assertPathsClassified(moved, unknown),
+  const passed = check(base, classified);
+  assert.equal(passed.status, 0, passed.stderr);
+  const failed = check(moved, unknown);
+  assert.notEqual(failed.status, 0);
+  assert.match(
+    failed.stderr,
     /cannot classify these paths .*: middleware\.ts\. Add a pattern/,
   );
+});
+
+test("CI runs the release path check on pull requests against the base", async () => {
+  const { steps } = (await loadWorkflow("ci.yml")).jobs.static;
+  const checkout = steps.find((s) => s.uses?.startsWith("actions/checkout"));
+  assert.ok(checkout.with["fetch-depth"] >= 2);
+  const check = steps.find((s) => s.run?.includes("check-path-classification"));
+  assert.equal(check.if, "github.event_name == 'pull_request'");
+  assert.match(check.run, /BASE_SHA=\$\(git rev-parse HEAD\^1\)/);
 });
 
 test("pnpm-workspace.yaml stays a persisted contract path", async (t) => {
