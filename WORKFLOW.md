@@ -201,7 +201,7 @@ A material change to accepted scope, behavior, acceptance criteria or architectu
 
 1. Assess and promote verified Features and Design System knowledge on the delivery branch through `docs/agents/artifact-lifecycle.md`; reconcile settled glossary and ADRs. Record why any assessed page needs no change.
 2. Run `pnpm verify:all`, including applicable documentation checks, and assess Changeset applicability for the complete batch.
-3. Invoke `code-review` in independent contexts for both Standards and Spec. Supply `CODING_STANDARDS.md` verbatim and the accepted spec from the execution issue. The Standards axis applies that document's criteria, including the test-audit rules, correctness, load, leanness and security, and the documented judgement that tooling cannot enforce.
+3. Invoke `code-review` in independent contexts for both Standards and Spec. Supply `CODING_STANDARDS.md` verbatim and the accepted spec from the execution issue. The Standards axis applies that document and the documented judgement that tooling cannot enforce.
 4. Fix accepted findings, rerun affected checks and `pnpm verify:all`, and repeat both axes to a fixed point. A fix merely requested by a reviewer needs review; only review-report prose or a change specified verbatim by the round may remain unreviewed. Use the last reviewed commit for later rounds, carrying all earlier reports and dispositions if context cannot resume (ADR-0076).
 5. Group findings by root cause. The same cause in two consecutive rounds requires an approach switch (ADR-0077); review the whole diff against the verified integration base after that switch. A technique-only deviation belongs in the PR. A material contract change goes through Ingest.
 

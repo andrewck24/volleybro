@@ -41,15 +41,15 @@ Issue IDs and ticket numbers belong in commit trailers and pull-request bodies, 
 
 A test sits at the layer [`docs/testing-strategy.md`](./docs/testing-strategy.md) assigns it, mocking only what that layer's school says to mock.
 
-The Standards review applies that document's Test Value and Test Support Code rules through [`test-audit`](./docs/agents/test-audit.md). Its test review output lists `contract → owner test (path and case) → regression that would make it fail` for every added or changed test, and records the keeper or retirement reason for every deleted or moved test. Flag duplicate proof and implementation/call-shape assertions against those rules and the layer's testing school.
+The Standards review applies that document's Test Value and Test Support Code rules through [`test-audit`](./docs/agents/test-audit.md). Its test review output lists `contract → owner test (path and case) → regression that would make it fail` for every added or changed test; a deleted or moved test follows that document's Test Value rule. Flag duplicate proof, and call-shape assertions (asserting which internal function ran or with what arguments instead of the observable result), against those rules and the layer's testing school.
 
-## Correctness, load and scope
+## Correctness, load, leanness and security
 
 Review checks correctness, behavior under expected load (races, work repeated per caller, unbounded growth), leanness (dead code, unused options, duplicated helpers, code beyond the spec) and security, using `security-review` when available.
 
 ### Multi-write and cross-aggregate writes
 
-For a diff that writes more than once, name the persisted state after each of a mid-batch failure, a race and a retry, and cite the test (path and case) proving each outcome. Follow the whole write path, including unmatched operations and error translation that can affect driver retry labels. For cross-aggregate writes, cite [ADR-0146](./blueprint/content/decisions/0146-cross-aggregate-writes-run-in-one-transaction.json) and check the diff against it.
+For a diff that writes more than once, name the persisted state after each of a mid-batch failure, a race and a retry, and cite the test (path and case) proving each outcome. Follow the whole write path, including unmatched operations and error translation that can drop the MongoDB driver's `TransientTransactionError` or `UnknownTransactionCommitResult` labels. For cross-aggregate writes, cite [ADR-0146](./blueprint/content/decisions/0146-cross-aggregate-writes-run-in-one-transaction.json) and check the diff against it.
 
 ### Authorization and data ownership
 
