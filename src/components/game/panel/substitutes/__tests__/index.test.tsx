@@ -1,6 +1,6 @@
 import { Substitutes } from "@/components/game/panel/substitutes";
 import { Toaster } from "@/components/ui/toaster";
-import { EntryType, MoveType, Side, recomputeLineups } from "@/entities/game";
+import { EntryType, MoveType, Side, upsertEntries } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
@@ -46,7 +46,12 @@ const gameWith = (entries: unknown[]) => ({
     {
       options: { serve: "home" },
       startingLineups: lineups,
-      lineups: recomputeLineups(lineups as never, entries as never).lineups,
+      lineups: (
+        upsertEntries(
+          { startingLineups: lineups, entries: [] } as never,
+          entries as never,
+        ) as { set: { lineups: unknown } }
+      ).set.lineups,
       entries,
     },
   ],

@@ -1,4 +1,4 @@
-import { recomputeLineups, mergeEntries } from "@/entities/game";
+import { upsertEntries } from "@/entities/game";
 import type {
   GameView,
   PendingEntry,
@@ -66,9 +66,14 @@ export const nextAttemptDelayMs = (attempts: number): number | null =>
 
 // Lineups follow from the entries. A history the lineup rules reject keeps the
 // last confirmed lineup; the write that caused it fails on its own.
-const withEntries = (set: SetView, entries: SetView["entries"]): SetView => {
-  const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
-  return { ...set, entries, lineups: invalid ? set.lineups : lineups };
+export const withEntries = (
+  set: SetView,
+  incoming: SetView["entries"],
+): SetView => {
+  const result = upsertEntries(set, incoming);
+  if ("set" in result) return result.set;
+  const byId = new Map([...set.entries, ...incoming].map((e) => [e.id, e]));
+  return { ...set, entries: [...byId.values()].sort((a, b) => a.seq - b.seq) };
 };
 
 export const applyFlushedEntries = (
@@ -107,10 +112,7 @@ export const mergePendingEntries = (
 
       return withEntries(
         set,
-        mergeEntries(
-          set.entries,
-          group.map(({ entry }) => entry),
-        ),
+        group.map(({ entry }) => entry),
       );
     }),
   };
