@@ -2,7 +2,7 @@ import {
   EntryType,
   deriveSetPhase,
   setTargetPoints,
-  upsertEntries,
+  mergeEntries,
   type EntryIdentity,
   type SetPhase,
 } from "@/entities/game";
@@ -32,7 +32,7 @@ export const deriveEntryPhase = (
 ): SetPhase =>
   deriveSetPhase(
     {
-      entries: upsertEntries(game.sets[setIndex]!.entries, [
+      entries: mergeEntries(game.sets[setIndex]!.entries, [
         asEntry(entryDraft),
       ]),
     },
@@ -48,7 +48,7 @@ export const applyEntry = (
 ): GameView => {
   const set = game.sets[setIndex]!;
   const sets = game.sets.slice();
-  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]);
+  const entries = mergeEntries(set.entries, [asEntry(entryDraft)]);
 
   if (phase.isSetInProgress) {
     sets[setIndex] = { ...set, entries, win: null };

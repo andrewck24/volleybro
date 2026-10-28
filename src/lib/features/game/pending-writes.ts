@@ -1,4 +1,4 @@
-import { recomputeLineups, upsertEntries } from "@/entities/game";
+import { recomputeLineups, mergeEntries } from "@/entities/game";
 import type {
   GameView,
   PendingEntry,
@@ -107,7 +107,7 @@ export const mergePendingEntries = (
 
       return withEntries(
         set,
-        upsertEntries(
+        mergeEntries(
           set.entries,
           group.map(({ entry }) => entry),
         ),

@@ -1,4 +1,4 @@
-import { ValidationError, GameReason } from "@/entities/errors";
+import { ValidationError, CommonReason, GameReason } from "@/entities/errors";
 import { Lineup, LineupPlayer } from "@/entities/team";
 
 export enum MatchPhase {
@@ -429,7 +429,7 @@ export function deriveSetPhase(
 
 // The repository writes entries by this same rule; the two must not diverge.
 // See ADR-0024.
-export function upsertEntries<T extends EntryIdentity>(
+export function mergeEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
 ): T[] {
@@ -524,6 +524,112 @@ export function recomputeLineups<T extends LineupEntry>(
   }
 
   return { lineups, atSeq };
+}
+
+/** What an entry write needs of an entry: identity, ordering, lineup and score structure. */
+type WritableEntry = EntryIdentity & LineupEntry & DerivableEntry;
+
+/** A set as the entry write rules see it. */
+type WritableSet = {
+  startingLineups: SetLineups;
+  entries: readonly WritableEntry[];
+};
+
+export type InvalidEntryWrite = {
+  /** The first substitution the lineup cannot apply. */
+  id: string;
+  /** The score of the last rally before it (0:0 if none). */
+  score: { home: number; away: number };
+};
+
+/**
+ * Writes entries into a set: overwrite by id, order by seq, then recompute the
+ * Current lineup from the starting lineups and every substitution. Returns the
+ * first refused substitution instead when one no longer fits. See ADR-0024 and
+ * ADR-0145.
+ */
+export function upsertEntries<S extends WritableSet>(
+  set: S,
+  entries: readonly S["entries"][number][],
+):
+  | { set: S & { entries: S["entries"][number][]; lineups: SetLineups } }
+  | { invalid: InvalidEntryWrite } {
+  const merged = mergeEntries(set.entries, entries);
+  const { lineups, invalid } = recomputeLineups(set.startingLineups, merged);
+  if (invalid) {
+    const previous = getPreviousRally(merged, merged.indexOf(invalid));
+    const score = previous
+      ? { home: previous.home.score, away: previous.away.score }
+      : { home: 0, away: 0 };
+    return { invalid: { id: invalid.id, score } };
+  }
+  return { set: { ...set, entries: merged, lineups } };
+}
+
+export type EntryUpsertStep =
+  { id: string; created: Entry } | { id: string; edited: Entry };
+
+/**
+ * Plans a batch of client writes against a stored set, server side: classifies
+ * each write as a create (stamped with the operator and the client's instant),
+ * a creation resend (same recorder and instant, no step) or an edit (recorder
+ * kept, last editor stamped), then upserts the result. Later writes of an id
+ * classify against earlier ones in the batch.
+ */
+export function planEntryUpserts<
+  S extends { startingLineups: SetLineups; entries: readonly Entry[] },
+>(
+  set: S,
+  writes: readonly EntryWrite[],
+  operator: string,
+):
+  | {
+      set: S & { entries: Entry[]; lineups: SetLineups };
+      steps: EntryUpsertStep[];
+    }
+  | { invalid: InvalidEntryWrite } {
+  // A write without an id would match every other entry that has none.
+  if (
+    writes.some(
+      ({ entry }) =>
+        typeof entry.id !== "string" || typeof entry.seq !== "number",
+    )
+  )
+    throw new ValidationError(
+      CommonReason.INVALID_INPUT,
+      "An entry must carry an id and a seq to be written",
+    );
+
+  const stored = new Map<string, Entry>(set.entries.map((e) => [e.id, e]));
+  const steps = writes.flatMap(({ entry, at }): EntryUpsertStep[] => {
+    const existing = stored.get(entry.id);
+    if (!existing) {
+      const created: Entry = { ...entry, recordedBy: operator, recordedAt: at };
+      stored.set(entry.id, created);
+      return [{ id: entry.id, created }];
+    }
+
+    if (
+      existing.recordedBy === operator &&
+      existing.recordedAt?.getTime() === at.getTime()
+    )
+      return [];
+
+    const edited = {
+      ...existing,
+      ...entry,
+      recordedBy: existing.recordedBy,
+      recordedAt: existing.recordedAt,
+      editedBy: operator,
+      editedAt: at,
+    } as Entry;
+    stored.set(entry.id, edited);
+    return [{ id: entry.id, edited }];
+  });
+
+  const written = steps.map((s) => ("created" in s ? s.created : s.edited));
+  const result = upsertEntries(set, written);
+  return "invalid" in result ? result : { set: result.set, steps };
 }
 
 export function isSetFinished(
