@@ -61,7 +61,7 @@ describe("upsertEntries", () => {
       { startingLineups, entries: [rally(2, 1, 1), rally(1, 0, 1)] },
       [{ ...rally(2, 1, 1), seq: 3 }, rally(4, 2, 1)],
     );
-    if (!("set" in result)) throw new Error("expected a set");
+    if ("invalid" in result) throw new Error("expected a set");
     expect(result.set.entries.map((e) => [e.id, e.seq])).toEqual([
       ["rally-1", 1],
       ["rally-2", 3],
@@ -74,7 +74,7 @@ describe("upsertEntries", () => {
       { startingLineups, entries: [] as EntryContent[] },
       [sub(2, "b", "y"), sub(1, "a", "x")],
     );
-    if (!("set" in result)) throw new Error("expected a set");
+    if ("invalid" in result) throw new Error("expected a set");
     expect(onCourt(result.set.lineups)).toEqual(["x", "y", "c", "d", "e", "f"]);
   });
 
@@ -83,7 +83,7 @@ describe("upsertEntries", () => {
       { startingLineups, entries: [rally(1, 3, 2)] },
       [sub(2, "z", "x")],
     );
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       invalid: { id: "sub-2", score: { home: 3, away: 2 } },
     });
   });
@@ -93,7 +93,7 @@ describe("upsertEntries", () => {
       { startingLineups, entries: [] as EntryContent[] },
       [sub(1, "z", "x")],
     );
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       invalid: { id: "sub-1", score: { home: 0, away: 0 } },
     });
   });
@@ -103,9 +103,26 @@ describe("upsertEntries", () => {
       { startingLineups, entries: [sub(2, "a", "x")] },
       [sub(1, "a", "y")],
     );
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       invalid: { id: "sub-2", score: { home: 0, away: 0 } },
     });
+  });
+
+  it("returns the merged entries and the lineups the set already had when refusing", () => {
+    const current = {
+      home: { ...lineup(), starting: lineup().starting.slice().reverse() },
+    };
+    const result = upsertEntries(
+      { startingLineups, lineups: current, entries: [rally(3, 1, 0)] },
+      [sub(2, "z", "x"), rally(1, 0, 1)],
+    );
+    if (!("invalid" in result)) throw new Error("expected a refusal");
+    expect(result.set.entries.map((e) => e.id)).toEqual([
+      "rally-1",
+      "sub-2",
+      "rally-3",
+    ]);
+    expect(result.set.lineups).toBe(current);
   });
 });
 
@@ -116,7 +133,7 @@ describe("planEntryUpserts", () => {
       [{ entry: rally(1, 1, 0), at }],
       "p1",
     );
-    if (!("set" in result)) throw new Error("expected a set");
+    if ("invalid" in result) throw new Error("expected a set");
     const created = { ...rally(1, 1, 0), recordedBy: "p1", recordedAt: at };
     expect(result.steps).toEqual([{ id: "rally-1", created }]);
     expect(result.set.entries).toEqual([created]);
@@ -125,7 +142,7 @@ describe("planEntryUpserts", () => {
   it("takes a resend of the same recorder and instant as no step", () => {
     const set = setOf(rally(1, 1, 0));
     const result = planEntryUpserts(set, [{ entry: rally(1, 1, 0), at }], "p1");
-    if (!("set" in result)) throw new Error("expected a set");
+    if ("invalid" in result) throw new Error("expected a set");
     expect(result.steps).toEqual([]);
     expect(result.set.entries).toEqual(set.entries);
   });
@@ -137,7 +154,7 @@ describe("planEntryUpserts", () => {
       [{ entry: rally(1, 2, 0), at: later }],
       "p2",
     );
-    if (!("set" in result)) throw new Error("expected a set");
+    if ("invalid" in result) throw new Error("expected a set");
     const edited = {
       ...rally(1, 2, 0),
       ...record,
@@ -157,7 +174,7 @@ describe("planEntryUpserts", () => {
       ],
       "p1",
     );
-    if (!("set" in result)) throw new Error("expected a set");
+    if ("invalid" in result) throw new Error("expected a set");
     expect(result.steps.map((s) => Object.keys(s))).toEqual([
       ["id", "created"],
       ["id", "edited"],
@@ -170,7 +187,7 @@ describe("planEntryUpserts", () => {
       [{ entry: rally(1, 0, 1), at }],
       "p1",
     );
-    if (!("set" in result)) throw new Error("expected a set");
+    if ("invalid" in result) throw new Error("expected a set");
     expect(result.set.entries.map((e) => e.seq)).toEqual([1, 2]);
   });
 
@@ -180,7 +197,7 @@ describe("planEntryUpserts", () => {
       [{ entry: sub(2, "z", "x"), at }],
       "p1",
     );
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       invalid: { id: "sub-2", score: { home: 3, away: 2 } },
     });
   });
@@ -197,7 +214,7 @@ describe("planEntryUpserts", () => {
       [{ entry: rally(2, 1, 0), at }],
       "p1",
     );
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       invalid: { id: "sub-1", score: { home: 0, away: 0 } },
     });
   });

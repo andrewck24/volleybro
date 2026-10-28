@@ -70,10 +70,7 @@ export const withEntries = (
   set: SetView,
   incoming: SetView["entries"],
 ): SetView => {
-  const result = upsertEntries(set, incoming);
-  if ("set" in result) return result.set;
-  const byId = new Map([...set.entries, ...incoming].map((e) => [e.id, e]));
-  return { ...set, entries: [...byId.values()].sort((a, b) => a.seq - b.seq) };
+  return upsertEntries(set, incoming).set;
 };
 
 export const applyFlushedEntries = (

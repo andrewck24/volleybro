@@ -429,7 +429,7 @@ export function deriveSetPhase(
 
 // The repository writes entries by this same rule; the two must not diverge.
 // See ADR-0024.
-export function mergeEntries<T extends EntryIdentity>(
+function mergeEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
 ): T[] {
@@ -506,7 +506,7 @@ function applySubstitution(
  * is valid only when the player going out is on court and the player coming in
  * is on the bench. Liberos are carried over untouched. See ADR-0145.
  */
-export function recomputeLineups<T extends LineupEntry>(
+function recomputeLineups<T extends LineupEntry>(
   startingLineups: SetLineups,
   entries: readonly T[],
 ): LineupRecomputation<T> {
@@ -545,15 +545,18 @@ export type InvalidEntryWrite = {
 /**
  * Writes entries into a set: overwrite by id, order by seq, then recompute the
  * Current lineup from the starting lineups and every substitution. Returns the
- * first refused substitution instead when one no longer fits. See ADR-0024 and
- * ADR-0145.
+ * first refused substitution when one no longer fits, with the merged entries
+ * and the lineups the set already had. See ADR-0024 and ADR-0145.
  */
 export function upsertEntries<S extends WritableSet>(
   set: S,
   entries: readonly S["entries"][number][],
 ):
   | { set: S & { entries: S["entries"][number][]; lineups: SetLineups } }
-  | { invalid: InvalidEntryWrite } {
+  | {
+      invalid: InvalidEntryWrite;
+      set: S & { entries: S["entries"][number][] };
+    } {
   const merged = mergeEntries(set.entries, entries);
   const { lineups, invalid } = recomputeLineups(set.startingLineups, merged);
   if (invalid) {
@@ -561,7 +564,10 @@ export function upsertEntries<S extends WritableSet>(
     const score = previous
       ? { home: previous.home.score, away: previous.away.score }
       : { home: 0, away: 0 };
-    return { invalid: { id: invalid.id, score } };
+    return {
+      invalid: { id: invalid.id, score },
+      set: { ...set, entries: merged },
+    };
   }
   return { set: { ...set, entries: merged, lineups } };
 }
@@ -587,7 +593,10 @@ export function planEntryUpserts<
       set: S & { entries: Entry[]; lineups: SetLineups };
       steps: EntryUpsertStep[];
     }
-  | { invalid: InvalidEntryWrite } {
+  | {
+      invalid: InvalidEntryWrite;
+      set: S & { entries: Entry[] };
+    } {
   // A write without an id would match every other entry that has none.
   if (
     writes.some(

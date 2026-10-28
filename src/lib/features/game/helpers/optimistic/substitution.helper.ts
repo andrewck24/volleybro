@@ -18,7 +18,7 @@ export const applySubstitution = (
   | { invalid: { id: string; score: { home: number; away: number } } } => {
   const set = game.sets[setIndex]!;
   const result = upsertEntries(set, [entry]);
-  if ("invalid" in result) return result;
+  if ("invalid" in result) return { invalid: result.invalid };
 
   const sets = game.sets.slice();
   sets[setIndex] = result.set;
