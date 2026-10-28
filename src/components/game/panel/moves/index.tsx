@@ -25,8 +25,7 @@ export const GameMoves = ({
   // goes from the opponent-error list to the skill grid), so keying on panel
   // alone would miss that transition. Direction is derived from the previous
   // step held in state (React's "store previous value in state" pattern) so it
-  // survives to commit -- reading a ref during render would not. ponytail:
-  // reuses tailwindcss-animate's slide-in utilities instead of raw @keyframes.
+  // survives to commit -- reading a ref during render would not.
   const step = status.panel === "away" ? 2 : draft.home.player?.id ? 1 : 0;
   const [prevStep, setPrevStep] = useState(step);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
