@@ -1904,6 +1904,32 @@ async function recordRecoveryEvidence() {
   process.stdout.write(`${summary}\n`);
 }
 
+// Run on pull requests, so a path the release classifier cannot place fails the
+// PR that adds it instead of stopping a later release before promotion.
+export async function assertPathsClassified(baseSha, headSha) {
+  const base = await command("git", [
+    "merge-base",
+    exactSha(baseSha, "Base SHA"),
+    exactSha(headSha, "Head SHA"),
+  ]);
+  const { unclassifiedPaths } = await persistedContractChanges({
+    baseline: { sha: base },
+    sha: headSha,
+  });
+  if (unclassifiedPaths.length > 0)
+    fail(
+      `Release cannot classify these paths for production-data compatibility: ${unclassifiedPaths.join(", ")}. ` +
+        "Add a pattern to KNOWN_UNRELATED_PATTERNS or PERSISTED_CONTRACT_PATTERNS in scripts/release-controls.js.",
+    );
+}
+
+async function checkPathClassification() {
+  await assertPathsClassified(
+    required("BASE_SHA"),
+    await command("git", ["rev-parse", "HEAD"]),
+  );
+}
+
 async function planRecoveryCompatibility() {
   const state = await loadState();
   validateConfiguredPlatform(state);
@@ -2712,6 +2738,7 @@ const actions = {
   stage,
   "record-source-qa": recordSourceQA,
   "plan-recovery-compatibility": planRecoveryCompatibility,
+  "check-path-classification": checkPathClassification,
   promote,
   "summarize-smoke": summarizeSmoke,
   "classify-smoke": classifySmoke,

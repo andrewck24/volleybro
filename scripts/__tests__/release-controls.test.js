@@ -12,7 +12,10 @@ import {
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { persistedContractChanges } from "../release-controls.js";
+import {
+  assertPathsClassified,
+  persistedContractChanges,
+} from "../release-controls.js";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 
@@ -2410,6 +2413,37 @@ test("app source outside the known-unrelated paths is a contract path", async (t
     "src/hooks/use-x.ts",
     "src/lib/x.ts",
   ]);
+});
+
+test("a pull request that adds an unclassified path fails before any release", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "release-pr-paths-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const git = (args) =>
+    execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
+  git(["init", "-b", "main"]);
+  git(["config", "user.email", "test@example.invalid"]);
+  git(["config", "user.name", "Test"]);
+  const commit = async (file) => {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(path.join(root, file), "x");
+    git(["add", "."]);
+    git(["commit", "-m", "c"]);
+    return git(["rev-parse", "HEAD"]);
+  };
+  const base = await commit("README.md");
+  git(["checkout", "-b", "pr"]);
+  const known = await commit("src/lib/x.ts");
+  const unknown = await commit("middleware.ts");
+  git(["checkout", "main"]);
+  const moved = await commit("unrelated-on-main.txt");
+  const prev = process.cwd();
+  process.chdir(root);
+  t.after(() => process.chdir(prev));
+  await assertPathsClassified(base, known);
+  await assert.rejects(
+    assertPathsClassified(moved, unknown),
+    /cannot classify these paths .*: middleware\.ts\. Add a pattern/,
+  );
 });
 
 test("pnpm-workspace.yaml stays a persisted contract path", async (t) => {

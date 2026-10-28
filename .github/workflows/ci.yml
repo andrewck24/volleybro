@@ -90,6 +90,9 @@ jobs:
     if: inputs.source == ''
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The release path check diffs against the merge-base with the base branch.
+          fetch-depth: 0
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
           install: false
@@ -104,6 +107,11 @@ jobs:
       - run: node scripts/design-document.js --check
       - run: pnpm test:workflow
       - run: pnpm check:workflow
+      - name: Classify changed paths for the release
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/release-controls.js check-path-classification
       - run: pnpm typecheck:strict
       - run: pnpm lint
 
