@@ -9,8 +9,6 @@ import { withFailPoint } from "../support/failpoint";
 import { callRoute } from "../support/request";
 import { seedGame } from "../support/seed";
 
-// completeSet writes with findAndModify and the entry write with bulkWrite, so
-// failing that one command fails only the set result.
 describe("a set-result write that fails after the deciding rally is stored", () => {
   beforeEach(() => useFakeAuth());
 
@@ -27,6 +25,8 @@ describe("a set-result write that fails after the deciding rally is stored", () 
     });
     expect(created.status).toBe(201);
 
+    // completeSet writes with findAndModify and the entry write with bulkWrite,
+    // so failing that one command fails only the set result.
     const output = await withFailPoint(
       "alwaysOn",
       { failCommands: ["findAndModify"], errorCode: 2 },
