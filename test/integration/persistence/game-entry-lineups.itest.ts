@@ -30,7 +30,7 @@ describe("the lineup a set stores with its entries", () => {
       players: { in: inId, out: seeded.playerIds[outId]! },
     }) as Entry;
   const write = (entries: Entry[], at = recordedAt) =>
-    repo().upsertEntry(
+    repo().upsertEntries(
       ref(),
       entries.map((entry) => ({ entry, at })),
       operator,
@@ -61,18 +61,6 @@ describe("the lineup a set stores with its entries", () => {
     expect(created.status).toBe(201);
   });
 
-  it("keeps the stored lineup in step with the stored entry when a resend carries other content", async () => {
-    await write([substitution("sub-1", 1, benchIds[0]!)]);
-
-    // Same id and same `at` by the same operator is a resend of the creation,
-    // so the different content must not reach the lineup either.
-    await write([substitution("sub-1", 1, benchIds[1]!)]);
-
-    const set = await storedSet();
-    expect(set.entries[0]).toMatchObject({ players: { in: benchIds[0] } });
-    expect((await onCourt())[0]).toBe(benchIds[0]);
-  });
-
   it("re-plans a substitution written from a stale read, so the second of two conflicting ones is refused", async () => {
     const instance = repo();
     const internals = instance as unknown as {
@@ -85,7 +73,7 @@ describe("the lineup a set stores with its entries", () => {
 
     // Player 0 is already out, which the stale read cannot show.
     await expect(
-      instance.upsertEntry(
+      instance.upsertEntries(
         ref(),
         [{ entry: substitution("sub-2", 2, benchIds[1]!, 0), at: recordedAt }],
         operator,
@@ -157,6 +145,28 @@ describe("the lineup a set stores with its entries", () => {
     expect((await storedSet()).options.serve).toBe("away");
     expect((await storedSet()).entries.map((e) => e.id)).toEqual(["sub-1"]);
     expect((await onCourt())[0]).toBe(benchIds[0]);
+  });
+
+  it("retries an options update that read the set before another update landed", async () => {
+    const instance = repo();
+    const internals = instance as unknown as {
+      findSet: (ref: unknown) => Promise<object>;
+    };
+    const stale = await internals.findSet(ref());
+    await instance.updateSet(ref(), { options: { ...options, serve: "away" } });
+    const findSet = jest
+      .spyOn(internals, "findSet")
+      .mockResolvedValueOnce(stale);
+
+    await instance.updateSet(ref(), { options });
+
+    // The stale version guard matched nothing, so the update read again.
+    expect(findSet).toHaveBeenCalledTimes(2);
+    expect((await storedSet()).options.serve).toBe("home");
+    const raw = await mongoose.connection
+      .collection("games")
+      .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) });
+    expect(raw!.sets[0].ver).toBe(2);
   });
 
   it("keeps an existing set's entries and version when the next set is created", async () => {

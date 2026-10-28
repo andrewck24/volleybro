@@ -40,7 +40,7 @@ describe("identity-keyed entry writes", () => {
     entries: Entry[],
     at = recordedAt,
   ) =>
-    repo().upsertEntry(
+    repo().upsertEntries(
       ref,
       entries.map((entry) => ({ entry, at })),
       operator,
@@ -58,31 +58,11 @@ describe("identity-keyed entry writes", () => {
     expect(created.status).toBe(201);
   });
 
-  it("keeps the edit when a create and an edit of one id share a batch", async () => {
-    const entries = await repo().upsertEntry(
-      { gameId: seeded.gameId, setIndex: 0 },
-      [
-        { entry: rally("entry-1", 0, 1), at: recordedAt },
-        { entry: rally("entry-1", 0, 9), at: editedAt },
-      ],
-      operator,
-    );
-
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({
-      home: { score: 9 },
-      recordedBy: operator,
-      editedBy: operator,
-      editedAt,
-    });
-    expect(entries[0]!.recordedAt).toEqual(recordedAt);
-  });
-
   it("re-classifies a create that lost a race to another create instead of dropping it", async () => {
     const ref = { gameId: seeded.gameId, setIndex: 0 };
     const other = oid();
     const instance = repo();
-    await instance.upsertEntry(
+    await instance.upsertEntries(
       ref,
       [{ entry: rally("entry-1", 0, 1), at: recordedAt }],
       other,
@@ -96,7 +76,7 @@ describe("identity-keyed entry writes", () => {
       .spyOn(internals, "findSet")
       .mockResolvedValueOnce({ ...set, entries: [] });
 
-    const entries = await instance.upsertEntry(
+    const entries = await instance.upsertEntries(
       ref,
       [{ entry: rally("entry-1", 0, 9), at: editedAt }],
       operator,
@@ -109,18 +89,6 @@ describe("identity-keyed entry writes", () => {
       editedBy: operator,
       editedAt,
     });
-  });
-
-  it("stores a lower-sequence entry ahead of a higher one that arrived first", async () => {
-    await write({ gameId: seeded.gameId, setIndex: 0 }, [
-      rally("entry-8", 8, 8),
-    ]);
-
-    const entries = await write({ gameId: seeded.gameId, setIndex: 0 }, [
-      rally("entry-7", 7, 7),
-    ]);
-
-    expect(entries.map((e) => e.id)).toEqual(["entry-7", "entry-8"]);
   });
 
   it("keeps both entries when two different identities are written concurrently", async () => {

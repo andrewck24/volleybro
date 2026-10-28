@@ -78,14 +78,14 @@ describe("RecordEntriesUseCase", () => {
     const game = createGame();
     game.sets[0]!.win = null;
     mockGameRepository.findById.mockResolvedValue(game);
-    mockGameRepository.upsertEntry.mockResolvedValue(entries);
+    mockGameRepository.upsertEntries.mockResolvedValue(entries);
 
     const result = await useCase().execute({
       params: { gameId: "game-1", setIndex: 0 },
       data: [newRally],
     });
 
-    expect(mockGameRepository.upsertEntry).toHaveBeenCalledWith(
+    expect(mockGameRepository.upsertEntries).toHaveBeenCalledWith(
       { gameId: "game-1", setIndex: 0 },
       [{ entry: contentOf(newRally), at }],
       "player-9",
@@ -99,7 +99,7 @@ describe("RecordEntriesUseCase", () => {
       ...createGame(),
       sets: [],
     });
-    mockGameRepository.upsertEntry.mockRejectedValue(
+    mockGameRepository.upsertEntries.mockRejectedValue(
       new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found"),
     );
 
@@ -116,7 +116,7 @@ describe("RecordEntriesUseCase", () => {
     const game = createGame();
     game.sets[0]!.win = null;
     mockGameRepository.findById.mockResolvedValue(game);
-    mockGameRepository.upsertEntry.mockResolvedValue(entries);
+    mockGameRepository.upsertEntries.mockResolvedValue(entries);
     mockGameRepository.completeSet.mockResolvedValue(undefined);
 
     const result = await useCase().execute({
@@ -133,7 +133,7 @@ describe("RecordEntriesUseCase", () => {
     const game = createGame();
     game.sets[0]!.win = null;
     mockGameRepository.findById.mockResolvedValue(game);
-    mockGameRepository.upsertEntry.mockResolvedValue(entries);
+    mockGameRepository.upsertEntries.mockResolvedValue(entries);
     mockGameRepository.completeSet.mockRejectedValue(new Error("db down"));
 
     const result = await useCase().execute({

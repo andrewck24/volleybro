@@ -48,7 +48,7 @@ export interface IGameRepository {
    * the entries it will hold, and written with the last entry. A write that
    * leaves a substitution invalid is refused whole with INVALID_SUBSTITUTION.
    */
-  upsertEntry(
+  upsertEntries(
     ref: EntryRef,
     writes: EntryWrite[],
     operator: string,
