@@ -1,6 +1,7 @@
 import {
   createInvitedPlayer,
   createPlayer,
+  createTeam,
   createUnlinkedPlayer,
 } from "@test/support/fixtures/entities";
 import {
@@ -33,7 +34,7 @@ describe("RemovePlayerUseCase", () => {
     owner: createPlayer({
       id: "target",
       userId: "user-target",
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     }),
     admin: createPlayer({
       id: "target",
@@ -60,6 +61,9 @@ describe("RemovePlayerUseCase", () => {
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
     mockTeamRepository = createMockTeamRepository();
+    mockTeamRepository.findById.mockResolvedValue(
+      createTeam({ ownerPlayerId: "owner" }),
+    );
     useCase = new RemovePlayerUseCase(mockPlayerRepository, mockTeamRepository);
     mockPlayerRepository.delete.mockResolvedValue(true);
     mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
@@ -98,6 +102,9 @@ describe("RemovePlayerUseCase", () => {
     });
 
     it("refuses the owner, who can only hand ownership over", async () => {
+      mockTeamRepository.findById.mockResolvedValue(
+        createTeam({ ownerPlayerId: targets.owner.id }),
+      );
       mockPlayerRepository.findById.mockResolvedValue(targets.owner);
 
       await expectRefusal(remove(), PlayerReason.TARGET_IS_OWNER);
@@ -112,15 +119,6 @@ describe("RemovePlayerUseCase", () => {
         PlayerReason.TARGET_IS_SELF,
       );
     });
-  });
-
-  it("lets the owner delete an admin", async () => {
-    mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
-      actor(PlayerRole.OWNER),
-    );
-    mockPlayerRepository.findById.mockResolvedValue(targets.admin);
-
-    expect(await remove()).toEqual({ success: true });
   });
 
   it("refuses a caller who is a member", async () => {

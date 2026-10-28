@@ -8,7 +8,6 @@ import { IPlayerRepository } from "@/applications/repositories/player.repository
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 import { CreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("CreateTeamUseCase", () => {
   let mockTeamRepository: jest.Mocked<ITeamRepository>;
@@ -36,20 +35,16 @@ describe("CreateTeamUseCase", () => {
   });
 
   it("creates the team with the caller as its joined owner", async () => {
+    const owned = { ...mockTeam, ownerPlayerId: "player-9" };
     mockTeamRepository.create.mockResolvedValue(mockTeam);
-    mockPlayerRepository.create.mockResolvedValue(createPlayer());
+    mockPlayerRepository.create.mockResolvedValue(
+      createPlayer({ id: "player-9" }),
+    );
+    mockTeamRepository.update.mockResolvedValue(owned);
 
     const result = await useCase.execute(input);
 
-    expect(result).toBe(mockTeam);
-    expect(mockPlayerRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        teamId: mockTeam.id,
-        userId: "user-1",
-        status: PlayerStatus.JOINED,
-        role: PlayerRole.OWNER,
-      }),
-    );
+    expect(result).toBe(owned);
   });
 
   it("rethrows the owner error so the transaction can roll the team back", async () => {

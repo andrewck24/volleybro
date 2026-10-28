@@ -64,12 +64,12 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     { key: "人數", value: players.length, icon: <RiGroupLine /> },
   ];
   const currentUserPlayer = players?.find((p) => p.userId === user?.id);
+  const isOwner =
+    !!currentUserPlayer && currentUserPlayer.id === team.ownerPlayerId;
   const isAdmin = currentUserPlayer
-    ? currentUserPlayer.role === PlayerRole.OWNER ||
-      currentUserPlayer.role === PlayerRole.ADMIN
+    ? isOwner || currentUserPlayer.role === PlayerRole.ADMIN
     : false;
   const isJoined = currentUserPlayer?.status === PlayerStatus.JOINED;
-  const isOwner = currentUserPlayer?.role === PlayerRole.OWNER;
 
   const handleLeaveTeam = async () => {
     setIsLeaving(true);

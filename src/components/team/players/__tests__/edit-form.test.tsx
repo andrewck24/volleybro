@@ -72,4 +72,28 @@ describe("EditForm", () => {
       ),
     );
   });
+
+  it("shows the membership controls to the team's owner player even when its role is member", async () => {
+    const ME_ID = "507f1f77bcf86cd799439013";
+    const me = { ...player, id: ME_ID, name: "Me", userId: "me-user" };
+    server.use(
+      http.get(`/api/teams/${TEAM_ID}`, () =>
+        HttpResponse.json({ id: TEAM_ID, ownerPlayerId: ME_ID }),
+      ),
+      http.get(`/api/teams/${TEAM_ID}/players`, () =>
+        HttpResponse.json([me, player]),
+      ),
+      http.get("/api/users", () => HttpResponse.json({ id: "me-user" })),
+    );
+
+    render(
+      <SwrIsolation>
+        <EditForm teamId={TEAM_ID} playerId={PLAYER_ID} />
+      </SwrIsolation>,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: /移轉所有權給此球員/ }),
+    ).toBeInTheDocument();
+  });
 });

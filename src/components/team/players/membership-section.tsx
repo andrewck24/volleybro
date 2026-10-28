@@ -21,7 +21,7 @@ import { ErrorNotice } from "@/components/custom/error/error-notice";
 import { apiClient } from "@/lib/api/api-client";
 import type { ErrorMessage } from "@/lib/api/error-messages";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
-import { ROLE_LABELS } from "@/lib/constants/labels";
+import { OWNER_LABEL, ROLE_LABELS } from "@/lib/constants/labels";
 import type { PlayerView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -30,6 +30,7 @@ import { useSWRConfig } from "swr";
 interface MembershipSectionProps {
   player: PlayerView;
   teamId: string;
+  ownerPlayerId?: string;
   isCurrentOwner: boolean;
   /** The caller is looking at their own player. */
   isSelf: boolean;
@@ -38,6 +39,7 @@ interface MembershipSectionProps {
 export function MembershipSection({
   player,
   teamId,
+  ownerPlayerId,
   isCurrentOwner,
   isSelf,
 }: MembershipSectionProps) {
@@ -46,7 +48,7 @@ export function MembershipSection({
   const router = useRouter();
   const status = player.status;
   const isJoined = status === PlayerStatus.JOINED;
-  const isOwnerPlayer = player.role === PlayerRole.OWNER;
+  const isOwnerPlayer = player.id === ownerPlayerId;
   const canManage = !isOwnerPlayer && !isSelf;
 
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -122,7 +124,12 @@ export function MembershipSection({
       )}
 
       {isJoined && (
-        <JoinedSection player={player} onSuccess={revalidate} toast={toast} />
+        <JoinedSection
+          player={player}
+          isOwnerPlayer={isOwnerPlayer}
+          onSuccess={revalidate}
+          toast={toast}
+        />
       )}
 
       {canManage && (
@@ -181,44 +188,63 @@ export function MembershipSection({
             <h3 className="text-sm font-medium text-destructive-text">
               移轉所有權
             </h3>
-            <AlertDialog
-              open={transferOpen}
-              onOpenChange={(open) => {
-                setTransferOpen(open);
-                if (!open) setTransferError(null);
-              }}
-            >
-              <AlertDialogTrigger asChild>
+            {player.role === PlayerRole.ADMIN ? (
+              <AlertDialog
+                open={transferOpen}
+                onOpenChange={(open) => {
+                  setTransferOpen(open);
+                  if (!open) setTransferError(null);
+                }}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    disabled={isTransferring}
+                  >
+                    移轉所有權給此球員
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      確定要將隊伍所有權移轉給 {player.name} 嗎？
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      移轉後 {player.name} 將成為新擁有者，你仍保有管理員身分。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {transferError && <ErrorNotice message={transferError} />}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <Button
+                      variant="destructive"
+                      onClick={handleTransferOwnership}
+                      loading={isTransferring}
+                    >
+                      確認移轉
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <>
                 <Button
                   variant="destructive"
                   className="w-full"
-                  disabled={isTransferring}
+                  disabled
+                  aria-describedby="transfer-requires-admin"
                 >
                   移轉所有權給此球員
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    確定要將隊伍所有權移轉給 {player.name} 嗎？
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    移轉後你將被降級為管理員，{player.name} 將成為新擁有者。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                {transferError && <ErrorNotice message={transferError} />}
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <Button
-                    variant="destructive"
-                    onClick={handleTransferOwnership}
-                    loading={isTransferring}
-                  >
-                    確認移轉
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                <p
+                  id="transfer-requires-admin"
+                  className="text-sm text-muted-foreground"
+                >
+                  請先將其設為管理員，才能移轉擁有權
+                </p>
+              </>
+            )}
           </div>
         </>
       )}
@@ -420,17 +446,17 @@ function InvitedSection({
 // --- JOINED: role management only ---
 function JoinedSection({
   player,
+  isOwnerPlayer,
   onSuccess,
   toast,
 }: {
   player: PlayerView;
+  isOwnerPlayer: boolean;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [role, setRole] = useState<PlayerRole>(
-    player.role === PlayerRole.OWNER
-      ? PlayerRole.ADMIN
-      : player.role || PlayerRole.MEMBER,
+    player.role || PlayerRole.MEMBER,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -456,12 +482,12 @@ function JoinedSection({
     }
   };
 
-  if (player.role === PlayerRole.OWNER) {
+  if (isOwnerPlayer) {
     return (
       <div className="space-y-3">
         <h3 className="text-sm font-medium">隊籍</h3>
         <div className="rounded-md bg-muted/50 p-3 text-sm">
-          <p className="font-medium">{ROLE_LABELS[PlayerRole.OWNER]}</p>
+          <p className="font-medium">{OWNER_LABEL}</p>
         </div>
       </div>
     );

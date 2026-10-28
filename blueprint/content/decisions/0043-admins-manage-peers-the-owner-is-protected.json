@@ -34,5 +34,6 @@
     "Ownership transfer changes to require the recipient's acceptance.",
     "A real dispute arises from admins removing each other."
   ],
-  "originChange": "team-membership-authorization"
+  "originChange": "team-membership-authorization",
+  "supersededBy": "0148"
 }

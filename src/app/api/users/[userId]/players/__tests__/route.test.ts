@@ -94,38 +94,6 @@ describe("Users Players API Route", () => {
       expect(Array.isArray(players)).toBe(true);
     });
 
-    it("should handle users with mixed role statuses", () => {
-      const players = [
-        createPlayer({
-          id: "player-1",
-          name: "User",
-          teamId: "team-1",
-          userId: "user-1",
-          role: PlayerRole.OWNER,
-        }),
-        createPlayer({
-          id: "player-2",
-          name: "User",
-          teamId: "team-2",
-          userId: "user-1",
-          role: PlayerRole.ADMIN,
-        }),
-        createPlayer({
-          id: "player-3",
-          name: "User",
-          teamId: "team-3",
-          userId: "user-1",
-          role: PlayerRole.MEMBER,
-        }),
-      ];
-
-      expect(players.filter((p) => p.role === PlayerRole.OWNER).length).toBe(1);
-      expect(players.filter((p) => p.role === PlayerRole.ADMIN).length).toBe(1);
-      expect(players.filter((p) => p.role === PlayerRole.MEMBER).length).toBe(
-        1,
-      );
-    });
-
     it("should return 200 status on success", () => {
       const successStatus = 200;
       expect(successStatus).toBe(200);

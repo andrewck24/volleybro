@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "id": "0148",
+  "title": "Admins manage their peers; the team names one owner, and only an admin can take ownership",
+  "capabilities": ["team-management/roles"],
+  "context": "Who may manage whom was set in ADR-0043 after looking at Facebook Groups (https://www.facebook.com/help/1718782575010160), Google Drive files (https://support.google.com/drive/answer/2494893) and Google Shared Drives (https://support.google.com/a/users/answer/12380484): the highest role is protected, peers at the same management level can manage each other, and a lower role cannot act on a higher one. That record defined the owner as the one player holding the OWNER role, enforced by a partial unique index per team. Transferring ownership was two player writes (promote the target, demote the outgoing owner) with a compensating write when the second failed, so a failure between them could leave a team with two owners or none, and every owner check had to read the caller's role. Google Drive requires the recipient of an ownership transfer to be an editor first, and the original owner then becomes an editor (https://support.google.com/drive/answer/2494892). This record restates ADR-0043's management rules alongside the new owner model, so one record holds the whole rule; only the owner's protection changes, from a role to the team's ownerPlayerId.",
+  "decision": "The owner is Team.ownerPlayerId. Player roles are MEMBER and ADMIN, and the owner is always an ADMIN. The owner and admins may change or delete an admin, a regular member, an invitee or an unlinked player; a regular member may manage no one. The owner is nobody's target for a role change or deletion, and stops being the owner only by transferring ownership. Nobody may target their own player for a role change or deletion; leaving the team is that path instead, and the roster row is kept as an unlinked player. Transfer is one conditional team write that sets ownerPlayerId only while it still equals the caller's player; the loser of a race gets NOT_TEAM_OWNER. Only a joined ADMIN may receive ownership, and the previous owner stays an ADMIN. Owner-only checks read the team, not the caller's role.",
+  "alternatives": [
+    {
+      "option": "Require the target's role to be strictly lower than the actor's, so an admin cannot manage another admin",
+      "reason": "All three reference products let peer-level managers manage each other. Requiring strictly lower would push every adjustment between admins to the owner, who may be an infrequently active founder."
+    },
+    {
+      "option": "Let only the owner appoint or manage admins",
+      "reason": "Same reasoning, and it would leave \"admin\" almost unable to help expand the management team in day-to-day operation."
+    },
+    {
+      "option": "Add a team setting letting the owner turn off admins managing each other",
+      "reason": "This mirrors Google Drive's \"editors can change permissions\" toggle. It belongs to team settings, under the privacy-settings topic, and is out of scope for this Change."
+    },
+    {
+      "option": "Let an admin delete or demote their own player",
+      "reason": "Deleting yourself is a way around \"leave team\" that also removes the roster row entirely; leaving the team already serves the same purpose while keeping the roster row."
+    },
+    {
+      "option": "Keep OWNER as a player role and make transfer a transaction over the two player writes",
+      "reason": "It keeps the unique index and the role check on every owner test, and the owner remains derived from two rows that must agree; a single team field cannot disagree with itself."
+    },
+    {
+      "option": "Allow any joined member as the target and promote them to ADMIN in the same transfer",
+      "reason": "It adds a second write to the transfer, which is the non-atomic pair this decision removes, and lets the owner grant admin rights as a side effect of a handover."
+    }
+  ],
+  "consequences": [
+    "Transfer is atomic, and a team always has exactly one owner, always an ADMIN; it is never lost to a demotion or removal.",
+    "Admins can demote or remove each other; the owner is the final arbiter of any conflict between them.",
+    "Leaving the team is the only way to leave it, and the roster row is always kept as an unlinked player.",
+    "A role change or removal that targets the team's ownerPlayerId is refused with TARGET_IS_OWNER, so the owner stays an ADMIN until ownership moves.",
+    "The rule is expressed as the role hierarchy plus \"the team's owner is protected,\" sharing the same entity functions as the membership check.",
+    "A residual race remains: a target demoted between the read and the transfer write becomes the owner holding the MEMBER role. The write is conditional on the owner only, not on the target's role.",
+    "Existing data needs a one-time migration that sets ownerPlayerId from the OWNER player, demotes that player to ADMIN and drops the owner unique index; scripts/migrate-team-owner.js does this."
+  ],
+  "revisitTriggers": [
+    "Team settings ship and the owner needs to restrict admins from managing each other.",
+    "A real dispute arises from admins removing each other.",
+    "The residual demotion race is observed in practice, or transfer must also guard the target's role in the same write.",
+    "Ownership transfer changes to require the recipient's acceptance."
+  ]
+}

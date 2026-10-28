@@ -20,7 +20,6 @@ import {
 export enum PlayerRole {
   MEMBER = "MEMBER",
   ADMIN = "ADMIN",
-  OWNER = "OWNER",
 }
 
 export enum Position {
@@ -151,7 +150,6 @@ export function isTeamMember(player: Player): player is TeamMember {
 const ROLE_RANK = {
   [PlayerRole.MEMBER]: 1,
   [PlayerRole.ADMIN]: 2,
-  [PlayerRole.OWNER]: 3,
 } satisfies Record<PlayerRole, number>;
 
 export function hasTeamRole(member: TeamMember, required: PlayerRole): boolean {
@@ -160,10 +158,6 @@ export function hasTeamRole(member: TeamMember, required: PlayerRole): boolean {
 
 export function canManageTeam(member: TeamMember): boolean {
   return hasTeamRole(member, PlayerRole.ADMIN);
-}
-
-export function isTeamOwner(member: TeamMember): boolean {
-  return hasTeamRole(member, PlayerRole.OWNER);
 }
 
 export type ManageRefusal =
@@ -183,12 +177,12 @@ export type ManageRefusal =
 export function refuseToManagePlayer(
   actor: Player | null,
   target: Player,
+  ownerPlayerId: string | undefined,
 ): ManageRefusal | null {
   if (!actor || !isTeamMember(actor) || actor.teamId !== target.teamId)
     return AuthReason.NOT_TEAM_MEMBER;
   if (!canManageTeam(actor)) return AuthReason.INSUFFICIENT_ROLE;
-  if (isTeamMember(target) && isTeamOwner(target))
-    return PlayerReason.TARGET_IS_OWNER;
+  if (target.id === ownerPlayerId) return PlayerReason.TARGET_IS_OWNER;
   if (actor.id === target.id) return PlayerReason.TARGET_IS_SELF;
   return null;
 }

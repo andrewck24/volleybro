@@ -30,7 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
+import { usePlayer, useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
 import type { PlayerView } from "@/lib/features/team/types";
@@ -63,6 +63,7 @@ export function EditForm({
 }: EditFormProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
+  const { team } = useTeam(teamId);
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
   let content;
@@ -85,11 +86,11 @@ export function EditForm({
     const currentUserPlayer = teamPlayers?.find(
       (p) => p.userId === user?.id && p.status === PlayerStatus.JOINED,
     );
-    const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
+    const isCurrentOwner =
+      !!currentUserPlayer && currentUserPlayer.id === team?.ownerPlayerId;
     const showMembership =
       currentUserPlayer &&
-      (currentUserPlayer.role === PlayerRole.OWNER ||
-        currentUserPlayer.role === PlayerRole.ADMIN);
+      (isCurrentOwner || currentUserPlayer.role === PlayerRole.ADMIN);
 
     content = (
       <Card className="py-8">
@@ -105,6 +106,7 @@ export function EditForm({
             <MembershipSection
               player={player}
               teamId={teamId}
+              ownerPlayerId={team?.ownerPlayerId}
               isCurrentOwner={isCurrentOwner}
               isSelf={currentUserPlayer.id === player.id}
             />

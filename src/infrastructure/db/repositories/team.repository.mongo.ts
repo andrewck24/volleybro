@@ -26,6 +26,23 @@ export class TeamRepositoryImpl implements ITeamRepository {
     }
   }
 
+  async transferOwnership(
+    teamId: string,
+    fromPlayerId: string,
+    toPlayerId: string,
+  ): Promise<Team | null> {
+    try {
+      const doc = await TeamModel.findOneAndUpdate(
+        { _id: teamId, ownerPlayerId: fromPlayerId },
+        { $set: { ownerPlayerId: toPlayerId } },
+        { returnDocument: "after" },
+      ).exec();
+      return doc ? fromDocument(doc) : null;
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
   async create(
     data: Omit<Team, "id" | "createdAt" | "updatedAt">,
   ): Promise<Team> {

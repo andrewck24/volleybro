@@ -13,21 +13,28 @@ import {
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerStatus } from "@/entities/player";
-import { usePlayer } from "@/hooks/use-data";
-import { POSITION_LABELS, ROLE_LABELS } from "@/lib/constants/labels";
+import { usePlayer, useTeam } from "@/hooks/use-data";
+import {
+  OWNER_LABEL,
+  POSITION_LABELS,
+  ROLE_LABELS,
+} from "@/lib/constants/labels";
 import { FiEdit2, FiUser } from "react-icons/fi";
 
 export function PlayerInfo({ teamId, playerId }: PlayerInfoProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
+  const { team } = useTeam(teamId);
 
   const positionLabel = player?.position
     ? POSITION_LABELS[player?.position]
     : undefined;
   // Only an invitee or a member holds a role; an unlinked player shows none.
   const roleLabel =
-    player?.role && player.status !== PlayerStatus.NONE
-      ? ROLE_LABELS[player.role]
-      : undefined;
+    player && player.id === team?.ownerPlayerId
+      ? OWNER_LABEL
+      : player?.role && player.status !== PlayerStatus.NONE
+        ? ROLE_LABELS[player.role]
+        : undefined;
 
   if (isLoading) return <PlayerInfoSkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;

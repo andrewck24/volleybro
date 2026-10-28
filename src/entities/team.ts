@@ -30,6 +30,8 @@ export type Team = {
   id: string;
   name: string;
   nickname?: string;
+  // Absent only on teams written before the owner moved onto the team.
+  ownerPlayerId?: string;
   lineups: Lineup[];
   stats?: TeamStats[];
   createdAt?: Date;

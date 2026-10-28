@@ -25,7 +25,6 @@ const roster = (teamId: string) => players().findByTeamId(teamId);
 
 describe("player writes leave the roster readable", () => {
   let teamId: string;
-  let ownerId: string;
   const ownerUserId = "0".repeat(24);
 
   beforeEach(async () => {
@@ -41,9 +40,47 @@ describe("player writes leave the roster readable", () => {
       status: PlayerStatus.JOINED,
       teamId,
       userId: ownerUserId,
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     });
-    ownerId = owner.id;
+    await container
+      .get<ITeamRepository>(TYPES.TeamRepository)
+      .update(teamId, { ownerPlayerId: owner.id });
+  });
+
+  it("allows exactly one concurrent ownership transfer", async () => {
+    const targets = await Promise.all(
+      ["First", "Second"].map((name) =>
+        players().create({
+          name,
+          status: PlayerStatus.JOINED,
+          teamId,
+          userId: oid(),
+          role: PlayerRole.ADMIN,
+        }),
+      ),
+    );
+    const useCase = container.get<
+      import("@/applications/usecases/player/transfer-ownership.usecase").ITransferOwnershipUseCase
+    >(TYPES.TransferOwnershipUseCase);
+    const results = await Promise.allSettled(
+      targets.map((target) =>
+        useCase.execute({ teamId, newOwnerId: target.id, userId: ownerUserId }),
+      ),
+    );
+    const winners = results.filter((result) => result.status === "fulfilled");
+    expect(winners).toHaveLength(1);
+    const winner = winners[0];
+    if (!winner || winner.status !== "fulfilled") throw new Error("No winner");
+    const winningTarget =
+      targets[results.findIndex((result) => result.status === "fulfilled")];
+    expect(winner.value.ownerPlayerId).toBe(winningTarget?.id);
+    expect(
+      (
+        await container
+          .get<ITeamRepository>(TYPES.TeamRepository)
+          .findById(teamId)
+      )?.ownerPlayerId,
+    ).toBe(winner.value.ownerPlayerId);
   });
 
   it("creates an unlinked player without a role", async () => {
@@ -121,13 +158,6 @@ describe("player writes leave the roster readable", () => {
     expect(left).not.toHaveProperty("role");
     expect(left).not.toHaveProperty("email");
   });
-
-  it("reads a stored owner back as a joined owner", async () => {
-    expect(await players().findById(ownerId)).toMatchObject({
-      status: PlayerStatus.JOINED,
-      role: PlayerRole.OWNER,
-    });
-  });
 });
 
 /**
@@ -168,13 +198,16 @@ describe("invitations reach the account behind the address", () => {
         ITeamRepository["create"]
       >[0]);
     teamId = team.id;
-    await players().create({
+    const owner = await players().create({
       name: "Owner",
       status: PlayerStatus.JOINED,
       teamId,
       userId: ownerUserId,
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     });
+    await container
+      .get<ITeamRepository>(TYPES.TeamRepository)
+      .update(teamId, { ownerPlayerId: owner.id });
   });
 
   it("links the invitation to the registered account, keeping no email", async () => {
@@ -293,13 +326,16 @@ describe("signing up reaches the invitations waiting for that address", () => {
         ITeamRepository["create"]
       >[0]);
     teamId = team.id;
-    await players().create({
+    const owner = await players().create({
       name: "Owner",
       status: PlayerStatus.JOINED,
       teamId,
       userId: ownerUserId,
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     });
+    await container
+      .get<ITeamRepository>(TYPES.TeamRepository)
+      .update(teamId, { ownerPlayerId: owner.id });
   });
 
   it("links an invitation stored lowercased to an account created in mixed case", async () => {

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { PlayerRole } from "@/entities/player";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Toaster } from "@/components/ui/toaster";
 import { createPlayer } from "@test/support/fixtures/entities";
@@ -12,7 +13,7 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
 }));
 
-const joinedPlayer = createPlayer({ number: 7 });
+const joinedPlayer = createPlayer({ number: 7, role: PlayerRole.ADMIN });
 
 function renderSection() {
   render(

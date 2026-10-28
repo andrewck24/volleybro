@@ -24,12 +24,16 @@ describe("creating a team with its owner", () => {
     const team = await createTeam({ name: "Paired", userName: "Owner" });
 
     expect(await TeamModel.countDocuments({ _id: team.id })).toBe(1);
-    expect(
-      await PlayerModel.countDocuments({
-        teamId: team.id,
-        role: PlayerRole.OWNER,
-      }),
-    ).toBe(1);
+    const owner = await PlayerModel.findOne({
+      teamId: team.id,
+      _id: team.ownerPlayerId,
+    });
+    expect(owner!.role).toBe(PlayerRole.ADMIN);
+    expect(team.ownerPlayerId).toBe(owner!.id);
+    expect((await TeamModel.findById(team.id))!.ownerPlayerId?.toString()).toBe(
+      owner!.id,
+    );
+    expect(await PlayerModel.countDocuments({ teamId: team.id })).toBe(1);
   });
 
   it("retries the whole creation when the database reports a transient conflict", async () => {
@@ -49,12 +53,7 @@ describe("creating a team with its owner", () => {
     const team = await createTeam({ name: "Retried", userName: "Owner" });
 
     expect(await TeamModel.countDocuments({ name: "Retried" })).toBe(1);
-    expect(
-      await PlayerModel.countDocuments({
-        teamId: team.id,
-        role: PlayerRole.OWNER,
-      }),
-    ).toBe(1);
+    expect(await PlayerModel.countDocuments({ teamId: team.id })).toBe(1);
   });
 
   it("leaves no team behind when the owner cannot be written", async () => {
