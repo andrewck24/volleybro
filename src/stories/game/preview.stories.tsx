@@ -53,12 +53,12 @@ const decidedEntry: EntryView = {
 const meta = {
   title: "Design System/Game/Preview",
   component: PreviewCard,
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
   tags: ["autodocs"],
   args: { players, previousEntry, onSubmit: fn(), onExpand: fn() },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-md">
+      <div className="w-md">
         <Story />
       </div>
     ),

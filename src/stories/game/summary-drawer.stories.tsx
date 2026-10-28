@@ -60,7 +60,7 @@ const entries: IndexedEntry[] = rawEntries.map((entry, index) => ({
 const meta = {
   title: "Design System/Game/SummaryDrawer",
   component: SummaryDrawerCard,
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
   tags: ["autodocs"],
   args: {
     entries,
@@ -72,7 +72,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-md">
+      <div className="w-md">
         <Story />
       </div>
     ),

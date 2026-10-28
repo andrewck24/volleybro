@@ -10,6 +10,7 @@ Forms use React Hook Form through `Form` in `src/components/ui/form.tsx`, and `B
 - A submit button sits inside the form boundary it submits and is `type="submit"`. In a dialog that place is `DialogFooter`, with the form wrapping `DialogHeader`, `DialogBody` and `DialogFooter`. A validation failure therefore never reaches the success path: neither the browser nor RHF calls `onSubmit`, so nothing has to remember not to close.
 - A form shared by an `@modal` dialog and a `(workspace)` full page renders its own `DialogBody` and `DialogFooter` in both; on a full page they are plain padded containers.
 - An asynchronous submit button shows its progress with `loading` and `loadingText`. `loadingText` replaces the whole content, icon included, with a spinner followed by the text, so the spinner always leads.
+- A loading button without `loadingText` keeps its label and puts the spinner in its first icon's place, leading or trailing, so its width holds. A button with no icon gains a leading spinner.
 - Icon position carries meaning: an icon on the left says what a button does (save, add, confirm); an icon on the right says where it takes you (an arrow).
 - A failed request shows its error, as a toast or a root error, and does not report success; the entered values stay.
 - The team and player forms keep an unsaved draft in `sessionStorage` through `useFormDraft` (`src/hooks/use-form-draft.ts`), one per form and record, written only once the form is dirty. Reopening the form merges the draft over its defaults, and a draft that cannot be read is ignored. A successful submit or a confirmed discard clears it; otherwise it lasts as long as the browser tab's session.
@@ -18,7 +19,6 @@ Forms use React Hook Form through `Form` in `src/components/ui/form.tsx`, and `B
 ## Constraints
 
 - `Button` has no default `type`, so any `Button` inside a form boundary that does not submit must declare `type="button"`, or it submits the form. `DialogHeader`'s own controls already do.
-- A loading button whose children include an icon must pass `loadingText`, or the spinner and the icon show together. Types cannot catch this.
 - A `<form>` must never be nested inside another; the browser drops the inner one.
 
 ## Known gaps

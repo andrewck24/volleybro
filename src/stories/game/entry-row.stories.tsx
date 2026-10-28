@@ -24,7 +24,7 @@ const entry: EntryView = {
 const meta = {
   title: "Design System/Game/EntryRow",
   component: EntryRow,
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
   tags: ["autodocs"],
   args: {
     entry,
@@ -35,7 +35,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-md">
+      <div className="w-md">
         <Story />
       </div>
     ),
