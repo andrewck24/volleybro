@@ -26,9 +26,11 @@
  * Run order:
  *
  *   1. test database: dry-run, then --apply
- *   2. deploy to the environment that uses it
+ *   2. deploy to the environment that uses it, then --apply again: a team the
+ *      old app created before the deploy landed has an OWNER and no
+ *      ownerPlayerId, and the new app would see no owner for it
  *   3. production database: dry-run, then --apply
- *   4. deploy to production
+ *   4. deploy to production, then --apply again
  *
  * Idempotent: a finished database reports nothing to do. Once every environment
  * has run it, move it to docs/migrations and mark it SPENT, as
@@ -130,7 +132,12 @@ for (const { team, owner } of backfill) {
 }
 // (c) demote
 for (const { owner } of demote) {
-  await players.updateOne({ _id: owner._id }, { $set: { role: "ADMIN" } });
+  // Only while still OWNER: if the old app moved ownership after the audit, the
+  // verify step fails instead of this write masking it.
+  await players.updateOne(
+    { _id: owner._id, role: "OWNER" },
+    { $set: { role: "ADMIN" } },
+  );
 }
 // (d) index
 if (hasIndex) await players.dropIndex(OWNER_INDEX);
