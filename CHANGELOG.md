@@ -1,5 +1,45 @@
 # VolleyBro CHANGELOG
 
+## [0.19.0](https://github.com/andrewck24/volleybro/compare/v0.18.5...v0.19.0) 2026-10-28
+
+### Added
+
+#### Record
+
+- Show who recorded each entry and when, and who last edited it, in the expanded row of the match summary
+- Edit a recorded substitution from the match summary; a change that would make a later substitution invalid is blocked before it is sent
+- Record substitutions while offline; they apply on court at once and are sent when the connection returns
+
+### Changed
+
+#### Record
+
+- Label the set's serve choice as 我方先發球 / 對方先發球
+- Prefill the next set from the previous set's starting lineup instead of the lineup on court at its end
+
+#### Team
+
+- Ownership can be transferred only to an admin; the previous owner stays an admin
+
+### Fixed
+
+#### Record
+
+- A resent substitution no longer fails or substitutes twice
+- Stop a recording that conflicts with another device's from saving only part of its entries
+- Keep offline entries for their original recorder when another user signs in
+
+#### Team
+
+- An interrupted team creation no longer leaves a team without an owner
+- Prevent concurrent role changes from overwriting a new team owner
+- Concurrent ownership transfers no longer leave a team with no owner or two owners
+- Restrict email-based account lookup to team administrators
+
+#### Auth
+
+- Link pending invitations when profile creation fails during sign-up
+
 ## [0.18.5](https://github.com/andrewck24/volleybro/compare/v0.18.4...v0.18.5) 2026-10-26
 
 ### Fixed
