@@ -23,21 +23,21 @@
  * deploy straight away. Until the deploy lands, the old app sees no owner (no
  * transfer, and the owner could leave).
  *
- * Run order:
+ * SPENT. Kept as a record of what was done, not as something to run.
  *
- *   1. test database: dry-run, then --apply
- *   2. deploy to the environment that uses it, then --apply again: a team the
- *      old app created before the deploy landed has an OWNER and no
- *      ownerPlayerId, and the new app would see no owner for it
- *   3. production database: dry-run, then --apply
- *   4. deploy to production, then --apply again
+ *   - development (the `test` database), 2026-10-28 — 6 teams backfilled and
+ *     demoted, index dropped; rerun after the deploy found nothing to do
+ *   - production, 2026-10-28 — applied before release 0.19.0 promoted; rerun
+ *     after the promotion found nothing to do (7 teams)
  *
- * Idempotent: a finished database reports nothing to do. Once every environment
- * has run it, move it to docs/migrations and mark it SPENT, as
- * docs/migrations/migrate-legacy-accounts.js is.
+ * Every environment is accounted for, so this lives under docs/ rather than
+ * scripts/. It remains idempotent and would report nothing to do, but a script
+ * that is finished should not sit where the runnable ones are.
  *
- *   node scripts/migrate-team-owner.js            # show the plan
- *   node scripts/migrate-team-owner.js --apply    # write
+ * It was run, per environment, as dry-run, --apply, deploy, then --apply again:
+ *
+ *   node docs/migrations/migrate-team-owner.js            # show the plan
+ *   node docs/migrations/migrate-team-owner.js --apply    # write
  */
 import { readFileSync } from "node:fs";
 import { MongoClient } from "mongodb";
