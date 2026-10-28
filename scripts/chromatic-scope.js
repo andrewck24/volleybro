@@ -229,12 +229,15 @@ function protectedGraph(lock) {
   return { importer: rootProtectedImporter(importer), packages };
 }
 
+// The name ends at the first "@" after a scope; peer suffixes and git or
+// tarball references can carry more "@" after it.
 function packageName(locator) {
-  const key = locator.split("(")[0];
-  const at = key.lastIndexOf("@");
+  const at = locator.indexOf("@", 1);
   if (at <= 0) throw new Error(`unrecognised package locator: ${locator}`);
-  return key.slice(0, at);
+  return locator.slice(0, at);
 }
+
+const preview = (names) => names.slice(0, 4).join(", ");
 
 function packagesByName(packages) {
   const byName = new Map();
@@ -261,7 +264,7 @@ function transitiveOnlyChanges(baseGraph, headGraph) {
 }
 
 // Build tooling shapes Storybook output without showing up as bundled modules.
-const TOOLCHAIN_PACKAGES = [
+const TOOLCHAIN_PATTERNS = [
   /^react$/,
   /^react-dom$/,
   /^next$/,
@@ -448,7 +451,7 @@ function assess({ base: target, head, stats, force = false }) {
     if (unknown.length)
       return {
         skip: false,
-        reason: `visual or unclassified changes: ${unknown.slice(0, 4).join(", ")}`,
+        reason: `visual or unclassified changes: ${preview(unknown)}`,
       };
 
     if (paths.includes("package.json") || paths.includes("pnpm-lock.yaml")) {
@@ -475,27 +478,26 @@ function assess({ base: target, head, stats, force = false }) {
         const changed = transitiveOnlyChanges(baseGraph, headGraph);
         if (!changed)
           return { skip: false, reason: "protected dependency graph changed" };
-        const listed = changed.slice(0, 4).join(", ");
         if (!stats)
           return {
             skip: false,
-            needsStats: true,
-            reason: `transitive dependency changes need Storybook stats: ${listed}`,
+            isStatsRequired: true,
+            reason: `transitive dependency changes need Storybook stats: ${preview(changed)}`,
           };
         const bundled = bundledPackages(stats);
         const reached = changed.filter(
           (name) =>
             bundled.has(name) ||
-            TOOLCHAIN_PACKAGES.some((pattern) => pattern.test(name)),
+            TOOLCHAIN_PATTERNS.some((pattern) => pattern.test(name)),
         );
         if (reached.length)
           return {
             skip: false,
-            reason: `changed packages reach the Storybook build: ${reached.slice(0, 4).join(", ")}`,
+            reason: `changed packages reach the Storybook build: ${preview(reached)}`,
           };
         return {
           skip: true,
-          reason: `changed transitive packages stay out of the Storybook build: ${listed}`,
+          reason: `changed transitive packages stay out of the Storybook build: ${preview(changed)}`,
         };
       }
     }
@@ -534,7 +536,7 @@ async function main() {
   if (process.env.GITHUB_OUTPUT)
     await appendFile(
       process.env.GITHUB_OUTPUT,
-      `${line}needs_stats=${Boolean(result.needsStats)}\n`,
+      `${line}needs_stats=${Boolean(result.isStatsRequired)}\n`,
     );
   console.log(`${line.trim()} reason=${result.reason}`);
 }
