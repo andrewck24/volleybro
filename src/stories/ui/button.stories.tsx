@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 
 import { Button } from "@/components/ui/button";
-import { RiHome2Fill } from "react-icons/ri";
+import { RiArrowRightLine, RiHome2Fill } from "react-icons/ri";
 
 const children = (
   <>
@@ -85,9 +85,13 @@ export const States: Story = {
         loading
         loadingText="Deleting..."
       />
-      {/* No loadingText: children (icon + label) fall back into the loading
-          state, so a spinner sits next to the original icon. */}
+      {/* No loadingText: the label stays and the spinner takes the icon's
+          place, so the width holds. */}
       <Button {...args} loading />
+      <Button {...args} loading>
+        Next
+        <RiArrowRightLine />
+      </Button>
     </div>
   ),
 };

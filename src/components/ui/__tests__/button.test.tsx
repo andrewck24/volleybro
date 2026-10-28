@@ -27,6 +27,33 @@ describe("Button loading props", () => {
       expect(screen.getByRole("button")).toHaveTextContent("Submit");
     });
 
+    it("swaps the icon for the spinner so the width holds", () => {
+      render(
+        <Button loading>
+          <svg data-testid="icon" />
+          Submit
+        </Button>,
+      );
+      expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+      expect(screen.getAllByTestId("spinner-icon")).toHaveLength(1);
+      expect(screen.getByRole("button")).toHaveTextContent("Submit");
+    });
+
+    it("swaps a trailing icon inside a fragment in place", () => {
+      render(
+        <Button loading loadingText="Saving">
+          <>
+            Submit
+            <svg data-testid="icon" />
+          </>
+        </Button>,
+      );
+      expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+      expect(screen.getByRole("button")).toHaveTextContent(
+        /^Saving\s*spinner$/,
+      );
+    });
+
     it("merges with explicit disabled prop", () => {
       render(<Button disabled>Submit</Button>);
       expect(screen.getByRole("button")).toBeDisabled();

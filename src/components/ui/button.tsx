@@ -72,16 +72,39 @@ const Button = ({
       aria-busy={isLoading ? true : undefined}
       {...props}
     >
-      {isLoading ? (
-        <>
-          <RiLoader4Line className="animate-spin" />
-          {loadingText ?? children}
-        </>
-      ) : (
-        children
-      )}
+      {isLoading ? loadingContent(children, loadingText) : children}
     </Comp>
   );
+};
+
+const flatten = (nodes: React.ReactNode): React.ReactNode[] =>
+  React.Children.toArray(nodes).flatMap((node) =>
+    React.isValidElement<{ children?: React.ReactNode }>(node) &&
+    node.type === React.Fragment
+      ? flatten(node.props.children)
+      : [node],
+  );
+
+// The spinner takes the icon's place, so the button keeps its width.
+const loadingContent = (children: React.ReactNode, loadingText?: string) => {
+  const spinner = <RiLoader4Line key="spinner" className="animate-spin" />;
+  const parts = flatten(children);
+  if (!parts.some((part) => React.isValidElement(part)))
+    return [spinner, loadingText ?? children];
+
+  let swapped = false;
+  let texted = false;
+  return parts.map((part) => {
+    if (React.isValidElement(part)) {
+      if (swapped) return null;
+      swapped = true;
+      return spinner;
+    }
+    if (loadingText === undefined) return part;
+    if (texted) return null;
+    texted = true;
+    return loadingText;
+  });
 };
 
 export interface LinkProps
