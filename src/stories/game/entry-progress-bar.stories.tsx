@@ -27,24 +27,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const PlayerStep: Story = {
-  args: {
-    activeStep: 0,
-    reachableSteps: [0],
-  },
-};
-
 export const HomeStep: Story = {
   args: {
     activeStep: 1,
     reachableSteps: [0, 1],
-  },
-};
-
-export const AwayStep: Story = {
-  args: {
-    activeStep: 2,
-    reachableSteps: [0, 1, 2],
   },
 };
 

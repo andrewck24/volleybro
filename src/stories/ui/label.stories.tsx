@@ -12,31 +12,24 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  render: () => <Label>Label Text</Label>,
-};
-
 export const WithInput: Story = {
   render: () => (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor="input">Username</Label>
-      <Input id="input" placeholder="Enter username" className="w-75" />
-    </div>
-  ),
-};
-
-export const Disabled: Story = {
-  render: () => (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor="disabled-input" className="text-muted-foreground">
-        Disabled State
-      </Label>
-      <Input
-        id="disabled-input"
-        disabled
-        value="Cannot edit"
-        className="w-75"
-      />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="input">Username</Label>
+        <Input id="input" placeholder="Enter username" className="w-75" />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="disabled-input" className="text-muted-foreground">
+          Disabled State
+        </Label>
+        <Input
+          id="disabled-input"
+          disabled
+          value="Cannot edit"
+          className="w-75"
+        />
+      </div>
     </div>
   ),
 };

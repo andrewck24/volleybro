@@ -19,28 +19,24 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
+export const Variants: Story = {
   render: (args) => (
-    <Alert {...args}>
-      <RiInformationLine />
-      <AlertTitle>Note</AlertTitle>
-      <AlertDescription>
-        This is a default style alert message used to display general
-        information.
-      </AlertDescription>
-    </Alert>
-  ),
-};
-
-export const ErrorAlert: Story = {
-  args: { variant: "error" },
-  render: (args) => (
-    <Alert {...args}>
-      <RiAlertLine />
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>
-        This is an error alert message used to display errors or warnings.
-      </AlertDescription>
-    </Alert>
+    <div className="flex w-112.5 flex-col gap-3">
+      <Alert {...args}>
+        <RiInformationLine />
+        <AlertTitle>Note</AlertTitle>
+        <AlertDescription>
+          This is a default style alert message used to display general
+          information.
+        </AlertDescription>
+      </Alert>
+      <Alert {...args} variant="error">
+        <RiAlertLine />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          This is an error alert message used to display errors or warnings.
+        </AlertDescription>
+      </Alert>
+    </div>
   ),
 };

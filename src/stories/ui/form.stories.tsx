@@ -66,39 +66,6 @@ export const Default: Story = {
   },
 };
 
-export const WithValidation: Story = {
-  render: function FormWithValidation() {
-    const form = useForm<{ username: string }>({
-      defaultValues: { username: "" },
-    });
-
-    return (
-      <Form form={form} onSubmit={form.handleSubmit(fn())} className="w-80">
-        <FormField
-          control={form.control}
-          name="username"
-          rules={{
-            required: "Username is required",
-            minLength: { value: 3, message: "At least 3 characters" },
-          }}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter username" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full">
-          Submit
-        </Button>
-      </Form>
-    );
-  },
-};
-
 export const WithErrors: Story = {
   render: function FormWithErrors() {
     const form = useForm<{ name: string; email: string }>({

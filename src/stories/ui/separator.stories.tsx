@@ -11,32 +11,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Horizontal: Story = {
+export const Orientations: Story = {
   render: () => (
     <div className="w-75 space-y-4">
       <div>Content Above</div>
       <Separator />
-      <div>Content Below</div>
-    </div>
-  ),
-};
-
-export const Vertical: Story = {
-  render: () => (
-    <div className="flex h-25 items-center space-x-4">
-      <div>Left</div>
-      <Separator orientation="vertical" />
-      <div>Right</div>
-    </div>
-  ),
-};
-
-export const WithContent: Story = {
-  render: () => (
-    <div className="w-75 space-y-4">
-      <div>Content Above</div>
+      <div>Content Between</div>
       <Separator content="OR" />
-      <div>Content Below</div>
+      <div className="flex h-10 items-center space-x-4">
+        <div>Left</div>
+        <Separator orientation="vertical" />
+        <div>Right</div>
+      </div>
     </div>
   ),
 };

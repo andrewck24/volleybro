@@ -3,6 +3,8 @@ import { RiStarFill } from "react-icons/ri";
 
 import { Badge } from "@/components/ui/badge";
 
+const variants = ["default", "secondary", "court", "away", "outline"] as const;
+
 const meta = {
   title: "Design System/Atoms/Badge",
   component: Badge,
@@ -10,7 +12,7 @@ const meta = {
   tags: ["autodocs"],
   argTypes: {
     variant: {
-      options: ["default", "secondary", "court", "away", "outline"],
+      options: variants,
       control: { type: "select" },
     },
   },
@@ -20,17 +22,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { args: { variant: "default" } };
-export const Secondary: Story = { args: { variant: "secondary" } };
-export const Court: Story = { args: { variant: "court" } };
-export const Away: Story = { args: { variant: "away" } };
-export const Outline: Story = { args: { variant: "outline" } };
-
-export const WithIcon: Story = {
+export const Variants: Story = {
   render: (args) => (
-    <Badge {...args}>
-      <RiStarFill />
-      Favorite
-    </Badge>
+    <div className="flex flex-wrap items-center gap-2">
+      {variants.map((variant) => (
+        <Badge key={variant} {...args} variant={variant}>
+          {variant}
+        </Badge>
+      ))}
+      <Badge {...args}>
+        <RiStarFill />
+        Favorite
+      </Badge>
+    </div>
   ),
 };

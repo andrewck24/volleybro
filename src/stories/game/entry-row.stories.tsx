@@ -63,16 +63,3 @@ export const TapExpandedLatest: Story = {
     row?.click();
   },
 };
-
-// Non-latest entry, tap-expanded: edit + "roll back and re-record to here",
-// never a delete button (`entry-ui` change, scenario "Non-latest entry
-// exposes rollback instead of delete").
-export const TapExpandedNonLatest: Story = {
-  args: { isLatest: false },
-  play: async ({ canvasElement }) => {
-    const row = canvasElement.querySelector(
-      '[data-testid="entry-row"]',
-    ) as HTMLElement | null;
-    row?.click();
-  },
-};

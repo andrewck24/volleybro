@@ -11,12 +11,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
-
-export const Small: Story = {
-  args: { className: "max-w-24" },
-};
-
-export const Large: Story = {
-  args: { className: "max-w-64" },
+// One snapshot for the sizes the app uses.
+export const Sizes: Story = {
+  render: (args) => (
+    <div className="flex items-end gap-6">
+      <Logo {...args} className="max-w-24" />
+      <Logo {...args} />
+      <Logo {...args} className="max-w-64" />
+    </div>
+  ),
 };

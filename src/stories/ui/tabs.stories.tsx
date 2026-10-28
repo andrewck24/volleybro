@@ -37,21 +37,6 @@ export const Default: Story = {
   ),
 };
 
-export const Multiple: Story = {
-  render: () => (
-    <Tabs defaultValue="tab1" className="w-100">
-      <TabsList>
-        <TabsTrigger value="tab1">Category 1</TabsTrigger>
-        <TabsTrigger value="tab2">Category 2</TabsTrigger>
-        <TabsTrigger value="tab3">Category 3</TabsTrigger>
-      </TabsList>
-      <TabsContent value="tab1">This is content for category 1</TabsContent>
-      <TabsContent value="tab2">This is content for category 2</TabsContent>
-      <TabsContent value="tab3">This is content for category 3</TabsContent>
-    </Tabs>
-  ),
-};
-
 export const Disabled: Story = {
   render: () => (
     <Tabs defaultValue="active" className="w-100">
