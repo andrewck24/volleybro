@@ -36,7 +36,12 @@ async function classify(cwd, args) {
     encoding: "utf8",
     env: { ...process.env, GITHUB_OUTPUT: outputFile },
   });
-  return { stdout, output: await readFile(outputFile, "utf8") };
+  const written = await readFile(outputFile, "utf8");
+  return {
+    stdout,
+    output: written.replace(/needs_stats=\w+\n/, ""),
+    needsStats: /needs_stats=true\n/.test(written),
+  };
 }
 
 function compareArgs(base, head) {
@@ -212,19 +217,6 @@ test("skips a husky specifier-only change against the repository's full current 
   const result = await classify(cwd, compareArgs(base, head));
   assert.match(result.stdout, /skip=true reason=/);
   assert.equal(result.output, "skip=true\n");
-});
-
-test("runs when a shared transitive runtime dependency changes", async (t) => {
-  const { cwd, base, head } = await lockPair(
-    t,
-    lockfile(),
-    lockfile({ color: "1.1.0" }),
-    manifest(),
-    manifest(),
-  );
-  const result = await classify(cwd, compareArgs(base, head));
-  assert.match(result.stdout, /skip=false reason=.*dependency graph changed/);
-  assert.equal(result.output, "skip=false\n");
 });
 
 test("runs when native first-document package manager metadata changes", async (t) => {
@@ -463,36 +455,41 @@ test("runs for lockfile changes only the graph check can see", async (t) => {
     "    devDependencies:\n",
     "    packageManagerDependencies:\n      pnpm:\n        specifier: 1.0.0\n        version: 1.0.0\n    devDependencies:\n",
   );
-  for (const [name, firstLock, secondLock, reason] of [
+  for (const [name, firstLock, secondLock, reason, needsStats] of [
     [
       "resolution settings",
       lockfile(),
       lockfile().replace("autoInstallPeers: true", "autoInstallPeers: false"),
       /lockfile environment changed/,
+      false,
     ],
     [
       "dev tool also a runtime dependency",
       devEslintAlsoRuntime("^9.0.0"),
       devEslintAlsoRuntime("^9.0.1"),
       /dependency graph changed/,
+      false,
     ],
     [
       "transitive optional dependency",
       withOptional("1.0.0"),
       withOptional("1.1.0"),
-      /dependency graph changed/,
+      /need Storybook stats: opt-child, opt-grandchild/,
+      true,
     ],
     [
       "link: reference",
       linked("9.0.0"),
       linked("9.1.0"),
       /unsupported package reference/,
+      false,
     ],
     [
       "importer documents disagree",
       lockfile(),
       conflictingPin,
       /importer documents differ/,
+      false,
     ],
   ]) {
     const pair = await lockPair(
@@ -505,7 +502,212 @@ test("runs for lockfile changes only the graph check can see", async (t) => {
     const result = await classify(pair.cwd, compareArgs(pair.base, pair.head));
     assert.match(result.stdout, reason, name);
     assert.equal(result.output, "skip=false\n", name);
+    assert.equal(result.needsStats, needsStats, name);
   }
+});
+
+// A transitive package renamed so the toolchain patterns can be probed.
+const transitiveAs = (name, color) =>
+  lockfile({ color })
+    .replace(`  color-lib@${color}:`, `  "${name}@${color}":`)
+    .replaceAll("color-lib", name);
+
+const statsWith = (modules) => JSON.stringify({ modules });
+const bundledModule = (name) =>
+  `./node_modules/.pnpm/${name.replace("/", "+")}@1.1.0/node_modules/${name}/index.js`;
+
+async function transitivePair(t, firstLock, secondLock, stats) {
+  const pair = await lockPair(t, firstLock, secondLock, manifest(), manifest());
+  if (stats === undefined) return { pair, args: [] };
+  const file = path.join(pair.cwd, "preview-stats.json");
+  await writeFile(file, stats);
+  return { pair, args: ["--stats", file] };
+}
+
+test("asks for Storybook stats only when transitive packages alone change version", async (t) => {
+  const withExtra = lockfile()
+    .replace(
+      '      "color-lib": "1.0.0"\n',
+      '      "color-lib": "1.0.0"\n      "extra-lib": "1.0.0"\n',
+    )
+    .replace(
+      "packages:\n  app-lib@1.0.0:",
+      "packages:\n  extra-lib@1.0.0:\n    resolution: {integrity: sha512-extra}\n  app-lib@1.0.0:",
+    )
+    .replace(
+      'snapshots:\n  "app-lib',
+      `snapshots:\n${snapshot("extra-lib", "1.0.0")}  "app-lib`,
+    );
+  const runtimeEslint = (version) =>
+    lockfile({ eslint: version }).replace(
+      "    devDependencies:\n      eslint:\n        specifier: ^9.0.0",
+      `      eslint:\n        specifier: ^9.0.0\n        version: ${version}\n    devDependencies:\n      eslint:\n        specifier: ^9.0.0`,
+    );
+  for (const [name, secondLock, reason, needsStats, firstLock] of [
+    [
+      "transitive version",
+      lockfile({ color: "1.1.0" }),
+      /need Storybook stats: app-lib, color-lib/,
+      true,
+    ],
+    [
+      "added transitive package",
+      withExtra,
+      /protected dependency graph changed/,
+      false,
+    ],
+    [
+      "direct dependency version",
+      runtimeEslint("9.1.0"),
+      /protected dependency graph changed/,
+      false,
+      runtimeEslint("9.0.0"),
+    ],
+    [
+      "renamed transitive package",
+      transitiveAs("hue-lib", "1.0.0"),
+      /protected dependency graph changed/,
+      false,
+    ],
+  ]) {
+    const { pair } = await transitivePair(
+      t,
+      firstLock ?? lockfile(),
+      secondLock,
+    );
+    const result = await classify(pair.cwd, compareArgs(pair.base, pair.head));
+    assert.match(result.stdout, reason, name);
+    assert.equal(result.output, "skip=false\n", name);
+    assert.equal(result.needsStats, needsStats, name);
+  }
+});
+
+test("skips transitive changes only when they stay out of the Storybook build", async (t) => {
+  const unrelated = { name: bundledModule("other-lib") };
+  for (const [name, stats, skip, reason] of [
+    [
+      "outside the build",
+      statsWith([unrelated]),
+      true,
+      /stay out of the Storybook build: app-lib, color-lib/,
+    ],
+    [
+      "top-level module",
+      statsWith([{ name: bundledModule("color-lib") }]),
+      false,
+      /reach the Storybook build: color-lib/,
+    ],
+    [
+      "concatenated module",
+      statsWith([
+        {
+          name: "./src/a.ts + 1 modules",
+          modules: [{ name: bundledModule("color-lib") }],
+        },
+      ]),
+      false,
+      /reach the Storybook build: color-lib/,
+    ],
+    [
+      "loader identifier",
+      statsWith([
+        {
+          name: "./src/a.css",
+          identifier: `${bundledModule("color-lib")}!./src/a.css`,
+        },
+      ]),
+      false,
+      /reach the Storybook build: color-lib/,
+    ],
+    ["missing stats", undefined, false, /unable to classify safely/],
+    ["corrupt stats", "{not json", false, /unable to classify safely/],
+    [
+      "modules not a list",
+      JSON.stringify({ modules: {} }),
+      false,
+      /unable to classify safely: stats modules is not a list/,
+    ],
+    [
+      "modules nest too deep",
+      statsWith([
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].reduce(
+          (inner) => ({ name: "./a.ts", modules: [inner] }),
+          unrelated,
+        ),
+      ]),
+      false,
+      /unable to classify safely: stats modules nest too deep/,
+    ],
+  ]) {
+    const { pair, args } = await transitivePair(
+      t,
+      lockfile(),
+      lockfile({ color: "1.1.0" }),
+      stats ?? "",
+    );
+    const finalArgs =
+      stats === undefined
+        ? ["--stats", path.join(pair.cwd, "absent.json")]
+        : args;
+    const result = await classify(pair.cwd, [
+      ...compareArgs(pair.base, pair.head),
+      ...finalArgs,
+    ]);
+    assert.match(result.stdout, reason, name);
+    assert.equal(result.output, `skip=${skip}\n`, name);
+    assert.equal(result.needsStats, false, name);
+  }
+});
+
+test("runs when a changed transitive package is build tooling", async (t) => {
+  const stats = statsWith([{ name: bundledModule("other-lib") }]);
+  for (const [name, skip] of [
+    ["postcss-value-parser", false],
+    ["@swc/helpers", false],
+    ["caniuse-lite", false],
+    ["postcssify", true],
+    ["@swcx/helpers", true],
+  ]) {
+    const { pair, args } = await transitivePair(
+      t,
+      transitiveAs(name, "1.0.0"),
+      transitiveAs(name, "1.1.0"),
+      stats,
+    );
+    const result = await classify(pair.cwd, [
+      ...compareArgs(pair.base, pair.head),
+      ...args,
+    ]);
+    assert.equal(result.output, `skip=${skip}\n`, `${name}: ${result.stdout}`);
+  }
+});
+
+test("names a package by its locator without the peer suffix", async (t) => {
+  const withPeer = (peer) =>
+    lockfile()
+      .replace(
+        '      "color-lib": "1.0.0"\n',
+        `      "color-lib": "1.0.0(peer-lib@${peer})"\n`,
+      )
+      .replace(
+        '  "color-lib@1.0.0":',
+        `  "color-lib@1.0.0(peer-lib@${peer})":`,
+      );
+  const { pair, args } = await transitivePair(
+    t,
+    withPeer("1.0.0"),
+    withPeer("2.0.0"),
+    statsWith([{ name: bundledModule("other-lib") }]),
+  );
+  const result = await classify(pair.cwd, [
+    ...compareArgs(pair.base, pair.head),
+    ...args,
+  ]);
+  assert.match(
+    result.stdout,
+    /stay out of the Storybook build: app-lib, color-lib$/m,
+  );
+  assert.equal(result.output, "skip=true\n");
 });
 
 test("runs for an unknown argument", async (t) => {

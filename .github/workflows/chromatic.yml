@@ -53,6 +53,23 @@ jobs:
             node scripts/chromatic-scope.js --base "$BASE_SHA" --head "$HEAD_SHA"
           fi
 
+      # Only transitive-only dependency changes reach here. No secrets: this
+      # step runs the PR's own Storybook config.
+      - name: Build Storybook for dependency scope
+        id: storybook
+        if: steps.scope.outputs.needs_stats == 'true'
+        run: pnpm build-storybook --stats-json --output-dir storybook-static
+
+      - name: Assess Storybook impact with build stats
+        id: stats_scope
+        if: steps.storybook.outcome == 'success'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/chromatic-scope.js --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --stats storybook-static/preview-stats.json
+
       - uses: chromaui/action@5bcadb5104b09e360e210c54f95a7437c2d82bab # v18.13.3
         env:
           CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -61,5 +78,6 @@ jobs:
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          skip: ${{ steps.scope.outputs.skip == 'true' }}
+          skip: ${{ (steps.stats_scope.outputs.skip || steps.scope.outputs.skip) == 'true' }}
+          storybookBuildDir: ${{ steps.storybook.outcome == 'success' && 'storybook-static' || '' }}
           onlyChanged: true
