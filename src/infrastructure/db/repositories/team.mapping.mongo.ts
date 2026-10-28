@@ -17,8 +17,9 @@ type RawLineup = {
 };
 export type RawTeam = {
   _id: Types.ObjectId;
+  ownerPlayerId?: Types.ObjectId;
   lineups?: RawLineup[];
-} & Omit<Team, "id" | "lineups">;
+} & Omit<Team, "id" | "lineups" | "ownerPlayerId">;
 
 function mapLineupPlayer(p: RawLineupPlayer): LineupPlayer {
   return {
@@ -59,6 +60,7 @@ export function toTeam(obj: RawTeam): Team {
   return {
     ...obj,
     id: obj._id.toString(),
+    ownerPlayerId: obj.ownerPlayerId?.toString(),
     lineups:
       obj.lineups?.map((lineup) => ({
         // `lineupSchema` is the one sub-schema without `{ _id: false }`.

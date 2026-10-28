@@ -102,6 +102,7 @@ export const lineupSchema = new Schema<LineupDocument>({
 export interface TeamDocument extends Document {
   name: string;
   nickname?: string;
+  ownerPlayerId?: Types.ObjectId;
   lineups: LineupDocument[];
   stats?: object;
 }
@@ -110,6 +111,7 @@ const teamSchema = new Schema<TeamDocument>(
   {
     name: { type: String, required: true },
     nickname: { type: String },
+    ownerPlayerId: { type: Schema.Types.ObjectId, ref: "Player" },
     lineups: [lineupSchema],
     stats: { type: Object },
   },

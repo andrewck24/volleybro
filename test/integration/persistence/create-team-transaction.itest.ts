@@ -24,6 +24,14 @@ describe("creating a team with its owner", () => {
     const team = await createTeam({ name: "Paired", userName: "Owner" });
 
     expect(await TeamModel.countDocuments({ _id: team.id })).toBe(1);
+    const owner = await PlayerModel.findOne({
+      teamId: team.id,
+      role: PlayerRole.OWNER,
+    });
+    expect(team.ownerPlayerId).toBe(owner!.id);
+    expect((await TeamModel.findById(team.id))!.ownerPlayerId?.toString()).toBe(
+      owner!.id,
+    );
     expect(
       await PlayerModel.countDocuments({
         teamId: team.id,

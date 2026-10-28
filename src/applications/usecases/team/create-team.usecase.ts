@@ -54,7 +54,7 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
         }),
       });
 
-      await this.playerRepository.create({
+      const owner = await this.playerRepository.create({
         name: userName,
         status: PlayerStatus.JOINED,
         number: 1,
@@ -63,7 +63,9 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
         userId,
       });
 
-      return team;
+      return this.teamRepository.update(team.id, {
+        ownerPlayerId: owner.id,
+      });
     });
   }
 }

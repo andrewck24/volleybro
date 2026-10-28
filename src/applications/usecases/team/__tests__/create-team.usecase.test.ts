@@ -36,12 +36,19 @@ describe("CreateTeamUseCase", () => {
   });
 
   it("creates the team with the caller as its joined owner", async () => {
+    const owned = { ...mockTeam, ownerPlayerId: "player-9" };
     mockTeamRepository.create.mockResolvedValue(mockTeam);
-    mockPlayerRepository.create.mockResolvedValue(createPlayer());
+    mockPlayerRepository.create.mockResolvedValue(
+      createPlayer({ id: "player-9" }),
+    );
+    mockTeamRepository.update.mockResolvedValue(owned);
 
     const result = await useCase.execute(input);
 
-    expect(result).toBe(mockTeam);
+    expect(result).toBe(owned);
+    expect(mockTeamRepository.update).toHaveBeenCalledWith(mockTeam.id, {
+      ownerPlayerId: "player-9",
+    });
     expect(mockPlayerRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: mockTeam.id,
