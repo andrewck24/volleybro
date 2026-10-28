@@ -101,6 +101,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm format:check
+      - run: node scripts/design-document.js --check
       - run: pnpm test:workflow
       - run: pnpm check:workflow
       - run: pnpm typecheck:strict
@@ -207,6 +208,10 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
+
+  # The app-build lane of scripts/verify.js (pnpm build, then
+  # scripts/assert-sw.js) has no job here: it runs as Vercel's build command,
+  # whose check a pull request must also pass.
 
   # The branch rulesets require a check named exactly "Verify". Renaming the
   # jobs without this would leave that context permanently unreported and
