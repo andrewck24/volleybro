@@ -84,11 +84,6 @@ describe("TransferOwnershipUseCase", () => {
       PlayerReason.TRANSFER_TARGET_NOT_ADMIN,
       ValidationError,
     ],
-    [
-      { ...target, role: PlayerRole.OWNER },
-      PlayerReason.TRANSFER_TARGET_NOT_ADMIN,
-      ValidationError,
-    ],
   ])("refuses an invalid target: %s", async (candidate, reason, errorType) => {
     players.findById.mockResolvedValue(candidate);
     const attempt = useCase.execute(input);

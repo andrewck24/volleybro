@@ -34,7 +34,7 @@ describe("UpdateRoleUseCase", () => {
     owner: createPlayer({
       id: "target",
       userId: "user-target",
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     }),
     admin: createPlayer({
       id: "target",
@@ -133,7 +133,7 @@ describe("UpdateRoleUseCase", () => {
 
   it("lets the owner change an admin", async () => {
     mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
-      actor(PlayerRole.OWNER),
+      actor(PlayerRole.ADMIN),
     );
     mockPlayerRepository.findById.mockResolvedValue(targets.admin);
 
@@ -144,7 +144,7 @@ describe("UpdateRoleUseCase", () => {
     let stored = targets.admin;
     mockPlayerRepository.findById.mockImplementation(async () => {
       const read = stored;
-      stored = { ...stored, role: PlayerRole.OWNER };
+      stored = { ...stored, role: PlayerRole.MEMBER };
       return read;
     });
     mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
@@ -167,7 +167,7 @@ describe("UpdateRoleUseCase", () => {
     await expect(attempt).rejects.toMatchObject({
       reason: PlayerReason.TARGET_ROLE_CHANGED,
     });
-    expect(stored.role).toBe(PlayerRole.OWNER);
+    expect(stored.role).toBe(PlayerRole.MEMBER);
   });
 
   it("refuses a caller who is a member without a role to grant", async () => {

@@ -34,7 +34,7 @@ describe("RemovePlayerUseCase", () => {
     owner: createPlayer({
       id: "target",
       userId: "user-target",
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     }),
     admin: createPlayer({
       id: "target",
@@ -123,7 +123,7 @@ describe("RemovePlayerUseCase", () => {
 
   it("lets the owner delete an admin", async () => {
     mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
-      actor(PlayerRole.OWNER),
+      actor(PlayerRole.ADMIN),
     );
     mockPlayerRepository.findById.mockResolvedValue(targets.admin);
 

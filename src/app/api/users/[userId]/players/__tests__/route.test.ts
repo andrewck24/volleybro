@@ -101,7 +101,7 @@ describe("Users Players API Route", () => {
           name: "User",
           teamId: "team-1",
           userId: "user-1",
-          role: PlayerRole.OWNER,
+          role: PlayerRole.ADMIN,
         }),
         createPlayer({
           id: "player-2",
@@ -119,8 +119,7 @@ describe("Users Players API Route", () => {
         }),
       ];
 
-      expect(players.filter((p) => p.role === PlayerRole.OWNER).length).toBe(1);
-      expect(players.filter((p) => p.role === PlayerRole.ADMIN).length).toBe(1);
+      expect(players.filter((p) => p.role === PlayerRole.ADMIN).length).toBe(2);
       expect(players.filter((p) => p.role === PlayerRole.MEMBER).length).toBe(
         1,
       );

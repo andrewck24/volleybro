@@ -26,7 +26,7 @@ export interface PlayerDocument extends Document {
   teamId?: Types.ObjectId;
   userId?: Types.ObjectId;
   email?: string;
-  role?: "MEMBER" | "ADMIN" | "OWNER";
+  role?: "MEMBER" | "ADMIN";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,7 +71,7 @@ const PlayerSchema = new Schema<PlayerDocument>(
     },
     role: {
       type: String,
-      enum: ["MEMBER", "ADMIN", "OWNER"],
+      enum: ["MEMBER", "ADMIN"],
     },
   },
   {
@@ -97,17 +97,6 @@ PlayerSchema.index(
 PlayerSchema.index(
   { teamId: 1, userId: 1 },
   { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
-);
-
-// At most one OWNER per team. Named explicitly: the generated name would
-// collide with the plain `teamId_1` index above.
-PlayerSchema.index(
-  { teamId: 1 },
-  {
-    name: "teamId_1_owner_unique",
-    unique: true,
-    partialFilterExpression: { role: "OWNER" },
-  },
 );
 
 // Composite index for querying members by role within a team

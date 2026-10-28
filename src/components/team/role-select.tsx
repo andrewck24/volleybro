@@ -39,7 +39,6 @@ export function RoleSelect({
         <SelectItem value={PlayerRole.ADMIN}>
           {ROLE_LABELS[PlayerRole.ADMIN]}
         </SelectItem>
-        {/* OWNER 角色通常由系統管理，不在邀請時選擇 */}
       </SelectContent>
     </Select>
   );

@@ -20,7 +20,6 @@ import {
 export enum PlayerRole {
   MEMBER = "MEMBER",
   ADMIN = "ADMIN",
-  OWNER = "OWNER",
 }
 
 export enum Position {
@@ -151,7 +150,6 @@ export function isTeamMember(player: Player): player is TeamMember {
 const ROLE_RANK = {
   [PlayerRole.MEMBER]: 1,
   [PlayerRole.ADMIN]: 2,
-  [PlayerRole.OWNER]: 3,
 } satisfies Record<PlayerRole, number>;
 
 export function hasTeamRole(member: TeamMember, required: PlayerRole): boolean {
@@ -160,10 +158,6 @@ export function hasTeamRole(member: TeamMember, required: PlayerRole): boolean {
 
 export function canManageTeam(member: TeamMember): boolean {
   return hasTeamRole(member, PlayerRole.ADMIN);
-}
-
-export function isTeamOwner(member: TeamMember): boolean {
-  return hasTeamRole(member, PlayerRole.OWNER);
 }
 
 export type ManageRefusal =

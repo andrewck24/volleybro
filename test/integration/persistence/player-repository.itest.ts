@@ -53,28 +53,6 @@ describe("player reads and writes", () => {
     });
   });
 
-  it("refuses a second OWNER in a team, and lets another team have its own", async () => {
-    await PlayerModel.init();
-    const team = oid();
-    const owner = (name: string, teamId: string) =>
-      players().create({
-        name,
-        status: PlayerStatus.JOINED,
-        teamId,
-        userId: oid(),
-        role: PlayerRole.OWNER,
-      });
-    await owner("First", team);
-
-    const rejection = owner("Second", team);
-
-    await expect(rejection).rejects.toBeInstanceOf(ConflictError);
-    await expect(rejection).rejects.toMatchObject({
-      reason: CommonReason.DUPLICATE_RESOURCE,
-    });
-    await expect(owner("Elsewhere", oid())).resolves.toBeDefined();
-  });
-
   it("changes a role only while the player still holds the expected one", async () => {
     const admin = await players().create({
       name: "Admin",
@@ -87,8 +65,8 @@ describe("player reads and writes", () => {
     expect(
       await players().updateRoleIf(
         admin.id,
-        PlayerRole.OWNER,
         PlayerRole.MEMBER,
+        PlayerRole.ADMIN,
       ),
     ).toBeNull();
     expect(await players().findById(admin.id)).toMatchObject({
@@ -106,7 +84,7 @@ describe("player reads and writes", () => {
 
   it("changes no role for a player that does not exist", async () => {
     expect(
-      await players().updateRoleIf(oid(), PlayerRole.ADMIN, PlayerRole.OWNER),
+      await players().updateRoleIf(oid(), PlayerRole.ADMIN, PlayerRole.MEMBER),
     ).toBeNull();
   });
 });

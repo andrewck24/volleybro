@@ -44,12 +44,12 @@ describe("Player Validation Schemas", () => {
       ).toThrow();
     });
 
-    it("should reject OWNER, which only a transfer can grant", () => {
+    it("should reject OWNER, which is no longer a player role", () => {
       expect(() =>
         CreatePlayerSchema.parse({
           name: "Member",
           email: "member@example.com",
-          role: PlayerRole.OWNER,
+          role: "OWNER",
         }),
       ).toThrow();
     });

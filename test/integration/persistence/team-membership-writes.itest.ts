@@ -41,7 +41,7 @@ describe("player writes leave the roster readable", () => {
       status: PlayerStatus.JOINED,
       teamId,
       userId: ownerUserId,
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     });
     ownerId = owner.id;
     await container
@@ -161,10 +161,10 @@ describe("player writes leave the roster readable", () => {
     expect(left).not.toHaveProperty("email");
   });
 
-  it("reads a stored owner back as a joined owner", async () => {
+  it("reads a stored owner back as a joined admin", async () => {
     expect(await players().findById(ownerId)).toMatchObject({
       status: PlayerStatus.JOINED,
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     });
   });
 });
@@ -212,7 +212,7 @@ describe("invitations reach the account behind the address", () => {
       status: PlayerStatus.JOINED,
       teamId,
       userId: ownerUserId,
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     });
     await container
       .get<ITeamRepository>(TYPES.TeamRepository)
@@ -340,7 +340,7 @@ describe("signing up reaches the invitations waiting for that address", () => {
       status: PlayerStatus.JOINED,
       teamId,
       userId: ownerUserId,
-      role: PlayerRole.OWNER,
+      role: PlayerRole.ADMIN,
     });
     await container
       .get<ITeamRepository>(TYPES.TeamRepository)

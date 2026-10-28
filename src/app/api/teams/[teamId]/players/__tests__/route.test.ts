@@ -75,12 +75,12 @@ describe("POST /api/teams/[teamId]/players", () => {
     consoleSpy.mockRestore();
   });
 
-  it("returns 400 for OWNER, which only a transfer can grant", async () => {
+  it("returns 400 for OWNER, which is no longer a player role", async () => {
     const consoleSpy = silenceConsoleError();
     const req = routeRequest(
       `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
       "POST",
-      { name: "陳大文", email: "chen@example.com", role: PlayerRole.OWNER },
+      { name: "陳大文", email: "chen@example.com", role: "OWNER" },
     );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 

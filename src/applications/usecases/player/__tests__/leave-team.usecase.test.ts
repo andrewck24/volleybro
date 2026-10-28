@@ -38,7 +38,7 @@ describe("LeaveTeamUseCase", () => {
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",
-        role: PlayerRole.OWNER,
+        role: PlayerRole.ADMIN,
       });
 
       mockPlayerRepository.findById.mockResolvedValue(player);

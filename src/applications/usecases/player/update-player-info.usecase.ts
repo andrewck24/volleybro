@@ -43,7 +43,7 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
       );
     }
 
-    // 2. 驗證權限 - 必須是該隊伍的 ADMIN 或 OWNER
+    // 2. 驗證權限 - 必須是該隊伍的 ADMIN
     await this.authService.verifyIsTeamAdmin(player.teamId!, userId);
 
     // 3. 準備更新資料（只允許更新 name, number, position）

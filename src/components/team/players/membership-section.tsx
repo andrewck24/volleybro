@@ -457,9 +457,7 @@ function JoinedSection({
   toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [role, setRole] = useState<PlayerRole>(
-    player.role === PlayerRole.OWNER
-      ? PlayerRole.ADMIN
-      : player.role || PlayerRole.MEMBER,
+    player.role || PlayerRole.MEMBER,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -490,7 +488,7 @@ function JoinedSection({
       <div className="space-y-3">
         <h3 className="text-sm font-medium">隊籍</h3>
         <div className="rounded-md bg-muted/50 p-3 text-sm">
-          <p className="font-medium">{ROLE_LABELS[PlayerRole.OWNER]}</p>
+          <p className="font-medium">擁有者</p>
         </div>
       </div>
     );

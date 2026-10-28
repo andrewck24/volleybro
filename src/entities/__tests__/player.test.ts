@@ -2,7 +2,6 @@ import { AuthReason, PlayerReason, ValidationError } from "@/entities/errors";
 import {
   canManageTeam,
   hasTeamRole,
-  isTeamOwner,
   isTeamMember,
   type ManageRefusal,
   narrowPlayer,
@@ -63,7 +62,7 @@ describe("Player Entity", () => {
         fields({
           status: PlayerStatus.JOINED,
           userId: "user-1",
-          role: PlayerRole.OWNER,
+          role: PlayerRole.ADMIN,
         }),
       );
 
@@ -165,7 +164,7 @@ describe("Player Entity", () => {
       expect(isTeamMember(member(PlayerRole.MEMBER))).toBe(true);
     });
 
-    it.each([PlayerRole.MEMBER, PlayerRole.ADMIN, PlayerRole.OWNER])(
+    it.each([PlayerRole.MEMBER, PlayerRole.ADMIN])(
       "rejects an invitee offered %s",
       (role) => {
         const invitee = narrowPlayer(
@@ -187,13 +186,8 @@ describe("Player Entity", () => {
 
   describe("hasTeamRole", () => {
     const table: [PlayerRole, PlayerRole, boolean][] = [
-      [PlayerRole.OWNER, PlayerRole.OWNER, true],
-      [PlayerRole.OWNER, PlayerRole.ADMIN, true],
-      [PlayerRole.OWNER, PlayerRole.MEMBER, true],
-      [PlayerRole.ADMIN, PlayerRole.OWNER, false],
       [PlayerRole.ADMIN, PlayerRole.ADMIN, true],
       [PlayerRole.ADMIN, PlayerRole.MEMBER, true],
-      [PlayerRole.MEMBER, PlayerRole.OWNER, false],
       [PlayerRole.MEMBER, PlayerRole.ADMIN, false],
       [PlayerRole.MEMBER, PlayerRole.MEMBER, true],
     ];
@@ -205,21 +199,10 @@ describe("Player Entity", () => {
 
   describe("canManageTeam", () => {
     it.each([
-      [PlayerRole.OWNER, true],
       [PlayerRole.ADMIN, true],
       [PlayerRole.MEMBER, false],
     ] as const)("%s can manage: %s", (role, expected) => {
       expect(canManageTeam(member(role))).toBe(expected);
-    });
-  });
-
-  describe("isTeamOwner", () => {
-    it.each([
-      [PlayerRole.OWNER, true],
-      [PlayerRole.ADMIN, false],
-      [PlayerRole.MEMBER, false],
-    ] as const)("%s is owner: %s", (role, expected) => {
-      expect(isTeamOwner(member(role))).toBe(expected);
     });
   });
 
@@ -237,7 +220,7 @@ describe("Player Entity", () => {
 
     const targets = {
       "the owner": memberAs(PlayerRole.ADMIN, "target"),
-      "an admin": memberAs(PlayerRole.OWNER, "target"),
+      "an admin": memberAs(PlayerRole.ADMIN, "target"),
       "a member": memberAs(PlayerRole.MEMBER, "target"),
       "an invitee": narrowPlayer(
         fields({
@@ -253,11 +236,6 @@ describe("Player Entity", () => {
     type TargetKind = keyof typeof targets;
 
     const table: [PlayerRole, TargetKind, ManageRefusal | null][] = [
-      [PlayerRole.OWNER, "the owner", PlayerReason.TARGET_IS_OWNER],
-      [PlayerRole.OWNER, "an admin", null],
-      [PlayerRole.OWNER, "a member", null],
-      [PlayerRole.OWNER, "an invitee", null],
-      [PlayerRole.OWNER, "an unlinked player", null],
       [PlayerRole.ADMIN, "the owner", PlayerReason.TARGET_IS_OWNER],
       [PlayerRole.ADMIN, "an admin", null],
       [PlayerRole.ADMIN, "a member", null],
@@ -281,20 +259,17 @@ describe("Player Entity", () => {
     });
 
     it.each([
-      [PlayerRole.OWNER, PlayerReason.TARGET_IS_OWNER],
-      [PlayerRole.ADMIN, PlayerReason.TARGET_IS_SELF],
-      [PlayerRole.MEMBER, AuthReason.INSUFFICIENT_ROLE],
-    ] as const)("%s targeting their own player: %s", (role, expected) => {
-      const self = memberAs(role, "actor");
+      [PlayerRole.ADMIN, "actor", PlayerReason.TARGET_IS_OWNER],
+      [PlayerRole.ADMIN, "owner", PlayerReason.TARGET_IS_SELF],
+      [PlayerRole.MEMBER, "owner", AuthReason.INSUFFICIENT_ROLE],
+    ] as const)(
+      "%s targeting their own player when the owner is %s: %s",
+      (role, ownerPlayerId, expected) => {
+        const self = memberAs(role, "actor");
 
-      expect(
-        refuseToManagePlayer(
-          self,
-          self,
-          role === PlayerRole.OWNER ? "actor" : "owner",
-        ),
-      ).toBe(expected);
-    });
+        expect(refuseToManagePlayer(self, self, ownerPlayerId)).toBe(expected);
+      },
+    );
 
     it("refuses an invitee as the caller", () => {
       const invitee = narrowPlayer(
@@ -302,7 +277,7 @@ describe("Player Entity", () => {
           id: "actor",
           status: PlayerStatus.INVITED,
           userId: "user-actor",
-          role: PlayerRole.OWNER,
+          role: PlayerRole.ADMIN,
         }),
       );
 
@@ -327,10 +302,10 @@ describe("Player Entity", () => {
       );
     });
 
-    it("refuses an owner of another team", () => {
+    it("refuses an admin of another team", () => {
       expect(
         refuseToManagePlayer(
-          memberAs(PlayerRole.OWNER, "actor", "team-2"),
+          memberAs(PlayerRole.ADMIN, "actor", "team-2"),
           targets["a member"],
           "owner",
         ),

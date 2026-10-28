@@ -58,7 +58,7 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
         name: userName,
         status: PlayerStatus.JOINED,
         number: 1,
-        role: PlayerRole.OWNER,
+        role: PlayerRole.ADMIN,
         teamId: team.id,
         userId,
       });

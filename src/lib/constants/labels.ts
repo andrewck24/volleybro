@@ -9,7 +9,6 @@
 export const ROLE_LABELS: Record<string, string> = {
   MEMBER: "一般成員",
   ADMIN: "管理員",
-  OWNER: "擁有者",
 };
 
 // Position labels for volleyball players

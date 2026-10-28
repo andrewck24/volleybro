@@ -54,7 +54,7 @@ describe("CreateTeamUseCase", () => {
         teamId: mockTeam.id,
         userId: "user-1",
         status: PlayerStatus.JOINED,
-        role: PlayerRole.OWNER,
+        role: PlayerRole.ADMIN,
       }),
     );
   });
