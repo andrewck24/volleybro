@@ -6,4 +6,4 @@
 
 #### UI
 
-- A button with an icon shows its loading spinner in the icon's place, so it keeps its width while it works
+- A loading button without loading text keeps its label and shows the spinner in its icon's place, so its width holds

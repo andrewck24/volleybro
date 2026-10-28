@@ -85,26 +85,17 @@ const flatten = (nodes: React.ReactNode): React.ReactNode[] =>
       : [node],
   );
 
-// The spinner takes the icon's place, so the button keeps its width.
+// Without loadingText the label stays, so the spinner takes the first icon's
+// place and the width holds. loadingText replaces everything, spinner first.
 const loadingContent = (children: React.ReactNode, loadingText?: string) => {
   const spinner = <RiLoader4Line key="spinner" className="animate-spin" />;
   const parts = flatten(children);
-  if (!parts.some((part) => React.isValidElement(part)))
+  const iconAt = parts.findIndex((part) => React.isValidElement(part));
+  if (loadingText !== undefined || iconAt === -1)
     return [spinner, loadingText ?? children];
-
-  let swapped = false;
-  let texted = false;
-  return parts.map((part) => {
-    if (React.isValidElement(part)) {
-      if (swapped) return null;
-      swapped = true;
-      return spinner;
-    }
-    if (loadingText === undefined) return part;
-    if (texted) return null;
-    texted = true;
-    return loadingText;
-  });
+  return parts.map((part, i) =>
+    i === iconAt ? spinner : React.isValidElement(part) ? null : part,
+  );
 };
 
 export interface LinkProps

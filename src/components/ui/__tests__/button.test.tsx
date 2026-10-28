@@ -41,6 +41,19 @@ describe("Button loading props", () => {
 
     it("swaps a trailing icon inside a fragment in place", () => {
       render(
+        <Button loading>
+          <>
+            Next
+            <svg data-testid="icon" />
+          </>
+        </Button>,
+      );
+      expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+      expect(screen.getByRole("button")).toHaveTextContent(/^Next\s*spinner$/);
+    });
+
+    it("leads with the spinner and drops the icon when loadingText is given", () => {
+      render(
         <Button loading loadingText="Saving">
           <>
             Submit
@@ -50,7 +63,7 @@ describe("Button loading props", () => {
       );
       expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
       expect(screen.getByRole("button")).toHaveTextContent(
-        /^Saving\s*spinner$/,
+        /^spinner\s*Saving$/,
       );
     });
 
