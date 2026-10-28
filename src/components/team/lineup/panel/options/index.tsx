@@ -9,17 +9,18 @@ import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import {
+  Item,
+  ItemAvatar,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import {
   SegmentedPicker,
   SegmentedPickerItem,
 } from "@/components/ui/segmented-picker";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode, type PlayerView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -80,85 +81,67 @@ export const LineupOptions = ({
         <LiberoReplaceTrigger />
         <LiberoReplaceDialog onSuccess={() => setLiberoDialogOpen(false)} />
       </Dialog>
-      <Table>
-        <TableHeader className="text-lg">
-          <TableRow>
-            <TableHead colSpan={3}>
-              <div className="flex items-center justify-start">
-                <span className="flex-1">
-                  替補名單 ({substituteCount}/{substituteLimit})
-                </span>
-                <Button
-                  variant="link"
-                  className="w-fit px-0"
-                  onClick={() =>
-                    dispatch(
-                      lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES),
-                    )
-                  }
-                >
-                  調整
-                </Button>
-              </div>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody className="text-xl">
-          {lineups[status.lineupIndex]?.substitutes &&
-            lineups[status.lineupIndex]?.substitutes.map((lineupPlayer) => {
-              const player = players?.find((p) => p.id === lineupPlayer.id);
-              return (
-                <TableRow key={player?.id}>
-                  <TableCell className="w-6 [&>svg]:size-6">
-                    <RiUserLine />
-                  </TableCell>
-                  <TableCell className="w-10 text-right">
-                    {player?.number}
-                  </TableCell>
-                  <TableCell>{player?.name}</TableCell>
-                </TableRow>
-              );
-            })}
-        </TableBody>
-      </Table>
-      <Table>
-        <TableHeader className="text-lg">
-          <TableRow>
-            <TableHead colSpan={3}>
-              <div className="flex items-center justify-start">
-                <span className="flex-1">未入選名單 ({othersCount})</span>
-                <Button
-                  variant="link"
-                  className="w-fit px-0"
-                  onClick={() =>
-                    dispatch(
-                      lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES),
-                    )
-                  }
-                >
-                  調整
-                </Button>
-              </div>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody className="text-xl">
-          {others &&
-            others.map((player) => {
-              return (
-                <TableRow key={player.id}>
-                  <TableCell className="w-6 [&>svg]:size-6">
-                    <RiUserLine />
-                  </TableCell>
-                  <TableCell className="w-10 text-right">
-                    {player?.number}
-                  </TableCell>
-                  <TableCell colSpan={2}>{player?.name}</TableCell>
-                </TableRow>
-              );
-            })}
-        </TableBody>
-      </Table>
+      <div className="flex h-10 w-full items-center px-2 text-lg font-medium text-muted-foreground">
+        <span className="flex-1">
+          替補名單 ({substituteCount}/{substituteLimit})
+        </span>
+        <Button
+          variant="link"
+          className="w-fit px-0"
+          onClick={() =>
+            dispatch(lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES))
+          }
+        >
+          調整
+        </Button>
+      </div>
+      <ItemGroup className="w-full">
+        {lineups[status.lineupIndex]?.substitutes &&
+          lineups[status.lineupIndex]?.substitutes.map((lineupPlayer) => {
+            const player = players?.find((p) => p.id === lineupPlayer.id);
+            return (
+              <Item key={player?.id ?? lineupPlayer.id}>
+                <ItemMedia variant="image">
+                  <ItemAvatar alt={player?.name} fallback={<RiUserLine />} />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle className="h-6">{player?.name}</ItemTitle>
+                  <ItemDescription className="h-6">
+                    {player?.number != null && `#${player.number}`}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+            );
+          })}
+      </ItemGroup>
+      <div className="flex h-10 w-full items-center px-2 text-lg font-medium text-muted-foreground">
+        <span className="flex-1">未入選名單 ({othersCount})</span>
+        <Button
+          variant="link"
+          className="w-fit px-0"
+          onClick={() =>
+            dispatch(lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES))
+          }
+        >
+          調整
+        </Button>
+      </div>
+      <ItemGroup className="w-full">
+        {others &&
+          others.map((player) => (
+            <Item key={player.id}>
+              <ItemMedia variant="image">
+                <ItemAvatar alt={player?.name} fallback={<RiUserLine />} />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle className="h-6">{player?.name}</ItemTitle>
+                <ItemDescription className="h-6">
+                  {player?.number != null && `#${player.number}`}
+                </ItemDescription>
+              </ItemContent>
+            </Item>
+          ))}
+      </ItemGroup>
     </PanelContent>
   );
 };

@@ -2,7 +2,14 @@
 import { PanelContent } from "@/components/custom/panel";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -55,44 +62,49 @@ export const PlayerInfo = ({
           更換球員
         </Button>
       </CardHeader>
-      <Table>
-        <TableBody className="text-xl">
-          <TableRow>
-            <TableCell>
-              <RiHashtag />
-            </TableCell>
-            <TableCell className="w-16">背號</TableCell>
-            <TableCell>{player?.number}</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <RiUserLine />
-            </TableCell>
-            <TableCell>姓名</TableCell>
-            <TableCell>{player?.name}</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <BsGrid3X2Gap />
-            </TableCell>
-            <TableCell>位置</TableCell>
-            <TableCell>{lineupPlayer?.position}</TableCell>
-            <TableCell>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() =>
-                  dispatch(
-                    lineupActions.setOptionMode(LineupOptionMode.POSITIONS),
-                  )
-                }
-              >
-                <RiEditBoxLine />
-              </Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <ItemGroup className="w-full">
+        <Item className="text-xl">
+          <ItemMedia className="[&_svg]:size-6">
+            <RiHashtag />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle className="text-muted-foreground">背號</ItemTitle>
+          </ItemContent>
+          <ItemActions>{player?.number}</ItemActions>
+        </Item>
+        <Item className="text-xl">
+          <ItemMedia className="[&_svg]:size-6">
+            <RiUserLine />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle className="text-muted-foreground">姓名</ItemTitle>
+          </ItemContent>
+          <ItemActions>{player?.name}</ItemActions>
+        </Item>
+        <Item className="text-xl">
+          <ItemMedia className="[&_svg]:size-6">
+            <BsGrid3X2Gap />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle className="text-muted-foreground">位置</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            {lineupPlayer?.position}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="編輯位置"
+              onClick={() =>
+                dispatch(
+                  lineupActions.setOptionMode(LineupOptionMode.POSITIONS),
+                )
+              }
+            >
+              <RiEditBoxLine />
+            </Button>
+          </ItemActions>
+        </Item>
+      </ItemGroup>
       {/* TODO: Add data statistics table here  */}
     </PanelContent>
   );
