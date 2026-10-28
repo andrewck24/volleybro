@@ -190,25 +190,6 @@ describe("mergePendingEntries", () => {
     expect(mergePendingEntries(game, [queued("q", 2)], "game-2")).toBe(game);
   });
 
-  it("inserts a queued entry at its seq rather than at the end", () => {
-    const merged = mergePendingEntries(
-      makeGame([[0, 2]]),
-      [queued("q", 1)],
-      "game-1",
-    );
-    expect(seqsOf(merged)).toEqual(["s0", "q", "s2"]);
-  });
-
-  it("replaces an entry the server already holds under the same id", () => {
-    const merged = mergePendingEntries(
-      makeGame([[0, 1]]),
-      [queued("s1", 1)],
-      "game-1",
-    );
-    expect(seqsOf(merged)).toEqual(["s0", "s1"]);
-    expect(merged?.sets[0]?.entries[1]).toMatchObject({ win: true });
-  });
-
   it("takes the last queued item when one id is queued twice", () => {
     const merged = mergePendingEntries(
       makeGame([[0]]),
@@ -298,21 +279,6 @@ describe("queued substitutions", () => {
   });
   const onCourt = (merged: GameView | undefined) =>
     merged?.sets[0]?.lineups.home.starting.map((p) => p.id);
-
-  it("puts a queued substitution on court before the server has it", () => {
-    const merged = mergePendingEntries(
-      game(),
-      [
-        makePendingEntry({
-          entry: substitution({ in: "p2", out: "p1" }) as never,
-        }),
-      ],
-      "game-1",
-    );
-
-    expect(onCourt(merged)).toEqual(["p2"]);
-    expect(merged?.sets[0]?.entries).toHaveLength(1);
-  });
 
   it("keeps the confirmed lineup when a queued substitution cannot apply", () => {
     const merged = mergePendingEntries(

@@ -1,8 +1,4 @@
-import {
-  getPreviousRally,
-  recomputeLineups,
-  upsertEntries,
-} from "@/entities/game";
+import { upsertEntries } from "@/entities/game";
 import type { GameView, PendingSubstitution } from "@/lib/features/game/types";
 
 /**
@@ -21,17 +17,10 @@ export const applySubstitution = (
   | { game: GameView }
   | { invalid: { id: string; score: { home: number; away: number } } } => {
   const set = game.sets[setIndex]!;
-  const entries = upsertEntries(set.entries, [entry]);
-  const { lineups, invalid } = recomputeLineups(set.startingLineups, entries);
-  if (invalid) {
-    const previous = getPreviousRally(entries, entries.indexOf(invalid));
-    const score = previous
-      ? { home: previous.home.score, away: previous.away.score }
-      : { home: 0, away: 0 };
-    return { invalid: { id: invalid.id, score } };
-  }
+  const result = upsertEntries(set, [entry]);
+  if ("invalid" in result) return { invalid: result.invalid };
 
   const sets = game.sets.slice();
-  sets[setIndex] = { ...set, entries, lineups };
+  sets[setIndex] = result.set;
   return { game: { ...game, sets } };
 };

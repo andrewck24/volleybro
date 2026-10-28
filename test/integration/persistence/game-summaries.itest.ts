@@ -61,7 +61,7 @@ describe("game summaries", () => {
         options: { serve: Side.HOME, time: { start: "10:00", end: "" } },
         entries: [],
       } as unknown as Set);
-      await games().upsertEntry(
+      await games().upsertEntries(
         ref,
         [rally(0, 1, 0), rally(1, home, away)].map((entry) => ({
           entry,

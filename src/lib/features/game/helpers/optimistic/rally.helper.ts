@@ -31,11 +31,7 @@ export const deriveEntryPhase = (
   entryDraft: RallyView & EntryIdentity,
 ): SetPhase =>
   deriveSetPhase(
-    {
-      entries: upsertEntries(game.sets[setIndex]!.entries, [
-        asEntry(entryDraft),
-      ]),
-    },
+    upsertEntries(game.sets[setIndex]!, [asEntry(entryDraft)]).set,
     entryIndex + 1,
     setTargetPoints(game.info.scoring, setIndex),
   );
@@ -48,15 +44,15 @@ export const applyEntry = (
 ): GameView => {
   const set = game.sets[setIndex]!;
   const sets = game.sets.slice();
-  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]);
+  const { entries, lineups } = upsertEntries(set, [asEntry(entryDraft)]).set;
 
   if (phase.isSetInProgress) {
-    sets[setIndex] = { ...set, entries, win: null };
+    sets[setIndex] = { ...set, entries, lineups, win: null };
     return { ...game, sets, win: null };
   }
 
   const { home, away } = entryDraft;
-  sets[setIndex] = { ...set, entries, win: home.score > away.score };
+  sets[setIndex] = { ...set, entries, lineups, win: home.score > away.score };
 
   const setsWonHome = sets.filter((s) => s.win).length;
   const setsWonAway = sets.filter((s) => s.win === false).length;

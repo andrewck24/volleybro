@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1000 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rally-write-title rally-write-desc">
   <title id="rally-write-title">Recording a rally: the write path</title>
-  <desc id="rally-write-desc">Sending a rally writes it optimistically into the SWR game cache and a persisted pending-writes queue; the queue flushes batches to the rallies route, which runs the controller, the RecordRallies use case, and the game repository against MongoDB, and the response is applied back to the cache.</desc>
+  <desc id="rally-write-desc">Sending a rally writes it optimistically into the SWR game cache and a persisted pending-writes queue; the queue flushes batches to the entries route, which runs the controller, the RecordEntries use case, and the game repository against MongoDB; the cache write and the repository's plan both go through the entities upsertEntries, and the response is applied back to the cache.</desc>
   <defs>
     <style>
       .paper { fill: #f2f2f6; }
@@ -64,22 +64,22 @@
   <text class="mono muted" x="136" y="204" font-size="9" text-anchor="middle">useSubmitEntryDraft</text>
   <rect class="node" x="296" y="72" width="200" height="48" rx="6" stroke-width="1"/>
   <text class="ink" x="396" y="94" font-size="12" font-weight="600" text-anchor="middle">SWR game cache</text>
-  <text class="mono muted" x="396" y="108" font-size="9" text-anchor="middle">applyEntry · no revalidate</text>
+  <text class="mono muted" x="396" y="108" font-size="9" text-anchor="middle">upsertEntries · no revalidate</text>
   <rect class="focal" x="296" y="264" width="200" height="48" rx="6" stroke-width="1"/>
   <text class="accent-t" x="396" y="286" font-size="12" font-weight="600" text-anchor="middle">Pending writes</text>
   <text class="mono muted" x="396" y="300" font-size="9" text-anchor="middle">Redux + localStorage · retry</text>
   <rect class="node" x="680" y="72" width="240" height="40" rx="6" stroke-width="1"/>
   <text class="ink" x="800" y="90" font-size="12" font-weight="600" text-anchor="middle">Route handler</text>
-  <text class="mono muted" x="800" y="104" font-size="9" text-anchor="middle">PUT …/sets/rallies?si=</text>
+  <text class="mono muted" x="800" y="104" font-size="9" text-anchor="middle">PUT …/sets/entries?si=</text>
   <rect class="node" x="680" y="132" width="240" height="40" rx="6" stroke-width="1"/>
   <text class="ink" x="800" y="150" font-size="12" font-weight="600" text-anchor="middle">Controller</text>
-  <text class="mono muted" x="800" y="164" font-size="9" text-anchor="middle">recordRalliesController</text>
+  <text class="mono muted" x="800" y="164" font-size="9" text-anchor="middle">recordEntriesController</text>
   <rect class="node" x="680" y="192" width="240" height="40" rx="6" stroke-width="1"/>
   <text class="ink" x="800" y="210" font-size="12" font-weight="600" text-anchor="middle">Use case</text>
-  <text class="mono muted" x="800" y="224" font-size="9" text-anchor="middle">RecordRalliesUseCase</text>
+  <text class="mono muted" x="800" y="224" font-size="9" text-anchor="middle">RecordEntriesUseCase</text>
   <rect class="node" x="680" y="252" width="240" height="40" rx="6" stroke-width="1"/>
   <text class="ink" x="800" y="270" font-size="12" font-weight="600" text-anchor="middle">Game repository</text>
-  <text class="mono muted" x="800" y="284" font-size="9" text-anchor="middle">upsertEntry</text>
+  <text class="mono muted" x="800" y="284" font-size="9" text-anchor="middle">upsertEntries · planEntryUpserts</text>
   <rect class="store" x="680" y="312" width="240" height="40" rx="6" stroke-width="1"/>
   <text class="ink" x="800" y="336" font-size="12" font-weight="600" text-anchor="middle">MongoDB Atlas</text>
 </svg>

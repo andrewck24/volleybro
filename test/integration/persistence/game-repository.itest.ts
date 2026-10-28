@@ -46,7 +46,7 @@ describe("game reads and writes", () => {
     const at = new Date("2026-03-01T10:00:00.000Z");
 
     const added = await games().addSet({ gameId, setIndex: 0 }, set);
-    const entries = await games().upsertEntry(
+    const entries = await games().upsertEntries(
       { gameId, setIndex: 0 },
       [
         createRecordedRally({

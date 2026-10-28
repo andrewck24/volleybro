@@ -40,7 +40,7 @@ describe("identity-keyed entry writes", () => {
     entries: Entry[],
     at = recordedAt,
   ) =>
-    repo().upsertEntry(
+    repo().upsertEntries(
       ref,
       entries.map((entry) => ({ entry, at })),
       operator,
@@ -59,7 +59,7 @@ describe("identity-keyed entry writes", () => {
   });
 
   it("keeps the edit when a create and an edit of one id share a batch", async () => {
-    const entries = await repo().upsertEntry(
+    const entries = await repo().upsertEntries(
       { gameId: seeded.gameId, setIndex: 0 },
       [
         { entry: rally("entry-1", 0, 1), at: recordedAt },
@@ -82,7 +82,7 @@ describe("identity-keyed entry writes", () => {
     const ref = { gameId: seeded.gameId, setIndex: 0 };
     const other = oid();
     const instance = repo();
-    await instance.upsertEntry(
+    await instance.upsertEntries(
       ref,
       [{ entry: rally("entry-1", 0, 1), at: recordedAt }],
       other,
@@ -96,7 +96,7 @@ describe("identity-keyed entry writes", () => {
       .spyOn(internals, "findSet")
       .mockResolvedValueOnce({ ...set, entries: [] });
 
-    const entries = await instance.upsertEntry(
+    const entries = await instance.upsertEntries(
       ref,
       [{ entry: rally("entry-1", 0, 9), at: editedAt }],
       operator,

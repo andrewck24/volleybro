@@ -55,7 +55,7 @@ export class RecordEntriesUseCase implements IRecordEntriesUseCase {
       PlayerRole.MEMBER,
     );
 
-    const entries = await this.gameRepository.upsertEntry(
+    const entries = await this.gameRepository.upsertEntries(
       { gameId, setIndex },
       data.map(({ at, ...entry }) => ({ entry, at })),
       operator.id,
