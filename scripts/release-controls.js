@@ -51,6 +51,10 @@ const PERSISTED_CONTRACT_PATTERNS = [
   /^scripts\/migrations\//,
   /^(?:pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)$/,
 ];
+// Any other app source ships with the deployment and may read or write stored
+// data (server code, the service worker, client storage), so it defaults to
+// contract risk instead of stopping the release as unclassified.
+const APP_SOURCE_PATTERN = /^src\//;
 const KNOWN_UNRELATED_PATTERNS = [
   /^\.changeset\//,
   /^\.nvmrc$/,
@@ -597,8 +601,11 @@ async function changedSourcePaths(state) {
 
 export async function persistedContractChanges(state) {
   const changedPaths = await changedSourcePaths(state);
-  const contractPaths = changedPaths.filter((file) =>
-    PERSISTED_CONTRACT_PATTERNS.some((pattern) => pattern.test(file)),
+  const contractPaths = changedPaths.filter(
+    (file) =>
+      PERSISTED_CONTRACT_PATTERNS.some((pattern) => pattern.test(file)) ||
+      (APP_SOURCE_PATTERN.test(file) &&
+        !KNOWN_UNRELATED_PATTERNS.some((pattern) => pattern.test(file))),
   );
   const manifestClass = {};
   for (const file of Object.keys(UNRELATED_MANIFEST_KEYS)) {
