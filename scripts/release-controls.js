@@ -47,8 +47,6 @@ const PERSISTED_CONTRACT_PATTERNS = [
   /^src\/app\/api\//,
   /^src\/entities\//,
   /^src\/interface\//,
-  /^docs\/migrations\//,
-  /^scripts\/migrations\//,
   /^(?:pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)$/,
 ];
 // Any other app source ships with the deployment and may read or write stored
@@ -60,8 +58,8 @@ const KNOWN_UNRELATED_PATTERNS = [
   /^\.nvmrc$/,
   /^\.github\//,
   /^blueprint\//,
-  /^docs\/(?!migrations\/)/,
-  /^scripts\/(?!migrations\/)/,
+  /^docs\//,
+  /^scripts\//,
   /^test\//,
   /^public\//,
   /^src\/.*(?:__tests__|\.(?:test|spec)\.)/,
@@ -1904,6 +1902,26 @@ async function recordRecoveryEvidence() {
   process.stdout.write(`${summary}\n`);
 }
 
+// Run on pull requests, so a path the release classifier cannot place fails the
+// PR that adds it instead of stopping a later release before promotion.
+async function checkPathClassification() {
+  const headSha = await command("git", ["rev-parse", "HEAD"]);
+  const base = await command("git", [
+    "merge-base",
+    exactSha(required("BASE_SHA"), "Base SHA"),
+    headSha,
+  ]);
+  const { unclassifiedPaths } = await persistedContractChanges({
+    baseline: { sha: base },
+    sha: headSha,
+  });
+  if (unclassifiedPaths.length > 0)
+    fail(
+      `Release cannot classify these paths for production-data compatibility: ${unclassifiedPaths.join(", ")}. ` +
+        "Add a pattern to KNOWN_UNRELATED_PATTERNS or PERSISTED_CONTRACT_PATTERNS in scripts/release-controls.js.",
+    );
+}
+
 async function planRecoveryCompatibility() {
   const state = await loadState();
   validateConfiguredPlatform(state);
@@ -2712,6 +2730,7 @@ const actions = {
   stage,
   "record-source-qa": recordSourceQA,
   "plan-recovery-compatibility": planRecoveryCompatibility,
+  "check-path-classification": checkPathClassification,
   promote,
   "summarize-smoke": summarizeSmoke,
   "classify-smoke": classifySmoke,

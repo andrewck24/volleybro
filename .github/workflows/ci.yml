@@ -90,6 +90,9 @@ jobs:
     if: inputs.source == ''
     steps:
       - uses: actions/checkout@v7
+        with:
+          # On a pull request HEAD is GitHub's merge commit; the release path check diffs it against its first parent, the base.
+          fetch-depth: 2
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
           install: false
@@ -104,6 +107,9 @@ jobs:
       - run: node scripts/design-document.js --check
       - run: pnpm test:workflow
       - run: pnpm check:workflow
+      - name: Classify changed paths for the release
+        if: github.event_name == 'pull_request'
+        run: BASE_SHA=$(git rev-parse HEAD^1) node scripts/release-controls.js check-path-classification
       - run: pnpm typecheck:strict
       - run: pnpm lint
 
