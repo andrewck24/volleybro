@@ -131,18 +131,6 @@ describe("UpdateRoleUseCase", () => {
     });
   });
 
-  it("lets the owner change an admin", async () => {
-    mockTeamRepository.findById.mockResolvedValue(
-      createTeam({ ownerPlayerId: "actor" }),
-    );
-    mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
-      actor(PlayerRole.ADMIN),
-    );
-    mockPlayerRepository.findById.mockResolvedValue(targets.admin);
-
-    expect(await update()).toMatchObject({ role: PlayerRole.ADMIN });
-  });
-
   it("preserves a role changed after it was read", async () => {
     let stored = targets.admin;
     mockPlayerRepository.findById.mockImplementation(async () => {

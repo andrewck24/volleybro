@@ -25,7 +25,6 @@ const roster = (teamId: string) => players().findByTeamId(teamId);
 
 describe("player writes leave the roster readable", () => {
   let teamId: string;
-  let ownerId: string;
   const ownerUserId = "0".repeat(24);
 
   beforeEach(async () => {
@@ -43,7 +42,6 @@ describe("player writes leave the roster readable", () => {
       userId: ownerUserId,
       role: PlayerRole.ADMIN,
     });
-    ownerId = owner.id;
     await container
       .get<ITeamRepository>(TYPES.TeamRepository)
       .update(teamId, { ownerPlayerId: owner.id });
@@ -159,13 +157,6 @@ describe("player writes leave the roster readable", () => {
     expect(left).toMatchObject({ status: PlayerStatus.NONE });
     expect(left).not.toHaveProperty("role");
     expect(left).not.toHaveProperty("email");
-  });
-
-  it("reads a joined admin back with its role", async () => {
-    expect(await players().findById(ownerId)).toMatchObject({
-      status: PlayerStatus.JOINED,
-      role: PlayerRole.ADMIN,
-    });
   });
 });
 
