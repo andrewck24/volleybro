@@ -41,4 +41,16 @@ Issue IDs and ticket numbers belong in commit trailers and pull-request bodies, 
 
 A test sits at the layer [`docs/testing-strategy.md`](./docs/testing-strategy.md) assigns it, mocking only what that layer's school says to mock.
 
-Every test the diff adds passes that document's Test Value gate: review names the behaviour it protects and the regression that fails it, and flags a test that asserts values it built itself, restates the implementation, or duplicates a contract another test already owns. It also flags a fixture, helper, or handler that is defined in more than one test file with the same shape, or that repeats one already in `test/support/` ([`docs/testing-strategy.md`](./docs/testing-strategy.md), Test Support Code). Every test the diff deletes or moves names the test that now owns its contract, or why none is needed.
+The Standards review applies that document's Test Value and Test Support Code rules through [`test-audit`](./docs/agents/test-audit.md). Its test review output lists `contract → owner test (path and case) → regression that would make it fail` for every added or changed test; a deleted or moved test follows that document's Test Value rule. Flag duplicate proof, and call-shape assertions (asserting which internal function ran or with what arguments instead of the observable result), against those rules and the layer's testing school.
+
+## Correctness, load, leanness and security
+
+Review checks correctness, behavior under expected load (races, work repeated per caller, unbounded growth), leanness (dead code, unused options, duplicated helpers, code beyond the spec) and security, using `security-review` when available.
+
+### Multi-write and cross-aggregate writes
+
+For a diff that writes more than once, name the persisted state after each of a mid-batch failure, a race and a retry, and cite the test (path and case) proving each outcome. Follow the whole write path, including unmatched operations and error translation that can drop the MongoDB driver's `TransientTransactionError` or `UnknownTransactionCommitResult` labels. For cross-aggregate writes, cite [ADR-0146](./blueprint/content/decisions/0146-cross-aggregate-writes-run-in-one-transaction.json) and check the diff against it.
+
+### Authorization and data ownership
+
+For a diff touching permissions or data ownership, list who may act, whose data is accessed or written, and what happens if identity or role changes after the check. Cite the test (path and case) proving that edge, including delayed or offline work when present.
