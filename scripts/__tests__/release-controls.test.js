@@ -841,7 +841,7 @@ test("persisted contract changes require exact-source integration proof", async 
 test("unclassified production source paths stop instead of implying compatibility", async (t) => {
   const f = await fixture(t, {
     persistedContract: true,
-    persistedContractPath: "src/app/(tabs)/teams/page.tsx",
+    persistedContractPath: "middleware.ts",
   });
   const source = await prepareSourceRelease(f);
   const result = run(f, "record-recovery-evidence", {
@@ -850,7 +850,7 @@ test("unclassified production source paths stop instead of implying compatibilit
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Cannot classify changed paths/);
-  assert.match(result.stderr, /src\/app\/\(tabs\)\/teams\/page\.tsx/);
+  assert.match(result.stderr, /middleware\.ts/);
 });
 
 test("persisted application writers and dependency-lock changes without a suite are forward-only", async (t) => {
@@ -2390,6 +2390,26 @@ test("tooling-only paths are unrelated to production data", async (t) => {
   );
   assert.deepEqual(result.unclassifiedPaths, []);
   assert.deepEqual(result.contractPaths, []);
+});
+
+test("app source outside the known-unrelated paths is a contract path", async (t) => {
+  const result = await classifyDiff(
+    t,
+    { "a.txt": "1" },
+    {
+      "src/app/sw.ts": "x",
+      "src/hooks/use-x.ts": "x",
+      "src/lib/x.ts": "x",
+      "src/components/x.tsx": "x",
+      "src/lib/__tests__/x.test.ts": "x",
+    },
+  );
+  assert.deepEqual(result.unclassifiedPaths, []);
+  assert.deepEqual(result.contractPaths, [
+    "src/app/sw.ts",
+    "src/hooks/use-x.ts",
+    "src/lib/x.ts",
+  ]);
 });
 
 test("pnpm-workspace.yaml stays a persisted contract path", async (t) => {
