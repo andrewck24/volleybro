@@ -21,7 +21,7 @@ import { ErrorNotice } from "@/components/custom/error/error-notice";
 import { apiClient } from "@/lib/api/api-client";
 import type { ErrorMessage } from "@/lib/api/error-messages";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
-import { ROLE_LABELS } from "@/lib/constants/labels";
+import { OWNER_LABEL, ROLE_LABELS } from "@/lib/constants/labels";
 import type { PlayerView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -30,7 +30,6 @@ import { useSWRConfig } from "swr";
 interface MembershipSectionProps {
   player: PlayerView;
   teamId: string;
-  /** The team's owner, from `team.ownerPlayerId`. */
   ownerPlayerId?: string;
   isCurrentOwner: boolean;
   /** The caller is looking at their own player. */
@@ -488,7 +487,7 @@ function JoinedSection({
       <div className="space-y-3">
         <h3 className="text-sm font-medium">隊籍</h3>
         <div className="rounded-md bg-muted/50 p-3 text-sm">
-          <p className="font-medium">擁有者</p>
+          <p className="font-medium">{OWNER_LABEL}</p>
         </div>
       </div>
     );

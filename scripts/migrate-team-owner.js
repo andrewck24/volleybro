@@ -17,17 +17,18 @@
  *   e. verify   every team's ownerPlayerId is a JOINED ADMIN of the same team
  *               and no OWNER role remains
  *
- * Steps (c) and (d) must only run once the code that no longer reads or writes
- * `role: "OWNER"` is deployed in the target environment: until then the running
- * app would lose its owners' authority. This script ships in the same PR as
- * that change.
+ * The app that reads `role: "OWNER"` and the app that reads `ownerPlayerId`
+ * cannot both be right about the same database, so each environment accepts a
+ * brief window where the running app does not match its data: migrate, then
+ * deploy straight away. Until the deploy lands, the old app sees no owner (no
+ * transfer, and the owner could leave).
  *
- * Run order, per environment:
+ * Run order:
  *
- *   1. test database: migrate
- *   2. deploy
- *   3. production database: migrate
- *   4. deploy
+ *   1. test database: dry-run, then --apply
+ *   2. deploy to the environment that uses it
+ *   3. production database: dry-run, then --apply
+ *   4. deploy to production
  *
  * Idempotent: a finished database reports nothing to do. Once every environment
  * has run it, move it to docs/migrations and mark it SPENT, as

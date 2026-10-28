@@ -11,6 +11,9 @@ export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "管理員",
 };
 
+// The owner is named by the team, not by a role, so its label stands apart.
+export const OWNER_LABEL = "擁有者";
+
 // Position labels for volleyball players
 export const POSITION_LABELS: Record<string, string> = {
   OH: "Outside Hitter",

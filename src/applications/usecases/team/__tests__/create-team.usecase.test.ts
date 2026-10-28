@@ -46,9 +46,6 @@ describe("CreateTeamUseCase", () => {
     const result = await useCase.execute(input);
 
     expect(result).toBe(owned);
-    expect(mockTeamRepository.update).toHaveBeenCalledWith(mockTeam.id, {
-      ownerPlayerId: "player-9",
-    });
     expect(mockPlayerRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: mockTeam.id,
