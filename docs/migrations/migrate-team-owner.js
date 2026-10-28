@@ -26,7 +26,7 @@
  * SPENT. Kept as a record of what was done, not as something to run.
  *
  *   - development (the `test` database), 2026-10-28 — 6 teams backfilled and
- *     demoted, index dropped; rerun after the deploy found nothing to do
+ *     demoted, index dropped; rerun after the merge found nothing to do
  *   - production, 2026-10-28 — applied before release 0.19.0 promoted; rerun
  *     after the promotion found nothing to do (7 teams)
  *
