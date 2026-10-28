@@ -2,28 +2,15 @@ import { CommonReason, ValidationError } from "@/entities/errors";
 import {
   EntryType,
   MoveType,
-  Side,
   planEntryUpserts,
   upsertEntries,
   type Entry,
   type EntryContent,
   type SetLineups,
 } from "@/entities/game";
-import { Position, type Lineup } from "@/entities/team";
-
-const lineup = (): Lineup => ({
-  options: { liberoReplaceMode: 0, liberoReplacePosition: Position.NONE },
-  starting: ["a", "b", "c", "d", "e", "f"].map((id) => ({
-    id,
-    position: Position.OH,
-  })),
-  liberos: [{ id: "l", position: Position.L }],
-  substitutes: [{ id: "x" }, { id: "y" }],
-});
+import { lineup, onCourt, sub } from "@test/support/fixtures/lineup-writes";
 
 const startingLineups: SetLineups = { home: lineup() };
-
-const onCourt = (l: SetLineups) => l.home.starting.map((p) => p.id);
 
 const detail = (score: number) => ({ score, type: MoveType.ATTACK, num: 1 });
 
@@ -34,14 +21,6 @@ const rally = (seq: number, home: number, away: number): EntryContent => ({
   win: true,
   home: detail(home),
   away: detail(away),
-});
-
-const sub = (seq: number, out: string, into: string): EntryContent => ({
-  type: EntryType.SUBSTITUTION,
-  id: `sub-${seq}`,
-  seq,
-  team: Side.HOME,
-  players: { in: into, out },
 });
 
 const at = new Date("2026-01-01T10:00:00Z");
@@ -145,6 +124,19 @@ describe("planEntryUpserts", () => {
     if ("invalid" in result) throw new Error("expected a set");
     expect(result.steps).toEqual([]);
     expect(result.set.entries).toEqual(set.entries);
+  });
+
+  it("takes a resend carrying other content as no step and keeps the stored content and lineups", () => {
+    const set = setOf(sub(1, "a", "x"));
+    const result = planEntryUpserts(
+      set,
+      [{ entry: sub(1, "a", "y"), at }],
+      "p1",
+    );
+    if ("invalid" in result) throw new Error("expected a set");
+    expect(result.steps).toEqual([]);
+    expect(result.set.entries).toEqual(set.entries);
+    expect(onCourt(result.set.lineups)).toEqual(["x", "b", "c", "d", "e", "f"]);
   });
 
   it("keeps the recorder and stamps the last editor on an edit", () => {

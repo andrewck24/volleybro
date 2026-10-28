@@ -4,7 +4,6 @@ import type {
   PendingEntry,
   PendingWritesState,
   PersistedPendingEntry,
-  SetView,
   WriteError,
 } from "@/lib/features/game/types";
 
@@ -66,13 +65,6 @@ export const nextAttemptDelayMs = (attempts: number): number | null =>
 
 // Lineups follow from the entries. A history the lineup rules reject keeps the
 // last confirmed lineup; the write that caused it fails on its own.
-export const withEntries = (
-  set: SetView,
-  incoming: SetView["entries"],
-): SetView => {
-  return upsertEntries(set, incoming).set;
-};
-
 export const applyFlushedEntries = (
   game: GameView | undefined,
   setIndex: number,
@@ -81,7 +73,7 @@ export const applyFlushedEntries = (
   game && {
     ...game,
     sets: game.sets.map((set, i) =>
-      i === setIndex ? withEntries(set, entries) : set,
+      i === setIndex ? upsertEntries(set, entries).set : set,
     ),
   };
 
@@ -107,10 +99,10 @@ export const mergePendingEntries = (
       const group = bySet.get(setIndex);
       if (!group) return set;
 
-      return withEntries(
+      return upsertEntries(
         set,
         group.map(({ entry }) => entry),
-      );
+      ).set;
     }),
   };
 };

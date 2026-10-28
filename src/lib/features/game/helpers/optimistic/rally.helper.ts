@@ -2,10 +2,10 @@ import {
   EntryType,
   deriveSetPhase,
   setTargetPoints,
+  upsertEntries,
   type EntryIdentity,
   type SetPhase,
 } from "@/entities/game";
-import { withEntries } from "@/lib/features/game/pending-writes";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 const asEntry = (entryDraft: RallyView & EntryIdentity) =>
@@ -31,7 +31,7 @@ export const deriveEntryPhase = (
   entryDraft: RallyView & EntryIdentity,
 ): SetPhase =>
   deriveSetPhase(
-    withEntries(game.sets[setIndex]!, [asEntry(entryDraft)]),
+    upsertEntries(game.sets[setIndex]!, [asEntry(entryDraft)]).set,
     entryIndex + 1,
     setTargetPoints(game.info.scoring, setIndex),
   );
@@ -44,7 +44,7 @@ export const applyEntry = (
 ): GameView => {
   const set = game.sets[setIndex]!;
   const sets = game.sets.slice();
-  const { entries, lineups } = withEntries(set, [asEntry(entryDraft)]);
+  const { entries, lineups } = upsertEntries(set, [asEntry(entryDraft)]).set;
 
   if (phase.isSetInProgress) {
     sets[setIndex] = { ...set, entries, lineups, win: null };

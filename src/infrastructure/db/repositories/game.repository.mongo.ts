@@ -284,6 +284,8 @@ export class GameRepositoryImpl implements IGameRepository {
                 updateOne: {
                   filter: { ...filter, [`${path}.entries.id`]: step.id },
                   update: {
+                    // Mongoose drops a discriminator's field when an update names
+                    // it through an array filter, so the slot is written whole.
                     $set: {
                       [`${path}.entries.$[e]`]: step.edited,
                       ...(i === last && lineupSet),

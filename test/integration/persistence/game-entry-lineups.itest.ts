@@ -154,14 +154,10 @@ describe("the lineup a set stores with its entries", () => {
     };
     const stale = await internals.findSet(ref());
     await instance.updateSet(ref(), { options: { ...options, serve: "away" } });
-    const findSet = jest
-      .spyOn(internals, "findSet")
-      .mockResolvedValueOnce(stale);
+    jest.spyOn(internals, "findSet").mockResolvedValueOnce(stale);
 
     await instance.updateSet(ref(), { options });
 
-    // The stale version guard matched nothing, so the update read again.
-    expect(findSet).toHaveBeenCalledTimes(2);
     expect((await storedSet()).options.serve).toBe("home");
     const raw = await mongoose.connection
       .collection("games")

@@ -1,31 +1,12 @@
 import {
-  EntryType,
   Side,
   upsertEntries,
   type EntryContent,
   type SetLineups,
 } from "@/entities/game";
-import { Position, type Lineup } from "@/entities/team";
-
-const lineup = (): Lineup => ({
-  options: { liberoReplaceMode: 0, liberoReplacePosition: Position.NONE },
-  starting: ["a", "b", "c", "d", "e", "f"].map((id) => ({
-    id,
-    position: Position.OH,
-  })),
-  liberos: [{ id: "l", position: Position.L }],
-  substitutes: [{ id: "x" }, { id: "y" }],
-});
+import { lineup, onCourt, sub } from "@test/support/fixtures/lineup-writes";
 
 const starting: SetLineups = { home: lineup() };
-
-const sub = (seq: number, out: string, into: string): EntryContent => ({
-  id: `sub-${seq}`,
-  type: EntryType.SUBSTITUTION,
-  seq,
-  team: Side.HOME,
-  players: { in: into, out },
-});
 
 const write = (...entries: EntryContent[]) =>
   upsertEntries(
@@ -38,8 +19,6 @@ const lineupsOf = (...entries: EntryContent[]) => {
   if ("invalid" in result) throw new Error("expected a set");
   return result.set.lineups;
 };
-
-const onCourt = (l: SetLineups) => l.home.starting.map((p) => p.id);
 
 describe("Current lineup recomputation through upsertEntries", () => {
   it("marks both players of a substitution with its seq", () => {

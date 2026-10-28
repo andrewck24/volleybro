@@ -1,10 +1,11 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { NotFoundError, ValidationError, GameReason } from "@/entities/errors";
+import { NotFoundError, GameReason } from "@/entities/errors";
 import {
   type Game,
   type Set,
+  type SetLineups,
   upsertEntries,
   validateLineupPlayers,
 } from "@/entities/game";
@@ -54,18 +55,15 @@ export class CreateSetUseCase implements ICreateSetUseCase {
     validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
 
     const startingLineups = { home: data.lineup };
-    const started = upsertEntries({ startingLineups, entries: [] }, []);
-    if ("invalid" in started)
-      throw new ValidationError(
-        GameReason.INVALID_SUBSTITUTION,
-        "The starting lineup invalidates a recorded substitution",
-      );
+    // No entries, so nothing can be refused and the lineups are always derived.
+    const { lineups } = upsertEntries({ startingLineups, entries: [] }, [])
+      .set as { lineups: SetLineups };
     return this.gameRepository.addSet(
       params,
       {
         win: null,
         startingLineups,
-        lineups: started.set.lineups,
+        lineups,
         options: data.options,
         entries: [],
       },

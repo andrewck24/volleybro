@@ -427,8 +427,6 @@ export function deriveSetPhase(
   return { isSetInProgress: true, isSetPoint: false };
 }
 
-// The repository writes entries by this same rule; the two must not diverge.
-// See ADR-0024.
 function mergeEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
@@ -452,11 +450,9 @@ export type LineupEntry = {
   players?: { in: string; out: string };
 };
 
-export type LineupRecomputation<T extends LineupEntry> = {
+type LineupRecomputation<T extends LineupEntry> = {
   /** The lineups after every valid substitution has been applied. */
   lineups: SetLineups;
-  /** For each entry's seq, the lineups in effect just before it happens. */
-  atSeq: ReadonlyMap<number, SetLineups>;
   /** The first substitution, in seq order, the lineup cannot apply. */
   invalid?: T;
 };
@@ -511,19 +507,17 @@ function recomputeLineups<T extends LineupEntry>(
   entries: readonly T[],
 ): LineupRecomputation<T> {
   let lineups = startingLineups;
-  const atSeq = new Map<number, SetLineups>();
 
   for (const entry of [...entries].sort((a, b) => a.seq - b.seq)) {
-    atSeq.set(entry.seq, lineups);
     if (entry.type !== EntryType.SUBSTITUTION || !entry.players) continue;
 
     const side = entry.team === Side.AWAY ? "away" : "home";
     const next = applySubstitution(lineups[side], entry.players, entry.seq);
-    if (!next) return { lineups, atSeq, invalid: entry };
+    if (!next) return { lineups, invalid: entry };
     lineups = { ...lineups, [side]: next };
   }
 
-  return { lineups, atSeq };
+  return { lineups };
 }
 
 /** What an entry write needs of an entry: identity, ordering, lineup and score structure. */
