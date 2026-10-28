@@ -4,7 +4,7 @@
   "title": "Entry write rules live in one entities module that client and server both call",
   "capabilities": ["game-recording/persistence", "platform/clean-architecture"],
   "context": "The rules for what a batch of entry writes makes of a set were spread over the Mongo adapter (create, resend, edit, recorder), the client's optimistic updates and the pending queue merge. Each caller had to remember to merge entries, recompute the Current lineup and handle an invalid substitution in that order, and the client and server agreed only through comments.",
-  "decision": "Two functions in entities own the rules and are the only entry write surface. upsertEntries(set, entries) is shared by client and server: it overwrites by id, orders by seq, recomputes the Current lineup, and returns the set, or the first refused substitution with the score before it and the merged set carrying the lineups the set already had. planEntryUpserts(set, writes, operator) is server only: it classifies each write as create, creation resend or edit, stamps the recorder and last editor, and calls upsertEntries. The merge and the lineup recomputation are private to the module. The recorder is decided only on the server from the session; the client stamps nothing. Each caller decides what an invalid result means: the server throws INVALID_SUBSTITUTION, the client stops a substitution before the optimistic update, and the pending queue shows the entries with the last valid lineup. The Mongo adapter only turns steps into positional writes and guards ver. The client calls entities directly and has no use case layer, because that layer would only forward the call.",
+  "decision": "Two functions in entities own the rules and are the only entry write surface. upsertEntries(set, entries) is shared by client and server: it overwrites by id, orders by seq, recomputes the Current lineup, and returns the set, or the first refused substitution with the score before it and the merged set carrying the lineups the set already had. planEntryUpserts(set, writes, operator) is server only: it classifies each write as create, creation resend or edit, stamps the recorder and last editor, and calls upsertEntries. The merge and the lineup recomputation are private to the module. The recorder is decided only on the server from the session; the client stamps nothing. The Mongo adapter only turns steps into positional writes and guards ver.",
   "alternatives": [
     {
       "option": "Keep merge and lineup recomputation exported and let each caller compose them",
@@ -20,6 +20,7 @@
     }
   ],
   "consequences": [
+    "Each caller decides what an invalid result means: the server throws INVALID_SUBSTITUTION, the client stops a substitution before the optimistic update, and the pending queue shows the entries with the last valid lineup.",
     "Create, resend, edit, recorder and invalid rules are proven by entities unit tests without a database; integration tests keep only Mongo behavior such as ver conflicts and all-or-nothing batches.",
     "The set returned beside a refusal lets the pending queue keep showing entries when another recorder's write makes a queued substitution invalid."
   ],

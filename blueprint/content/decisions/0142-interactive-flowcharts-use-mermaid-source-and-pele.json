@@ -27,7 +27,7 @@
     "Diagram layout can change while labels, edges, IDs and meaningful details remain intact.",
     "New content uses the target format directly; production activation requires verified conversion of existing data.",
     "The renderer remains client-side and does not add request-time SSR or D1 work.",
-    "For a layered diagram, group nodes in one subgraph per layer and check the rendered rows keep the intended top-down order before choosing SVG; the entry write flow on the persistence Feature page holds its layers in Mermaid."
+    "For a layered diagram, group nodes in one subgraph per layer and check the rendered rows keep the intended top-down order before choosing SVG."
   ],
   "revisitTriggers": [
     "Pele cannot express a required interactive flow without a permanent compatibility layer.",
