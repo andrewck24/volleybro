@@ -17,7 +17,7 @@ const meta = {
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="flex size-full max-w-160 flex-col items-center justify-start p-4">
+      <div className="mx-auto flex size-full max-w-160 flex-col items-center justify-start p-4">
         <Story />
       </div>
     ),

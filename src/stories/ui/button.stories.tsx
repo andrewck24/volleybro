@@ -11,6 +11,18 @@ const children = (
   </>
 );
 
+const variants = [
+  "default",
+  "destructive",
+  "court",
+  "outline",
+  "secondary",
+  "ghost",
+  "link",
+  "glass",
+  "segmented",
+] as const;
+
 // More on how to set up stories at: https://storybook.js.org/docs/writing-stories#default-export
 const meta = {
   title: "Design System/Atoms/Button",
@@ -24,17 +36,7 @@ const meta = {
   // More on argTypes: https://storybook.js.org/docs/api/argtypes
   argTypes: {
     variant: {
-      options: [
-        "default",
-        "destructive",
-        "court",
-        "outline",
-        "secondary",
-        "ghost",
-        "link",
-        "glass",
-        "segmented",
-      ],
+      options: variants,
       control: { type: "select" },
     },
     size: {
@@ -54,32 +56,38 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
-export const Default: Story = { args: { variant: "default" } };
-export const Destructive: Story = { args: { variant: "destructive" } };
-export const Outline: Story = { args: { variant: "outline" } };
-export const Secondary: Story = { args: { variant: "secondary" } };
-export const Ghost: Story = { args: { variant: "ghost" } };
-export const Link: Story = { args: { variant: "link" } };
-export const Disabled: Story = { args: { disabled: true } };
+export const Default: Story = {};
 
-export const IconOnly: Story = {
-  args: {
-    size: "icon",
-    children: <RiHome2Fill />,
-  },
+// One snapshot per look instead of one story per variant.
+export const Variants: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-center gap-2">
+      {variants.map((variant) => (
+        <Button key={variant} {...args} variant={variant}>
+          {variant}
+        </Button>
+      ))}
+    </div>
+  ),
 };
 
-export const Loading: Story = {
-  args: { loading: true, loadingText: "Saving..." },
-};
-
-export const LoadingDestructive: Story = {
-  args: { variant: "destructive", loading: true, loadingText: "Deleting..." },
-};
-
-// loadingText omitted on purpose: children (icon + label) fall back into the
-// loading state, producing a spinner next to the original icon.
-export const LoadingWithoutLoadingText: Story = {
-  args: { loading: true },
+export const States: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button {...args} disabled />
+      <Button {...args} size="icon">
+        <RiHome2Fill />
+      </Button>
+      <Button {...args} loading loadingText="Saving..." />
+      <Button
+        {...args}
+        variant="destructive"
+        loading
+        loadingText="Deleting..."
+      />
+      {/* No loadingText: children (icon + label) fall back into the loading
+          state, so a spinner sits next to the original icon. */}
+      <Button {...args} loading />
+    </div>
+  ),
 };
