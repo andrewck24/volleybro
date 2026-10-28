@@ -17,47 +17,39 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
+export const States: Story = {
   render: () => (
-    <Select>
-      <SelectTrigger className="w-50">
-        <SelectValue placeholder="Select..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="1">Option 1</SelectItem>
-        <SelectItem value="2">Option 2</SelectItem>
-        <SelectItem value="3">Option 3</SelectItem>
-      </SelectContent>
-    </Select>
-  ),
-};
-
-export const WithDefaultValue: Story = {
-  render: () => (
-    <Select defaultValue="2">
-      <SelectTrigger className="w-50">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="1">Option 1</SelectItem>
-        <SelectItem value="2">Option 2</SelectItem>
-        <SelectItem value="3">Option 3</SelectItem>
-      </SelectContent>
-    </Select>
-  ),
-};
-
-export const Disabled: Story = {
-  render: () => (
-    <Select disabled>
-      <SelectTrigger className="w-50">
-        <SelectValue placeholder="Select..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="1">Option 1</SelectItem>
-        <SelectItem value="2">Option 2</SelectItem>
-        <SelectItem value="3">Option 3</SelectItem>
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col gap-3">
+      <Select>
+        <SelectTrigger className="w-50">
+          <SelectValue placeholder="Select..." />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="1">Option 1</SelectItem>
+          <SelectItem value="2">Option 2</SelectItem>
+          <SelectItem value="3">Option 3</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select defaultValue="2">
+        <SelectTrigger className="w-50">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="1">Option 1</SelectItem>
+          <SelectItem value="2">Option 2</SelectItem>
+          <SelectItem value="3">Option 3</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select disabled>
+        <SelectTrigger className="w-50">
+          <SelectValue placeholder="Select..." />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="1">Option 1</SelectItem>
+          <SelectItem value="2">Option 2</SelectItem>
+          <SelectItem value="3">Option 3</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
   ),
 };

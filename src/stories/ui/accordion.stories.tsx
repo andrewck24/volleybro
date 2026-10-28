@@ -39,18 +39,3 @@ export const Single: Story = {
     </Accordion>
   ),
 };
-
-export const Multiple: Story = {
-  render: () => (
-    <Accordion type="multiple" className="w-80">
-      <AccordionItem value="item-1">
-        <AccordionTrigger>Section One</AccordionTrigger>
-        <AccordionContent>Content for section one.</AccordionContent>
-      </AccordionItem>
-      <AccordionItem value="item-2">
-        <AccordionTrigger>Section Two</AccordionTrigger>
-        <AccordionContent>Content for section two.</AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  ),
-};

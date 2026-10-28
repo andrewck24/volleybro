@@ -44,29 +44,6 @@ export const Default: Story = {
   ),
 };
 
-export const Large: Story = {
-  render: () => (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button>Large Dialog</Button>
-      </DialogTrigger>
-      <DialogContent size="lg">
-        <DialogHeader>
-          <DialogTitle>Large Dialog</DialogTitle>
-          <DialogDescription>
-            This is an example of a full-screen dialog
-          </DialogDescription>
-        </DialogHeader>
-        <DialogBody>More content can be placed here</DialogBody>
-        <DialogFooter>
-          <Button variant="secondary">Cancel</Button>
-          <Button>Confirm</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  ),
-};
-
 export const LongContent: Story = {
   render: () => (
     <Dialog>

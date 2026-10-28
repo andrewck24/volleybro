@@ -50,20 +50,3 @@ export const Range: Story = {
     );
   },
 };
-
-export const WithDisabledDates: Story = {
-  render: function CalendarDisabledExample() {
-    const [date, setDate] = useState<Date | undefined>(FIXED_DATE);
-    return (
-      <Calendar
-        mode="single"
-        selected={date}
-        onSelect={setDate}
-        defaultMonth={FIXED_DATE}
-        today={FIXED_DATE}
-        disabled={{ dayOfWeek: [0, 6] }}
-        className="rounded-md border"
-      />
-    );
-  },
-};

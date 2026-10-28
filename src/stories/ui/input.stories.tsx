@@ -11,23 +11,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  render: () => <Input placeholder="Enter text..." className="w-75" />,
-};
-
-export const WithValue: Story = {
-  render: () => <Input defaultValue="Default text" className="w-75" />,
-};
-
-export const Disabled: Story = {
-  render: () => <Input disabled value="Disabled state" className="w-75" />,
-};
-
-export const LongValue: Story = {
+export const States: Story = {
   render: () => (
-    <Input
-      defaultValue="This is a very long input value that exceeds the visible width of the input field to demonstrate text overflow behavior"
-      className="w-75"
-    />
+    <div className="flex w-75 flex-col gap-3">
+      <Input placeholder="Enter text..." />
+      <Input defaultValue="Default text" />
+      <Input disabled value="Disabled state" />
+      <Input defaultValue="This is a very long input value that exceeds the visible width of the input field to demonstrate text overflow behavior" />
+    </div>
   ),
 };

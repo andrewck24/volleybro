@@ -28,19 +28,3 @@ export const Default: Story = {
     </Popover>
   ),
 };
-
-export const WithTitle: Story = {
-  render: () => (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline">Open</Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <h4 className="mb-2 leading-none font-medium">Settings</h4>
-        <p className="text-sm text-muted-foreground">
-          Manage your account settings and preferences.
-        </p>
-      </PopoverContent>
-    </Popover>
-  ),
-};
