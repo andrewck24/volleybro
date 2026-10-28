@@ -15,7 +15,15 @@ import {
   FormRadioGroup,
   FormRadioItem,
 } from "@/components/ui/form";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import {
+  Item,
+  ItemAvatar,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { useToast } from "@/components/ui/use-toast";
 import { useGame } from "@/hooks/use-data";
 import { getSetOptions } from "@/lib/features/game/helpers";
@@ -109,7 +117,7 @@ export const Options = ({ gameId }: { gameId: string }) => {
             <div className="flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-scroll">
               <ServingTeam form={form} />
               <LiberoReplaceTrigger />
-              <SubstitutesTable members={members} />
+              <SubstitutesList members={members} />
             </div>
             <DialogFooter>
               <ActionButton
@@ -154,7 +162,7 @@ const ServingTeam = ({
   );
 };
 
-const SubstitutesTable = ({ members }: { members: GamePlayerView[] }) => {
+const SubstitutesList = ({ members }: { members: GamePlayerView[] }) => {
   const { lineups } = useAppSelector((state) => state.lineup);
   const liberoCount = lineups[0]?.liberos.length ?? 0;
   const substituteCount = lineups[0]?.substitutes.length;
@@ -167,26 +175,26 @@ const SubstitutesTable = ({ members }: { members: GamePlayerView[] }) => {
           替補名單 ({substituteCount}/{substituteLimit})
         </CardTitle>
       </CardHeader>
-      <Table>
-        <TableBody className="text-xl">
-          {lineups[0]?.substitutes &&
-            lineups[0].substitutes.map((player) => {
-              const member = members?.find((m) => m.id === player.id);
-              if (!member) return null;
-              return (
-                <TableRow key={member.id}>
-                  <TableCell className="w-6 [&>svg]:size-6">
-                    <RiUserLine />
-                  </TableCell>
-                  <TableCell className="w-10 text-left">
-                    {member?.number}
-                  </TableCell>
-                  <TableCell className="text-lg">{member?.name}</TableCell>
-                </TableRow>
-              );
-            })}
-        </TableBody>
-      </Table>
+      <ItemGroup className="w-full">
+        {lineups[0]?.substitutes &&
+          lineups[0].substitutes.map((player) => {
+            const member = members?.find((m) => m.id === player.id);
+            if (!member) return null;
+            return (
+              <Item key={member.id}>
+                <ItemMedia variant="image">
+                  <ItemAvatar alt={member?.name} fallback={<RiUserLine />} />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle className="h-6">{member?.name}</ItemTitle>
+                  <ItemDescription className="h-6">
+                    {member?.number != null && `#${member.number}`}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+            );
+          })}
+      </ItemGroup>
     </section>
   );
 };
