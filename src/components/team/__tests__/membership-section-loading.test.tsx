@@ -177,6 +177,7 @@ describe("MembershipSection — owner badge", () => {
       isSelf: false,
     });
 
+    expect(screen.getByText("管理員")).toBeInTheDocument();
     expect(screen.queryByText("擁有者")).not.toBeInTheDocument();
   });
 });

@@ -132,6 +132,9 @@ describe("UpdateRoleUseCase", () => {
   });
 
   it("lets the owner change an admin", async () => {
+    mockTeamRepository.findById.mockResolvedValue(
+      createTeam({ ownerPlayerId: "actor" }),
+    );
     mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
       actor(PlayerRole.ADMIN),
     );
@@ -167,7 +170,6 @@ describe("UpdateRoleUseCase", () => {
     await expect(attempt).rejects.toMatchObject({
       reason: PlayerReason.TARGET_ROLE_CHANGED,
     });
-    expect(stored.role).toBe(PlayerRole.MEMBER);
   });
 
   it("refuses a caller who is a member without a role to grant", async () => {

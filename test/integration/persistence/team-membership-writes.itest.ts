@@ -161,7 +161,7 @@ describe("player writes leave the roster readable", () => {
     expect(left).not.toHaveProperty("email");
   });
 
-  it("reads a stored owner back as a joined admin", async () => {
+  it("reads a joined admin back with its role", async () => {
     expect(await players().findById(ownerId)).toMatchObject({
       status: PlayerStatus.JOINED,
       role: PlayerRole.ADMIN,

@@ -122,6 +122,9 @@ describe("RemovePlayerUseCase", () => {
   });
 
   it("lets the owner delete an admin", async () => {
+    mockTeamRepository.findById.mockResolvedValue(
+      createTeam({ ownerPlayerId: "actor" }),
+    );
     mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
       actor(PlayerRole.ADMIN),
     );

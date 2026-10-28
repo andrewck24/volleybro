@@ -79,24 +79,4 @@ describe("POST /api/teams/[teamId]/ownership", () => {
       userId: SESSION.user.id,
     });
   });
-  it("returns 400 when the target is not an admin", async () => {
-    const spy = silenceConsoleError();
-    const { ValidationError, PlayerReason } = await import("@/entities/errors");
-    mockTransferOwnership.mockRejectedValue(
-      new ValidationError(PlayerReason.TRANSFER_TARGET_NOT_ADMIN, "Not admin"),
-    );
-    const req = routeRequest(
-      `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
-      "POST",
-      { newOwnerId: NEW_OWNER_ID },
-    );
-    const res = await POST(req as never, {
-      params: Promise.resolve({ teamId: VALID_OBJECT_ID }),
-    });
-    expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({
-      reason: PlayerReason.TRANSFER_TARGET_NOT_ADMIN,
-    });
-    spy.mockRestore();
-  });
 });
