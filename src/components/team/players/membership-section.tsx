@@ -212,7 +212,7 @@ export function MembershipSection({
                       確定要將隊伍所有權移轉給 {player.name} 嗎？
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      移轉後你將被降級為管理員，{player.name} 將成為新擁有者。
+                      移轉後 {player.name} 將成為新擁有者，你仍保有管理員身分。
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   {transferError && <ErrorNotice message={transferError} />}
