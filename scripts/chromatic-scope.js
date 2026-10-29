@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
@@ -225,11 +226,87 @@ function protectedGraph(lock) {
     }
   }
 
-  return stable({
-    environment: lock.lockfileVersion,
-    importer: rootProtectedImporter(importer),
-    packages,
-  });
+  return { importer: rootProtectedImporter(importer), packages };
+}
+
+// The name ends at the first "@" after a scope; peer suffixes and git or
+// tarball references can carry more "@" after it.
+function packageName(locator) {
+  const at = locator.indexOf("@", 1);
+  if (at <= 0) throw new Error(`unrecognised package locator: ${locator}`);
+  return locator.slice(0, at);
+}
+
+const preview = (names) => names.slice(0, 4).join(", ");
+
+function packagesByName(packages) {
+  const byName = new Map();
+  for (const [locator, entry] of Object.entries(packages)) {
+    const name = packageName(locator);
+    byName.set(name, [...(byName.get(name) ?? []), stable({ locator, entry })]);
+  }
+  for (const entries of byName.values()) entries.sort();
+  return byName;
+}
+
+// Names of packages that changed version while the root dependencies and the
+// set of package names stayed put; null when the change is anything wider.
+function transitiveOnlyChanges(baseGraph, headGraph) {
+  if (stable(baseGraph.importer) !== stable(headGraph.importer)) return null;
+  const base = packagesByName(baseGraph.packages);
+  const head = packagesByName(headGraph.packages);
+  if (base.size !== head.size || [...base.keys()].some((n) => !head.has(n)))
+    return null;
+  const changed = [...base.keys()].filter(
+    (name) => stable(base.get(name)) !== stable(head.get(name)),
+  );
+  return changed.length ? changed.sort() : null;
+}
+
+// Build tooling shapes Storybook output without showing up as bundled modules.
+const TOOLCHAIN_PATTERNS = [
+  /^react$/,
+  /^react-dom$/,
+  /^next$/,
+  /^storybook$/,
+  /^@storybook\//,
+  /^tailwindcss$/,
+  /^@tailwindcss\//,
+  /^postcss(?:-|$)/,
+  /^lightningcss(?:-|$)/,
+  /^@swc\//,
+  /^@babel\//,
+  /^webpack$/,
+  /^browserslist$/,
+  /^caniuse-lite$/,
+  /^autoprefixer$/,
+];
+
+const MAX_STATS_DEPTH = 8;
+
+// Reads the stats as data only; any unexpected shape throws, and assess()
+// treats that as "run the build".
+function bundledPackages(statsPath) {
+  const stats = JSON.parse(readFileSync(statsPath, "utf8"));
+  const names = new Set();
+  const visit = (modules, depth) => {
+    if (!Array.isArray(modules)) throw new Error("stats modules is not a list");
+    if (depth > MAX_STATS_DEPTH) throw new Error("stats modules nest too deep");
+    for (const entry of modules) {
+      if (!entry || typeof entry !== "object")
+        throw new Error("stats module is not an object");
+      for (const field of [entry.name, entry.identifier]) {
+        if (typeof field !== "string") continue;
+        for (const [, name] of field.matchAll(
+          /node_modules\/((?:@[^/!?|]+\/)?[^/!?|.@][^/!?|]*)\//g,
+        ))
+          names.add(name);
+      }
+      if (entry.modules !== undefined) visit(entry.modules, depth + 1);
+    }
+  };
+  visit(stats?.modules, 0);
+  return names;
 }
 
 // Known metadata that cannot change what Storybook bundles. Any other field,
@@ -347,7 +424,7 @@ function runGit(args, cwd) {
   });
 }
 
-function assess({ base: target, head, force = false }) {
+function assess({ base: target, head, stats, force = false }) {
   const cwd = process.cwd();
   if (force) return { skip: false, reason: "forced by --force" };
   if (
@@ -374,7 +451,7 @@ function assess({ base: target, head, force = false }) {
     if (unknown.length)
       return {
         skip: false,
-        reason: `visual or unclassified changes: ${unknown.slice(0, 4).join(", ")}`,
+        reason: `visual or unclassified changes: ${preview(unknown)}`,
       };
 
     if (paths.includes("package.json") || paths.includes("pnpm-lock.yaml")) {
@@ -395,8 +472,33 @@ function assess({ base: target, head, force = false }) {
       }
       if (baseManifest !== headManifest)
         return { skip: false, reason: "protected package manifest changed" };
-      if (protectedGraph(baseLock.lock) !== protectedGraph(headLock.lock)) {
-        return { skip: false, reason: "protected dependency graph changed" };
+      const baseGraph = protectedGraph(baseLock.lock);
+      const headGraph = protectedGraph(headLock.lock);
+      if (stable(baseGraph) !== stable(headGraph)) {
+        const changed = transitiveOnlyChanges(baseGraph, headGraph);
+        if (!changed)
+          return { skip: false, reason: "protected dependency graph changed" };
+        if (!stats)
+          return {
+            skip: false,
+            isStatsRequired: true,
+            reason: `transitive dependency changes need Storybook stats: ${preview(changed)}`,
+          };
+        const bundled = bundledPackages(stats);
+        const reached = changed.filter(
+          (name) =>
+            bundled.has(name) ||
+            TOOLCHAIN_PATTERNS.some((pattern) => pattern.test(name)),
+        );
+        if (reached.length)
+          return {
+            skip: false,
+            reason: `changed packages reach the Storybook build: ${preview(reached)}`,
+          };
+        return {
+          skip: true,
+          reason: `changed transitive packages stay out of the Storybook build: ${preview(changed)}`,
+        };
       }
     }
     return {
@@ -417,6 +519,7 @@ function argsFrom(argv) {
     if (argv[i] === "--force") args.force = true;
     else if (argv[i] === "--base") args.base = argv[++i];
     else if (argv[i] === "--head") args.head = argv[++i];
+    else if (argv[i] === "--stats") args.stats = argv[++i];
     else throw new Error(`unknown argument: ${argv[i]}`);
   }
   return args;
@@ -431,7 +534,10 @@ async function main() {
   }
   const line = `skip=${result.skip}\n`;
   if (process.env.GITHUB_OUTPUT)
-    await appendFile(process.env.GITHUB_OUTPUT, line);
+    await appendFile(
+      process.env.GITHUB_OUTPUT,
+      `${line}needs_stats=${Boolean(result.isStatsRequired)}\n`,
+    );
   console.log(`${line.trim()} reason=${result.reason}`);
 }
 
