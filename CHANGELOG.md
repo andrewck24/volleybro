@@ -1,5 +1,17 @@
 # VolleyBro CHANGELOG
 
+## [0.19.1](https://github.com/andrewck24/volleybro/compare/v0.19.0...v0.19.1) 2026-10-30
+
+### Changed
+
+#### UI
+
+- A loading button without loading text keeps its label and shows the spinner in its icon's place, so its width holds
+
+#### Team
+
+- The lineup panel's substitute and unselected lists show each player like the players list, with an avatar, the name and the number, and the player info shows each field on its own row
+
 ## [0.19.0](https://github.com/andrewck24/volleybro/compare/v0.18.5...v0.19.0) 2026-10-28
 
 ### Added
