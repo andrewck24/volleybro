@@ -238,6 +238,8 @@ The specimens demonstrate the current scale; the frontmatter captures its reusab
 
 The phone at the sideline is the reference device, followed by the laptop after a match. Preserve scanability in dense recording and list surfaces. Spacing follows Tailwind's 0.25rem base; use numeric utilities such as `p-2`, `gap-4` and `pb-21`, rather than arbitrary pixel spacing. Safe-area or computed layout expressions remain valid when a numeric utility cannot represent them.
 
+Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
+
 Common app specimens include court/panel gaps (`gap-1` / `gap-2`), the drawer peek reservation (`pb-21`) and the fixed-header reservation plus safe area. These are examples, not new global spacing tokens. SwiftUI correspondence: layout spacing, safe-area handling and adaptive layouts.
 
 ### Breakpoints
