@@ -6,12 +6,12 @@
 | Specification           | The Linear execution issue description                            | Mutable until G1 (the `ready-for-human` → `ready-for-agent` label switch). Renew G1 for substantive spec changes. |
 | Change page (on demand) | One EmDash entry, only for a major UI or Pele-flowchart Change    | Draft and signed private preview before publication; publish after G1. Renew G1 for substantive content changes.  |
 | Research                | Owning-Team Linear Doc                                            | Preserve cited findings, evidence gaps and dissent; promote only adopted knowledge to its repository authority.   |
-| G2 evidence             | GitHub PR and exact reviewed head                                 | PR records the execution issue, verification and review results. G2 does not republish a Change page.             |
+| G2 evidence             | GitHub PR and exact reviewed head                                 | PR records the execution issue and the fields required by `WORKFLOW.md` G2. G2 does not republish a Change page.  |
 | Canonical current       | Features, Design System authority, glossary, ADRs, code and tests | Update affected knowledge on the delivery branch before PR/G2; later changes explicitly supersede it.             |
 
 ## G2 evidence retention
 
-G2 evidence lives in the GitHub PR: reviewed head, verification and review results. The developer's explicit instruction to merge and clean up authorizes that exact reviewed revision; a direct human merge also constitutes acceptance. Native PR merge identity and Git ancestry prove completion. Do not add a second G2 event receiver, bot receipt or repository copy of the complete specification.
+G2 evidence lives in the GitHub PR; `WORKFLOW.md` G2 owns its required revision, acceptance, review, measurement, `Evidence` and `Merge Danger` fields. The developer's explicit instruction to merge and clean up authorizes that exact reviewed revision; a direct human merge also constitutes acceptance. Native PR merge identity and Git ancestry prove completion. Do not add a second G2 event receiver, bot receipt or repository copy of the complete specification.
 
 Preserve the operational authorization and PR identity on the execution issue. Mark the issue Done and its checklist items completed only after merge. Platform credentials, Cloudflare resource creation, production activation remain separate approval/cleanup actions when their gate is not part of the accepted G1. Production activation requires separate approval after G2.
 
