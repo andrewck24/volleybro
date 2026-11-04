@@ -7,6 +7,10 @@ import {
   run,
   updateApi,
   ciScopeJob,
+  JOB,
+  isProducerStep,
+  producerStep,
+  sourceTreeStep,
   prepareAcceptedRelease,
 } from "../../test/support/release-controls-fixture.js";
 
@@ -246,8 +250,8 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
     jobs: {
       ...api.jobs,
       77: [
-        ciScopeJob(f.git, 601, "Test", f.head),
-        ciScopeJob(f.git, 602, "Integration", f.head),
+        ciScopeJob(f.git, 601, JOB.unit, f.head),
+        ciScopeJob(f.git, 602, JOB.integration, f.head),
       ],
     },
   });
@@ -258,8 +262,8 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
   assert.equal(receipt.sourceQA.scopes.integration.kind, "ci-reuse");
 
   for (const marker of [
-    `Source tree ${f.git(["rev-parse", `${f.deployed}^{tree}`])} at ${f.deployed}`,
-    `Source tree ${f.git(["rev-parse", `${f.merge}^{tree}`])} at ${f.deployed}`,
+    sourceTreeStep(f.git(["rev-parse", `${f.deployed}^{tree}`]), f.deployed),
+    sourceTreeStep(f.git(["rev-parse", `${f.merge}^{tree}`]), f.deployed),
   ]) {
     const current = JSON.parse(await readFile(f.statePath, "utf8"));
     await updateApi(f, {
@@ -268,9 +272,7 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
         77: current.jobs[77].map((job) => ({
           ...job,
           steps: [
-            job.steps.find((step) =>
-              step.name.startsWith("Producer workflow "),
-            ),
+            job.steps.find(isProducerStep),
             { name: marker, status: "completed", conclusion: "success" },
           ],
         })),
@@ -284,7 +286,7 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
   await updateApi(f, {
     jobs: {
       ...valid.jobs,
-      77: ["Test", "Integration"].map((name, index) =>
+      77: [JOB.unit, JOB.integration].map((name, index) =>
         ciScopeJob(f.git, 601 + index, name, f.head),
       ),
     },
@@ -304,7 +306,7 @@ test("source QA fails when unit or integration CI evidence is missing", async (t
   const f = await fixture(t);
   assert.equal(run(f, "stage").status, 0);
   const api = JSON.parse(await readFile(f.statePath, "utf8"));
-  for (const missing of ["Test", "Integration"]) {
+  for (const missing of [JOB.unit, JOB.integration]) {
     await updateApi(f, {
       jobs: {
         ...api.jobs,
@@ -331,9 +333,7 @@ test("owner CI correction proves an unchanged old application tree with the trus
   const jobs = api.jobs[77].map((job) => ({
     ...job,
     steps: job.steps.map((step) =>
-      step.name.startsWith("Producer workflow ")
-        ? { ...step, name: `Producer workflow ${f.deployed}` }
-        : step,
+      isProducerStep(step) ? { ...step, name: producerStep(f.deployed) } : step,
     ),
   }));
   await updateApi(f, {

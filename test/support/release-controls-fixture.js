@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import {
   mkdtemp,
   mkdir,
@@ -11,10 +12,54 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 
 export const cli =
   process.env.RELEASE_TEST_CLI ||
   fileURLToPath(new URL("../../scripts/release-controls.js", import.meta.url));
+
+// Names the controller matches on are read from the real workflows, so a rename cannot leave the fake API behind.
+const jobsOf = (file) =>
+  parseYaml(
+    readFileSync(
+      new URL(`../../.github/workflows/${file}`, import.meta.url),
+      "utf8",
+    ),
+  ).jobs;
+const ci = jobsOf("ci.yml");
+const release = jobsOf("production-release.yml");
+const fill = (template, ...values) =>
+  values.reduce(
+    (text, value) => text.replace(/\$\{\{.*?\}\}/, value),
+    template,
+  );
+const markerName = (prefix) => {
+  const [name, other] = [ci.test, ci.integration].map(
+    (job) => job.steps.find((step) => step.name?.startsWith(prefix)).name,
+  );
+  assert.equal(other, name);
+  return name;
+};
+export const JOB = {
+  verify: ci.verify.name,
+  unit: ci.test.name,
+  integration: ci.integration.name,
+  smoke: release["production-smoke"].name,
+  classify: release["classify-production-smoke"].name,
+  smokeAcceptance: release["accept-production-smoke"].name,
+  qa: release["production-acceptance"].name,
+  compatibility: release["recovery-evidence"].name,
+  compatibilityStep: release["recovery-evidence"].steps.find(
+    (step) => step.id === "compatibility",
+  ).name,
+  // GitHub reports an unnamed job by its id.
+  finalize: release["finalize-release"].name ?? "finalize-release",
+};
+export const producerStep = (sha) => fill(markerName("Producer workflow"), sha);
+export const isProducerStep = (step) =>
+  step.name.startsWith(markerName("Producer workflow").split("${{")[0]);
+export const sourceTreeStep = (tree, sha) =>
+  fill(markerName("Source tree"), tree, sha);
 
 const lockfile = (version) =>
   `packages:\n\n  better-auth@${version}:\n    resolution: {}\n`;
@@ -191,7 +236,7 @@ export async function fixture(
       },
       checks: [
         {
-          name: "Verify",
+          name: JOB.verify,
           head_sha: head,
           app: { id: 15368 },
           status: "completed",
@@ -256,7 +301,7 @@ export async function fixture(
       },
       jobs: {
         9: [],
-        77: ["Test", "Integration"].map((name, index) =>
+        77: [JOB.unit, JOB.integration].map((name, index) =>
           ciScopeJob(git, 601 + index, name, merge),
         ),
       },
@@ -417,8 +462,8 @@ export function ciScopeJob(git, id, name, source) {
   return {
     ...workflowJob(id, name),
     steps: [
-      `Producer workflow ${source}`,
-      `Source tree ${git(["rev-parse", `${source}^{tree}`])} at ${source}`,
+      producerStep(source),
+      sourceTreeStep(git(["rev-parse", `${source}^{tree}`]), source),
     ].map((name) => ({ name, status: "completed", conclusion: "success" })),
   };
 }
@@ -454,7 +499,7 @@ export async function prepareSourceRelease(
       runs: { ...api.runs, 77: ciRun },
       jobs: {
         ...api.jobs,
-        77: ["Test", "Integration"].map((name, index) =>
+        77: [JOB.unit, JOB.integration].map((name, index) =>
           ciScopeJob(f.git, 601 + index, name, sourceSha),
         ),
       },
@@ -486,8 +531,8 @@ export async function prepareFinalRelease(f) {
       ...api.jobs,
       9: [
         ...api.jobs[9],
-        workflowJob(504, "Accept production QA", "in_progress", null),
-        workflowJob(505, "Accept production smoke", "completed", "skipped"),
+        workflowJob(504, JOB.qa, "in_progress", null),
+        workflowJob(505, JOB.smokeAcceptance, "completed", "skipped"),
       ],
     },
     approvals: { ...api.approvals, 9: [...api.approvals[9], approval("qa")] },
