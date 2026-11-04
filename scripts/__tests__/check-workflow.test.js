@@ -161,6 +161,14 @@ test("reports a delivery profile without a version", async () => {
   );
 });
 
+test("reports a delivery profile version other than 1", async () => {
+  const workflow = validWorkflow.replace("version: 1", "version: 2");
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /WORKFLOW\.md \[delivery-profile\]: delivery\.version must be 1; received 2/,
+  );
+});
+
 test("reports a provider bridge without the canonical pointer", async () => {
   assert.match(
     (await messages({ "AGENTS.md": "Repository instructions.\n" })).join("\n"),
@@ -241,6 +249,28 @@ test("reports a broken provider skill bridge", async () => {
   const root = await makeRepository();
   await rm(path.join(root, ".agents/skills/to-spec"), { recursive: true });
   assert.match((await checkWorkflow(root)).join("\n"), /missing or broken/i);
+});
+
+test("reports a provider skill bridge that is not a symlink", async () => {
+  const root = await makeRepository();
+  const bridge = path.join(root, ".claude/skills/to-spec");
+  await rm(bridge);
+  await mkdir(bridge);
+  assert.match(
+    (await checkWorkflow(root)).join("\n"),
+    /\.claude\/skills\/to-spec \[shared-skills\]: provider skill bridge must be a symlink/,
+  );
+});
+
+test("reports a provider skill bridge that targets another directory", async () => {
+  const root = await makeRepository();
+  const bridge = path.join(root, ".claude/skills/to-spec");
+  await rm(bridge);
+  await symlink("../../.agents/skills", bridge);
+  assert.match(
+    (await checkWorkflow(root)).join("\n"),
+    /\.claude\/skills\/to-spec \[shared-skills\]: symlink must target \.agents\/skills\/to-spec/,
+  );
 });
 
 test("reports an installed skill without an adapter row", async () => {
