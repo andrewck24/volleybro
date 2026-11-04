@@ -214,16 +214,30 @@ function parseDeliveryProfile(content) {
   if (closingIndex === -1)
     throw new Error("front matter closing delimiter is missing");
 
-  const frontMatter = lines.slice(1, closingIndex).join("\n");
-  const delivery = parse(frontMatter)?.delivery;
+  const document = parse(lines.slice(1, closingIndex).join("\n"));
+  const delivery = document?.delivery;
   if (delivery?.version === undefined)
     throw new Error("delivery.version is missing");
 
   return {
     version: delivery.version,
     capabilities: delivery.capabilities ?? {},
-    frontMatter,
+    document,
   };
+}
+
+function findDurableTextKey(node) {
+  if (node === null || typeof node !== "object") return undefined;
+  for (const [key, value] of Object.entries(node)) {
+    if (
+      !Array.isArray(node) &&
+      /^(prompt|response|reasoning|transcript)(?:_[a-z_]+)?$/i.test(key)
+    )
+      return key;
+    const nested = findDurableTextKey(value);
+    if (nested) return nested;
+  }
+  return undefined;
 }
 
 function validateProfile(profile) {
@@ -253,12 +267,10 @@ function validateProfile(profile) {
     }
   }
 
-  const durableTextField = profile.frontMatter.match(
-    /^\s*(prompt|response|reasoning|transcript)(?:_[a-z_]+)?\s*:/im,
-  );
+  const durableTextField = findDurableTextKey(profile.document);
   if (durableTextField) {
     diagnostics.push(
-      `WORKFLOW.md [ephemeral_text]: durable provider-text field ${durableTextField[1]} is forbidden`,
+      `WORKFLOW.md [ephemeral_text]: durable provider-text field ${durableTextField} is forbidden`,
     );
   }
 

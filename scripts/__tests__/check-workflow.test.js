@@ -121,7 +121,7 @@ test("reports a delivery adapter other than the required one", async () => {
   );
 });
 
-test("reads the delivery profile as YAML, however it is spelled", async () => {
+test("reads inline comments and flow mappings in the delivery profile", async () => {
   const workflow = validWorkflow
     .replace("version: 1", "version: 1 # delivery contract")
     .replace(
@@ -133,10 +133,24 @@ test("reads the delivery profile as YAML, however it is spelled", async () => {
 
 test("reports a front matter that is not valid YAML", async () => {
   const workflow = validWorkflow.replace("version: 1", "version: [1");
-  assert.match(
-    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
-    /WORKFLOW\.md \[delivery-profile\]/,
-  );
+  const output = (await messages({ "WORKFLOW.md": workflow })).join("\n");
+  assert.match(output, /WORKFLOW\.md \[delivery-profile\]/);
+  assert.doesNotMatch(output, /must be 1/);
+});
+
+test("reports durable provider-text keys however YAML spells them", async () => {
+  for (const spelling of [
+    "evaluation: { adapter: symphony, text_retention: ephemeral, prompt_log: keep }",
+    'evaluation:\n  "prompt_log": keep',
+    "audit:\n  - transcript: keep",
+  ]) {
+    const workflow = validWorkflow.replace("\n---\n", `\n${spelling}\n---\n`);
+    assert.match(
+      (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+      /WORKFLOW\.md \[ephemeral_text\]/,
+      spelling,
+    );
+  }
 });
 
 test("reports a delivery profile without a version", async () => {
