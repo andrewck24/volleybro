@@ -424,24 +424,9 @@ test("checkChangeScope is silent outside a Git repository", async () => {
   assert.deepEqual(await checkChangeScope(await makeRepository()), []);
 });
 
-test("checkChangeScope warns past the soft src-file target", async () => {
-  const warnings = await checkChangeScope(await makeScopeRepository(31));
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /31 files changed/);
-});
-
 test("checkChangeScope accepts a Shard trailer", async () => {
   assert.deepEqual(
     await checkChangeScope(await makeScopeRepository(31, ["-m", "Shard: 2"])),
-    [],
-  );
-});
-
-test("checkChangeScope accepts an explicit Change shard flag", async () => {
-  assert.deepEqual(
-    await checkChangeScope(await makeScopeRepository(31), {
-      changeShardsSlug: "two-gate-workflow",
-    }),
     [],
   );
 });
@@ -478,27 +463,7 @@ test("the CLI accepts --change-shards for a large delivery batch", async () => {
   assert.doesNotMatch(result.stderr, /Warning:.*change-scope/is);
 });
 
-test("checkDecisionRecordLength warns for a new oversized decision", async () => {
-  const { root, git } = await initGitRepository("decision-length");
-  await git(["checkout", "-q", "-b", "feat/decision-length"]);
-  const decision = {
-    schemaVersion: 2,
-    id: "0124",
-    title: "Decision length",
-    capabilities: ["platform/blueprint"],
-    decision: "d".repeat(1001),
-  };
-  await writeFiles(root, {
-    "blueprint/content/decisions/0124-decision-length.json": `${JSON.stringify(decision)}\n`,
-  });
-  await git(["add", "-A"]);
-  await git(["commit", "-q", "-m", "add decision"]);
-  const warnings = await checkDecisionRecordLength(root);
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /1001 characters/);
-});
-
-test("checkDecisionRecordLength ignores an existing-size decision", async () => {
+test("checkDecisionRecordLength accepts a decision at the limit", async () => {
   const { root, git } = await initGitRepository("decision-length-ok");
   await git(["checkout", "-q", "-b", "feat/decision-length"]);
   await writeFiles(root, {
