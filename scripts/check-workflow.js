@@ -229,10 +229,7 @@ function parseDeliveryProfile(content) {
 function findDurableTextKey(node) {
   if (node === null || typeof node !== "object") return undefined;
   for (const [key, value] of Object.entries(node)) {
-    if (
-      !Array.isArray(node) &&
-      /^(prompt|response|reasoning|transcript)(?:_[a-z_]+)?$/i.test(key)
-    )
+    if (/^(prompt|response|reasoning|transcript)(?:_[a-z_]+)?$/i.test(key))
       return key;
     const nested = findDurableTextKey(value);
     if (nested) return nested;
