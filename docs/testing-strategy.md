@@ -160,16 +160,16 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 Shared test code lives under `test/support/`, outside `src/`, so production tooling ignores it, and `jest.config.ts` leaves `test/` out of coverage. Import it as `@test/support/...`. It is sorted by what a helper is, not by which test uses it:
 
-| Directory   | Holds                                                                           | Example                             |
-| ----------- | ------------------------------------------------------------------------------- | ----------------------------------- |
-| `fixtures/` | Builders that return domain data, `createX(overrides?)`                         | `createGame`                        |
-| `doubles/`  | Mock repositories and services for use-case tests                               | `createMockTeamRepository`          |
-| `msw/`      | The MSW server and handlers for this application's own API                      | `answerEntries`                     |
-| `react/`    | Render wrappers and providers                                                   | `SwrIsolation`, `renderEditingGame` |
-| `http/`     | Request builders for route tests                                                | `routeRequest`                      |
-| `dom/`      | Walkers over rendered output                                                    | `collect`                           |
-| `storage/`  | Seeders for browser storage                                                     | `seedActiveTeamPreference`          |
-| (root)      | `gates.ts` holds MSW responses; `git-fixture.js` commits files for script tests | `deferred`, `commitFiles`           |
+| Directory   | Holds                                                                                                                                                        | Example                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| `fixtures/` | Builders that return domain data, `createX(overrides?)`                                                                                                      | `createGame`                         |
+| `doubles/`  | Mock repositories and services for use-case tests                                                                                                            | `createMockTeamRepository`           |
+| `msw/`      | The MSW server and handlers for this application's own API                                                                                                   | `answerEntries`                      |
+| `react/`    | Render wrappers and providers                                                                                                                                | `SwrIsolation`, `renderEditingGame`  |
+| `http/`     | Request builders for route tests                                                                                                                             | `routeRequest`                       |
+| `dom/`      | Walkers over rendered output                                                                                                                                 | `collect`                            |
+| `storage/`  | Seeders for browser storage                                                                                                                                  | `seedActiveTeamPreference`           |
+| (root)      | `gates.ts` holds MSW responses; `git-fixture.js` commits files for script tests; `release-controls-fixture.js` builds the release CLI's repository and stubs | `deferred`, `commitFiles`, `fixture` |
 
 `test/setup/` wires Jest and no test imports it. `test/integration/support/` needs the database driver, so only integration tests import it.
 
