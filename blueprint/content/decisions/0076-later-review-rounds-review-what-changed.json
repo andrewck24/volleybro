@@ -19,5 +19,6 @@
     "The code-review playbook needs no change: a later round passes the last reviewed commit as its fixed point.",
     "An interaction between a fix and code outside the changed lines is caught only if the reviewer reads the surrounding file."
   ],
-  "originChange": "review-round-economy"
+  "originChange": "review-round-economy",
+  "supersededBy": "https://github.com/andrewck24/volleybro/pull/680"
 }
