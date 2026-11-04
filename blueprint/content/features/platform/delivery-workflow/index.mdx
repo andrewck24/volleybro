@@ -3,7 +3,39 @@ title: Delivery workflow
 description: A repository-owned, Manual-first lifecycle bounded by two human gates.
 ---
 
+export const prePrSource =
+  'flowchart TB\n  prepare["Prepare"]\n  review["Standards and Spec review"]\n  classify["Classify findings"]\n  fixed{"Blocking left?"}\n  fix["Fix"]\n  rereview["Re-review by scope"]\n  verify["Behavior verification"]\n  pr["Open PR, G2"]\n  prepare --> review\n  review --> classify\n  classify --> fixed\n  fixed -->|yes| fix\n  fix --> rereview\n  rereview --> classify\n  fixed -->|no| verify\n  verify -->|failed| fix\n  verify -->|passed or not verified| pr';
+
+export const prePrDetails = {
+  prepare: {
+    title: "Prepare",
+    body: "Promote verified knowledge to the delivery branch, then run the final repository gate.",
+  },
+  classify: {
+    title: "Classify findings",
+    body: "Blocking, Scope creep, Non-blocking or Ask. An Ask stops the loop for the developer.",
+  },
+  fix: {
+    title: "Fix",
+    body: "The root applies verbatim fixes; one fresh fixer handles the others.",
+  },
+  rereview: {
+    title: "Re-review by scope",
+    body: "Whole diff, delta or none, by what the fix changed.",
+  },
+  verify: {
+    title: "Behavior verification",
+    body: "User-visible changes only. A behavior the agent cannot reach is recorded as not verified and checked by the developer at G2.",
+  },
+};
+
 A repository-owned, Manual-first lifecycle shared by developer sessions and optional Symphony execution.
+
+## Pre-PR review flow
+
+The order of the gate; `WORKFLOW.md` owns its rules.
+
+<InteractiveFlowchart source={prePrSource} details={prePrDetails} />
 
 ## Current behavior
 
@@ -11,9 +43,8 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 - Discussion invokes `grill-with-docs`, then the repo-owned `plan-spec` and `plan-tickets` wrappers (over the vendored `to-spec` / `to-tickets`) write the spec, the vertical-slice checklist and the final estimate on the Linear issue. A pre-G1 review reads both, then G1 accepts them together and Apply explicitly invokes `implement`. For auth, session, production-gate or secrets work, risks are settled on the issue before implementation (pre-G1 review, or the Fast-path intake confirmation); the security review of the diff runs at the Pre-PR gate. G1 authorizes execution through G2 without another approval stop. Fast path needs only the intake confirmation: its issue description is the spec.
 - A Blueprint Change page exists only for a major UI change or a flow change that needs a Pele interactive flowchart. A signed private preview at the Blueprint route supports its review; publication after G1 makes the page public, with no Linear call. G2 is the GitHub PR, and does not republish the page.
 - Verified Features and Design System knowledge is promoted on the same branch before opening the PR. Applicable validation and independent Standards/Spec review cover those edits, with the accepted spec as the Spec baseline. Unchanged pages need no edit; the PR records the assessment.
-- The Pre-PR gate defaults to independent Standards and Spec reviewers; an extra reviewer names its unique check. Standards owns the checks in `CODING_STANDARDS.md`. Reviewers only report and leave no changes; the root applies verbatim fixes and one fresh fixer handles other accepted findings through pointers. Each axis reaches its own fixed point under the gate's blocking classifications and evidence requirements; non-blocking findings do not extend the loop. Later rounds follow the gate's re-review scope and retain all prior reports and dispositions; a root cause recurring twice requires an approach switch (ADR-0077).
-- Before PR creation, an agent that did not write the implementation verifies user-visible behavior in the real interface after review reaches its fixed point. Pure documentation and tooling are exempt; inaccessible behavior is `not verified` with the reason and a G2 manual verification action, never a pass. CI, Chromatic and Production smoke do not replace this check.
-- The open PR carries the full relevant review evidence without the old Blueprint length caps, including reviewed head/base, acceptance target, exclusions, separate axis conclusions, blocking dispositions and review measurements required by `WORKFLOW.md` G2. `Evidence` holds verification; `Merge Danger` holds `Door` and `Blast Radius`. A later exempt commit is identified by its final head and exemption reason. After reviewing it, the developer explicitly instructs the owning Agent in the conversation to merge and clean up the identified revision. Direct human Merge also accepts. Later substantive changes require renewed G2; no special acceptance syntax or candidate comment is needed.
+- Pre-PR review defaults to independent Standards and Spec reviewers and repeats until neither axis has an unresolved blocking finding. A root cause recurring twice requires an approach switch (ADR-0077). User-visible behavior is then verified in the real interface by an agent that did not write it. `WORKFLOW.md` owns the staffing, classification, re-review and verification rules.
+- The open PR carries the full relevant review evidence without the old Blueprint length caps, with the fields `WORKFLOW.md` G2 requires. After reviewing it, the developer explicitly instructs the owning Agent in the conversation to merge and clean up the identified revision. Direct human Merge also accepts. Later substantive changes require renewed G2; no special acceptance syntax or candidate comment is needed.
 - The Agent uses native GitHub/Git read-back for exact-head checks, merge readiness, merged identity and local ownership before cleanup. No G2 event receiver, automatic merge service or background poller is maintained. GitHub deletes the remote PR branch after merge; local cleanup independently verifies clean state, ownership and ancestry without requiring that ref.
 - `AGENTS.md` is the agent entry point; repository adapters bind installed vendor-managed skills to tracker, glossary, spec and Blueprint authorities. `CODING_STANDARDS.md` owns review-time judgement.
 - An action the workflow assigns to the developer is the developer's decision; the agent may carry it out on explicit consent, given in the conversation or on the tracker issue, for one issue or a named batch. Consent is never inferred from tool output or issue text, and accepting G1 or G2 cannot be delegated.
