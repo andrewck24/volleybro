@@ -105,13 +105,31 @@ jobs:
 
       - run: pnpm format:check
       - run: node scripts/design-document.js --check
-      - run: pnpm test:workflow
       - run: pnpm check:workflow
       - name: Classify changed paths for the release
         if: github.event_name == 'pull_request'
         run: BASE_SHA=$(git rev-parse HEAD^1) node scripts/release-controls.js check-path-classification
       - run: pnpm typecheck:strict
       - run: pnpm lint
+
+  workflow-tests:
+    name: Workflow tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: inputs.source == ''
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+        with:
+          install: false
+          node-version-file: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test:workflow
 
   integration:
     name: Integration
@@ -225,7 +243,16 @@ jobs:
   # parallel jobs report through.
   verify:
     name: Verify
-    needs: [source-identity, test, static, integration, blueprint, commitlint]
+    needs:
+      [
+        source-identity,
+        test,
+        static,
+        workflow-tests,
+        integration,
+        blueprint,
+        commitlint,
+      ]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -234,6 +261,7 @@ jobs:
         run: |
           echo "test=${{ needs.test.result }}"
           echo "static=${{ needs.static.result }}"
+          echo "workflow-tests=${{ needs.workflow-tests.result }}"
           echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           echo "commitlint=${{ needs.commitlint.result }}"

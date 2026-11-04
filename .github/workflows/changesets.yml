@@ -18,9 +18,9 @@ env:
   HUSKY: 0
 
 jobs:
-  release:
+  version-pr:
     if: vars.RELEASE_AUTOMATION_ENABLED == 'true' && github.ref == 'refs/heads/main'
-    name: Release
+    name: Version PR
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
