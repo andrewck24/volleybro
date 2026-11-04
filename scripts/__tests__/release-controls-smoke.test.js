@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import {
   fixture,
+  JOB,
   run,
   updateApi,
   workflowJob,
@@ -46,10 +47,10 @@ async function prepareSmokeRun(f, { alias = "dpl_cand", env = {} } = {}) {
       ...api.jobs,
       9: [
         ...api.jobs[9],
-        workflowJob(801, "Production smoke"),
-        workflowJob(802, "Classify production smoke"),
-        workflowJob(504, "Accept production QA", "completed", "skipped"),
-        workflowJob(803, "Accept production smoke", "in_progress", null),
+        workflowJob(801, JOB.smoke),
+        workflowJob(802, JOB.classify),
+        workflowJob(504, JOB.qa, "completed", "skipped"),
+        workflowJob(803, JOB.smokeAcceptance, "in_progress", null),
       ],
     },
   });
@@ -263,8 +264,8 @@ test("record-smoke-acceptance writes a smoke receipt only for a classified uncha
   assert.deepEqual(
     productionQA.approval.jobs.map(({ id, name }) => [id, name]),
     [
-      ["801", "Production smoke"],
-      ["802", "Classify production smoke"],
+      ["801", JOB.smoke],
+      ["802", JOB.classify],
     ],
   );
   assert.equal(productionQA.approval.after.deploymentId, "dpl_cand");
@@ -291,7 +292,7 @@ async function recordedSmoke(f) {
   });
   assert.equal(result.status, 0, result.stderr);
   await setJobs(f, {
-    "Accept production smoke": { status: "completed", conclusion: "success" },
+    [JOB.smokeAcceptance]: { status: "completed", conclusion: "success" },
   });
   return finalState;
 }
@@ -339,9 +340,9 @@ test("finalize accepts a smoke receipt and rejects a receipt that does not match
     const denied = finalizeWith(await mutatedReceipt(f, finalState, mutate));
     assert.notEqual(denied.status, 0, String(mutate));
   }
-  await setJobs(f, { "Classify production smoke": { conclusion: "failure" } });
+  await setJobs(f, { [JOB.classify]: { conclusion: "failure" } });
   assert.notEqual(finalizeWith().status, 0);
-  await setJobs(f, { "Classify production smoke": { conclusion: "success" } });
+  await setJobs(f, { [JOB.classify]: { conclusion: "success" } });
   const result = finalizeWith();
   assert.equal(result.status, 0, result.stderr);
   assert.equal(f.git(["rev-parse", "v1.0.1"]), f.merge);
@@ -356,8 +357,8 @@ test("finalize requires exactly one acceptance job to succeed and the other to b
     ["failure", "success"],
   ]) {
     await setJobs(smoke, {
-      "Accept production QA": { conclusion: qa },
-      "Accept production smoke": { conclusion: auto },
+      [JOB.qa]: { conclusion: qa },
+      [JOB.smokeAcceptance]: { conclusion: auto },
     });
     const denied = run(smoke, "finalize", { RELEASE_STATE_FILE: smokeState });
     assert.notEqual(denied.status, 0, `${qa}/${auto}`);
@@ -372,8 +373,8 @@ test("finalize requires exactly one acceptance job to succeed and the other to b
     ["skipped", "success"],
   ]) {
     await setJobs(human, {
-      "Accept production QA": { status: "completed", conclusion: qa },
-      "Accept production smoke": { conclusion: auto },
+      [JOB.qa]: { status: "completed", conclusion: qa },
+      [JOB.smokeAcceptance]: { conclusion: auto },
     });
     assert.notEqual(
       run(human, "finalize", { RELEASE_STATE_FILE: finalState }).status,
@@ -382,8 +383,8 @@ test("finalize requires exactly one acceptance job to succeed and the other to b
     );
   }
   await setJobs(human, {
-    "Accept production QA": { conclusion: "success" },
-    "Accept production smoke": { conclusion: "skipped" },
+    [JOB.qa]: { conclusion: "success" },
+    [JOB.smokeAcceptance]: { conclusion: "skipped" },
   });
   const accepted = run(human, "finalize", { RELEASE_STATE_FILE: finalState });
   assert.equal(accepted.status, 0, accepted.stderr);

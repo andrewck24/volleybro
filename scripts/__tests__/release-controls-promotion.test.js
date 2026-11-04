@@ -6,6 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import {
   fixture,
+  JOB,
   run,
   updateApi,
   workflowJob,
@@ -280,7 +281,7 @@ test("finalize tags only the promoted exact SHA and repeats without duplicate Re
   const env = { RELEASE_STATE_FILE: finalState };
   let result = run(f, "finalize", env);
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Accept production QA/);
+  assert.match(result.stderr, new RegExp(JOB.qa));
   const withProduction = JSON.parse(await readFile(f.statePath, "utf8"));
   await updateApi(f, {
     jobs: {
@@ -503,7 +504,7 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     artifacts: { ...current.artifacts, 9: [{ ...artifact, expired: false }] },
     jobs: {
       ...current.jobs,
-      9: [...current.jobs[9], workflowJob(699, "finalize-release")],
+      9: [...current.jobs[9], workflowJob(699, JOB.finalize)],
     },
   });
   result = run(f, "recover-verify", recoveryEnv);
@@ -515,8 +516,8 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     jobs: {
       ...current.jobs,
       9: [
-        ...current.jobs[9].filter((job) => job.name !== "finalize-release"),
-        workflowJob(698, "Accept production QA"),
+        ...current.jobs[9].filter((job) => job.name !== JOB.finalize),
+        workflowJob(698, JOB.qa),
       ],
     },
   });
@@ -529,8 +530,8 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     jobs: {
       ...current.jobs,
       9: [
-        ...current.jobs[9].filter((job) => job.name !== "Accept production QA"),
-        workflowJob(697, "Accept production smoke"),
+        ...current.jobs[9].filter((job) => job.name !== JOB.qa),
+        workflowJob(697, JOB.smokeAcceptance),
       ],
     },
   });
@@ -543,8 +544,7 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     jobs: {
       ...current.jobs,
       9: current.jobs[9].filter(
-        (job) =>
-          !["finalize-release", "Accept production smoke"].includes(job.name),
+        (job) => ![JOB.finalize, JOB.smokeAcceptance].includes(job.name),
       ),
     },
     candidate: { readyState: "CANCELED" },
@@ -774,10 +774,7 @@ test("production QA recording survives an expired recovery receipt", async (t) =
   await updateApi(f, {
     jobs: {
       ...api.jobs,
-      9: [
-        ...api.jobs[9],
-        workflowJob(504, "Accept production QA", "in_progress", null),
-      ],
+      9: [...api.jobs[9], workflowJob(504, JOB.qa, "in_progress", null)],
     },
     approvals: { ...api.approvals, 9: [...api.approvals[9], approval("qa")] },
   });

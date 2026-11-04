@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import {
   fixture,
+  JOB,
   run,
   updateApi,
   workflowJob,
@@ -12,7 +13,7 @@ import {
 } from "../../test/support/release-controls-fixture.js";
 
 const compatibilityStep = (conclusion = "success", status = "completed") => ({
-  name: "Run exact-baseline compatibility suite",
+  name: JOB.compatibilityStep,
   status,
   conclusion,
 });
@@ -23,9 +24,7 @@ async function setCompatibilityJobs(f, jobs) {
 }
 
 const passingCompatibilityJob = (id = 503, status = "completed") =>
-  workflowJob(id, "Run release compatibility suite", status, "success", [
-    compatibilityStep(),
-  ]);
+  workflowJob(id, JOB.compatibility, status, "success", [compatibilityStep()]);
 
 function compatibilityReport(f, titles, skipped = 0, statuses = []) {
   return {
