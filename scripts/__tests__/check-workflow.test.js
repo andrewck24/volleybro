@@ -121,6 +121,32 @@ test("reports a delivery adapter other than the required one", async () => {
   );
 });
 
+test("reads the delivery profile as YAML, however it is spelled", async () => {
+  const workflow = validWorkflow
+    .replace("version: 1", "version: 1 # delivery contract")
+    .replace(
+      "sdd:\n      adapter: repository-workflow",
+      "sdd: { adapter: repository-workflow }",
+    );
+  assert.deepEqual(await messages({ "WORKFLOW.md": workflow }), []);
+});
+
+test("reports a front matter that is not valid YAML", async () => {
+  const workflow = validWorkflow.replace("version: 1", "version: [1");
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /WORKFLOW\.md \[delivery-profile\]/,
+  );
+});
+
+test("reports a delivery profile without a version", async () => {
+  const workflow = validWorkflow.replace("  version: 1\n", "");
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /WORKFLOW\.md \[delivery-profile\]: delivery\.version is missing/,
+  );
+});
+
 test("reports a provider bridge without the canonical pointer", async () => {
   assert.match(
     (await messages({ "AGENTS.md": "Repository instructions.\n" })).join("\n"),

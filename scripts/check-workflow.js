@@ -4,6 +4,8 @@ import { lstat, readFile, readdir, readlink, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { parse } from "yaml";
+
 import { git, resolveScopeBase } from "./git-scope.js";
 
 const REQUIRED_BINDINGS = {
@@ -212,46 +214,16 @@ function parseDeliveryProfile(content) {
   if (closingIndex === -1)
     throw new Error("front matter closing delimiter is missing");
 
-  const frontMatter = lines.slice(1, closingIndex);
-  const versionLine = frontMatter.find((line) =>
-    /^\s{2}version:\s*/.test(line),
-  );
-  if (!versionLine) throw new Error("delivery.version is missing");
+  const frontMatter = lines.slice(1, closingIndex).join("\n");
+  const delivery = parse(frontMatter)?.delivery;
+  if (delivery?.version === undefined)
+    throw new Error("delivery.version is missing");
 
-  const version = Number(versionLine.split(":", 2)[1].trim());
-  const capabilities = {};
-  let inCapabilities = false;
-  let currentCapability;
-
-  for (const line of frontMatter) {
-    if (/^\s{2}capabilities:\s*$/.test(line)) {
-      inCapabilities = true;
-      continue;
-    }
-
-    if (!inCapabilities || /^\s*$/.test(line)) continue;
-
-    const capabilityMatch = line.match(/^\s{4}([a-z_]+):\s*$/);
-    if (capabilityMatch) {
-      currentCapability = capabilityMatch[1];
-      capabilities[currentCapability] = {};
-      continue;
-    }
-
-    const fieldMatch = line.match(/^\s{6}([a-z_]+):\s*([^#]+?)\s*$/);
-    if (fieldMatch && currentCapability) {
-      const [, key, rawValue] = fieldMatch;
-      capabilities[currentCapability][key] = rawValue.replace(
-        /^['"]|['"]$/g,
-        "",
-      );
-      continue;
-    }
-
-    if (/^\s{0,2}\S/.test(line)) inCapabilities = false;
-  }
-
-  return { version, capabilities, frontMatter: frontMatter.join("\n") };
+  return {
+    version: delivery.version,
+    capabilities: delivery.capabilities ?? {},
+    frontMatter,
+  };
 }
 
 function validateProfile(profile) {
