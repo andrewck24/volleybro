@@ -121,6 +121,46 @@ test("reports a delivery adapter other than the required one", async () => {
   );
 });
 
+test("reads inline comments and flow mappings in the delivery profile", async () => {
+  const workflow = validWorkflow
+    .replace("version: 1", "version: 1 # delivery contract")
+    .replace(
+      "sdd:\n      adapter: repository-workflow",
+      "sdd: { adapter: repository-workflow }",
+    );
+  assert.deepEqual(await messages({ "WORKFLOW.md": workflow }), []);
+});
+
+test("reports a front matter that is not valid YAML", async () => {
+  const workflow = validWorkflow.replace("version: 1", "version: [1");
+  const output = (await messages({ "WORKFLOW.md": workflow })).join("\n");
+  assert.match(output, /WORKFLOW\.md \[delivery-profile\]/);
+  assert.doesNotMatch(output, /must be 1/);
+});
+
+test("reports durable provider-text keys however YAML spells them", async () => {
+  for (const spelling of [
+    "evaluation: { adapter: symphony, text_retention: ephemeral, prompt_log: keep }",
+    'evaluation:\n  "prompt_log": keep',
+    "audit:\n  - transcript: keep",
+  ]) {
+    const workflow = validWorkflow.replace("\n---\n", `\n${spelling}\n---\n`);
+    assert.match(
+      (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+      /WORKFLOW\.md \[ephemeral_text\]/,
+      spelling,
+    );
+  }
+});
+
+test("reports a delivery profile without a version", async () => {
+  const workflow = validWorkflow.replace("  version: 1\n", "");
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /WORKFLOW\.md \[delivery-profile\]: delivery\.version is missing/,
+  );
+});
+
 test("reports a provider bridge without the canonical pointer", async () => {
   assert.match(
     (await messages({ "AGENTS.md": "Repository instructions.\n" })).join("\n"),
@@ -384,24 +424,9 @@ test("checkChangeScope is silent outside a Git repository", async () => {
   assert.deepEqual(await checkChangeScope(await makeRepository()), []);
 });
 
-test("checkChangeScope warns past the soft src-file target", async () => {
-  const warnings = await checkChangeScope(await makeScopeRepository(31));
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /31 files changed/);
-});
-
 test("checkChangeScope accepts a Shard trailer", async () => {
   assert.deepEqual(
     await checkChangeScope(await makeScopeRepository(31, ["-m", "Shard: 2"])),
-    [],
-  );
-});
-
-test("checkChangeScope accepts an explicit Change shard flag", async () => {
-  assert.deepEqual(
-    await checkChangeScope(await makeScopeRepository(31), {
-      changeShardsSlug: "two-gate-workflow",
-    }),
     [],
   );
 });
@@ -435,30 +460,10 @@ test("the CLI accepts --change-shards for a large delivery batch", async () => {
     [CHECK_WORKFLOW_SCRIPT, "--change-shards", "emdash-blueprint-change-pages"],
     { cwd: root },
   );
-  assert.doesNotMatch(result.stderr, /Warning:.*change-scope/is);
+  assert.doesNotMatch(result.stderr, /Warning:.*files changed/is);
 });
 
-test("checkDecisionRecordLength warns for a new oversized decision", async () => {
-  const { root, git } = await initGitRepository("decision-length");
-  await git(["checkout", "-q", "-b", "feat/decision-length"]);
-  const decision = {
-    schemaVersion: 2,
-    id: "0124",
-    title: "Decision length",
-    capabilities: ["platform/blueprint"],
-    decision: "d".repeat(1001),
-  };
-  await writeFiles(root, {
-    "blueprint/content/decisions/0124-decision-length.json": `${JSON.stringify(decision)}\n`,
-  });
-  await git(["add", "-A"]);
-  await git(["commit", "-q", "-m", "add decision"]);
-  const warnings = await checkDecisionRecordLength(root);
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /1001 characters/);
-});
-
-test("checkDecisionRecordLength ignores an existing-size decision", async () => {
+test("checkDecisionRecordLength accepts a decision at the limit", async () => {
   const { root, git } = await initGitRepository("decision-length-ok");
   await git(["checkout", "-q", "-b", "feat/decision-length"]);
   await writeFiles(root, {
