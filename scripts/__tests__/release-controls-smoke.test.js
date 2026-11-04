@@ -10,8 +10,7 @@ import {
   prepareAcceptedRelease,
   prepareFinalRelease,
   outputsOf,
-  classify,
-} from "./release-controls-support.js";
+} from "../../test/support/release-controls-fixture.js";
 
 const SMOKE_TESTS = [
   ["oauth", "@smoke oauth configuration"],
@@ -71,6 +70,13 @@ const ACCEPT_ENV = (f) => ({
   SMOKE_AFTER_DEPLOYMENT_ID: "dpl_cand",
   SMOKE_AFTER_SHA: f.merge,
 });
+
+async function classify(f, env, overrides = {}) {
+  await writeFile(f.env.GITHUB_OUTPUT, "");
+  const result = run(f, "classify-smoke", { ...env, ...overrides });
+  assert.equal(result.status, 0, result.stderr);
+  return outputsOf(f);
+}
 
 test("summarize-smoke flattens nested Playwright suites into compact results", async (t) => {
   const f = await fixture(t);

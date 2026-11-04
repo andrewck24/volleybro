@@ -14,9 +14,9 @@ import { fileURLToPath } from "node:url";
 
 export const cli =
   process.env.RELEASE_TEST_CLI ||
-  fileURLToPath(new URL("../release-controls.js", import.meta.url));
+  fileURLToPath(new URL("../../scripts/release-controls.js", import.meta.url));
 
-export const lockfile = (version) =>
+const lockfile = (version) =>
   `packages:\n\n  better-auth@${version}:\n    resolution: {}\n`;
 
 export async function fixture(
@@ -518,11 +518,4 @@ export async function outputsOf(f) {
         line.slice(line.indexOf("=") + 1),
       ]),
   );
-}
-
-export async function classify(f, env, overrides = {}) {
-  await writeFile(f.env.GITHUB_OUTPUT, "");
-  const result = run(f, "classify-smoke", { ...env, ...overrides });
-  assert.equal(result.status, 0, result.stderr);
-  return outputsOf(f);
 }

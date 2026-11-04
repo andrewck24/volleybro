@@ -9,7 +9,7 @@ import {
   workflowJob,
   prepareSourceRelease,
   prepareAcceptedRelease,
-} from "./release-controls-support.js";
+} from "../../test/support/release-controls-fixture.js";
 
 const compatibilityStep = (conclusion = "success", status = "completed") => ({
   name: "Run exact-baseline compatibility suite",

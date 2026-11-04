@@ -12,7 +12,7 @@ import {
   run,
   updateApi,
   prepareAcceptedRelease,
-} from "./release-controls-support.js";
+} from "../../test/support/release-controls-fixture.js";
 
 test("stage runs the real CLI and records exact checkout SHA, baseline, and candidate", async (t) => {
   const f = await fixture(t),
