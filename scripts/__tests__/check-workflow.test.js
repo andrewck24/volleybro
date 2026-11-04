@@ -460,7 +460,7 @@ test("the CLI accepts --change-shards for a large delivery batch", async () => {
     [CHECK_WORKFLOW_SCRIPT, "--change-shards", "emdash-blueprint-change-pages"],
     { cwd: root },
   );
-  assert.doesNotMatch(result.stderr, /Warning:.*change-scope/is);
+  assert.doesNotMatch(result.stderr, /Warning:.*files changed/is);
 });
 
 test("checkDecisionRecordLength accepts a decision at the limit", async () => {
