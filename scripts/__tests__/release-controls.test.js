@@ -3026,7 +3026,7 @@ test("production release routes each smoke outcome to exactly one path", async (
   const { jobs } = await loadWorkflow("production-release.yml");
   const classify = (outcome, auto_accept = "false") => ({
     candidate: { result: "success" },
-    "promote-and-smoke": { result: "success" },
+    promote: { result: "success" },
     "production-smoke": { result: "success" },
     "classify-production-smoke": {
       result: "success",
@@ -3037,13 +3037,11 @@ test("production release routes each smoke outcome to exactly one path", async (
   });
   const runs = (needs) =>
     [
-      "recover-after-production-qa-failure",
+      "recover-failed-release",
       "production-acceptance",
       "accept-production-smoke",
     ].filter((id) => evalIf(jobs[id].if, needs));
-  assert.deepEqual(runs(classify("regression")), [
-    "recover-after-production-qa-failure",
-  ]);
+  assert.deepEqual(runs(classify("regression")), ["recover-failed-release"]);
   assert.deepEqual(runs(classify("infrastructure")), ["production-acceptance"]);
   assert.deepEqual(runs(classify("pass", "false")), ["production-acceptance"]);
   assert.deepEqual(runs(classify("pass", "true")), ["accept-production-smoke"]);
@@ -3059,7 +3057,7 @@ test("production release routes each smoke outcome to exactly one path", async (
   const classifies = (promote, smoke) =>
     evalIf(jobs["classify-production-smoke"].if, {
       candidate: { result: "success" },
-      "promote-and-smoke": { result: promote },
+      promote: { result: promote },
       "production-smoke": { result: smoke },
     });
   for (const smoke of ["success", "failure", "skipped"])
@@ -3070,7 +3068,7 @@ test("production release routes each smoke outcome to exactly one path", async (
     ...classify("pass", "false"),
     "production-acceptance": { result },
   });
-  const recover = jobs["recover-after-production-qa-failure"].if;
+  const recover = jobs["recover-failed-release"].if;
   assert.equal(evalIf(recover, gate("failure")), true);
   assert.equal(evalIf(recover, gate("success")), false);
   assert.equal(evalIf(recover, gate("skipped")), false);
@@ -3317,11 +3315,8 @@ test("recovery-evidence holds no GitHub token, runs no controller and uploads on
     uploads.map((s) => s.with.name),
     ["release-compatibility-report"],
   );
-  assert.ok(jobs["promote-and-smoke"].needs.includes("recovery-receipt"));
-  assert.doesNotMatch(
-    JSON.stringify(jobs["promote-and-smoke"].if),
-    /recovery-evidence/,
-  );
+  assert.ok(jobs.promote.needs.includes("recovery-receipt"));
+  assert.doesNotMatch(JSON.stringify(jobs.promote.if), /recovery-evidence/);
 });
 
 test("only the hotfix authorization job references VERCEL_TOKEN before staging, and only for a verified hotfix mode", async () => {

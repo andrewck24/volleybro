@@ -381,7 +381,7 @@ jobs:
           if-no-files-found: error
           retention-days: 31
 
-  promote-and-smoke:
+  promote:
     concurrency:
       group: production-release
       cancel-in-progress: false
@@ -425,7 +425,7 @@ jobs:
           RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" promote
-      - name: Summarize production acceptance
+      - name: Summarize promotion
         env:
           CANDIDATE_ID: ${{ needs.candidate.outputs.candidate_id }}
           BASELINE: ${{ needs.candidate.outputs.baseline }}
@@ -443,10 +443,10 @@ jobs:
 
   production-smoke:
     name: Production smoke
-    needs: [candidate, promote-and-smoke]
+    needs: [candidate, promote]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.promote-and-smoke.result == 'success'
+      needs.promote.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -496,10 +496,10 @@ jobs:
 
   classify-production-smoke:
     name: Classify production smoke
-    needs: [candidate, promote-and-smoke, production-smoke]
+    needs: [candidate, promote, production-smoke]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
-      needs.promote-and-smoke.result == 'success'
+      needs.promote.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -534,8 +534,8 @@ jobs:
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
           # A smoke job that never reported yields an empty report, which waits at the manual gate.
           SMOKE_RESULTS: ${{ needs.production-smoke.outputs.smoke_results || '[]' }}
-          SMOKE_BEFORE_DEPLOYMENT_ID: ${{ needs.promote-and-smoke.outputs.production_deployment_id }}
-          SMOKE_BEFORE_SHA: ${{ needs.promote-and-smoke.outputs.production_sha }}
+          SMOKE_BEFORE_DEPLOYMENT_ID: ${{ needs.promote.outputs.production_deployment_id }}
+          SMOKE_BEFORE_SHA: ${{ needs.promote.outputs.production_sha }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
@@ -549,13 +549,7 @@ jobs:
 
   accept-production-smoke:
     name: Accept production smoke
-    needs:
-      [
-        candidate,
-        promote-and-smoke,
-        production-smoke,
-        classify-production-smoke,
-      ]
+    needs: [candidate, promote, production-smoke, classify-production-smoke]
     if: >-
       always() && !cancelled() && needs.candidate.result == 'success' &&
       needs.classify-production-smoke.result == 'success' &&
@@ -589,8 +583,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
           RELEASE_FINAL_STATE_FILE: ${{ runner.temp }}/release-final-state.json
-          SMOKE_BEFORE_DEPLOYMENT_ID: ${{ needs.promote-and-smoke.outputs.production_deployment_id }}
-          SMOKE_BEFORE_SHA: ${{ needs.promote-and-smoke.outputs.production_sha }}
+          SMOKE_BEFORE_DEPLOYMENT_ID: ${{ needs.promote.outputs.production_deployment_id }}
+          SMOKE_BEFORE_SHA: ${{ needs.promote.outputs.production_sha }}
           SMOKE_AFTER_DEPLOYMENT_ID: ${{ needs.classify-production-smoke.outputs.after_deployment_id }}
           SMOKE_AFTER_SHA: ${{ needs.classify-production-smoke.outputs.after_sha }}
           SMOKE_OUTCOME: ${{ needs.classify-production-smoke.outputs.outcome }}
@@ -656,7 +650,7 @@ jobs:
           if-no-files-found: error
           retention-days: 31
 
-  recover-after-production-qa-failure:
+  recover-failed-release:
     concurrency:
       group: production-release
       cancel-in-progress: false
@@ -817,12 +811,12 @@ jobs:
       - candidate
       - recovery-evidence
       - recovery-receipt
-      - promote-and-smoke
+      - promote
       - production-smoke
       - classify-production-smoke
       - accept-production-smoke
       - production-acceptance
-      - recover-after-production-qa-failure
+      - recover-failed-release
       - finalize-release
       - merge-back
       - recover
