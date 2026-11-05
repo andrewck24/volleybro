@@ -24,5 +24,6 @@
     "Emergency fixes need reconciliation with the integration line before later normal releases can safely supersede them.",
     "WORKFLOW.md owns current delivery policy, while platform configuration and scripts implement and verify it; this record preserves the architectural trade-off rather than duplicating operational steps."
   ],
-  "originChange": "release-train"
+  "originChange": "release-train",
+  "supersededBy": "https://github.com/andrewck24/volleybro/pull/687"
 }
