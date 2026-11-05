@@ -161,6 +161,14 @@ test("reports a delivery profile without a version", async () => {
   );
 });
 
+test("reports a delivery profile version other than 1", async () => {
+  const workflow = validWorkflow.replace("version: 1", "version: 2");
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /WORKFLOW\.md \[delivery-profile\]: delivery\.version must be 1; received 2/,
+  );
+});
+
 test("reports a provider bridge without the canonical pointer", async () => {
   assert.match(
     (await messages({ "AGENTS.md": "Repository instructions.\n" })).join("\n"),
@@ -197,23 +205,38 @@ test("reports section-number references in AGENTS.md", async () => {
   }
 });
 
-test("reports a missing repository adapter", async () => {
+test("reports a missing repository adapter or skill adapter map", async () => {
+  for (const adapter of [
+    "docs/agents/artifact-lifecycle.md",
+    "docs/agents/skill-adapters.md",
+  ]) {
+    assert.match(
+      (await messages({ [adapter]: null })).join("\n"),
+      new RegExp(`${adapter.replaceAll(".", "\\.")} \\[required-file\\]`),
+      adapter,
+    );
+  }
+});
+
+test("reports a missing AGENTS.md", async () => {
   assert.match(
-    (await messages({ "docs/agents/artifact-lifecycle.md": null })).join("\n"),
-    /artifact-lifecycle\.md \[required-file\]/,
+    (await messages({ "AGENTS.md": null })).join("\n"),
+    /AGENTS\.md \[workflow-bridge\]: file is missing/,
   );
 });
 
 test("reports a duplicated lifecycle in a provider bridge", async () => {
-  assert.match(
-    (
-      await messages({
-        "AGENTS.md":
-          "Read [WORKFLOW.md](WORKFLOW.md).\n\n## Lifecycle\n\n### Apply\n",
-      })
-    ).join("\n"),
-    /AGENTS\.md.*lifecycle/i,
-  );
+  for (const heading of ["## Lifecycle", "### Apply"]) {
+    assert.match(
+      (
+        await messages({
+          "AGENTS.md": `Read [WORKFLOW.md](WORKFLOW.md).\n\n${heading}\n`,
+        })
+      ).join("\n"),
+      /AGENTS\.md \[workflow-bridge\]: duplicated lifecycle/,
+      heading,
+    );
+  }
 });
 
 test("reports durable provider-text retention", async () => {
@@ -237,10 +260,53 @@ test("reports when shared agent skills are ignored", async () => {
   );
 });
 
-test("reports a broken provider skill bridge", async () => {
+test("reports a missing or invalid skills lock", async () => {
+  for (const [lock, diagnostic] of [
+    [null, "file is missing"],
+    ["{", "invalid JSON"],
+  ]) {
+    assert.match(
+      (await messages({ "skills-lock.json": lock })).join("\n"),
+      new RegExp(`skills-lock\\.json \\[shared-skills\\]: ${diagnostic}`),
+      diagnostic,
+    );
+  }
+});
+
+test("reports a missing installed skill and its broken provider bridge", async () => {
   const root = await makeRepository();
   await rm(path.join(root, ".agents/skills/to-spec"), { recursive: true });
-  assert.match((await checkWorkflow(root)).join("\n"), /missing or broken/i);
+  const report = (await checkWorkflow(root)).join("\n");
+  assert.match(
+    report,
+    /\.agents\/skills\/to-spec\/SKILL\.md \[shared-skills\]: installed skill target is missing/,
+  );
+  assert.match(
+    report,
+    /\.claude\/skills\/to-spec \[shared-skills\]: provider skill bridge is missing or broken/,
+  );
+});
+
+test("reports a provider skill bridge that is not a symlink", async () => {
+  const root = await makeRepository();
+  const bridge = path.join(root, ".claude/skills/to-spec");
+  await rm(bridge);
+  await mkdir(bridge);
+  assert.match(
+    (await checkWorkflow(root)).join("\n"),
+    /\.claude\/skills\/to-spec \[shared-skills\]: provider skill bridge must be a symlink/,
+  );
+});
+
+test("reports a provider skill bridge that targets another directory", async () => {
+  const root = await makeRepository();
+  const bridge = path.join(root, ".claude/skills/to-spec");
+  await rm(bridge);
+  await symlink("../../.agents/skills", bridge);
+  assert.match(
+    (await checkWorkflow(root)).join("\n"),
+    /\.claude\/skills\/to-spec \[shared-skills\]: symlink must target \.agents\/skills\/to-spec/,
+  );
 });
 
 test("reports an installed skill without an adapter row", async () => {
@@ -319,16 +385,22 @@ test("reports tests whose suffix does not match their directory", async () => {
 });
 
 test("reports malformed snippet props in Feature MDX", async () => {
-  const report = (
-    await messages({
-      "blueprint/content/features/demo/index.mdx":
-        '---\ntitle: Demo\n---\n\n<AnnotatedDiff\n  code="one" />\n',
-    })
-  ).join("\n");
-  assert.match(
-    report,
-    /blueprint\/content\/features\/demo\/index\.mdx.*blueprint-snippet/,
-  );
+  for (const [form, snippet] of [
+    ["a bare string attribute", '<AnnotatedDiff\n  code="one" />'],
+    ["a multi-line template literal", "<AnnotatedDiff code={`one\ntwo`} />"],
+  ]) {
+    assert.match(
+      (
+        await messages({
+          "blueprint/content/features/demo/index.mdx": `---\ntitle: Demo\n---\n\n${snippet}\n`,
+        })
+      ).join("\n"),
+      new RegExp(
+        `features/demo/index\\.mdx \\[blueprint-snippet\\]: a snippet prop is ${form}`,
+      ),
+      form,
+    );
+  }
 });
 
 test("accepts escaped snippet props in Feature MDX", async () => {
@@ -439,6 +511,18 @@ test("checkChangeScope does not treat a Shard mention in prose as a trailer", as
     ]),
   );
   assert.equal(warnings.length, 1);
+});
+
+test("the workflow CLI exits non-zero and prints its diagnostics to stderr", async () => {
+  const root = await makeRepository({ "CLAUDE.md": "Repository notes.\n" });
+  await assert.rejects(
+    execFileAsync("node", [CHECK_WORKFLOW_SCRIPT], { cwd: root }),
+    (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /- CLAUDE\.md \[guidance-import\]/);
+      return true;
+    },
+  );
 });
 
 test("the workflow CLI keeps scope warnings non-blocking", async () => {
