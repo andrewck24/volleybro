@@ -41,7 +41,7 @@ Issue IDs and ticket numbers belong in commit trailers and pull-request bodies, 
 
 A test sits at the layer [`docs/testing-strategy.md`](./docs/testing-strategy.md) assigns it, mocking only what that layer's school says to mock.
 
-The Standards review applies that document's Test Value and Test Support Code rules through [`test-audit`](./docs/agents/test-audit.md). Its test review output lists `contract → owner test (path and case) → regression that would make it fail` for every added or changed test; a deleted or moved test follows that document's Test Value rule. Flag duplicate proof, and call-shape assertions (asserting which internal function ran or with what arguments instead of the observable result), against those rules and the layer's testing school.
+The Standards review applies that document's Test Value and Test Support Code rules. Flag duplicate proof, and call-shape assertions (asserting which internal function ran or with what arguments instead of the observable result), against those rules and the layer's testing school.
 
 ## Correctness, load, leanness and security
 
