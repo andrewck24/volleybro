@@ -61,6 +61,26 @@ test("stage runs the Vercel CLI outside the candidate checkout and deploys that 
   assert.equal(deploy[deploy.indexOf("--cwd") + 1], checkout);
 });
 
+test("stage stops before the Vercel CLI when the candidate holds config the CLI would run or load", async (t) => {
+  for (const file of ["vercel.ts", ".env.local"]) {
+    const f = await fixture(t);
+    await writeFile(path.join(f.repo, file), "");
+    const result = run(f, "stage");
+    assert.notEqual(result.status, 0, file);
+    assert.match(result.stderr, new RegExp(file.replace(".", "\\.")));
+    const { calls } = JSON.parse(await readFile(f.statePath, "utf8"));
+    assert.equal(
+      calls.some((args) => args[0] === "dlx"),
+      false,
+      file,
+    );
+  }
+  const f = await fixture(t);
+  await writeFile(path.join(f.repo, ".env.example"), "");
+  const result = run(f, "stage");
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test("stage stops before deployment when release mode is unknown", async (t) => {
   const f = await fixture(t);
   for (const override of [{ RELEASE_MODE: "" }, { RELEASE_MODE: "preview" }]) {

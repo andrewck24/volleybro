@@ -55,6 +55,20 @@ async function reviewedSourceMapping(sha, authorization) {
   return { reviewedSha: reviewed, releaseSha: sha, tree: releaseTree };
 }
 
+// The Vercel CLI bundles and runs a root vercel.{ts,mts,js,mjs,cjs} and loads
+// root .env files before it authenticates, with the deploy token in its environment.
+const CLI_LOADED_FILE = /^(vercel\.(ts|mts|js|mjs|cjs)|\.env.*)$/;
+
+async function assertNoCliLoadedFiles(root) {
+  const loaded = (await fs.readdir(root))
+    .filter((name) => CLI_LOADED_FILE.test(name) && name !== ".env.example")
+    .sort();
+  if (loaded.length > 0)
+    fail(
+      `Release candidate contains files the Vercel CLI would run or load with the deploy token: ${loaded.join(", ")}`,
+    );
+}
+
 export async function stage() {
   const sha = exactSha(required("RELEASE_SHA"), "Release SHA");
   const releaseMode = required("RELEASE_MODE");
@@ -71,6 +85,7 @@ export async function stage() {
   );
   if ((await command("git", ["rev-parse", "HEAD"])) !== sha)
     fail("Checkout is not the exact authorized release SHA");
+  await assertNoCliLoadedFiles(process.cwd());
   const domains = await stagingDomains();
   const baseline = await currentAlias();
   if (process.env.EXPECTED_BASELINE_SHA) {
