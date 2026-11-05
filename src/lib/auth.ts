@@ -5,6 +5,12 @@ import { mongodbAdapter } from "better-auth/adapters/mongodb";
 
 export const auth = betterAuth({
   database: mongodbAdapter(client.db()),
+  // An OAuth failure whose sign-in attempt cannot be identified (expired or
+  // missing state) lands here; the rest return to the sign-in page through
+  // the client's errorCallbackURL.
+  onAPIError: {
+    errorURL: "/auth/error",
+  },
   user: {
     modelName: "users",
   },

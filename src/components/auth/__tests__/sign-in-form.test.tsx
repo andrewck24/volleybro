@@ -13,8 +13,9 @@ jest.mock("@/lib/auth-client", () => ({
   },
 }));
 
+let mockSearch = "";
 jest.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mockSearch),
 }));
 
 const mockSignIn = authClient.signIn.social as jest.Mock;
@@ -22,6 +23,7 @@ const mockSignIn = authClient.signIn.social as jest.Mock;
 describe("SignInForm submitting state", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearch = "";
   });
 
   it("disables Google button and marks it busy while signing in", async () => {
@@ -57,5 +59,47 @@ describe("SignInForm submitting state", () => {
     await user.click(btn);
 
     await waitFor(() => expect(btn).toBeEnabled());
+  });
+});
+
+describe("SignInForm OAuth errors", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSearch = "";
+  });
+
+  // Better Auth sends a failed Google callback to errorCallbackURL with
+  // ?error=<code>; without it the user lands on Better Auth's own error page.
+  it("asks Better Auth to send a failed sign-in back to this page", async () => {
+    mockSignIn.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<SignInForm />);
+
+    await user.click(screen.getByRole("button", { name: /google/i }));
+
+    expect(mockSignIn).toHaveBeenCalledWith(
+      expect.objectContaining({ errorCallbackURL: "/auth/sign-in" }),
+    );
+  });
+
+  it("shows no alert without an error", () => {
+    render(<SignInForm />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("tells the user they cancelled at Google", () => {
+    mockSearch = "error=access_denied";
+    render(<SignInForm />);
+    expect(screen.getByRole("alert")).toHaveTextContent("已取消登入");
+  });
+
+  it("falls back to a fixed message and never echoes the URL", () => {
+    mockSearch =
+      "error=unable_to_get_user_info&error_description=%3Cb%3Einjected%3C%2Fb%3E";
+    render(<SignInForm />);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("登入失敗");
+    expect(alert).not.toHaveTextContent("injected");
+    expect(alert).not.toHaveTextContent("unable_to_get_user_info");
   });
 });
