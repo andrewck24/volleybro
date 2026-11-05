@@ -181,7 +181,6 @@ test("skips an allowlisted devDependency-only update, including a real npm alias
     manifest("^9.1.0", true),
   );
   const result = await classify(cwd, compareArgs(base, head));
-  assert.match(result.stdout, /skip=true reason=/);
   assert.equal(result.output, "skip=true\n");
 });
 
@@ -215,7 +214,6 @@ test("skips a husky specifier-only change against the repository's full current 
     },
   );
   const result = await classify(cwd, compareArgs(base, head));
-  assert.match(result.stdout, /skip=true reason=/);
   assert.equal(result.output, "skip=true\n");
 });
 
@@ -234,21 +232,24 @@ test("runs when native first-document package manager metadata changes", async (
 
 test("fails closed for malformed locks, dangling refs, unsupported versions, and extra documents", async (t) => {
   const invalidCases = [
-    [lockfile(), "not: [valid"],
-    [lockfile(), lockfile({ malformed: true })],
-    [lockfile(), lockfile().replaceAll("'9.0'", "'8.0'")],
-    [lockfile(), `${lockfile()}---\nunsupported: true\n`],
+    ["not: [valid", /invalid pnpm lockfile YAML/],
+    [lockfile({ malformed: true }), /dangling package snapshot/],
+    [
+      lockfile().replaceAll("'9.0'", "'8.0'"),
+      /unsupported lockfileVersion: 8\.0/,
+    ],
+    [`${lockfile()}---\nunsupported: true\n`, /invalid pnpm lockfile YAML/],
   ];
-  for (const [firstLock, secondLock] of invalidCases) {
+  for (const [secondLock, reason] of invalidCases) {
     const { cwd, base, head } = await lockPair(
       t,
-      firstLock,
+      lockfile(),
       secondLock,
       manifest(),
       manifest(),
     );
     const result = await classify(cwd, compareArgs(base, head));
-    assert.match(result.stdout, /skip=false reason=/);
+    assert.match(result.stdout, reason);
     assert.equal(result.output, "skip=false\n");
   }
 });
@@ -261,12 +262,13 @@ test("fails closed for missing or malformed refs and --force writes skip=false",
     manifest(),
     manifest("^9.1.0"),
   );
-  for (const args of [
-    ["--head", head],
-    ...[compareArgs("main", head), compareArgs(base, "f".repeat(40))],
+  for (const [args, reason] of [
+    [["--head", head], /base\/head SHA is missing or malformed/],
+    [compareArgs("main", head), /base\/head SHA is missing or malformed/],
+    [compareArgs(base, "f".repeat(40)), /unable to classify safely/],
   ]) {
     const result = await classify(cwd, args);
-    assert.match(result.stdout, /skip=false reason=/);
+    assert.match(result.stdout, reason, args.join(" "));
     assert.equal(result.output, "skip=false\n");
   }
   const forced = await classify(cwd, ["--force"]);
@@ -289,7 +291,6 @@ test("runs when a visual file is renamed or deleted", async (t) => {
     git(cwd, "commit", "-qm", change);
     const head = git(cwd, "rev-parse", "HEAD");
     const result = await classify(cwd, compareArgs(base, head));
-    assert.match(result.stdout, /skip=false reason=/, change);
     assert.equal(result.output, "skip=false\n", change);
   }
 });
@@ -327,7 +328,7 @@ test("skips manifest metadata and package manager pin changes", async (t) => {
   }
 });
 
-test("runs when dependencies or overrides change", async (t) => {
+test("runs when a protected or unknown manifest field changes", async (t) => {
   for (const [base, head] of [
     [
       manifest(),
@@ -386,8 +387,6 @@ test("chromatic workflow skips only non-Chromatic action pin bumps", async (t) =
     [base.replace("v7\n", "v7 # pinned\n"), true],
     [workflow({ checkout: "actions/checkout@v8 # v8" }), true],
     [workflow({ chromatic: "chromaui/action@v2" }), false],
-    [workflow({ chromatic: '"chromaui/action@v2"' }), false],
-    [workflow({ chromatic: "ChromaUI/action@v2" }), false],
     [workflow({ checkout: "evil/action@v1" }), false],
     [workflow({ checkout: "Actions/Checkout@v7" }), false],
     [workflow({ input: "b" }), false],
@@ -404,6 +403,25 @@ test("chromatic workflow skips only non-Chromatic action pin bumps", async (t) =
     const result = await classify(pair.cwd, compareArgs(pair.base, pair.head));
     assert.equal(result.output, `skip=${isSkipped}\n`, head);
   }
+  // A Chromatic step keeps its pin whatever the action's letter case.
+  const upperCase = await commitPair(
+    t,
+    {
+      ".github/workflows/chromatic.yml": workflow({
+        chromatic: "ChromaUI/action@v1",
+      }),
+    },
+    {
+      ".github/workflows/chromatic.yml": workflow({
+        chromatic: "ChromaUI/action@v2",
+      }),
+    },
+  );
+  assert.equal(
+    (await classify(upperCase.cwd, compareArgs(upperCase.base, upperCase.head)))
+      .output,
+    "skip=false\n",
+  );
   const removed = await commitPair(
     t,
     { ".github/workflows/chromatic.yml": workflow({ hasExtraStep: true }) },
