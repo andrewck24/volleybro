@@ -29,9 +29,7 @@ const SignInError = () => {
   return (
     <Alert variant="error">
       <RiErrorWarningLine />
-      <AlertTitle className="mb-0 leading-snug">
-        {signInErrorMessage(code)}
-      </AlertTitle>
+      <AlertTitle className="mb-0">{signInErrorMessage(code)}</AlertTitle>
     </Alert>
   );
 };
