@@ -32,22 +32,22 @@ This file is VolleyBro's canonical provider-neutral delivery contract. A develop
 
 ## Repository profile
 
-| Responsibility                         | VolleyBro binding                                                                                                                                               |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Integration branch and default PR base | `main`; verify the remote default before branching                                                                                                              |
-| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                               |
-| Fast path branch                       | `fast/<slug>`, whatever the commit type                                                                                                                         |
-| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                               |
-| Section gate                           | `pnpm verify` — format, design document, lint, type checks, unit tests, workflow conformance                                                                    |
-| Final gate                             | `pnpm verify:all` — static checks and the lanes reached by the diff against the remote default integration branch; `--full` runs all; CI runs every check       |
-| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                          |
-| Change specification and G1            | The Linear execution issue; G1 is the `ready-for-human` → `ready-for-agent` label switch. A Blueprint Change page (EmDash) exists only on demand, see Lifecycle |
-| Code review surface                    | GitHub PR at G2; G2 reviews code and does not republish a Change page                                                                                           |
-| Canonical current capability knowledge | `blueprint/content/features/`                                                                                                                                   |
-| Execution plan                         | Slice checklist on the Linear execution issue, written by `plan-tickets`; its schema lives in `docs/agents/issue-tracker.md`                                    |
-| Version and changelog evidence         | `.changeset/` through Changesets                                                                                                                                |
-| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                                                                                                     |
-| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                                                                                                          |
+| Responsibility                         | VolleyBro binding                                                                                                                                         |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Integration branch and default PR base | `main`; verify the remote default before branching                                                                                                        |
+| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                         |
+| Fast path branch                       | `fast/<slug>`, whatever the commit type                                                                                                                   |
+| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                         |
+| Section gate                           | `pnpm verify` — format, design document, lint, type checks, unit tests, workflow conformance                                                              |
+| Final gate                             | `pnpm verify:all` — static checks and the lanes reached by the diff against the remote default integration branch; `--full` runs all; CI runs every check |
+| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                    |
+| Change specification and G1            | The Linear execution issue; G1 is defined under Linear intake. A Blueprint Change page (EmDash) exists only on demand, see Lifecycle                      |
+| Code review surface                    | GitHub PR at G2; G2 reviews code and does not republish a Change page                                                                                     |
+| Canonical current capability knowledge | `blueprint/content/features/`                                                                                                                             |
+| Execution plan                         | Slice checklist on the Linear execution issue, written by `plan-tickets`; its schema lives in `docs/agents/issue-tracker.md`                              |
+| Version and changelog evidence         | `.changeset/` through Changesets                                                                                                                          |
+| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                                                                                               |
+| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                                                                                                    |
 
 The delivery profile selects responsibilities, not a fixed skill suite. Matt Pocock skills are the current engineering playbooks; a future compatible skill may replace them without changing the artifact authority or human gates defined here.
 
@@ -277,7 +277,7 @@ A shard belongs to a single Change. A Change whose one accepted specification an
 
 ### Fast path
 
-Fast path sits beside Change and Mapped Change for work that fits in one session. Urgency alone grants no exemption from Change gates. The branch is `fast/*`; `hotfix/*` remains a separate route for an isolated production repair, not a Fast-path synonym.
+Fast path sits beside Change and Mapped Change for work that fits in one session. Urgency alone grants no exemption from Change gates. `hotfix/*` remains a separate route for an isolated production repair, not a Fast-path synonym.
 
 1. Eligibility follows size, not fix type, semantic version impact or whether a decision is involved. A change may qualify whether it restores existing behavior, changes behavior, updates docs or configuration, or changes dependencies (including a major pnpm upgrade). Work exceeding the Change soft size targets needs a delivery-boundary assessment; work too large or foggy for one spec uses Mapped Change, while independent goals use separate Changes.
 2. The agent proposes Fast path during intake; the developer confirms it once — on the tracker issue when the work came from one, or in the session when it did not. For auth, session, production-gate or secrets work the confirmation lists the risks. The Linear issue description is the spec; work that has no issue, including a bug fix under item 8, uses its pull request body.
