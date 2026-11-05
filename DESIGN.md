@@ -366,7 +366,7 @@ Follow Apple HIG for hierarchy, feedback and accessibility when applying these r
 
 ### Motion extensions
 
-Each value below belongs only to the surface its purpose names; none creates a global app motion token. Existing noncompliant layout/color transitions are not silently repaired by this document migration.
+These values belong to Landing only; they do not create global app motion tokens. Existing noncompliant layout/color transitions are not silently repaired by this document migration.
 
 ```yaml
 motion:
@@ -376,7 +376,4 @@ motion:
   - name: ease-landing
     value: cubic-bezier(0.2, 0.8, 0.2, 1)
     purpose: Landing easing; landing scope only.
-  - name: sheet-presentation
-    value: 500ms cubic-bezier(0.16, 1, 0.3, 1)
-    purpose: Auth sheet enters once from the edge it docks to (24px rise below lg, 24px slide from the right at lg) with a fade; auth routes only, static under reduced motion.
 ```

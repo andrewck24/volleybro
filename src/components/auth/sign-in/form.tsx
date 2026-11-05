@@ -66,7 +66,7 @@ const SignInForm = () => {
         使用 Google 帳戶繼續
       </Button>
       <p className="text-sm text-pretty text-muted-foreground">
-        第一次使用會自動建立帳號。繼續即表示您同意服務條款與隱私權政策。
+        繼續即表示您同意服務條款與隱私權政策。
       </p>
     </AuthSheet>
   );
