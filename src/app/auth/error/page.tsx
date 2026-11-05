@@ -1,7 +1,7 @@
-import Error from "@/components/auth/error";
+import AuthError from "@/components/auth/error";
 
 const ErrorPage = () => {
-  return <Error />;
+  return <AuthError />;
 };
 
 export default ErrorPage;
