@@ -3,7 +3,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 const alertVariants = cva(
-  "relative flex w-full flex-col gap-2 rounded-md px-4 py-3 text-sm ring-1 ring-inset [&>svg]:absolute [&>svg]:top-4 [&>svg]:left-4 [&>svg]:size-4 [&>svg]:text-foreground [&>svg+div]:translate-y-[-3px] [&>svg~*]:pl-7",
+  "relative flex w-full flex-col gap-2 rounded-md px-4 py-3 text-sm ring-1 ring-inset [&>svg]:absolute [&>svg]:top-3 [&>svg]:left-4 [&>svg]:h-5 [&>svg]:w-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
   {
     variants: {
       variant: {
@@ -38,7 +38,7 @@ const AlertTitle = ({
 }: React.HTMLAttributes<HTMLHeadingElement>) => (
   <h5
     data-slot="AlertTitle"
-    className={cn("mb-1 leading-none font-medium tracking-tight", className)}
+    className={cn("mb-1 leading-5 font-medium tracking-tight", className)}
     {...props}
   />
 );

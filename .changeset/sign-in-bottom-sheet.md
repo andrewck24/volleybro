@@ -14,3 +14,7 @@
 #### Auth
 
 - A failed or cancelled Google sign-in returns to the sign-in page with a one-line message, or to the sign-in error page when the attempt cannot be identified, instead of an untranslated built-in error page
+
+#### UI
+
+- An alert's icon lines up with its first line of text, with or without a title
