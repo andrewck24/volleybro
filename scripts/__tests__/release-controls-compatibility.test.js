@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   fixture,
   JOB,
+  outputsOf,
   run,
   updateApi,
   workflowJob,
@@ -392,4 +393,26 @@ test("active production data marks a release forward-only when compatibility cov
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /production-forward-only/);
+});
+
+test("plan-recovery-compatibility requires the suite only for a provable persisted contract change", async (t) => {
+  const cases = [
+    [{}, "false"],
+    [{ persistedContract: true }, "false"],
+    [
+      {
+        persistedContract: true,
+        persistedContractPath: "src/entities/game.ts",
+        compatibilityTest: true,
+      },
+      "true",
+    ],
+  ];
+  for (const [options, required] of cases) {
+    const f = await fixture(t, options);
+    await prepareSourceRelease(f);
+    const result = run(f, "plan-recovery-compatibility");
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal((await outputsOf(f)).required, required);
+  }
 });
