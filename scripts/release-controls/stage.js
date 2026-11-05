@@ -266,7 +266,7 @@ export async function checkPathClassification() {
   if (unclassifiedPaths.length > 0)
     fail(
       `Release cannot classify these paths for production-data compatibility: ${unclassifiedPaths.join(", ")}. ` +
-        "Add a pattern to KNOWN_UNRELATED_PATTERNS or PERSISTED_CONTRACT_PATTERNS in scripts/release-controls.js.",
+        "Add a pattern to KNOWN_UNRELATED_PATTERNS or PERSISTED_CONTRACT_PATTERNS in scripts/release-controls/core.js.",
     );
 }
 
