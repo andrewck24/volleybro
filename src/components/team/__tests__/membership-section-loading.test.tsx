@@ -1,5 +1,6 @@
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { useTeam } from "@/hooks/use-data";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -103,6 +104,50 @@ describe("MembershipSection — transfer loading state", () => {
 
     release();
     await waitFor(() => expect(confirmBtn).not.toHaveAttribute("aria-busy"));
+  });
+});
+
+describe("MembershipSection — after a transfer", () => {
+  function TeamOwner() {
+    const { team } = useTeam("team-1");
+    return <p>owner: {team?.ownerPlayerId ?? "…"}</p>;
+  }
+
+  it("shows the new owner wherever the team is read", async () => {
+    let ownerPlayerId = "me";
+    server.use(
+      http.get("/api/teams/team-1", () =>
+        HttpResponse.json({ id: "team-1", ownerPlayerId }),
+      ),
+      http.post("/api/teams/team-1/ownership", () => {
+        ownerPlayerId = basePlayer.id;
+        return HttpResponse.json({ id: "team-1", ownerPlayerId });
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(
+      <SwrIsolation>
+        <TeamOwner />
+        <MembershipSection
+          player={{ ...basePlayer, role: PlayerRole.ADMIN }}
+          teamId="team-1"
+          ownerPlayerId="me"
+          isCurrentOwner
+          isSelf={false}
+        />
+      </SwrIsolation>,
+    );
+    expect(await screen.findByText("owner: me")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /移轉所有權給此球員/ }),
+    );
+    await user.click(screen.getByRole("button", { name: /確認移轉/ }));
+
+    expect(
+      await screen.findByText(`owner: ${basePlayer.id}`),
+    ).toBeInTheDocument();
   });
 });
 

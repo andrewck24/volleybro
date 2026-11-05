@@ -101,6 +101,7 @@ export function MembershipSection({
         description: `${player.name} 已成為新擁有者`,
       });
       revalidate();
+      mutate(`/api/teams/${teamId}`);
     } catch (err) {
       setTransferError(resolveErrorDisplay(err));
     } finally {
