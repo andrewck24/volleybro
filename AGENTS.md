@@ -8,6 +8,7 @@ Read [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, revie
 - [`CODING_STANDARDS.md`](CODING_STANDARDS.md) — the judgement rules code review applies.
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — what to test at which layer.
 - [`docs/maintenance-policy.md`](docs/maintenance-policy.md) — dependency and deprecation policy.
+- [`docs/release-contract.md`](docs/release-contract.md) — release, hotfix and recovery policy; read it before release or release-controller work.
 - [`DESIGN.md`](DESIGN.md) — colour and elevation tokens.
 
 Before invoking a skill, read the adapters its row in [`docs/agents/skill-adapters.md`](docs/agents/skill-adapters.md) names; repository gates and those adapters govern the skills.
