@@ -14,11 +14,8 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           className="h-11 max-w-full self-start lg:h-16"
         />
         <h1 className="mt-6 text-3xl leading-snug font-semibold text-balance lg:mt-10 lg:text-4xl">
-          在場邊記下每一分。
+          快速記錄每一場精彩的比賽。
         </h1>
-        <p className="mt-2 text-lg text-pretty text-primary-foreground/80 lg:text-xl">
-          每一球三下點擊，比賽結束統計就好了。
-        </p>
       </div>
       {children}
     </main>
