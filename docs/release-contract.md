@@ -7,7 +7,7 @@ This file is VolleyBro's canonical release policy: what must hold for code to re
 - **Integration is not release.** `main` is the sole permanent integration trunk; there is no permanent production branch. Production is an explicitly selected deployment of an authorized, immutable revision, never the branch tip. Integration and production keep distinct deployment configuration. A moving branch cannot tell what production runs, so maintainers keep a reliable mapping from production to its deployed revision.
 - **Release QA proves source and environment separately.** Source functionality, the production-config candidate's identity and live production authentication are three separate proofs. A Preview proves application behavior only when bound to the release source and never certifies production OAuth, so an OAuth failure may first show after promotion. Recovery evidence is required before promotion, and a successful tag or Release is published only after live acceptance.
 - **Emergency repairs release only the repair.** A hotfix branches from the deployed revision, not from `main`, and merges back into `main` without rewriting shared history. A later normal release must contain the deployed repair.
-- **Human cost first, Agent cost second.** Do not duplicate CI or ask for manual functional retesting when sufficient evidence already exists.
+- **Human cost first, agent cost second.** Do not duplicate CI or ask for manual functional retesting when sufficient evidence already exists.
 
 ## Authorization
 
@@ -20,7 +20,7 @@ This file is VolleyBro's canonical release policy: what must hold for code to re
 Invariants:
 
 - The version PR is identified by API, never by commit message or branch name alone; the title exception validates author identity, same-repository base/head and a metadata-only diff. Push and dispatch share one validation of identity, metadata-only diff and required checks, and required checks come from trusted providers. (`authorize.js`: `mergedPullsForPush`, `validateMergedVersionPr`, `validateVersionPr`, `verifyMetadataOnly`, `validateRequiredChecks`)
-- A dispatch's controller contains the authorized merge by ancestry. (`authorize.js` `authorizeRetry`; `core.js` `assertAncestor`)
+- A dispatch's controller contains the authorized merge by ancestry. The push path needs no ancestry check: its controller is the pushed commit's first parent, the trusted `main` before the merge. (`authorize.js` `authorizeRetry`; `core.js` `assertAncestor`)
 - The authorization artifact binds the original and rerun actor, run ID, PR and source SHA, and every downstream job revalidates it. (`core.js`: `releaseOwnerContext`, `validateReleaseAuthorization`)
 
 ## Configuration
@@ -41,7 +41,7 @@ Release automation stays disabled until platform read-back succeeds. Configurati
 | `AUTH_GOOGLE_ID`, `SMOKE_USER_EMAIL`, `SMOKE_TEAM_ID` variables     | Expected OAuth client id, smoke test account email and read-only test team id                                                                               |
 | `SMOKE_STORAGE_STATE` secret                                        | The smoke test account's exported session, set on the `production-smoke` environment                                                                        |
 
-The Vercel project's Root Directory stays `./`. The Vercel CLI runs a `vercel.{ts,mts,js,mjs,cjs}` and loads `.env` files from that directory with the deploy token, and `stage` refuses such files only at the checkout root.
+The Vercel project's Root Directory stays `./`, because `stage` checks only the checkout root for files the Vercel CLI would run or load.
 
 ## Environments and data
 
@@ -59,8 +59,8 @@ The Vercel project's Root Directory stays `./`. The Vercel CLI runs a `vercel.{t
 Invariants:
 
 - A CI scope is reused only when native CI steps identify the tested commit and its complete Git tree equals the authorized source tree; commit SHAs may differ, but producer workflow, repository, run attempt and scope must be trusted. (`core.js`: `sourceScopeEvidence`, `verifyReusableSourceQA`; `stage.js`: `recordSourceQA`)
-- Staging and promotion require project-bound Standard Protection (`all_except_custom_domains`) and a complete project domain inventory. Only aliases Vercel marks as automatically generated and absent from that inventory are permitted; configured or unknown aliases fail closed. The formal production alias is a production domain of the bound project and keeps the recorded baseline after staging. (`core.js`: `stagingDomains`, `validateCandidate`, `assertBaseline`)
-- The Vercel CLI runs outside the candidate checkout, and a candidate holding files the CLI would run or load with the deploy token does not stage. (`stage.js`: `stage`, `assertNoCliLoadedFiles`)
+- Vercel may assign generated aliases despite `--skip-domain`, which controls custom production domain assignment. Staging and promotion require project-bound Standard Protection (`all_except_custom_domains`) and a complete project domain inventory. Only aliases Vercel marks as automatically generated and absent from that inventory are permitted; configured or unknown aliases fail closed. The formal production alias is a production domain of the bound project and keeps the recorded baseline after staging. (`core.js`: `stagingDomains`, `validateCandidate`, `assertBaseline`)
+- pnpm runs the Vercel CLI from the controller directory with `--cwd` pointing at the candidate checkout. A candidate whose root holds `vercel.{ts,mts,js,mjs,cjs}` or `.env*` (except `.env.example`) does not stage. (`stage.js`: `stage`, `assertNoCliLoadedFiles`)
 
 ## Promotion and publication
 
@@ -72,7 +72,7 @@ Invariants:
 
 - Production data is always forward-only. Recovery may restore only code at the exact proven baseline; never roll back production data. A post-deploy failure may return only to a recorded, proven database-compatible deployment, verify it and notify; unknown or incompatible database state, including a forward-only release, stops and notifies without data rollback.
 - Classify changed paths as known-unrelated or persisted-contract risk. An unclassified path stops before promotion, never counts as "unchanged", and CI fails the pull request that adds it, so the pattern is added before release. Database schemas/mappings, entities, write use cases/repositories, API/auth/session paths, dependency-lock/config changes, and any other app source under `src/` not known to be unrelated are conservative contract risks. A `package.json` version-only change is unrelated; dependency fields trigger the proof, and other unclassified manifest changes stop. Known-unrelated paths reuse trusted unit/integration receipts. (`core.js`: `changedSourcePaths`, `persistedContractChanges`; `stage.js` `checkPathClassification`)
-- For a contract-risk change while production data is active, when `test/integration/persistence/release-compatibility.itest.ts` exists in the release source, the run executes that dedicated exact-baseline compatibility suite. It proves both directions: the candidate reads the still-supported legacy records, and the code at the exact recovery-baseline SHA reads records written by the candidate. It may reuse existing coverage; modify coverage only when current tests do not prove the new risk. No routine shared-DB audit or baseline→candidate→baseline suite is required.
+- For a contract-risk change while production data is active, when `test/integration/persistence/release-compatibility.itest.ts` exists in the release source, the run executes that dedicated exact-baseline compatibility suite: conditional data-risk evidence, not a rerun of general functional QA. It proves both directions: the candidate reads the still-supported legacy records, and the code at the exact recovery-baseline SHA reads records written by the candidate. It may reuse existing coverage; modify coverage only when current tests do not prove the new risk. No routine shared-DB audit or baseline→candidate→baseline suite is required.
 - A present suite that is incompatible or skipped, and any unclassified path, stops promotion and reports what is absent; per-release text variables or an approval click cannot supply it.
 - When the suite file is absent, a contract-risk release still promotes but is recorded forward-only: rollback is unavailable, `rollback` and `mode=recover` stop and notify, repair is a forward fix, and the run summary and GitHub Release state `Forward-only: no rollback to <baseline>`.
 
@@ -103,16 +103,19 @@ Invariants:
 
 For a promoted run left pending or cancelled, the configured release owner may dispatch `mode=recover` on trusted `main` with the original release run ID. Recovery restores only the accepted compatible baseline when the live alias still points at that candidate, then checks public health and reports the result. It never rolls data back, creates a tag or republishes. Expired or missing evidence, or a changed alias, stops. This is an explicit recovery entry point, not timeout automation; code rollback does not guarantee repair of OAuth or shared configuration.
 
-Invariant: under the production lock, the new controller validates the original workflow and repository, owner context, accepted artifact provenance and expiry, source and reviewer receipts and exact deployment bindings. (`recovery.js`: `recoverVerify`, `validateOriginalAuthorization`, `downloadAcceptedState`)
+Invariants:
+
+- Recovery accepts original runs started by `push` or owner dispatch. (`recovery.js` `validateOriginalAuthorization`)
+- Under the production lock, the new controller validates the original workflow and repository, owner context, accepted artifact provenance and expiry, source and reviewer receipts and exact deployment bindings. (`recovery.js`: `recoverVerify`, `validateOriginalAuthorization`, `downloadAcceptedState`)
 
 ## Hotfix
 
-- An urgent production bug or security repair uses `hotfix/<slug>` from the actually deployed, tagged revision, not the integration tip. Prepare its patch version and changelog on that isolated branch.
-- After the repository's independent Agent review and latest trusted checks, the configured `RELEASE_OWNER_LOGIN` authorizes through the production-release workflow's manual dispatch on trusted `main`, specifying its same-repository pull request number and exact reviewed head SHA. The pull request targets `main` but need not merge first.
-- Dispatch proves release authorization, not completion of independent Agent review, and requires no second human PR approval. The controller comes from trusted `main`, never the repair branch.
+- An urgent production bug or security repair uses `hotfix/<slug>` from the actually deployed, tagged revision, not the integration tip. Prepare its patch version and changelog on that isolated branch. (`core.js` `verifyHotfixMetadata`)
+- After the repository's independent agent review and latest trusted checks, the configured `RELEASE_OWNER_LOGIN` authorizes through the production-release workflow's manual dispatch on trusted `main`, specifying its same-repository pull request number and exact reviewed head SHA. The pull request targets `main` but need not merge first.
+- Dispatch proves release authorization, not completion of independent agent review, and requires no second human PR approval. The controller comes from trusted `main`, never the repair branch.
 - Hotfix keeps the same automated source evidence, production lock, promotion, post-deployment smoke, rollback and exact-SHA release controls as a normal release. The owner may perform deployment QA; `Prevent self-review` is not required, but required-reviewer protection remains mandatory.
 
-Invariant: the original and rerun actor must match the owner; missing context, a wrong event or ref, or a changed head fails closed. The release-state artifact records owner, run ID, PR and SHA, and every downstream controller operation revalidates that binding and the current actor context, including partial job reruns. (`authorize.js`: `authorizeHotfix`, `validateHotfixPr`; `core.js`: `releaseOwnerContext`, `validateReleaseAuthorization`, `verifyHotfixMetadata`)
+Invariant: the original and rerun actor must match the owner; missing context, a wrong event or ref, or a changed head fails closed. The release-state artifact records owner, run ID, PR and SHA, and every downstream controller operation revalidates that binding and the current actor context, including partial job reruns. (`authorize.js`: `authorizeHotfix`, `validateHotfixPr`; `core.js`: `releaseOwnerContext`, `validateReleaseAuthorization`)
 
 ## Hotfix synchronization
 

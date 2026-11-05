@@ -1,6 +1,6 @@
 name: Production release
 
-# Do not switch back to pull_request: its merge ref fails the main-only QA environment (ADR-0127).
+# Do not switch back to pull_request: its merge ref fails the main-only QA environment (docs/release-contract.md, Authorization).
 on:
   push:
     branches: [main]
