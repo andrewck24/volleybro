@@ -230,7 +230,7 @@ test("runs when native first-document package manager metadata changes", async (
   assert.equal(result.output, "skip=false\n");
 });
 
-test("fails closed for malformed locks, dangling refs, unsupported versions, and extra documents", async (t) => {
+test("fails closed for malformed locks, dangling snapshots, unsupported versions, and extra documents", async (t) => {
   const invalidCases = [
     ["not: [valid", /invalid pnpm lockfile YAML/],
     [lockfile({ malformed: true }), /dangling package snapshot/],
