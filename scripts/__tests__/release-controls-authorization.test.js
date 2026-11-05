@@ -464,6 +464,7 @@ test("authorize validates the real PR, exact check sources and metadata through 
   for (const [statuses] of statusCases)
     assert.throws(() => validate(original.checks, statuses), statusFailure);
   for (const override of [
+    { checks: [] },
     { environment: { protection_rules: [] } },
     { pr: { ...original.pr, user: { login: "impostor" } } },
     { pr: { ...original.pr, title: "release: something else" } },
