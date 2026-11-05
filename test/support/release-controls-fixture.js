@@ -13,10 +13,11 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
+import { git as gitIn, initRepository } from "./git-fixture.js";
 
-export const cli =
-  process.env.RELEASE_TEST_CLI ||
-  fileURLToPath(new URL("../../scripts/release-controls.js", import.meta.url));
+export const cli = fileURLToPath(
+  new URL("../../scripts/release-controls.js", import.meta.url),
+);
 
 // Names the controller matches on are read from the real workflows, so a rename cannot leave the fake API behind.
 const jobsOf = (file) =>
@@ -84,11 +85,8 @@ export async function fixture(
     bin = path.join(root, "bin");
   await mkdir(repo);
   await mkdir(bin);
-  const git = (args) =>
-    execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();
-  git(["init", "-b", "main"]);
-  git(["config", "user.email", "test@example.invalid"]);
-  git(["config", "user.name", "Test"]);
+  const git = (args) => gitIn(repo, ...args);
+  initRepository(repo);
   const compatibilityPath = path.join(
     repo,
     "test/integration/persistence/release-compatibility.itest.ts",
@@ -316,7 +314,7 @@ export async function fixture(
   };
   await stub(
     "pnpm",
-    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);s.calls.push(a);fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));if(a.includes('--scope')||a.includes('promote')||a.includes('rollback')){console.error('User not found. (404)');process.exit(1);}if(!process.env.VERCEL_PROJECT_ID||!process.env.VERCEL_ORG_ID){console.error('Missing linked project context');process.exit(1);}console.log(JSON.stringify(a.includes('--prod')?{id:'dpl_cand',url:'candidate.test'}:{id:'dpl_preview',url:'random-preview.test'}));",
+    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);s.calls.push(a);s.pnpmCwd=process.cwd();fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));if(a.includes('--scope')||a.includes('promote')||a.includes('rollback')){console.error('User not found. (404)');process.exit(1);}if(!process.env.VERCEL_PROJECT_ID||!process.env.VERCEL_ORG_ID){console.error('Missing linked project context');process.exit(1);}console.log(JSON.stringify(a.includes('--prod')?{id:'dpl_cand',url:'candidate.test'}:{id:'dpl_preview',url:'random-preview.test'}));",
   );
   await stub(
     "gh",

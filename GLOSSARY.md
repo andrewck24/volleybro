@@ -24,6 +24,8 @@ VolleyBro 管理排球隊伍與比賽紀錄。本文件是專案的共用詞彙�
 
 **Acceptance receipt**：指向已接受內容、接受者與時間的紀錄；其內容識別不可替代完整規格。
 
+**Release controller**：執行 production release 各階段的 CLI。Release run 從受信任的 commit 取出入口與模組目錄，在 candidate checkout 之外執行，所以只依賴 `node:` builtins 與模組目錄內的檔案。
+
 **Production smoke test**：發布推上 production 後，以真實登入狀態對正式網址執行的少數關鍵 end-to-end 測試，證明這次發布可用；它不證明 Google 登入本身。 _Avoid_: 冒煙測試、生產環境、API smoke
 
 ### 隊伍與名單
