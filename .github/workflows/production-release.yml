@@ -75,13 +75,16 @@ jobs:
             controller_sha=$(git rev-parse HEAD^1)
             mode=normal
           fi
-          git show "$controller_sha:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          set -o pipefail
+          git archive "$controller_sha" scripts/release-controls.js scripts/release-controls | tar -x --strip-components=1 -C "$RUNNER_TEMP"
           echo "controller_sha=$controller_sha" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
         with:
           name: trusted-release-controller
-          path: ${{ runner.temp }}/release-controls.js
+          path: |
+            ${{ runner.temp }}/release-controls.js
+            ${{ runner.temp }}/release-controls/
           if-no-files-found: error
           retention-days: 31
       - name: Verify release authorization

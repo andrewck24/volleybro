@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { persistedContractChanges } from "../release-controls.js";
+import { persistedContractChanges } from "../release-controls/core.js";
 import { parse as parseYaml } from "yaml";
 import {
   cli,
