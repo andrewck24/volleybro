@@ -261,14 +261,16 @@ test("reports when shared agent skills are ignored", async () => {
 });
 
 test("reports a missing or invalid skills lock", async () => {
-  assert.match(
-    (await messages({ "skills-lock.json": null })).join("\n"),
-    /skills-lock\.json \[shared-skills\]: file is missing/,
-  );
-  assert.match(
-    (await messages({ "skills-lock.json": "{" })).join("\n"),
-    /skills-lock\.json \[shared-skills\]: invalid JSON/,
-  );
+  for (const [lock, diagnostic] of [
+    [null, "file is missing"],
+    ["{", "invalid JSON"],
+  ]) {
+    assert.match(
+      (await messages({ "skills-lock.json": lock })).join("\n"),
+      new RegExp(`skills-lock\\.json \\[shared-skills\\]: ${diagnostic}`),
+      diagnostic,
+    );
+  }
 });
 
 test("reports a missing installed skill and its broken provider bridge", async () => {
@@ -511,7 +513,7 @@ test("checkChangeScope does not treat a Shard mention in prose as a trailer", as
   assert.equal(warnings.length, 1);
 });
 
-test("the workflow CLI exits non-zero and lists each diagnostic", async () => {
+test("the workflow CLI exits non-zero and prints its diagnostics to stderr", async () => {
   const root = await makeRepository({ "CLAUDE.md": "Repository notes.\n" });
   await assert.rejects(
     execFileAsync("node", [CHECK_WORKFLOW_SCRIPT], { cwd: root }),
