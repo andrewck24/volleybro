@@ -314,7 +314,7 @@ export async function fixture(
   };
   await stub(
     "pnpm",
-    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);s.calls.push(a);fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));if(a.includes('--scope')||a.includes('promote')||a.includes('rollback')){console.error('User not found. (404)');process.exit(1);}if(!process.env.VERCEL_PROJECT_ID||!process.env.VERCEL_ORG_ID){console.error('Missing linked project context');process.exit(1);}console.log(JSON.stringify(a.includes('--prod')?{id:'dpl_cand',url:'candidate.test'}:{id:'dpl_preview',url:'random-preview.test'}));",
+    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);s.calls.push(a);s.pnpmCwd=process.cwd();fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));if(a.includes('--scope')||a.includes('promote')||a.includes('rollback')){console.error('User not found. (404)');process.exit(1);}if(!process.env.VERCEL_PROJECT_ID||!process.env.VERCEL_ORG_ID){console.error('Missing linked project context');process.exit(1);}console.log(JSON.stringify(a.includes('--prod')?{id:'dpl_cand',url:'candidate.test'}:{id:'dpl_preview',url:'random-preview.test'}));",
   );
   await stub(
     "gh",

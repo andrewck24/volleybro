@@ -1,4 +1,6 @@
 import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   CI_WORKFLOW,
   RELEASE_STATE_VERSION,
@@ -97,6 +99,8 @@ export async function stage() {
         "--skip-domain",
         "--yes",
         "--json",
+        "--cwd",
+        process.cwd(),
         "--token",
         required("VERCEL_TOKEN"),
         "--meta",
@@ -105,6 +109,8 @@ export async function stage() {
         `releaseBaseline=${baseline.deploymentId}`,
       ],
       {
+        // pnpm reads .npmrc from its working directory, and the checkout holds the candidate's.
+        cwd: path.dirname(fileURLToPath(import.meta.url)),
         env: {
           ...process.env,
           VERCEL_PROJECT_ID: required("VERCEL_PROJECT_ID"),

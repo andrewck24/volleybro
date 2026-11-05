@@ -195,6 +195,27 @@ test("the uploaded artifact runs from the bare directories the jobs download it 
   }
 });
 
+test("the staged state artifact cannot overlay the controller it is read by", () => {
+  const { steps: sourceQa } = jobs["source-qa"];
+  const downloadPath = (name) =>
+    sourceQa.find(
+      (step) =>
+        step.uses?.startsWith("actions/download-artifact") &&
+        step.with.name === name,
+    ).with.path;
+  const stateDirectory = downloadPath("production-release-state");
+  // The candidate job ran third-party code beside this artifact, so its files may be named after controller files.
+  assert.notEqual(stateDirectory, downloadPath("trusted-release-controller"));
+  const stateFile = `${stateDirectory}/release-state.json`;
+  for (const step of sourceQa.filter((step) => step.env?.RELEASE_STATE_FILE))
+    assert.equal(step.env.RELEASE_STATE_FILE, stateFile);
+  assert.equal(
+    sourceQa.find((step) => step.uses?.startsWith("actions/upload-artifact"))
+      .with.path,
+    stateFile,
+  );
+});
+
 test("controller modules only use static imports the bare directory can resolve", async () => {
   const directory = path.join(root, moduleDir);
   const entryFile = path.join(root, entry);

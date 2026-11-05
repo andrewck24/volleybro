@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -40,6 +47,18 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
     const invalid = run(f, "stage");
     assert.notEqual(invalid.status, 0, JSON.stringify(candidate));
   }
+});
+
+test("stage runs the Vercel CLI outside the candidate checkout and deploys that checkout", async (t) => {
+  const f = await fixture(t);
+  const result = run(f, "stage");
+  assert.equal(result.status, 0, result.stderr);
+  const { calls, pnpmCwd } = JSON.parse(await readFile(f.statePath, "utf8"));
+  const checkout = await realpath(f.repo);
+  // pnpm reads .npmrc from its working directory, so a candidate must not choose where the CLI comes from.
+  assert.ok(path.relative(checkout, pnpmCwd).startsWith(".."), pnpmCwd);
+  const deploy = calls.find((args) => args[0] === "dlx");
+  assert.equal(deploy[deploy.indexOf("--cwd") + 1], checkout);
 });
 
 test("stage stops before deployment when release mode is unknown", async (t) => {
