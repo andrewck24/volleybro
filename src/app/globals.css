@@ -174,6 +174,23 @@
 
   --animate-accordion-down: animate-accordion-down 0.2s ease-out;
   --animate-accordion-up: animate-accordion-up 0.2s ease-out;
+  /* Auth sheet presentation: moves in from the edge it docks to, once on first
+     paint (bottom below lg, right from lg). */
+  --animate-sheet-rise: sheet-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-sheet-slide: sheet-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes sheet-rise {
+    from {
+      opacity: 0;
+      transform: translateY(1.5rem);
+    }
+  }
+  @keyframes sheet-slide {
+    from {
+      opacity: 0;
+      transform: translateX(1.5rem);
+    }
+  }
 
   @keyframes animate-accordion-down {
     from {
@@ -210,6 +227,15 @@
      shadow — with rings removed (D5) it is their only elevation cue. */
   [data-slot="Card"] [data-slot="item"] {
     box-shadow: none;
+  }
+
+  /* Auth routes scroll only when their content overflows, so the docked
+     sheet meets the viewport edge instead of a reserved scrollbar gutter. */
+  html:has(.auth-layout) {
+    scrollbar-gutter: auto;
+  }
+  html:has(.auth-layout) body {
+    overflow-y: auto;
   }
 }
 

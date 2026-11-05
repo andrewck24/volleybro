@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-14T10:58:13.844Z",
+  "generatedAt": "2026-11-05T08:03:27.617Z",
   "title": "Design System: VolleyBro",
   "extensions": {
     "colorMeta": {
@@ -104,6 +104,11 @@
         "name": "ease-landing",
         "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
         "purpose": "Landing easing; landing scope only."
+      },
+      {
+        "name": "sheet-presentation",
+        "value": "500ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Auth sheet enters once from the edge it docks to (24px rise below lg, 24px slide from the right at lg) with a fade; auth routes only, static under reduced motion."
       }
     ]
   },
