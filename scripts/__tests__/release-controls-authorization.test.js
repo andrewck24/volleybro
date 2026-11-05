@@ -13,6 +13,7 @@ import {
   sourceTreeStep,
   prepareAcceptedRelease,
 } from "../../test/support/release-controls-fixture.js";
+import { validateRequiredChecks } from "../release-controls/authorize.js";
 
 function hotfixAuthorization(f, current) {
   return {
@@ -407,13 +408,14 @@ test("authorize validates the real PR, exact check sources and metadata through 
   const valid = run(f, "authorize");
   assert.equal(valid.status, 0, valid.stderr);
   const original = JSON.parse(await readFile(f.statePath, "utf8"));
-  for (const override of [
-    { environment: { protection_rules: [] } },
-    { checks: [] },
-    { checks: [{ ...original.checks[0], app: { id: 999 } }] },
-    { checks: [{ ...original.checks[0], head_sha: f.merge }] },
-    {
-      checks: [
+  const sourceFailure = /Latest Verify check/;
+  const statusFailure = /Latest Vercel commit status/;
+  const checkCases = [
+    [[], sourceFailure],
+    [[{ ...original.checks[0], app: { id: 999 } }], sourceFailure],
+    [[{ ...original.checks[0], head_sha: f.merge }], sourceFailure],
+    [
+      [
         ...original.checks,
         {
           ...original.checks[0],
@@ -421,31 +423,30 @@ test("authorize validates the real PR, exact check sources and metadata through 
           started_at: "2026-10-02T00:00:00Z",
         },
       ],
-    },
-    {
-      statuses: [
-        { ...original.statuses[0], context: "Vercel Preview Comments" },
-      ],
-    },
-    { statuses: [{ ...original.statuses[0], state: "pending" }] },
-    {
-      statuses: [
+      sourceFailure,
+    ],
+  ];
+  const statusCases = [
+    [[{ ...original.statuses[0], context: "Vercel Preview Comments" }]],
+    [[{ ...original.statuses[0], state: "pending" }]],
+    [
+      [
         {
           ...original.statuses[0],
           url: `https://api.github.com/repos/owner/repo/statuses/${f.merge}`,
         },
       ],
-    },
-    {
-      statuses: [
+    ],
+    [
+      [
         {
           ...original.statuses[0],
           url: `https://api.github.com/repos/attacker/repo/statuses/${f.head}`,
         },
       ],
-    },
-    {
-      statuses: [
+    ],
+    [
+      [
         ...original.statuses,
         {
           ...original.statuses[0],
@@ -453,7 +454,17 @@ test("authorize validates the real PR, exact check sources and metadata through 
           updated_at: "2026-10-02T00:00:00Z",
         },
       ],
-    },
+    ],
+  ];
+  const validate = (checks, statuses) =>
+    validateRequiredChecks(f.head, checks, statuses, "owner/repo");
+  assert.doesNotThrow(() => validate(original.checks, original.statuses));
+  for (const [checks, reason] of checkCases)
+    assert.throws(() => validate(checks, original.statuses), reason);
+  for (const [statuses] of statusCases)
+    assert.throws(() => validate(original.checks, statuses), statusFailure);
+  for (const override of [
+    { environment: { protection_rules: [] } },
     { pr: { ...original.pr, user: { login: "impostor" } } },
     { pr: { ...original.pr, title: "release: something else" } },
   ]) {
