@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
+import { git as gitIn, initRepository } from "./git-fixture.js";
 
 export const cli = fileURLToPath(
   new URL("../../scripts/release-controls.js", import.meta.url),
@@ -84,11 +85,8 @@ export async function fixture(
     bin = path.join(root, "bin");
   await mkdir(repo);
   await mkdir(bin);
-  const git = (args) =>
-    execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();
-  git(["init", "-b", "main"]);
-  git(["config", "user.email", "test@example.invalid"]);
-  git(["config", "user.name", "Test"]);
+  const git = (args) => gitIn(repo, ...args);
+  initRepository(repo);
   const compatibilityPath = path.join(
     repo,
     "test/integration/persistence/release-compatibility.itest.ts",

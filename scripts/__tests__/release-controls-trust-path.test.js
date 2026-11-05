@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   cp,
   mkdtemp,
@@ -15,7 +15,11 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
-import { commitFiles } from "../../test/support/git-fixture.js";
+import {
+  commitFiles,
+  git,
+  initRepository,
+} from "../../test/support/git-fixture.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const entry = "scripts/release-controls.js";
@@ -49,15 +53,10 @@ async function controllerFiles(marker, names = [entry, ...moduleFiles]) {
   return files;
 }
 
-const git = (cwd, ...args) =>
-  execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
-
 async function repository(t) {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "release-trust-repo-"));
   t.after(() => rm(cwd, { recursive: true, force: true }));
-  git(cwd, "init", "--quiet", "-b", "main");
-  git(cwd, "config", "user.name", "Test");
-  git(cwd, "config", "user.email", "test@example.com");
+  initRepository(cwd);
   return cwd;
 }
 
