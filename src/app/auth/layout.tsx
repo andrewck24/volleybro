@@ -6,9 +6,9 @@ import { StatusBarColor } from "@/components/layout/status-bar-color";
 // top of the sheet, close to the thumb; from lg the sheet docks to the right.
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <main className="auth-layout flex min-h-dvh w-full flex-col overscroll-y-none bg-primary text-primary-foreground lg:flex-row">
+    <main className="auth-layout flex min-h-dvh w-full flex-col bg-primary text-primary-foreground lg:flex-row">
       <StatusBarColor color="var(--color-primary)" />
-      <div className="flex flex-1 flex-col justify-end px-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-8 sm:mx-auto sm:w-full sm:max-w-md sm:px-0 lg:mx-0 lg:max-w-none lg:justify-center lg:px-28 lg:py-12">
+      <div className="flex flex-1 flex-col justify-end px-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-8 sm:mx-auto sm:w-full sm:max-w-md sm:px-0 lg:mx-0 lg:max-w-none lg:justify-start lg:px-28 lg:pt-[max(3rem,calc(50dvh-6rem))] lg:pb-12">
         <LogoType
           variant="brand"
           className="h-11 max-w-full self-start lg:h-16"

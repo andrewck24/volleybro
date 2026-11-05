@@ -12,7 +12,7 @@ import { RiErrorWarningLine } from "react-icons/ri";
 // theme, the standard G and an approved label. These are Google's values, not
 // VolleyBro tokens.
 const GOOGLE_BUTTON =
-  "h-auto min-h-(--control-size-lg) w-full bg-white px-4 py-2 text-base whitespace-normal text-[#1f1f1f] ring-[#747775] hover:bg-[#f2f2f2] dark:bg-[#131314] dark:text-[#e3e3e3] dark:ring-[#8e918f] dark:hover:bg-[#1f1f20] [&>svg]:size-5";
+  "h-auto min-h-(--control-size-lg) w-full bg-white px-4 py-2 text-base whitespace-normal text-[#1f1f1f] ring-[#747775] hover:bg-[#f2f2f2] dark:bg-[#131314] dark:text-[#e3e3e3] dark:ring-[#8e918f] dark:hover:bg-[#1f1f20] focus-visible:ring-2 focus-visible:ring-primary-text dark:focus-visible:ring-primary-text [&>svg]:size-5";
 
 const SignInError = () => {
   const searchParams = useSearchParams();

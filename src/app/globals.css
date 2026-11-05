@@ -236,6 +236,7 @@
   }
   html:has(.auth-layout) body {
     overflow-y: auto;
+    overscroll-behavior-y: none;
   }
 }
 
