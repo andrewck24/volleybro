@@ -388,10 +388,7 @@ function isSafePath(file) {
 const CHROMATIC_WORKFLOW = ".github/workflows/chromatic.yml";
 
 function isChromaticAction(uses) {
-  return uses
-    .replace(/^["']|["']$/g, "")
-    .toLowerCase()
-    .startsWith("chromaui/action@");
+  return uses.toLowerCase().startsWith("chromaui/action@");
 }
 
 // Reduces every non-Chromatic step's `uses` to its action name, so two
@@ -427,12 +424,8 @@ function runGit(args, cwd) {
 function assess({ base: target, head, stats, force = false }) {
   const cwd = process.cwd();
   if (force) return { skip: false, reason: "forced by --force" };
-  if (
-    !target ||
-    !head ||
-    !/^[0-9a-f]{7,40}$/i.test(target) ||
-    !/^[0-9a-f]{7,40}$/i.test(head)
-  ) {
+  // A missing SHA reads as "undefined", which the pattern rejects.
+  if (!/^[0-9a-f]{7,40}$/i.test(target) || !/^[0-9a-f]{7,40}$/i.test(head)) {
     return { skip: false, reason: "base/head SHA is missing or malformed" };
   }
   try {
