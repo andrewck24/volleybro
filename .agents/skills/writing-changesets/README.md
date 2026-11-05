@@ -1,6 +1,6 @@
 # Changeset authoring and tooling
 
-`WORKFLOW.md` owns delivery modes, the current integration branch, the Pre-PR gate, human acceptance and release authorization. This guide describes authoring only; it is not a second release runbook. Version preparation does not itself prove deployment success.
+`WORKFLOW.md` owns delivery modes, the current integration branch, the Pre-PR gate and human acceptance; `docs/release-contract.md` owns release authorization. This guide describes authoring only; it is not a second release runbook. Version preparation does not itself prove deployment success.
 
 ## Authoring
 

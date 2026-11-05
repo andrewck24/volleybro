@@ -23,5 +23,6 @@
   "revisitTriggers": [
     "A reviewed candidate routing or secure session strategy can prove more before promotion."
   ],
-  "originChange": "release-qa-layers"
+  "originChange": "release-qa-layers",
+  "supersededBy": "https://github.com/andrewck24/volleybro/pull/687"
 }

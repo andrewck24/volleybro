@@ -31,7 +31,7 @@ When upgrading any package to a new major version:
 
 Dependabot checks the npm ecosystem (including pnpm) and GitHub Actions every Tuesday at 09:00 Asia/Taipei. Security alerts and security updates are event-driven, not gated by the weekly digest email. Initial version-update limits are zero until the release-train Shard 4 Review's activation checklist is accepted and rehearsed. Recurring operations follow the [release runbook](./release-runbook.md).
 
-Dependency PRs target the repository default integration branch. They run CI but never deploy production or dispatch an Agent. A developer decides whether to start an Agent for compatibility analysis, migration, failed CI or sensitive updates; the Agent delivers a reviewed PR when safe, or a decision issue when implementation cannot proceed safely. Urgent production vulnerabilities and severe bugs use the isolated hotfix route in `WORKFLOW.md`.
+Dependency PRs target the repository default integration branch. They run CI but never deploy production or dispatch an Agent. A developer decides whether to start an Agent for compatibility analysis, migration, failed CI or sensitive updates; the Agent delivers a reviewed PR when safe, or a decision issue when implementation cannot proceed safely. Urgent production vulnerabilities and severe bugs use the isolated hotfix route in the [release contract](./release-contract.md#hotfix).
 
 Every Linear cycle's package update checks two things before merging:
 
