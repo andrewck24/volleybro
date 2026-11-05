@@ -75,13 +75,16 @@ jobs:
             controller_sha=$(git rev-parse HEAD^1)
             mode=normal
           fi
-          git show "$controller_sha:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          set -o pipefail
+          git archive "$controller_sha" scripts/release-controls.js scripts/release-controls | tar -x --strip-components=1 -C "$RUNNER_TEMP"
           echo "controller_sha=$controller_sha" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
         with:
           name: trusted-release-controller
-          path: ${{ runner.temp }}/release-controls.js
+          path: |
+            ${{ runner.temp }}/release-controls.js
+            ${{ runner.temp }}/release-controls/
           if-no-files-found: error
           retention-days: 31
       - name: Verify release authorization
@@ -236,13 +239,13 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: production-release-state
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/staged
       - name: Bind passing source evidence to this release
         env:
           GH_TOKEN: ${{ github.token }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+          RELEASE_STATE_FILE: ${{ runner.temp }}/staged/release-state.json
         run: node "$RUNNER_TEMP/release-controls.js" record-source-qa
       # Git history for the plan only: the sparse checkout leaves no candidate code to run.
       - uses: actions/checkout@v7
@@ -266,14 +269,14 @@ jobs:
       - id: compatibility-plan
         name: Decide whether the exact-baseline compatibility suite is required
         env:
-          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+          RELEASE_STATE_FILE: ${{ runner.temp }}/staged/release-state.json
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
         run: node "$RUNNER_TEMP/release-controls.js" plan-recovery-compatibility
       - uses: actions/upload-artifact@v7
         with:
           name: production-release-source-state
-          path: ${{ runner.temp }}/release-state.json
+          path: ${{ runner.temp }}/staged/release-state.json
           if-no-files-found: error
           retention-days: 1
 
