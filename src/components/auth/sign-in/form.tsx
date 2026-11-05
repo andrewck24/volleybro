@@ -1,6 +1,6 @@
 "use client";
 import { AuthSheet } from "@/components/auth/sheet";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
@@ -8,27 +8,30 @@ import { Suspense, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { RiErrorWarningLine } from "react-icons/ri";
 
-// Google's sign-in branding: a neutral fill with a hairline edge in each
-// theme, the standard G and an approved label. These are Google's values, not
-// VolleyBro tokens.
+// Google's sign-in branding, with the theme chosen against the sheet so the
+// only action stands out: the dark button on the light sheet, the light
+// button on the dark sheet. These are Google's values, not VolleyBro tokens.
 const GOOGLE_BUTTON =
-  "h-auto min-h-(--control-size-lg) w-full bg-white px-4 py-2 text-base whitespace-normal text-[#1f1f1f] ring-[#747775] hover:bg-[#f2f2f2] dark:bg-[#131314] dark:text-[#e3e3e3] dark:ring-[#8e918f] dark:hover:bg-[#1f1f20] focus-visible:ring-2 focus-visible:ring-primary-text dark:focus-visible:ring-primary-text [&>svg]:size-5";
+  "h-auto min-h-(--control-size-lg) w-full bg-[#131314] px-4 py-2 text-base whitespace-normal text-[#e3e3e3] ring-[#8e918f] hover:bg-[#2b2b2d] dark:bg-white dark:text-[#1f1f1f] dark:ring-[#747775] dark:hover:bg-[#f2f2f2] focus-visible:ring-2 focus-visible:ring-primary-text dark:focus-visible:ring-primary-text [&>svg]:size-5";
+
+// Better Auth returns a failed Google callback here as ?error=<code>. Only the
+// code picks a fixed message; nothing from the URL is shown.
+const signInErrorMessage = (code: string) =>
+  code === "access_denied"
+    ? "已取消登入，要登入請再按一次下方按鈕。"
+    : "登入失敗，請再按一次下方按鈕。";
 
 const SignInError = () => {
   const searchParams = useSearchParams();
-  const urlError = searchParams.get("error");
-  if (!urlError) return null;
-
-  const errorMessage =
-    urlError === "OAuthAccountNotLinked"
-      ? "這個 Email 已用其他方式註冊，請改用原本的方式登入。"
-      : "登入沒有完成，請再試一次。";
+  const code = searchParams.get("error");
+  if (!code) return null;
 
   return (
     <Alert variant="error">
       <RiErrorWarningLine />
-      <AlertTitle>登入失敗</AlertTitle>
-      <AlertDescription>{errorMessage}</AlertDescription>
+      <AlertTitle className="mb-0 leading-snug">
+        {signInErrorMessage(code)}
+      </AlertTitle>
     </Alert>
   );
 };
@@ -42,6 +45,7 @@ const SignInForm = () => {
       await authClient.signIn.social({
         provider: "google",
         callbackURL: "/home",
+        errorCallbackURL: "/auth/sign-in",
       });
     } catch {
       // sign-in errors are surfaced via URL error params after redirect
@@ -63,10 +67,10 @@ const SignInForm = () => {
         loading={isSubmitting}
       >
         <FcGoogle />
-        使用 Google 帳戶繼續
+        使用 Google 帳戶登入
       </Button>
       <p className="text-sm text-pretty text-muted-foreground">
-        繼續即表示您同意服務條款與隱私權政策。
+        登入即表示您同意服務條款與隱私權政策。
       </p>
     </AuthSheet>
   );
