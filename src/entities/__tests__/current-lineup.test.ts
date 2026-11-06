@@ -44,14 +44,20 @@ describe("Current lineup recomputation through upsertEntries", () => {
   });
 
   it("recomputes from the starting lineup after a past substitution changes", () => {
-    const recorded = write(sub(0, "a", "x"));
-    if ("invalid" in recorded) throw new Error("expected a set");
+    const withXOnCourt = write(sub(0, "a", "x"));
+    if ("invalid" in withXOnCourt) throw new Error("expected a set");
 
-    // The stored set already carries the Current lineup with x on court.
-    const edited = upsertEntries(recorded.set, [sub(0, "a", "y")]);
-    if ("invalid" in edited) throw new Error("expected a set");
+    const edited = upsertEntries(withXOnCourt.set, [sub(0, "a", "y")]);
 
-    expect(onCourt(edited.set.lineups)).toEqual(["y", "b", "c", "d", "e", "f"]);
+    expect(edited).toMatchObject({
+      set: {
+        lineups: {
+          home: {
+            starting: ["y", "b", "c", "d", "e", "f"].map((id) => ({ id })),
+          },
+        },
+      },
+    });
   });
 
   it("names the first substitution in seq order that cannot apply", () => {
