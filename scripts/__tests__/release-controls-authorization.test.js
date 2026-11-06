@@ -575,27 +575,32 @@ test("several merged PRs for one push fail instead of guessing", async (t) => {
   assert.doesNotMatch(await outputOf(f), /sha=/);
 });
 
-test("a multi-commit version PR rebase merge fails closed while a single-commit landing authorizes", async (t) => {
+test("a version PR that did not land as a merge commit fails before release on push and retry", async (t) => {
   const f = await fixture(t);
-  const rebased = { ...JSON.parse(await readFile(f.statePath, "utf8")).pr };
-  const landed = { ...rebased, merge_commit_sha: f.head };
-  await updateApi(f, { pr: landed });
-  const env = { GITHUB_SHA: f.head };
+  const merged = { ...JSON.parse(await readFile(f.statePath, "utf8")).pr };
+  // squash or rebase: main gains the single-parent PR commit itself
+  await updateApi(f, { pr: { ...merged, merge_commit_sha: f.head } });
   const parent = f.git(["rev-parse", `${f.head}^1`]);
-  // squash or single-commit rebase: the push holds exactly one commit
   await writeFile(
     f.eventPath,
     JSON.stringify({ before: parent, after: f.head }),
   );
-  assert.equal(run(f, "authorize", env).status, 0);
-  // rebase of several commits: the push holds more than one commit
-  await writeFile(
-    f.eventPath,
-    JSON.stringify({ before: f.deployed, after: f.head }),
-  );
-  const result = run(f, "authorize", env);
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /rebase/i);
+  for (const [action, env] of [
+    ["authorize", { GITHUB_SHA: f.head }],
+    [
+      "authorize-retry",
+      {
+        GITHUB_EVENT_NAME: "workflow_dispatch",
+        RELEASE_PR_NUMBER: "1",
+        RELEASE_SHA: f.head,
+        CONTROLLER_SHA: f.merge,
+      },
+    ],
+  ]) {
+    const result = run(f, action, env);
+    assert.notEqual(result.status, 0, action);
+    assert.match(result.stderr, /must land as a merge commit/, action);
+  }
 });
 
 test("open version PR validation has no release authority and rejects foreign changes", async (t) => {

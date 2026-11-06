@@ -86,6 +86,7 @@ export async function stage() {
   if ((await command("git", ["rev-parse", "HEAD"])) !== sha)
     fail("Checkout is not the exact authorized release SHA");
   await assertNoCliLoadedFiles(process.cwd());
+  const reviewedSource = await reviewedSourceMapping(sha, authorization);
   const domains = await stagingDomains();
   const baseline = await currentAlias();
   if (process.env.EXPECTED_BASELINE_SHA) {
@@ -143,7 +144,6 @@ export async function stage() {
   if (!candidate.id) fail("Staged deployment did not return an ID");
   validateCandidate(candidate, candidateId, sha, domains);
   assertBaseline(await currentAlias(), baseline);
-  const reviewedSource = await reviewedSourceMapping(sha, authorization);
   const output = {
     stateVersion: RELEASE_STATE_VERSION,
     candidateId: candidate.id,
