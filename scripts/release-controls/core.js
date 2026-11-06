@@ -452,6 +452,7 @@ export async function persistedContractChanges(state) {
 async function sourcePathExists(sha, sourcePath) {
   const listing = await command("git", [
     "ls-tree",
+    "--full-tree",
     "--name-only",
     sha,
     "--",

@@ -245,7 +245,7 @@ function productionQAReceipt(state, approval) {
 export async function recordSmokeAcceptance() {
   const state = await loadState();
   validateConfiguredPlatform(state);
-  // Classify already judged the smoke; this re-checks its handed-over verdict and reads the smoke jobs' conclusions from GitHub.
+  // Classify already judged the smoke; promotion re-checks that verdict and does not judge again.
   const before = {
     deploymentId: required("SMOKE_BEFORE_DEPLOYMENT_ID"),
     sha: required("SMOKE_BEFORE_SHA"),
