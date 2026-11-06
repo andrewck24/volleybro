@@ -8,8 +8,6 @@ import {
   RECOVERY_COMPATIBILITY_TEST,
   RECOVERY_RECEIPT_TTL_MS,
   RELEASE_STATE_VERSION,
-  SOURCE_QA_SCOPES,
-  appendOutputs,
   assertSourceQAReceipt,
   command,
   currentAlias,
@@ -31,7 +29,7 @@ import {
   validateConfiguredPlatform,
   validateWorkflowRun,
   verifyRecoveryEvidence,
-  verifyReusableSourceQA,
+  verifySourceQAScopes,
   workflowJobs,
   workflowRun,
   writeState,
@@ -149,7 +147,8 @@ export async function rollbackIfCompatible() {
 export async function recordRecoveryEvidence() {
   const state = await loadState();
   validateConfiguredPlatform(state);
-  await verifySourceQANative(state);
+  assertSourceQAReceipt(state, state.releaseRunId);
+  await verifySourceQAScopes(state);
   const plan = await recoveryCompatibilityPlan(state);
   if (plan.required) await verifyCompatibilityReport(state);
   state.compatibilityTest = await recordCompatibilityTest(state, plan);
@@ -175,14 +174,6 @@ export async function recordRecoveryEvidence() {
   if (process.env.GITHUB_STEP_SUMMARY)
     await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
   process.stdout.write(`${summary}\n`);
-}
-
-async function verifySourceQANative(state) {
-  assertSourceQAReceipt(state, state.releaseRunId);
-  for (const [scope, reusedName] of SOURCE_QA_SCOPES) {
-    const evidence = state.sourceQA.scopes[scope];
-    await verifyReusableSourceQA(state, evidence, reusedName);
-  }
 }
 
 function validateOriginalAuthorization(state, run) {
@@ -351,10 +342,4 @@ export async function recoverVerify() {
     originalRunId,
   };
   await writeState(required("RELEASE_RECOVERY_STATE_FILE"), state);
-  await appendOutputs({
-    sha: state.sha,
-    candidate_id: state.candidateId,
-    baseline: state.baseline.deploymentId,
-    baseline_sha: state.baseline.sha,
-  });
 }
