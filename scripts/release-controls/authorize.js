@@ -206,6 +206,10 @@ async function validateMergedVersionPr(pullRequest, sha) {
     fail(
       "Version PR must land as a merge commit; a squash or rebase landing cannot be released. Open a new version PR and merge it with a merge commit",
     );
+  if (rest[0] !== pr.head.sha)
+    fail(
+      `Version PR head ${pr.head.sha} is not the merge's second parent; open a new version PR`,
+    );
   await verifyMetadataOnly(parent, sha);
   validateReviewEnvironment(environment);
   return pr;

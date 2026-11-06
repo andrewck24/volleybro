@@ -580,11 +580,6 @@ test("a version PR that did not land as a merge commit fails before release on p
   const merged = { ...JSON.parse(await readFile(f.statePath, "utf8")).pr };
   // squash or rebase: main gains the single-parent PR commit itself
   await updateApi(f, { pr: { ...merged, merge_commit_sha: f.head } });
-  const parent = f.git(["rev-parse", `${f.head}^1`]);
-  await writeFile(
-    f.eventPath,
-    JSON.stringify({ before: parent, after: f.head }),
-  );
   for (const [action, env] of [
     ["authorize", { GITHUB_SHA: f.head }],
     [
@@ -600,6 +595,44 @@ test("a version PR that did not land as a merge commit fails before release on p
     const result = run(f, action, env);
     assert.notEqual(result.status, 0, action);
     assert.match(result.stderr, /must land as a merge commit/, action);
+  }
+});
+
+test("a version PR whose reported head is not the merge's second parent fails on push and retry", async (t) => {
+  const f = await fixture(t);
+  const current = JSON.parse(await readFile(f.statePath, "utf8"));
+  // GitHub reports a head, checked green, that the merge did not integrate
+  const other = f.git(["rev-parse", `${f.merge}^1`]);
+  await updateApi(f, {
+    pr: { ...current.pr, head: { ...current.pr.head, sha: other } },
+    checks: [{ ...current.checks[0], head_sha: other }],
+    statuses: [
+      {
+        ...current.statuses[0],
+        url: `https://api.github.com/repos/owner/repo/statuses/${other}`,
+      },
+    ],
+  });
+  for (const [action, env] of [
+    ["authorize", {}],
+    [
+      "authorize-retry",
+      {
+        GITHUB_EVENT_NAME: "workflow_dispatch",
+        RELEASE_PR_NUMBER: "1",
+        RELEASE_SHA: f.merge,
+        CONTROLLER_SHA: f.merge,
+      },
+    ],
+  ]) {
+    const result = run(f, action, env);
+    assert.notEqual(result.status, 0, action);
+    assert.match(
+      result.stderr,
+      new RegExp(`Version PR head ${other} is not the merge's second parent`),
+      action,
+    );
+    assert.doesNotMatch(await outputOf(f), /sha=/, action);
   }
 });
 

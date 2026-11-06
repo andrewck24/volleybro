@@ -92,7 +92,6 @@ jobs:
         if: steps.controller.outputs.mode != 'hotfix'
         env:
           GH_TOKEN: ${{ github.token }}
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
           RELEASE_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || github.sha }}
