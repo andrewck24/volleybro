@@ -322,6 +322,7 @@ export async function fixture(
 const s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);let result;
 if(a[0]==='api'){
   const route=a[1];
+  if(s.failRoute&&route.includes(s.failRoute)){process.stderr.write('simulated GitHub API outage\n');process.exit(1);}
   if(/\/commits\/[0-9a-f]+\/pulls$/.test(route)){
     s.pullLookups=(s.pullLookups||0)+1;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));
     const merged=[{...s.pr,merged_at:s.pr.merged?'2026-10-01T00:00:00Z':null}];
