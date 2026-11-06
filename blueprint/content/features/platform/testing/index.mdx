@@ -15,7 +15,7 @@ A test is only as useful as what it refuses to fake. These are the tiers the rep
 - Backend unit tests stub only the database connection and Next server modules. Frontend unit tests run under jsdom.
 - Integration tests run against one in-memory replica set per run, with a database of its own for each test file, so transactions can be proven; auth services are DI doubles. Tests under `api/` arrange and read data only through routes and repository interfaces; tests under `persistence/` prove database behaviour and may use the driver.
 - CI runs every check on every pull request. The local gates, `pnpm verify` and `pnpm verify:all`, are defined in WORKFLOW.md's Repository profile.
-- End-to-end tests run on Playwright and exist only as the production smoke test: the `@smoke` subset, run by `pnpm test:smoke` against the production alias after promotion with a real session a person established once. It is not part of pull-request CI; what it checks and does not replace is the post-promotion acceptance rule in WORKFLOW.md (ADR-0140).
+- End-to-end tests run on Playwright and exist only as the production smoke test: the `@smoke` subset, run by `pnpm test:smoke` against the production alias after promotion with a real session a person established once. It is not part of pull-request CI; what it checks and does not replace is the post-promotion acceptance rule in `docs/release-contract.md` (ADR-0140).
 
 ## Implemented decisions
 

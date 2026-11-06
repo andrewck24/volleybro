@@ -33,5 +33,6 @@
     "GitHub evaluates environment branch policies for `pull_request` runs against the base branch.",
     "Releases need to start from something other than a merge to `main`."
   ],
-  "originChange": "release-push-trigger"
+  "originChange": "release-push-trigger",
+  "supersededBy": "https://github.com/andrewck24/volleybro/pull/687"
 }

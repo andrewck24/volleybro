@@ -1,6 +1,6 @@
 name: Production release
 
-# Do not switch back to pull_request: its merge ref fails the main-only QA environment (ADR-0127).
+# Do not switch back to pull_request: its merge ref fails the main-only QA environment (docs/release-contract.md, Authorization).
 on:
   push:
     branches: [main]
@@ -189,7 +189,7 @@ jobs:
         with:
           ref: ${{ needs.authorize-hotfix.outputs.sha || needs.authorize.outputs.sha }}
           fetch-depth: 0
-      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
         with:
           install: false
           node-version-file: false
@@ -301,7 +301,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
         with:
           install: false
           node-version-file: false
@@ -441,7 +441,7 @@ jobs:
             echo "- Authorized source SHA: \`$RELEASE_SHA\`"
             echo "- Previous production baseline: \`$BASELINE\`"
             echo "- Live alias: https://$PRODUCTION_ALIAS"
-            echo 'Production smoke now runs; the post-promotion acceptance rule in WORKFLOW.md decides whether a manual review gate follows.'
+            echo 'Production smoke now runs; the post-promotion acceptance rule in docs/release-contract.md decides whether a manual review gate follows.'
           } >> "$GITHUB_STEP_SUMMARY"
 
   production-smoke:
@@ -462,7 +462,7 @@ jobs:
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
-      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
         with:
           install: false
           node-version-file: false
@@ -837,6 +837,6 @@ jobs:
             echo '### Production release stopped'
             echo
             echo "A guarded release or merge-back job failed. Inspect the actual production deployment, tag and immutable artifacts before retrying; publication may have succeeded before synchronization failed: $RUN_URL"
-            echo 'For synchronization failure, start an agent with this run and the accepted release-state artifact. Follow WORKFLOW.md hotfix synchronization; preserve both histories and pending changesets. Do not rerun publication or bypass checks to resolve merge-back.'
+            echo 'For synchronization failure, start an agent with this run and the accepted release-state artifact. Follow the hotfix synchronization in docs/release-contract.md; preserve both histories and pending changesets. Do not rerun publication or bypass checks to resolve merge-back.'
             echo 'For a promoted run left pending/cancelled, the owner may dispatch recover with its original run ID while accepted evidence remains available. Expired evidence or changed alias stops; no timeout recovery is implied.'
           } >> "$GITHUB_STEP_SUMMARY"

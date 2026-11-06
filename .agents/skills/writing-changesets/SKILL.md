@@ -24,7 +24,7 @@ Assess Changeset applicability at the Pre-PR gate for each delivery batch, inclu
 implement -> Pre-PR Changeset assessment -> pnpm changeset when applicable -> same batch PR
 ```
 
-Write a changeset only for content shipped in the package. Every delivery batch that changes shipped content carries its own changeset; CI, workflows, the release controller, tests, docs, agent skills and contributor-setup-only changes need none. A tracking parent receives no extra changeset just for grouping its shards. Do not duplicate earlier batches' entries. Lifecycle, human gates, integration branch and release authorization are owned by `WORKFLOW.md`, not this skill.
+Write a changeset only for content shipped in the package. Every delivery batch that changes shipped content carries its own changeset; CI, workflows, the release controller, tests, docs, agent skills and contributor-setup-only changes need none. A tracking parent receives no extra changeset just for grouping its shards. Do not duplicate earlier batches' entries. Lifecycle, human gates and integration branch are owned by `WORKFLOW.md`, and release authorization by `docs/release-contract.md`, not this skill.
 
 ## CLI Quick Reference
 
