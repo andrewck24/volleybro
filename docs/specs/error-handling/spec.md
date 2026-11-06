@@ -447,7 +447,7 @@ tests:
   - src/applications/usecases/user/__tests__/search-user.usecase.test.ts
   - src/infrastructure/services/auth/__tests__/authorization.service.test.ts
   - src/__tests__/helpers/fixtures.ts
-  - src/components/team/__tests__/membership-section-loading.test.tsx
+  - src/components/team/__tests__/membership-section.test.tsx
   - src/applications/usecases/game/__tests__/update-rally.usecase.test.ts
   - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
   - src/applications/usecases/player/__tests__/get-team-players.usecase.test.ts
@@ -831,7 +831,7 @@ tests:
   - src/applications/usecases/user/__tests__/search-user.usecase.test.ts
   - src/infrastructure/services/auth/__tests__/authorization.service.test.ts
   - src/__tests__/helpers/fixtures.ts
-  - src/components/team/__tests__/membership-section-loading.test.tsx
+  - src/components/team/__tests__/membership-section.test.tsx
   - src/applications/usecases/game/__tests__/update-rally.usecase.test.ts
   - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
   - src/applications/usecases/player/__tests__/get-team-players.usecase.test.ts

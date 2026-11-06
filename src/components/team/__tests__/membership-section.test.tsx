@@ -148,6 +148,9 @@ describe("MembershipSection — after a transfer", () => {
     expect(
       await screen.findByText(`owner: ${basePlayer.id}`),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /確認移轉/ }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -199,6 +202,24 @@ describe("MembershipSection — transfer target", () => {
     });
 
     expect(transferEntry()).toBeEnabled();
+  });
+
+  it.each([
+    ["a caller who is not the owner", { isCurrentOwner: false }],
+    [
+      "the owner's own player",
+      { isCurrentOwner: true, ownerPlayerId: basePlayer.id },
+    ],
+  ])("does not appear for %s", (_case, props) => {
+    renderSection({
+      player: { ...basePlayer, role: PlayerRole.ADMIN },
+      isSelf: false,
+      ...props,
+    });
+
+    expect(
+      screen.queryByRole("button", { name: /移轉所有權給此球員/ }),
+    ).not.toBeInTheDocument();
   });
 });
 
