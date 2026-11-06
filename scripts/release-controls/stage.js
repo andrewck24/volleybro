@@ -140,7 +140,6 @@ export async function stage() {
   if (!candidateId || !candidateUrl)
     fail("Vercel deploy output did not include candidate identity");
   const candidate = await deployment(candidateId);
-  if (!candidate.id) fail("Staged deployment did not return an ID");
   validateCandidate(candidate, candidateId, sha, domains);
   assertBaseline(await currentAlias(), baseline);
   const reviewedSource = await reviewedSourceMapping(sha, authorization);
@@ -161,15 +160,12 @@ export async function stage() {
     ...(reviewedSource && { reviewedSource }),
     ...(authorization && { authorization }),
   };
-  const outputPath = required("GITHUB_OUTPUT");
-  await fs.appendFile(
-    outputPath,
-    `candidate_id=${output.candidateId}\nbaseline=${baseline.deploymentId}\nsha=${sha}\n`,
-  );
-  await fs.writeFile(
-    required("RELEASE_STATE_FILE"),
-    `${JSON.stringify(output, null, 2)}\n`,
-  );
+  await appendOutputs({
+    candidate_id: output.candidateId,
+    baseline: baseline.deploymentId,
+    sha,
+  });
+  await writeState(required("RELEASE_STATE_FILE"), output);
   process.stdout.write(`${JSON.stringify(output)}\n`);
 }
 

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import {
   assertAncestor,
+  appendOutputs,
   assertExistingTagSha,
   command,
   currentAlias,
@@ -105,7 +106,6 @@ function validateVersionPr(pr, expectedAuthor, repository) {
   }
   if (pr.title !== "release: update versions")
     fail("Version PR title does not match");
-  return true;
 }
 
 function validateReviewEnvironment(environment) {
@@ -182,19 +182,26 @@ async function verifyMetadataOnly(base, head) {
   }
 }
 
-async function validateMergedVersionPr(pullRequest, sha) {
-  const pr = await github(`pulls/${pullRequest}`);
+async function fetchCheckEvidence(sha) {
   const [checks, statuses, environment] = await Promise.all([
-    github(`commits/${pr.head.sha}/check-runs?per_page=100`),
-    github(`commits/${pr.head.sha}/statuses?per_page=100`),
+    github(`commits/${sha}/check-runs?per_page=100`),
+    github(`commits/${sha}/statuses?per_page=100`),
     github("environments/production-release-review"),
   ]);
+  return { checkRuns: checks.check_runs, statuses, environment };
+}
+
+async function validateMergedVersionPr(pullRequest, sha) {
+  const pr = await github(`pulls/${pullRequest}`);
+  const { checkRuns, statuses, environment } = await fetchCheckEvidence(
+    pr.head.sha,
+  );
   validateAuthorization({
     sha,
     pr,
     expectedAuthor: required("RELEASE_BOT_LOGIN"),
     repository: required("GITHUB_REPOSITORY"),
-    checkRuns: checks.check_runs,
+    checkRuns,
     statuses,
   });
   const parent = await command("git", ["rev-parse", `${sha}^1`]);
@@ -235,7 +242,7 @@ export async function authorize() {
     pr.head.ref !== "changeset-release/main" ||
     pr.head.repo?.full_name !== pr.base.repo?.full_name
   ) {
-    await fs.appendFile(required("GITHUB_OUTPUT"), "release=false\n");
+    await appendOutputs({ release: false });
     process.stdout.write(
       `${JSON.stringify({ release: false, reason: "Push did not merge the version PR; no release needed" })}\n`,
     );
@@ -263,7 +270,7 @@ export async function authorize() {
       "Rebase merge of a multi-commit version PR cannot be verified; merge it with a merge commit or squash",
     );
   await validateMergedVersionPr(pr.number, sha);
-  await fs.appendFile(required("GITHUB_OUTPUT"), `release=true\nsha=${sha}\n`);
+  await appendOutputs({ release: true, sha });
   process.stdout.write(
     `${JSON.stringify({ sha, version: json(await shaAt(sha, "package.json"), "package.json").version })}\n`,
   );
@@ -292,10 +299,10 @@ export async function authorizeRetry() {
     mode: "normal-retry",
     reviewedSourceSha: exactSha(pr.head.sha, "Version PR head SHA"),
   };
-  await fs.appendFile(
-    required("GITHUB_OUTPUT"),
-    `sha=${sha}\nrelease_authorization=${JSON.stringify(authorization)}\n`,
-  );
+  await appendOutputs({
+    sha,
+    release_authorization: JSON.stringify(authorization),
+  });
   process.stdout.write(
     `${JSON.stringify({ sha, version: json(await shaAt(sha, "package.json"), "package.json").version, authorization })}\n`,
   );
@@ -308,16 +315,12 @@ export async function authorizeHotfix() {
     fail("HOTFIX_PR_NUMBER must be a pull request number");
   const sha = exactSha(required("RELEASE_SHA"), "Hotfix SHA");
   const pr = await github(`pulls/${pullRequest}`);
-  const [checks, statuses, environment] = await Promise.all([
-    github(`commits/${sha}/check-runs?per_page=100`),
-    github(`commits/${sha}/statuses?per_page=100`),
-    github("environments/production-release-review"),
-  ]);
+  const { checkRuns, statuses, environment } = await fetchCheckEvidence(sha);
   validateHotfixPr({
     pr,
     sha,
     repository: required("GITHUB_REPOSITORY"),
-    checkRuns: checks.check_runs,
+    checkRuns,
     statuses,
   });
   validateReviewEnvironment(environment);
@@ -344,12 +347,13 @@ export async function authorizeHotfix() {
   const metadata = await verifyHotfixMetadata(baseline.sha, sha);
   await assertRemoteBaselineTag(baseline.sha, metadata.basePackage.version);
   const authorization = { owner, runId, pullRequest, sha, mode: "hotfix" };
-  if (process.env.GITHUB_OUTPUT) {
-    await fs.appendFile(
-      process.env.GITHUB_OUTPUT,
-      `sha=${sha}\nbaseline_deployment=${baseline.deploymentId}\nbaseline_updated_at=${baseline.updatedAt}\nbaseline_sha=${baseline.sha}\nrelease_authorization=${JSON.stringify(authorization)}\n`,
-    );
-  }
+  await appendOutputs({
+    sha,
+    baseline_deployment: baseline.deploymentId,
+    baseline_updated_at: baseline.updatedAt,
+    baseline_sha: baseline.sha,
+    release_authorization: JSON.stringify(authorization),
+  });
   process.stdout.write(
     `${JSON.stringify({ sha, version: metadata.repairPackage.version, baseline, authorization })}\n`,
   );
