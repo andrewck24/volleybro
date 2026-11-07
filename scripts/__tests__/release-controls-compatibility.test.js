@@ -164,6 +164,7 @@ test("compatibility report requires both directional assertions to pass without 
     });
   const expected = compatibilityAssertions(f);
   const wrongSha = `${f.deployed.slice(0, -1)}${f.deployed.endsWith("0") ? "1" : "0"}`;
+  const valid = compatibilityReport(f, expected);
   const invalidReports = [
     compatibilityReport(f, expected, 1),
     compatibilityReport(f, expected.slice(0, 1)),
@@ -179,10 +180,10 @@ test("compatibility report requires both directional assertions to pass without 
     compatibilityReport(f, expected, 0, ["failed", "passed"]),
     compatibilityReport(f, expected, 0, ["passed", "skipped"]),
     {
-      ...compatibilityReport(f, expected),
+      ...valid,
       testResults: [
         {
-          ...compatibilityReport(f, expected).testResults[0],
+          ...valid.testResults[0],
           name: path.join(
             f.repo,
             "test/integration/persistence/other.itest.ts",

@@ -212,7 +212,6 @@ test("the staged state artifact cannot overlay the controller it is read by", ()
   const stateDirectory = downloadPath("production-release-state");
   // The candidate job ran third-party code beside this artifact, so its files may be named after controller files.
   const controllerDirectory = downloadPath("trusted-release-controller");
-  // Extracted files: the state directory may not be one, hold one, or sit inside one.
   const controllerPaths = upload.with.path
     .trim()
     .split("\n")

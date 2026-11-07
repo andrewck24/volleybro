@@ -281,9 +281,10 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
   assert.equal(receipt.sourceQA.scopes.integration.kind, "ci-reuse");
 
   const deployedTree = f.git(["rev-parse", `${f.deployed}^{tree}`]);
+  const mergeTree = f.git(["rev-parse", `${f.merge}^{tree}`]);
   for (const [marker, producer] of [
     // claims another tree for the commit it tested
-    [sourceTreeStep(deployedTree, f.head), f.head],
+    [sourceTreeStep(mergeTree, f.deployed), f.deployed],
     // truthfully tested a commit whose tree is not the release tree
     [sourceTreeStep(deployedTree, f.deployed), f.deployed],
   ]) {

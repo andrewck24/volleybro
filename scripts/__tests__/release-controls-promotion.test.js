@@ -473,7 +473,6 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     artifacts: { ...api.artifacts, 9: [artifact] },
     artifactArchives: { 700: archive },
   });
-  // Replaces the original run's accepted artifact with this state file content.
   const republish = async (content) => {
     await writeFile(stateFile, content);
     await rm(archive, { force: true });

@@ -171,7 +171,6 @@ test("normal retry preserves merged version SHA and binds owner authorization th
       0,
     );
   }
-  // The checkout must be the controller, and the controller must contain the release.
   assert.match(
     run(f, "authorize-retry", { ...env, CONTROLLER_SHA: f.deployed }).stderr,
     /does not match the trusted controller SHA/,
