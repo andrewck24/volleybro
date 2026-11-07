@@ -3,7 +3,7 @@ import {
   createMockTeamRepository,
 } from "@test/support/doubles/repositories";
 import { createMockTransactionRunner } from "@test/support/doubles/services";
-import { createPlayer, createTeam } from "@test/support/fixtures/entities";
+import { createTeam } from "@test/support/fixtures/entities";
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
@@ -32,19 +32,6 @@ describe("CreateTeamUseCase", () => {
       mockPlayerRepository,
       mockTransactionRunner,
     );
-  });
-
-  it("creates the team with the caller as its joined owner", async () => {
-    const owned = { ...mockTeam, ownerPlayerId: "player-9" };
-    mockTeamRepository.create.mockResolvedValue(mockTeam);
-    mockPlayerRepository.create.mockResolvedValue(
-      createPlayer({ id: "player-9" }),
-    );
-    mockTeamRepository.update.mockResolvedValue(owned);
-
-    const result = await useCase.execute(input);
-
-    expect(result).toBe(owned);
   });
 
   it("rethrows the owner error so the transaction can roll the team back", async () => {

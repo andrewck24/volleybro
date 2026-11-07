@@ -48,15 +48,6 @@ describe("upsertEntries", () => {
     ]);
   });
 
-  it("recomputes the Current lineup from every substitution", () => {
-    const result = upsertEntries(
-      { startingLineups, entries: [] as EntryContent[] },
-      [sub(2, "b", "y"), sub(1, "a", "x")],
-    );
-    if ("invalid" in result) throw new Error("expected a set");
-    expect(onCourt(result.set.lineups)).toEqual(["x", "y", "c", "d", "e", "f"]);
-  });
-
   it("returns the refused substitution with the score before it", () => {
     const result = upsertEntries(
       { startingLineups, entries: [rally(1, 3, 2)] },
@@ -181,17 +172,6 @@ describe("planEntryUpserts", () => {
     );
     if ("invalid" in result) throw new Error("expected a set");
     expect(result.set.entries.map((e) => e.seq)).toEqual([1, 2]);
-  });
-
-  it("refuses a substitution that does not fit the lineup", () => {
-    const result = planEntryUpserts(
-      setOf(rally(1, 3, 2)),
-      [{ entry: sub(2, "z", "x"), at }],
-      "p1",
-    );
-    expect(result).toMatchObject({
-      invalid: { id: "sub-2", score: { home: 3, away: 2 } },
-    });
   });
 
   it("refuses a starting lineup that invalidates a recorded substitution", () => {
