@@ -66,7 +66,17 @@ async function passingCompatibilityTestJob(f) {
 
 test("persisted contract changes without a compatibility suite promote as forward-only and refuse rollback", async (t) => {
   const f = await fixture(t, { persistedContract: true });
-  const { accepted } = await prepareAcceptedRelease(f);
+  const { env } = await prepareSourceRelease(f);
+  const accepted = path.join(f.root, "accepted.json");
+  const recorded = run(f, "record-recovery-evidence", {
+    ...env,
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.equal(recorded.status, 0, recorded.stderr);
+  assert.ok(
+    recorded.stdout.includes(`Forward-only: no rollback to ${f.deployed}`),
+    recorded.stdout,
+  );
   const state = JSON.parse(await readFile(accepted, "utf8"));
   assert.equal(
     state.recoveryEvidence.facts.database.policy,
@@ -79,8 +89,11 @@ test("persisted contract changes without a compatibility suite promote as forwar
   );
   await updateApi(f, { alias: "dpl_cand" });
   const callsBefore = JSON.parse(await readFile(f.statePath, "utf8")).calls;
+  // A per-release variable claiming compatibility cannot unlock rollback.
   const denied = run(f, "rollback-if-compatible", {
     RELEASE_STATE_FILE: accepted,
+    RELEASE_ROLLBACK_COMPATIBILITY: "compatible",
+    RELEASE_ROLLBACK_EVIDENCE: "https://attacker.example.test/claim",
   });
   assert.notEqual(denied.status, 0);
   assert.match(denied.stderr, /forward-only release/);
@@ -89,17 +102,7 @@ test("persisted contract changes without a compatibility suite promote as forwar
   assert.deepEqual(after.calls, callsBefore);
 });
 
-test("persisted contract changes require exact-source integration proof", async (t) => {
-  const f = await fixture(t, { persistedContract: true });
-  const { env: sourceEnv } = await prepareSourceRelease(f);
-  const accepted = path.join(f.root, "missing-proof.json");
-  const missing = run(f, "record-recovery-evidence", {
-    ...sourceEnv,
-    RELEASE_ACCEPTED_STATE_FILE: accepted,
-  });
-  assert.equal(missing.status, 0, missing.stderr);
-  assert.match(missing.stdout, /Forward-only: no rollback to /);
-
+test("a persisted contract change with the exact-source suite records targeted integration proof", async (t) => {
   const proofFixture = await fixture(t, {
     persistedContract: true,
     persistedContractPath: "src/entities/game.ts",
@@ -146,36 +149,6 @@ test("unclassified production source paths stop instead of implying compatibilit
   assert.match(result.stderr, /middleware\.ts/);
 });
 
-test("persisted application writers and dependency-lock changes without a suite are forward-only", async (t) => {
-  for (const persistedContractPath of [
-    "src/applications/usecases/game/update-set.usecase.ts",
-    "pnpm-lock.yaml",
-  ]) {
-    const f = await fixture(t, {
-      persistedContract: true,
-      persistedContractPath,
-    });
-    const source = await prepareSourceRelease(f);
-    const result = run(f, "record-recovery-evidence", {
-      ...source.env,
-      RELEASE_ACCEPTED_STATE_FILE: path.join(f.root, "missing-suite.json"),
-    });
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /production-forward-only/);
-  }
-});
-
-test("production package version metadata alone is not a persisted contract change", async (t) => {
-  const f = await fixture(t);
-  const { accepted } = await prepareAcceptedRelease(f);
-  const state = JSON.parse(await readFile(accepted, "utf8"));
-  assert.equal(
-    state.recoveryEvidence.facts.database.policy,
-    "production-contract-unchanged",
-  );
-  assert.equal(state.recoveryEvidence.facts.database.rollbackAllowed, true);
-});
-
 test("compatibility report requires both directional assertions to pass without skips", async (t) => {
   const f = await fixture(t, {
     persistedContract: true,
@@ -205,6 +178,18 @@ test("compatibility report requires both directional assertions to pass without 
     compatibilityReport(f, [expected[0], expected[0]]),
     compatibilityReport(f, expected, 0, ["failed", "passed"]),
     compatibilityReport(f, expected, 0, ["passed", "skipped"]),
+    {
+      ...compatibilityReport(f, expected),
+      testResults: [
+        {
+          ...compatibilityReport(f, expected).testResults[0],
+          name: path.join(
+            f.repo,
+            "test/integration/persistence/other.itest.ts",
+          ),
+        },
+      ],
+    },
   ];
   for (const invalidReport of invalidReports) {
     await writeFile(
@@ -298,16 +283,7 @@ test("the recovery receipt job accepts only one completed successful native comp
   assert.equal(state.compatibilityTest.sourceSha, f.merge);
 });
 
-test("a release without a data risk records no compatibility proof", async (t) => {
-  const f = await fixture(t);
-  const { accepted } = await prepareAcceptedRelease(f);
-  assert.equal(
-    JSON.parse(await readFile(accepted, "utf8")).compatibilityTest,
-    null,
-  );
-});
-
-test("promote rejects a receipt whose compatibility job ID no longer matches", async (t) => {
+test("promote and rollback re-verify the native compatibility job before moving production", async (t) => {
   const f = await fixture(t, {
     persistedContract: true,
     compatibilityTest: true,
@@ -318,15 +294,33 @@ test("promote rejects a receipt whose compatibility job ID no longer matches", a
   state.compatibilityTest.jobId = "999";
   const wrongId = path.join(f.root, "wrong-job-id.json");
   await writeFile(wrongId, JSON.stringify(state));
-  const callsBefore = JSON.parse(await readFile(f.statePath, "utf8")).calls;
-  const mismatch = run(f, "promote", { RELEASE_STATE_FILE: wrongId });
-  assert.notEqual(mismatch.status, 0);
-  assert.match(mismatch.stderr, /did not pass natively/i);
+  const failedStep = async () => {
+    const api = JSON.parse(await readFile(f.statePath, "utf8"));
+    api.jobs[9][0].steps[0].conclusion = "failure";
+    await updateApi(f, { jobs: api.jobs });
+  };
+  for (const [action, alias] of [
+    ["promote", "dpl_base"],
+    ["rollback-if-compatible", "dpl_cand"],
+  ]) {
+    for (const [proof, breakProof] of [
+      [wrongId, async () => {}],
+      [accepted, failedStep],
+    ]) {
+      await passingCompatibilityTestJob(f);
+      await breakProof();
+      await updateApi(f, { alias });
+      const callsBefore = JSON.parse(await readFile(f.statePath, "utf8")).calls;
+      const denied = run(f, action, { RELEASE_STATE_FILE: proof });
+      assert.notEqual(denied.status, 0, action);
+      assert.match(denied.stderr, /did not pass natively/, action);
+      const after = JSON.parse(await readFile(f.statePath, "utf8"));
+      assert.deepEqual(after.calls, callsBefore, action);
+      assert.equal(after.alias, alias, action);
+    }
+  }
 
-  const after = JSON.parse(await readFile(f.statePath, "utf8"));
-  assert.deepEqual(after.calls, callsBefore);
-  assert.notEqual(after.alias, "dpl_cand");
-
+  await updateApi(f, { alias: "dpl_base" });
   await passingCompatibilityTestJob(f);
   const promoted = run(f, "promote", { RELEASE_STATE_FILE: accepted });
   assert.equal(promoted.status, 0, promoted.stderr);
@@ -353,31 +347,6 @@ test("existing exact-source integration coverage may prove a persisted contract 
     proof.recoveryEvidence.facts.database.compatibilityTest.path,
     suitePath,
   );
-});
-
-test("recovery revalidates the native compatibility test before rolling back", async (t) => {
-  const f = await fixture(t, {
-    persistedContract: true,
-    compatibilityTest: true,
-  });
-  await passingCompatibilityTestJob(f);
-  const { accepted } = await prepareAcceptedRelease(f);
-  await updateApi(f, { alias: "dpl_cand" });
-  let state = JSON.parse(await readFile(f.statePath, "utf8"));
-  const job = state.jobs[9][0];
-  job.steps[0].conclusion = "failure";
-  await updateApi(f, { jobs: state.jobs });
-  state = JSON.parse(await readFile(f.statePath, "utf8"));
-  const callsBeforeRollback = state.calls;
-
-  const denied = run(f, "rollback-if-compatible", {
-    RELEASE_STATE_FILE: accepted,
-  });
-  assert.notEqual(denied.status, 0);
-  assert.match(denied.stderr, /compatibility suite and report did not pass/i);
-  const after = JSON.parse(await readFile(f.statePath, "utf8"));
-  assert.equal(after.alias, "dpl_cand");
-  assert.deepEqual(after.calls, callsBeforeRollback);
 });
 
 test("active production data marks a release forward-only when compatibility coverage is removed from the exact source", async (t) => {

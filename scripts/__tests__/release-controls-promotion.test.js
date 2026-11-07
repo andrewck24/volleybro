@@ -16,7 +16,7 @@ import {
   outputsOf,
 } from "../../test/support/release-controls-fixture.js";
 
-test("rollback requires an intact run-bound receipt and ignores mutable evidence variables", async (t) => {
+test("rollback requires the live candidate, an intact run-bound receipt and a healthy baseline", async (t) => {
   const f = await fixture(t);
   const { accepted } = await prepareAcceptedRelease(f);
   const corrupted = path.join(f.root, "corrupted.json");
@@ -33,11 +33,20 @@ test("rollback requires an intact run-bound receipt and ignores mutable evidence
     JSON.parse(await readFile(f.statePath, "utf8")).alias,
     "dpl_cand",
   );
+  await updateApi(f, { alias: "dpl_hotfix" });
+  const callsBefore = JSON.parse(await readFile(f.statePath, "utf8")).calls;
+  const moved = run(f, "rollback-if-compatible", {
+    RELEASE_STATE_FILE: accepted,
+  });
+  assert.notEqual(moved.status, 0);
+  assert.match(moved.stderr, /Production alias changed; refusing rollback/);
+  const untouched = JSON.parse(await readFile(f.statePath, "utf8"));
+  assert.equal(untouched.alias, "dpl_hotfix");
+  assert.deepEqual(untouched.calls, callsBefore);
+  await updateApi(f, { alias: "dpl_cand" });
   let result = run(f, "rollback-if-compatible", {
     RELEASE_STATE_FILE: accepted,
     RELEASE_ACCEPTED_STATE_FILE: accepted,
-    RELEASE_ROLLBACK_COMPATIBILITY: "forged",
-    RELEASE_ROLLBACK_EVIDENCE: "https://attacker.example.test/claim",
   });
   assert.equal(result.status, 0, result.stderr);
   const actual = JSON.parse(await readFile(f.statePath, "utf8"));
@@ -107,14 +116,18 @@ test("recovery receipt binds the source run, attempt, baseline, candidate, and d
   assert.equal(state.recoveryEvidence.facts.database.productionActive, true);
   assert.equal(state.recoveryEvidence.facts.database.rollbackAllowed, true);
   assert.ok(Date.parse(state.recoveryEvidence.expiresAt) > Date.now());
+  assert.equal(state.compatibilityTest, null);
 });
 
 test("promotion blocks stale baselines and pending candidates before calling Vercel", async (t) => {
   const f = await fixture(t);
   const { accepted } = await prepareAcceptedRelease(f);
   const env = { RELEASE_STATE_FILE: accepted };
+  let result = run(f, "promote", { ...env, RELEASE_SHA: f.head });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Release state SHA mismatch/);
   await updateApi(f, { alias: "dpl_hotfix" });
-  let result = run(f, "promote", env);
+  result = run(f, "promote", env);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /baseline changed/);
   await updateApi(f, { alias: "dpl_base", readiness: "BUILDING" });
@@ -127,9 +140,14 @@ test("promotion blocks stale baselines and pending candidates before calling Ver
     false,
   );
   await updateApi(f, { readiness: "READY" });
-  assert.equal(run(f, "promote", env).status, 0);
+  await writeFile(f.env.GITHUB_OUTPUT, "");
+  result = run(f, "promote", env);
+  assert.equal(result.status, 0, result.stderr);
   state = JSON.parse(await readFile(f.statePath, "utf8"));
   assert.equal(state.alias, "dpl_cand");
+  const outputs = await outputsOf(f);
+  assert.equal(outputs.production_deployment_id, "dpl_cand");
+  assert.equal(outputs.production_sha, f.merge);
   for (const mutationStatus of [403, 404]) {
     await updateApi(f, { alias: "dpl_base", mutationStatus });
     const denied = run(f, "promote", env);
@@ -455,6 +473,22 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     artifacts: { ...api.artifacts, 9: [artifact] },
     artifactArchives: { 700: archive },
   });
+  // Replaces the original run's accepted artifact with this state file content.
+  const republish = async (content) => {
+    await writeFile(stateFile, content);
+    await rm(archive, { force: true });
+    execFileSync("zip", ["-q", "-j", archive, stateFile]);
+    const current = JSON.parse(await readFile(f.statePath, "utf8"));
+    const digest = createHash("sha256")
+      .update(await readFile(archive))
+      .digest("hex");
+    await updateApi(f, {
+      artifacts: {
+        ...current.artifacts,
+        9: [{ ...current.artifacts[9][0], digest: `sha256:${digest}` }],
+      },
+    });
+  };
   const recovery = path.join(f.root, "recovery.json");
   const recoveryEnv = {
     GITHUB_RUN_ID: "10",
@@ -557,23 +591,9 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
   result = run(f, "recover-verify", recoveryEnv);
   assert.equal(result.status, 0, result.stderr);
 
-  const currentBeforeLegacy = JSON.parse(await readFile(f.statePath, "utf8"));
-  const currentArtifact = currentBeforeLegacy.artifacts[9][0];
   const currentState = await readFile(stateFile);
-  const legacyState = JSON.parse(currentState.toString("utf8"));
-  legacyState.stateVersion = 3;
-  await writeFile(stateFile, JSON.stringify(legacyState));
-  await rm(archive, { force: true });
-  execFileSync("zip", ["-q", "-j", archive, stateFile]);
-  const legacyDigest = createHash("sha256")
-    .update(await readFile(archive))
-    .digest("hex");
-  await updateApi(f, {
-    artifacts: {
-      ...currentBeforeLegacy.artifacts,
-      9: [{ ...currentArtifact, digest: `sha256:${legacyDigest}` }],
-    },
-  });
+  const original = JSON.parse(currentState.toString("utf8"));
+  await republish(JSON.stringify({ ...original, stateVersion: 3 }));
   result = run(f, "recover-verify", recoveryEnv);
   assert.notEqual(result.status, 0);
   assert.match(
@@ -581,19 +601,40 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
     /Legacy release artifacts require a fresh authorized release run/,
   );
 
-  await writeFile(stateFile, currentState);
-  await rm(archive, { force: true });
-  execFileSync("zip", ["-q", "-j", archive, stateFile]);
-  const restoredDigest = createHash("sha256")
-    .update(await readFile(archive))
-    .digest("hex");
+  await republish(JSON.stringify({ ...original, releaseRunId: "8" }));
+  result = run(f, "recover-verify", recoveryEnv);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /does not belong to the original run/);
+
+  // An original run the owner dispatched (normal-retry) is recoverable too.
+  const pushState = JSON.parse(await readFile(f.statePath, "utf8"));
+  await republish(
+    JSON.stringify({
+      ...original,
+      authorization: {
+        owner: "release-owner",
+        runId: "9",
+        pullRequest: "1",
+        sha: f.merge,
+        mode: "normal-retry",
+        reviewedSourceSha: f.head,
+      },
+    }),
+  );
+  result = run(f, "recover-verify", recoveryEnv);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Original manual release authorization/);
   await updateApi(f, {
-    artifacts: {
-      ...currentBeforeLegacy.artifacts,
-      9: [{ ...currentArtifact, digest: `sha256:${restoredDigest}` }],
+    runs: {
+      ...pushState.runs,
+      9: { ...pushState.runs[9], event: "workflow_dispatch" },
     },
   });
-  const pushState = JSON.parse(await readFile(f.statePath, "utf8"));
+  result = run(f, "recover-verify", recoveryEnv);
+  assert.equal(result.status, 0, result.stderr);
+
+  await updateApi(f, { runs: pushState.runs });
+  await republish(currentState);
   await updateApi(f, {
     runs: {
       ...pushState.runs,
@@ -705,8 +746,6 @@ test("recovery receipt cannot be created without trusted source CI receipts", as
   const accepted = path.join(f.root, "accepted.json");
   const result = run(f, "record-recovery-evidence", {
     RELEASE_ACCEPTED_STATE_FILE: accepted,
-    RELEASE_ROLLBACK_COMPATIBILITY: "",
-    RELEASE_ROLLBACK_EVIDENCE: "",
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /source QA receipt/i);
@@ -796,15 +835,4 @@ test("promote and rollback still reject an expired recovery receipt", async (t) 
     assert.notEqual(denied.status, 0, action);
     assert.match(denied.stderr, /Recovery receipt expired/, action);
   }
-});
-
-test("promote outputs the confirmed production deployment and source SHA", async (t) => {
-  const f = await fixture(t);
-  const { accepted } = await prepareAcceptedRelease(f);
-  await writeFile(f.env.GITHUB_OUTPUT, "");
-  const result = run(f, "promote", { RELEASE_STATE_FILE: accepted });
-  assert.equal(result.status, 0, result.stderr);
-  const outputs = await outputsOf(f);
-  assert.equal(outputs.production_deployment_id, "dpl_cand");
-  assert.equal(outputs.production_sha, f.merge);
 });
