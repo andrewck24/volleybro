@@ -310,35 +310,22 @@ test("finalize accepts a smoke receipt and rejects a receipt that does not match
   const finalState = await recordedSmoke(f);
   const finalizeWith = (file = finalState) =>
     run(f, "finalize", { RELEASE_STATE_FILE: file });
+  const mismatch = /Smoke receipt does not match/;
+  const unknownKind = /no known approval kind/;
   const mutations = [
-    (qa) => {
-      qa.approval.jobs[0].id = 999;
-    },
-    (qa) => {
-      qa.approval.jobs.pop();
-    },
-    (qa) => {
-      qa.approval.after.sha = f.deployed;
-    },
-    (qa) => {
-      qa.approval.before.deploymentId = "dpl_base";
-    },
-    (qa) => {
-      qa.runId = "10";
-    },
-    (qa) => {
-      delete qa.approval.kind;
-    },
-    (qa) => {
-      qa.approval.kind = "other";
-    },
-    (qa) => {
-      qa.approval.kind = "human";
-    },
+    [(qa) => (qa.approval.jobs[0].id = 999), mismatch],
+    [(qa) => qa.approval.jobs.pop(), mismatch],
+    [(qa) => (qa.approval.after.sha = f.deployed), mismatch],
+    [(qa) => (qa.approval.before.deploymentId = "dpl_base"), mismatch],
+    [(qa) => (qa.runId = "10"), /No production QA receipt/],
+    [(qa) => delete qa.approval.kind, unknownKind],
+    [(qa) => (qa.approval.kind = "other"), unknownKind],
+    [(qa) => (qa.approval.kind = "human"), /Exactly one of/],
   ];
-  for (const mutate of mutations) {
+  for (const [mutate, reason] of mutations) {
     const denied = finalizeWith(await mutatedReceipt(f, finalState, mutate));
     assert.notEqual(denied.status, 0, String(mutate));
+    assert.match(denied.stderr, reason, String(mutate));
   }
   await setJobs(f, { [JOB.classify]: { conclusion: "failure" } });
   assert.notEqual(finalizeWith().status, 0);

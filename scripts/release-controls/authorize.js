@@ -19,7 +19,7 @@ import {
 const PUSH_LOOKUP_ATTEMPTS = 12;
 const PUSH_LOOKUP_DELAY_MS = 5_000;
 
-export function validateRequiredChecks(sha, checkRuns, statuses, repository) {
+function validateRequiredChecks(sha, checkRuns, statuses, repository) {
   const latestVerify = checkRuns
     .filter((run) => run.name === "Verify")
     .sort(

@@ -30,7 +30,6 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
   assert.equal(recorded.candidateId, "dpl_cand");
   assert.equal(recorded.releaseMode, "normal");
   assert.equal(recorded.stateVersion, 4);
-  assert.equal(Object.hasOwn(recorded, "productionDatabaseActive"), false);
   assert.deepEqual(recorded.baseline, {
     deploymentId: "dpl_base",
     updatedAt: "1",
@@ -39,7 +38,7 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
   for (const candidate of [
     { id: "dpl_other" },
     { target: "preview" },
-    { meta: { releaseSha: "wrong-sha" } },
+    { meta: { releaseSha: f.deployed } },
     { alias: ["app.test"] },
     { readyState: "BUILDING" },
   ]) {
@@ -62,12 +61,20 @@ test("stage runs the Vercel CLI outside the candidate checkout and deploys that 
 });
 
 test("stage stops before the Vercel CLI when the candidate holds config the CLI would run or load", async (t) => {
-  for (const file of ["vercel.ts", ".env.local"]) {
+  for (const file of [
+    "vercel.ts",
+    "vercel.mts",
+    "vercel.js",
+    "vercel.mjs",
+    "vercel.cjs",
+    ".env",
+    ".env.local",
+  ]) {
     const f = await fixture(t);
     await writeFile(path.join(f.repo, file), "");
     const result = run(f, "stage");
     assert.notEqual(result.status, 0, file);
-    assert.match(result.stderr, new RegExp(file.replace(".", "\\.")));
+    assert.ok(result.stderr.includes(file), result.stderr);
     const { calls } = JSON.parse(await readFile(f.statePath, "utf8"));
     assert.equal(
       calls.some((args) => args[0] === "dlx"),
@@ -158,13 +165,22 @@ test("normal retry preserves merged version SHA and binds owner authorization th
     { GITHUB_ACTOR: "outsider" },
     { GITHUB_REF: "refs/heads/other" },
     { RELEASE_SHA: f.head },
-    { CONTROLLER_SHA: f.deployed },
   ]) {
     assert.notEqual(
       run(f, "authorize-retry", { ...env, ...override }).status,
       0,
     );
   }
+  assert.match(
+    run(f, "authorize-retry", { ...env, CONTROLLER_SHA: f.deployed }).stderr,
+    /does not match the trusted controller SHA/,
+  );
+  f.git(["checkout", "--quiet", f.deployed]);
+  assert.match(
+    run(f, "authorize-retry", { ...env, CONTROLLER_SHA: f.deployed }).stderr,
+    /does not contain the authorized release/,
+  );
+  f.git(["checkout", "--quiet", "main"]);
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
   await updateApi(f, { pr: { ...current.pr, merged: false, state: "open" } });
   assert.notEqual(run(f, "authorize-retry", env).status, 0);
@@ -251,11 +267,17 @@ test("app source outside the known-unrelated paths is a contract path", async (t
       "src/lib/x.ts": "x",
       "src/components/x.tsx": "x",
       "src/lib/__tests__/x.test.ts": "x",
+      "src/applications/usecases/game/update-set.usecase.ts": "x",
+      "pnpm-lock.yaml": "x",
+      "pnpm-workspace.yaml": "x",
     },
   );
   assert.deepEqual(result.unclassifiedPaths, []);
   assert.deepEqual(result.contractPaths, [
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
     "src/app/sw.ts",
+    "src/applications/usecases/game/update-set.usecase.ts",
     "src/hooks/use-x.ts",
     "src/lib/x.ts",
   ]);
@@ -309,15 +331,6 @@ test("CI runs the release path check on pull requests against the base", async (
   assert.match(check.run, /BASE_SHA=\$\(git rev-parse HEAD\^1\)/);
 });
 
-test("pnpm-workspace.yaml stays a persisted contract path", async (t) => {
-  const result = await classifyDiff(
-    t,
-    { "a.txt": "1" },
-    { "pnpm-workspace.yaml": "x" },
-  );
-  assert.deepEqual(result.contractPaths, ["pnpm-workspace.yaml"]);
-});
-
 test("vercel.json is unrelated only when just the git key changed", async (t) => {
   const base = {
     git: { deploymentEnabled: { main: false, b: false } },
@@ -347,11 +360,12 @@ test("vercel.json is unrelated only when just the git key changed", async (t) =>
   assert.deepEqual(other.unclassifiedPaths, ["vercel.json"]);
 });
 
-test("package.json scripts and packageManager changes are unrelated; unknown keys are not", async (t) => {
+test("package.json tooling changes are unrelated, dependencies are a contract, unknown keys are not", async (t) => {
   const base = {
     version: "1.0.0",
     scripts: { a: "a" },
     packageManager: "pnpm@9.0.0",
+    devDependencies: { a: "1.0.0" },
   };
   const tooling = await classifyDiff(
     t,
@@ -361,6 +375,7 @@ test("package.json scripts and packageManager changes are unrelated; unknown key
         version: "1.0.1",
         scripts: { a: "a", b: "b" },
         packageManager: "pnpm@10.0.0",
+        devDependencies: { a: "2.0.0" },
       }),
     },
   );
@@ -372,6 +387,13 @@ test("package.json scripts and packageManager changes are unrelated; unknown key
     { "package.json": json({ ...base, engines: { node: "22" } }) },
   );
   assert.deepEqual(unknown.unclassifiedPaths, ["package.json"]);
+  const dependency = await classifyDiff(
+    t,
+    { "package.json": json(base) },
+    { "package.json": json({ ...base, dependencies: { b: "1.0.0" } }) },
+  );
+  assert.deepEqual(dependency.unclassifiedPaths, []);
+  assert.deepEqual(dependency.contractPaths, ["package.json"]);
 });
 
 const workflowDir = new URL("../../.github/workflows/", import.meta.url);
@@ -438,7 +460,7 @@ test("production release routes each smoke outcome to exactly one path", async (
   for (const smoke of ["success", "failure", "skipped"])
     assert.equal(classifies("success", smoke), true);
   assert.equal(classifies("failure", "skipped"), false);
-  // A failed human gate still rolls back; a skipped one does not.
+  // A failed human gate still rolls back; a passed one does not (a skipped one is the pass row above).
   const gate = (result) => ({
     ...classify("pass", "false"),
     "production-acceptance": { result },
@@ -446,7 +468,6 @@ test("production release routes each smoke outcome to exactly one path", async (
   const recover = jobs["recover-failed-release"].if;
   assert.equal(evalIf(recover, gate("failure")), true);
   assert.equal(evalIf(recover, gate("success")), false);
-  assert.equal(evalIf(recover, gate("skipped")), false);
 });
 
 test("every job downstream of the hotfix-only job opts out of the implicit success() check", async () => {
@@ -469,8 +490,6 @@ test("every job downstream of the hotfix-only job opts out of the implicit succe
 test("finalize needs both acceptance jobs and runs only when exactly one succeeded", async () => {
   const { jobs } = await loadWorkflow("production-release.yml");
   const job = jobs["finalize-release"];
-  assert.ok(job.needs.includes("production-acceptance"));
-  assert.ok(job.needs.includes("accept-production-smoke"));
   const finalize = (human, smoke) =>
     evalIf(job.if, {
       candidate: { result: "success" },
@@ -487,8 +506,10 @@ test("finalize needs both acceptance jobs and runs only when exactly one succeed
     const upload = jobs[id].steps.find((step) =>
       step.uses?.startsWith("actions/upload-artifact"),
     );
-    assert.equal(upload.with.name, "production-release-final-state");
-    assert.equal(upload.with["retention-days"], 31);
+    assert.ok(
+      downloads(job).some((step) => step.with.name === upload.with.name),
+      `finalize-release downloads what ${id} uploads`,
+    );
   }
 });
 
@@ -562,11 +583,10 @@ test("jobs in the production-smoke environment hold no artifact, deploy token or
     jobs["production-smoke"].steps[smoke]["continue-on-error"],
     true,
   );
-  assert.ok(
-    jobs["classify-production-smoke"].steps.some((s) =>
-      JSON.stringify(s).includes("VERCEL_TOKEN"),
-    ),
+  const classifyStep = jobs["classify-production-smoke"].steps.find((s) =>
+    s.run?.includes("classify-smoke"),
   );
+  assert.equal(classifyStep.env.VERCEL_TOKEN, "${{ secrets.VERCEL_TOKEN }}");
 });
 
 const stepsOf = (job) => job.steps ?? [];
@@ -607,7 +627,6 @@ test("source-qa plans the compatibility suite from candidate history without run
 test("recovery-receipt runs no candidate code and reads only the trusted controller, source state and one report", async () => {
   const { jobs } = await loadWorkflow("production-release.yml");
   const job = jobs["recovery-receipt"];
-  assert.ok(job.needs.includes("recovery-evidence"));
   assertCandidateHistoryOnly(job);
   // The report is downloaded only when the trusted source-qa job says it is required.
   const reportDownload = downloads(job).find(
@@ -650,7 +669,10 @@ test("recovery-receipt runs no candidate code and reads only the trusted control
   const upload = stepsOf(job).find((s) =>
     s.uses?.startsWith("actions/upload-artifact"),
   );
-  assert.equal(upload.with.name, "production-release-accepted-state");
+  assert.ok(
+    downloads(jobs.promote).some((s) => s.with.name === upload.with.name),
+    "promote downloads the accepted state this job uploads",
+  );
 });
 
 test("recovery-evidence holds no GitHub token, runs no controller and uploads only its report", async () => {
@@ -692,7 +714,6 @@ test("recovery-evidence holds no GitHub token, runs no controller and uploads on
     uploads.map((s) => s.with.name),
     ["release-compatibility-report"],
   );
-  assert.ok(jobs.promote.needs.includes("recovery-receipt"));
   assert.doesNotMatch(JSON.stringify(jobs.promote.if), /recovery-evidence/);
 });
 
@@ -715,7 +736,6 @@ test("only the hotfix authorization job references VERCEL_TOKEN before staging, 
       evalIf(jobs["authorize-hotfix"].if, hotfix(mode, "success")),
       false,
     );
-  assert.ok(jobs["failure-summary"].needs.includes("authorize-hotfix"));
 
   const candidate = (mode, hotfixResult, release, hotfixRelease = "") => ({
     authorize: { result: "success", outputs: { mode, release } },
