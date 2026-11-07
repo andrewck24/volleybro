@@ -262,8 +262,7 @@ function packageWithVersion(contents, current, next) {
   if ([...contents.matchAll(pattern)].length !== 1)
     fail("Could not safely locate the package version");
   const updated = contents.replace(pattern, `$1"${next}"`);
-  const replacements = updated === contents ? 0 : 1;
-  if (replacements !== 1 || json(updated, "package.json").version !== next)
+  if (json(updated, "package.json").version !== next)
     fail("Could not safely reconcile the package version");
   return updated;
 }

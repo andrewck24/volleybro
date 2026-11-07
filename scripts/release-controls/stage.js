@@ -141,7 +141,6 @@ export async function stage() {
   if (!candidateId || !candidateUrl)
     fail("Vercel deploy output did not include candidate identity");
   const candidate = await deployment(candidateId);
-  if (!candidate.id) fail("Staged deployment did not return an ID");
   validateCandidate(candidate, candidateId, sha, domains);
   assertBaseline(await currentAlias(), baseline);
   const output = {
@@ -161,15 +160,12 @@ export async function stage() {
     ...(reviewedSource && { reviewedSource }),
     ...(authorization && { authorization }),
   };
-  const outputPath = required("GITHUB_OUTPUT");
-  await fs.appendFile(
-    outputPath,
-    `candidate_id=${output.candidateId}\nbaseline=${baseline.deploymentId}\nsha=${sha}\n`,
-  );
-  await fs.writeFile(
-    required("RELEASE_STATE_FILE"),
-    `${JSON.stringify(output, null, 2)}\n`,
-  );
+  await appendOutputs({
+    candidate_id: output.candidateId,
+    baseline: baseline.deploymentId,
+    sha,
+  });
+  await writeState(required("RELEASE_STATE_FILE"), output);
   process.stdout.write(`${JSON.stringify(output)}\n`);
 }
 
@@ -177,25 +173,20 @@ async function reusableSourceQA(state) {
   const scopes = { unit: null, integration: null };
   const rejections = {};
   const repository = required("GITHUB_REPOSITORY");
-  let workflow, responses;
-  try {
-    [workflow, ...responses] = await Promise.all([
-      github("actions/workflows/ci.yml"),
-      ...[
-        ...new Set(
-          [
-            state.sha,
-            state.reviewedSource?.reviewedSha,
-            state.controllerSha,
-          ].filter(Boolean),
-        ),
-      ].map((sha) =>
-        github(`actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=100`),
+  const [workflow, ...responses] = await Promise.all([
+    github("actions/workflows/ci.yml"),
+    ...[
+      ...new Set(
+        [
+          state.sha,
+          state.reviewedSource?.reviewedSha,
+          state.controllerSha,
+        ].filter(Boolean),
       ),
-    ]);
-  } catch {
-    return { scopes, rejections };
-  }
+    ].map((sha) =>
+      github(`actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=100`),
+    ),
+  ]);
   if (workflow.path !== CI_WORKFLOW || !Number.isInteger(workflow.id))
     return { scopes, rejections };
   if (
@@ -219,32 +210,32 @@ async function reusableSourceQA(state) {
         path: CI_WORKFLOW,
         repository,
       });
-      if (
-        run.status !== "completed" ||
-        run.workflow_id !== workflow.id ||
-        !run.run_attempt
-      )
-        continue;
-      const jobs = await workflowJobs(run.id);
-      for (const [scope, name] of SOURCE_QA_SCOPES) {
-        if (scopes[scope]) continue;
-        try {
-          scopes[scope] = await sourceScopeEvidence(
-            state,
-            run,
-            jobs,
-            workflow,
-            scope,
-            name,
-          );
-        } catch (error) {
-          rejections[scope] = error.message;
-        }
-      }
-      if (scopes.unit && scopes.integration) break;
     } catch {
       continue;
     }
+    if (
+      run.status !== "completed" ||
+      run.workflow_id !== workflow.id ||
+      !run.run_attempt
+    )
+      continue;
+    const jobs = await workflowJobs(run.id);
+    for (const [scope, name] of SOURCE_QA_SCOPES) {
+      if (scopes[scope]) continue;
+      try {
+        scopes[scope] = await sourceScopeEvidence(
+          state,
+          run,
+          jobs,
+          workflow,
+          scope,
+          name,
+        );
+      } catch (error) {
+        rejections[scope] = error.message;
+      }
+    }
+    if (scopes.unit && scopes.integration) break;
   }
   return { scopes, rejections };
 }

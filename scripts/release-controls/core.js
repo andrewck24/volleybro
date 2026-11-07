@@ -450,12 +450,15 @@ export async function persistedContractChanges(state) {
 }
 
 async function sourcePathExists(sha, sourcePath) {
-  try {
-    await command("git", ["cat-file", "-e", `${sha}:${sourcePath}`]);
-    return true;
-  } catch {
-    return false;
-  }
+  const listing = await command("git", [
+    "ls-tree",
+    "--full-tree",
+    "--name-only",
+    sha,
+    "--",
+    sourcePath,
+  ]);
+  return listing !== "";
 }
 
 export async function recoveryCompatibilityPlan(state) {
@@ -499,24 +502,17 @@ export async function nativeCompatibilityJob(state) {
     repository: required("GITHUB_REPOSITORY"),
     attempt: state.releaseRunAttempt,
   });
-  const matches = jobs.filter(
-    (job) =>
-      job.name === COMPATIBILITY_TEST_JOB &&
-      (!job.run_attempt ||
-        String(job.run_attempt) === String(state.releaseRunAttempt)),
+  const job = successfulJob(
+    jobs,
+    COMPATIBILITY_TEST_JOB,
+    state.releaseRunAttempt,
   );
-  if (
-    matches.length !== 1 ||
-    matches[0].status !== "completed" ||
-    matches[0].conclusion !== "success"
-  )
-    fail("Compatibility test is not from the completed candidate test job");
-  const steps = (matches[0].steps || []).filter(
+  const steps = (job.steps || []).filter(
     (step) => step.name === "Run exact-baseline compatibility suite",
   );
   if (steps.length !== 1 || steps[0].conclusion !== "success")
     fail("Exact-baseline compatibility suite and report did not pass natively");
-  return { run, job: matches[0] };
+  return { run, job };
 }
 
 async function verifyCompatibilityTestStep(state, receipt) {
@@ -642,10 +638,14 @@ export async function verifyRecoveryEvidence(
     fail(
       "Recovery receipt no longer matches the trusted source, baseline, candidate, or data contract",
     );
+  await verifySourceQAScopes(state);
+  return receipt;
+}
+
+export async function verifySourceQAScopes(state) {
   for (const [scope, name] of SOURCE_QA_SCOPES) {
     await verifyReusableSourceQA(state, state.sourceQA.scopes[scope], name);
   }
-  return receipt;
 }
 
 export function assertTagSha(actual, expected, tag) {

@@ -320,6 +320,58 @@ test("source QA fails when unit or integration CI evidence is missing", async (t
   }
 });
 
+test("source QA surfaces a CI API failure instead of asking for CI again", async (t) => {
+  const f = await fixture(t);
+  assert.equal(run(f, "stage").status, 0);
+  for (const failRoute of ["actions/workflows/ci.yml/runs?", "/jobs?"]) {
+    await updateApi(f, { failRoute });
+    const result = run(f, "record-source-qa");
+    assert.notEqual(result.status, 0, failRoute);
+    assert.match(result.stderr, /simulated GitHub API outage/, failRoute);
+    assert.doesNotMatch(result.stderr, /complete CI/, failRoute);
+  }
+});
+
+test("source QA skips an untrusted CI run and still accepts the trusted one", async (t) => {
+  const f = await fixture(t);
+  assert.equal(run(f, "stage").status, 0);
+  const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  const foreignRun = {
+    id: 78,
+    path: ".github/workflows/ci.yml@refs/heads/main",
+    workflow_id: 42,
+    event: "pull_request",
+    head_sha: f.head,
+    run_attempt: 1,
+    status: "completed",
+    conclusion: "success",
+    repository: { id: 999, full_name: "outsider/repo" },
+    head_repository: { id: 999, full_name: "outsider/repo" },
+  };
+  const trustedRun = {
+    ...foreignRun,
+    id: 77,
+    repository: { id: 101, full_name: "owner/repo" },
+    head_repository: { id: 101, full_name: "owner/repo" },
+  };
+  await updateApi(f, {
+    ciRuns: [foreignRun, trustedRun],
+    runs: { ...api.runs, 77: trustedRun, 78: foreignRun },
+    jobs: {
+      ...api.jobs,
+      77: [
+        ciScopeJob(f.git, 601, JOB.unit, f.head),
+        ciScopeJob(f.git, 602, JOB.integration, f.head),
+      ],
+    },
+  });
+  const result = run(f, "record-source-qa");
+  assert.equal(result.status, 0, result.stderr);
+  const state = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
+  assert.equal(state.sourceQA.scopes.unit.workflowId, "42");
+  assert.equal(state.sourceQA.scopes.unit.producerRunId, "77");
+});
+
 test("owner CI correction proves an unchanged old application tree with the trusted new workflow", async (t) => {
   const f = await fixture(t);
   assert.equal(run(f, "stage").status, 0);
