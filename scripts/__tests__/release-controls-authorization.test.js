@@ -13,7 +13,6 @@ import {
   sourceTreeStep,
   prepareAcceptedRelease,
 } from "../../test/support/release-controls-fixture.js";
-import { validateRequiredChecks } from "../release-controls/authorize.js";
 
 function hotfixAuthorization(f, current) {
   return {
@@ -79,6 +78,7 @@ test("hotfix authorization binds owner dispatch to an exact isolated PR without 
     {
       name: "wrong explicit SHA",
       env: { ...env, RELEASE_SHA: f.head },
+      reason: /exact authorized SHA/,
     },
     ...[
       ["missing owner", "RELEASE_OWNER_LOGIN", ""],
@@ -103,28 +103,34 @@ test("hotfix authorization binds owner dispatch to an exact isolated PR without 
           },
         },
       },
+      reason: /same-repository hotfix/,
     },
     {
       name: "closed PR",
       state: { pr: { ...valid.pr, state: "closed" } },
+      reason: /remain open, unmerged/,
     },
     {
       name: "draft PR",
       state: { pr: { ...valid.pr, draft: true } },
+      reason: /remain open, unmerged/,
     },
     {
       name: "merged PR",
       state: { pr: { ...valid.pr, merged: true } },
+      reason: /remain open, unmerged/,
     },
     {
       name: "non-hotfix branch",
       state: {
         pr: { ...valid.pr, head: { ...valid.pr.head, ref: "feat/repair" } },
       },
+      reason: /same-repository hotfix/,
     },
     {
       name: "check from wrong SHA",
       state: { checks: [{ ...valid.checks[0], head_sha: f.merge }] },
+      reason: /Latest Verify check/,
     },
     {
       name: "newer failed check",
@@ -138,10 +144,17 @@ test("hotfix authorization binds owner dispatch to an exact isolated PR without 
           },
         ],
       },
+      reason: /Latest Verify check/,
+    },
+    {
+      name: "review environment without required reviewers",
+      state: { environment: { protection_rules: [] } },
+      reason: /no required reviewers/,
     },
     {
       name: "repair from wrong deployed base",
       state: { baselineSha: f.head },
+      reason: /does not descend from the deployed production source/,
     },
     {
       name: "head includes unreleased integration history",
@@ -166,8 +179,13 @@ test("hotfix authorization binds owner dispatch to an exact isolated PR without 
     );
     result = run(f, "authorize-hotfix", failure.env || env);
     assert.notEqual(result.status, 0, failure.name);
-    if (failure.reason) assert.match(result.stderr, failure.reason);
+    assert.match(result.stderr, failure.reason, failure.name);
   }
+  await writeFile(f.statePath, JSON.stringify(valid));
+  f.git(["push", "--force", "origin", `${f.merge}:refs/tags/v1.0.0`]);
+  result = run(f, "authorize-hotfix", env);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /v1\.0\.0 already points at a different commit/);
 });
 
 test("hotfix state rejects partial reruns by another actor before any release write", async (t) => {
@@ -262,9 +280,12 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
   assert.equal(receipt.sourceQA.scopes.unit.kind, "ci-reuse");
   assert.equal(receipt.sourceQA.scopes.integration.kind, "ci-reuse");
 
-  for (const marker of [
-    sourceTreeStep(f.git(["rev-parse", `${f.deployed}^{tree}`]), f.deployed),
-    sourceTreeStep(f.git(["rev-parse", `${f.merge}^{tree}`]), f.deployed),
+  const deployedTree = f.git(["rev-parse", `${f.deployed}^{tree}`]);
+  for (const [marker, producer] of [
+    // claims another tree for the commit it tested
+    [sourceTreeStep(deployedTree, f.head), f.head],
+    // truthfully tested a commit whose tree is not the release tree
+    [sourceTreeStep(deployedTree, f.deployed), f.deployed],
   ]) {
     const current = JSON.parse(await readFile(f.statePath, "utf8"));
     await updateApi(f, {
@@ -272,16 +293,17 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
         ...current.jobs,
         77: current.jobs[77].map((job) => ({
           ...job,
-          steps: [
-            job.steps.find(isProducerStep),
-            { name: marker, status: "completed", conclusion: "success" },
-          ],
+          steps: [producerStep(producer), marker].map((name) => ({
+            name,
+            status: "completed",
+            conclusion: "success",
+          })),
         })),
       },
     });
     const denied = run(f, "record-source-qa");
     assert.notEqual(denied.status, 0);
-    assert.match(denied.stderr, /trusted CI evidence/);
+    assert.match(denied.stderr, /content or producer workflow is not trusted/);
   }
   const valid = JSON.parse(await readFile(f.statePath, "utf8"));
   await updateApi(f, {
@@ -508,22 +530,37 @@ test("authorize validates the real PR, exact check sources and metadata through 
       ],
     ],
   ];
-  const validate = (checks, statuses) =>
-    validateRequiredChecks(f.head, checks, statuses, "owner/repo");
-  assert.doesNotThrow(() => validate(original.checks, original.statuses));
-  for (const [checks, reason] of checkCases)
-    assert.throws(() => validate(checks, original.statuses), reason);
-  for (const [statuses] of statusCases)
-    assert.throws(() => validate(original.checks, statuses), statusFailure);
-  for (const override of [
-    { checks: [] },
-    { environment: { protection_rules: [] } },
-    { pr: { ...original.pr, user: { login: "impostor" } } },
-    { pr: { ...original.pr, title: "release: something else" } },
-  ]) {
+  const rejected = async (override, reason) => {
     await updateApi(f, { ...original, environment: undefined, ...override });
-    assert.notEqual(run(f, "authorize").status, 0, JSON.stringify(override));
-  }
+    const result = run(f, "authorize");
+    assert.notEqual(result.status, 0, JSON.stringify(override));
+    assert.match(result.stderr, reason, JSON.stringify(override));
+  };
+  for (const [checks, reason] of checkCases) await rejected({ checks }, reason);
+  for (const [statuses] of [
+    ...statusCases,
+    [
+      [
+        {
+          ...original.statuses[0],
+          creator: { id: 1, login: "x", type: "User" },
+        },
+      ],
+    ],
+  ])
+    await rejected({ statuses }, statusFailure);
+  for (const [override, reason] of [
+    [{ environment: { protection_rules: [] } }, /no required reviewers/],
+    [
+      { pr: { ...original.pr, user: { login: "impostor" } } },
+      /author and same-repository/,
+    ],
+    [
+      { pr: { ...original.pr, title: "release: something else" } },
+      /title does not match/,
+    ],
+  ])
+    await rejected(override, reason);
   await updateApi(f, { ...original, environment: undefined });
   await writeFile(
     path.join(f.repo, "runtime.js"),
@@ -537,6 +574,11 @@ test("authorize validates the real PR, exact check sources and metadata through 
   const result = run(f, "authorize", { GITHUB_SHA: invalid });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /non-metadata change/);
+  const unversioned = await fixture(t, { changelogEntry: false });
+  assert.match(
+    run(unversioned, "authorize").stderr,
+    /must change package versions and changelogs/,
+  );
 });
 
 async function outputOf(f) {
@@ -688,7 +730,7 @@ test("a version PR whose reported head is not the merge's second parent fails on
   }
 });
 
-test("open version PR validation has no release authority and rejects foreign changes", async (t) => {
+test("open version PR validation has no release authority and rejects a merged PR or fork head", async (t) => {
   const f = await fixture(t);
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
   await updateApi(f, {
@@ -701,7 +743,9 @@ test("open version PR validation has no release authority and rejects foreign ch
     JSON.stringify({ action: "opened", pull_request: { number: 1 } }),
   );
   assert.equal(run(f, "validate-version-pr").status, 0);
-  assert.notEqual(run(f, "authorize").status, 0);
+  assert.match(run(f, "authorize").stderr, /No merged pull request/);
+  await updateApi(f, { pr: current.pr });
+  assert.match(run(f, "validate-version-pr").stderr, /only accepts open PRs/);
   await updateApi(f, {
     pr: {
       ...current.pr,
@@ -710,5 +754,8 @@ test("open version PR validation has no release authority and rejects foreign ch
       head: { ...current.pr.head, repo: { full_name: "foreign/repo" } },
     },
   });
-  assert.notEqual(run(f, "validate-version-pr").status, 0);
+  assert.match(
+    run(f, "validate-version-pr").stderr,
+    /author and same-repository head branch/,
+  );
 });

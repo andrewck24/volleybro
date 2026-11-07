@@ -144,6 +144,12 @@ test("a dispatch takes the controller from the dispatched commit", async (t) => 
   assert.match(output, new RegExp(`controller_sha=${dispatched}\\n`));
   assert.match(output, /mode=normal-retry\n/);
   await assertExtractedMarker(runnerTemp, "dispatched");
+  const recover = await runExtraction(t, cwd, {
+    EVENT_NAME: "workflow_dispatch",
+    DISPATCH_MODE: "recover",
+  });
+  assert.notEqual(recover.result.status, 0);
+  assert.match(recover.result.stderr, /Unsupported release mode/);
 });
 
 test("extraction fails the step when the trusted commit lacks the module directory", async (t) => {
@@ -205,7 +211,28 @@ test("the staged state artifact cannot overlay the controller it is read by", ()
     ).with.path;
   const stateDirectory = downloadPath("production-release-state");
   // The candidate job ran third-party code beside this artifact, so its files may be named after controller files.
-  assert.notEqual(stateDirectory, downloadPath("trusted-release-controller"));
+  const controllerDirectory = downloadPath("trusted-release-controller");
+  // Extracted files: the state directory may not be one, hold one, or sit inside one.
+  const controllerPaths = upload.with.path
+    .trim()
+    .split("\n")
+    .map((line) =>
+      path.posix.join(
+        controllerDirectory,
+        line.trim().replace("${{ runner.temp }}/", ""),
+      ),
+    );
+  const trim = (p) => path.posix.normalize(p).replace(/\/+$/, "");
+  const state = trim(stateDirectory);
+  for (const controllerPath of controllerPaths) {
+    const controller = trim(controllerPath);
+    assert.ok(
+      state !== controller &&
+        !controller.startsWith(`${state}/`) &&
+        !state.startsWith(`${controller}/`),
+      `${stateDirectory} overlays the trusted controller at ${controllerPath}`,
+    );
+  }
   const stateFile = `${stateDirectory}/release-state.json`;
   for (const step of sourceQa.filter((step) => step.env?.RELEASE_STATE_FILE))
     assert.equal(step.env.RELEASE_STATE_FILE, stateFile);
