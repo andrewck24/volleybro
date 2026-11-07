@@ -204,7 +204,19 @@ async function validateMergedVersionPr(pullRequest, sha) {
     checkRuns,
     statuses,
   });
-  const parent = await command("git", ["rev-parse", `${sha}^1`]);
+  // Stage maps the reviewed PR head through the merge's second parent, and
+  // only a merge commit keeps the PR head as an ancestor for a retry.
+  const [, parent, ...rest] = (
+    await command("git", ["rev-list", "--parents", "-n", "1", sha])
+  ).split(" ");
+  if (rest.length !== 1)
+    fail(
+      "Version PR must land as a merge commit; a squash or rebase landing cannot be released. Open a new version PR and merge it with a merge commit",
+    );
+  if (rest[0] !== pr.head.sha)
+    fail(
+      `Version PR head ${pr.head.sha} is not the merge's second parent; open a new version PR`,
+    );
   await verifyMetadataOnly(parent, sha);
   validateReviewEnvironment(environment);
   return pr;
@@ -255,19 +267,6 @@ export async function authorize() {
   )
     fail(
       "Only the release owner's merge starts a release; the release owner dispatches normal-retry for this version PR",
-    );
-  // A single-parent merge must land as one commit, or only its last commit
-  // would be checked for metadata-only changes.
-  const { before } = json(
-    await fs.readFile(required("GITHUB_EVENT_PATH"), "utf8"),
-    "GitHub event",
-  );
-  const parents = (
-    await command("git", ["rev-list", "--parents", "-n", "1", sha])
-  ).split(" ");
-  if (parents.length === 2 && parents[1] !== before)
-    fail(
-      "Rebase merge of a multi-commit version PR cannot be verified; merge it with a merge commit or squash",
     );
   await validateMergedVersionPr(pr.number, sha);
   await appendOutputs({ release: true, sha });
