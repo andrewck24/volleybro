@@ -44,13 +44,19 @@ describe("Current lineup recomputation through upsertEntries", () => {
   });
 
   it("recomputes from the starting lineup after a past substitution changes", () => {
-    const before = lineupsOf(sub(0, "a", "x"), sub(1, "x", "a"));
-    const edited = lineupsOf(sub(0, "a", "y"), sub(1, "y", "a"));
+    const withXOnCourt = write(sub(0, "a", "x"));
+    if ("invalid" in withXOnCourt) throw new Error("expected a set");
 
-    expect(onCourt(before)).toEqual(onCourt(edited));
-    expect(edited.home.substitutes[1]).toMatchObject({
-      id: "y",
-      sub: { id: "a", entryIndex: { in: 0, out: 1 } },
+    const edited = upsertEntries(withXOnCourt.set, [sub(0, "a", "y")]);
+
+    expect(edited).toMatchObject({
+      set: {
+        lineups: {
+          home: {
+            starting: ["y", "b", "c", "d", "e", "f"].map((id) => ({ id })),
+          },
+        },
+      },
     });
   });
 

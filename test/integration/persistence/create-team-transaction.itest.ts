@@ -1,5 +1,5 @@
 import type { ICreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
-import { PlayerRole } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
@@ -7,10 +7,13 @@ import { TYPES } from "@/infrastructure/di/types";
 import { withFailPoint } from "../support/failpoint";
 import { oid } from "../support/seed";
 
-const createTeam = (input: { name: string; userName: string }) =>
+const createTeam = (
+  input: { name: string; userName: string },
+  userId: string = oid(),
+) =>
   container
     .get<ICreateTeamUseCase>(TYPES.CreateTeamUseCase)
-    .execute({ ...input, userId: oid() });
+    .execute({ ...input, userId });
 
 describe("creating a team with its owner", () => {
   // A transaction that creates a collection on its first write can fail with a
@@ -21,7 +24,11 @@ describe("creating a team with its owner", () => {
   });
 
   it("persists the team and its owner together", async () => {
-    const team = await createTeam({ name: "Paired", userName: "Owner" });
+    const userId = oid();
+    const team = await createTeam(
+      { name: "Paired", userName: "Owner" },
+      userId,
+    );
 
     expect(await TeamModel.countDocuments({ _id: team.id })).toBe(1);
     const owner = await PlayerModel.findOne({
@@ -29,6 +36,8 @@ describe("creating a team with its owner", () => {
       _id: team.ownerPlayerId,
     });
     expect(owner!.role).toBe(PlayerRole.ADMIN);
+    expect(owner!.status).toBe(PlayerStatus.JOINED);
+    expect(owner!.userId?.toString()).toBe(userId);
     expect(team.ownerPlayerId).toBe(owner!.id);
     expect((await TeamModel.findById(team.id))!.ownerPlayerId?.toString()).toBe(
       owner!.id,
