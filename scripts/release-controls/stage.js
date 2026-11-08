@@ -35,8 +35,7 @@ import {
 async function reviewedSourceMapping(sha, authorization) {
   if (authorization?.mode === "hotfix") return undefined;
   const reviewed = exactSha(
-    authorization?.reviewedSourceSha ||
-      (await command("git", ["rev-parse", `${sha}^2`])),
+    await command("git", ["rev-parse", `${sha}^2`]),
     "Reviewed version PR head SHA",
   );
   await assertAncestor(
