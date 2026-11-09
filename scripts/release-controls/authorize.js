@@ -289,14 +289,13 @@ export async function authorizeRetry() {
     controller,
     "Retry controller does not contain the authorized release",
   );
-  const pr = await validateMergedVersionPr(pullRequest, sha);
+  await validateMergedVersionPr(pullRequest, sha);
   const authorization = {
     owner,
     runId,
     pullRequest,
     sha,
     mode: "normal-retry",
-    reviewedSourceSha: exactSha(pr.head.sha, "Version PR head SHA"),
   };
   await appendOutputs({
     sha,

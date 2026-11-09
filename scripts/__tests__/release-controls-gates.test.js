@@ -150,12 +150,25 @@ test("normal retry preserves merged version SHA and binds owner authorization th
   const authorized = JSON.parse(result.stdout);
   assert.equal(authorized.sha, f.merge);
   assert.equal(authorized.version, "1.0.1");
+  assert.deepEqual(authorized.authorization, {
+    owner: "release-owner",
+    runId: "9",
+    pullRequest: "1",
+    sha: f.merge,
+    mode: "normal-retry",
+  });
   const bound = {
     ...env,
     RELEASE_MODE: "normal-retry",
     RELEASE_AUTHORIZATION: JSON.stringify(authorized.authorization),
   };
   assert.equal(run(f, "stage", bound).status, 0);
+  const staged = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
+  assert.deepEqual(staged.reviewedSource, {
+    reviewedSha: f.head,
+    releaseSha: f.merge,
+    tree: f.git(["rev-parse", `${f.merge}^{tree}`]),
+  });
   const denied = run(f, "promote", {
     ...bound,
     GITHUB_TRIGGERING_ACTOR: "outsider",
@@ -184,6 +197,43 @@ test("normal retry preserves merged version SHA and binds owner authorization th
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
   await updateApi(f, { pr: { ...current.pr, merged: false, state: "open" } });
   assert.notEqual(run(f, "authorize-retry", env).status, 0);
+});
+
+test("normal and retry staging reject a merge whose tree differs from its reviewed head before deployment", async (t) => {
+  for (const mode of ["normal", "normal-retry"]) {
+    const f = await fixture(t);
+    await writeFile(
+      path.join(f.repo, "CHANGELOG.md"),
+      "Unreviewed merge content\n",
+    );
+    f.git(["add", "CHANGELOG.md"]);
+    f.git(["commit", "--amend", "--no-edit"]);
+    const sha = f.git(["rev-parse", "HEAD"]);
+    const result = run(f, "stage", {
+      RELEASE_SHA: sha,
+      RELEASE_MODE: mode,
+      ...(mode === "normal-retry"
+        ? {
+            GITHUB_EVENT_NAME: "workflow_dispatch",
+            RELEASE_AUTHORIZATION: JSON.stringify({
+              owner: "release-owner",
+              runId: "9",
+              pullRequest: "1",
+              sha,
+              mode,
+            }),
+          }
+        : {}),
+    });
+    assert.notEqual(result.status, 0, mode);
+    assert.match(result.stderr, /do not have the same tree/);
+    const { calls } = JSON.parse(await readFile(f.statePath, "utf8"));
+    assert.equal(
+      calls.some((args) => args[0] === "dlx"),
+      false,
+      mode,
+    );
+  }
 });
 
 test("normal staging rejects a candidate that omits the deployed hotfix ancestry", async (t) => {

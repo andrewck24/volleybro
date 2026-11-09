@@ -616,7 +616,6 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
         pullRequest: "1",
         sha: f.merge,
         mode: "normal-retry",
-        reviewedSourceSha: f.head,
       },
     }),
   );
