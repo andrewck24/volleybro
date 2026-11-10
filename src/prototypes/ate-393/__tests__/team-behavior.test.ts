@@ -42,140 +42,145 @@ beforeEach(async () => {
   ({ PATCH } = await import("@/app/api/teams/[teamId]/route"));
 });
 
-describe.each(["zod-async"] as const)(
-  "create-team %s through POST route",
-  (variant) => {
-    it("runs creation inside ITransactionRunner and creates owner plus three defaults", async () => {
-      const team = { id: "team-1", name: "Volley", nickname: "" };
-      const owner = { id: "player-1" };
-      const lineups = [{}, {}, {}];
-      const update = jest.fn(async (_id: string, _patch: unknown) => ({
-        ...team,
-        ownerPlayerId: owner.id,
-      }));
-      const playerCreate = jest.fn(async (_input: unknown) => owner);
-      const teamCreate = jest.fn(async (input: unknown) => {
-        expect(input).toMatchObject({ nickname: "", lineups });
-        return team;
-      });
-      const run = jest.fn(async (work: () => Promise<unknown>) => work());
-      const { CreateTeamUseCase } =
-        await import("@/applications/usecases/team/create-team.usecase");
-      const useCase = new CreateTeamUseCase(
-        { create: teamCreate, update } as never,
-        { create: playerCreate } as never,
-        { run } as never,
-      );
-      createController.mockImplementation((input) =>
-        createTeamVariants[variant](
-          (({ name, nickname }) => ({ name, nickname }))(
-            input as { name: string; nickname?: string },
-          ),
-          (value) =>
-            useCase.execute({
-              ...value,
-              userId: "user-1",
-              userName: "Test User",
-            }),
-        ),
-      );
-      const req = routeRequest("http://localhost/api/teams", "POST", {
+describe.each([
+  "zod-async",
+  "schema-async",
+  "zod-effect",
+  "schema-effect",
+] as const)("create-team %s through POST route", (variant) => {
+  it("runs creation inside ITransactionRunner and creates owner plus three defaults", async () => {
+    const team = { id: "team-1", name: "Volley", nickname: "" };
+    const owner = { id: "player-1" };
+    const lineups = [{}, {}, {}];
+    const update = jest.fn(async (_id: string, _patch: unknown) => ({
+      ...team,
+      ownerPlayerId: owner.id,
+    }));
+    const playerCreate = jest.fn(async (_input: unknown) => owner);
+    const teamCreate = jest.fn(async (input: unknown) => {
+      expect(input).toMatchObject({ nickname: "", lineups });
+      return team;
+    });
+    const run = jest.fn(async (work: () => Promise<unknown>) => work());
+    const { CreateTeamUseCase } =
+      await import("@/applications/usecases/team/create-team.usecase");
+    const teamRepository = { create: teamCreate, update };
+    const playerRepository = { create: playerCreate };
+    const transactionRunner = { run };
+    const useCase = new CreateTeamUseCase(
+      teamRepository as never,
+      playerRepository as never,
+      transactionRunner as never,
+    );
+    createController.mockImplementation((input) =>
+      createTeamVariants[variant](
+        input,
+        (value) =>
+          useCase.execute({
+            ...value,
+            userId: "user-1",
+            userName: "Test User",
+          }),
+        {
+          team: teamRepository as never,
+          player: playerRepository as never,
+          tx: transactionRunner as never,
+        },
+      ),
+    );
+    const req = routeRequest("http://localhost/api/teams", "POST", {
+      name: "Volley",
+      nickname: "",
+    });
+    const res = await POST(req as never);
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({ ...team, ownerPlayerId: owner.id });
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(teamCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
         name: "Volley",
         nickname: "",
-      });
-      const res = await POST(req as never);
-      expect(res.status).toBe(201);
-      expect(await res.json()).toEqual({ ...team, ownerPlayerId: owner.id });
-      expect(run).toHaveBeenCalledTimes(1);
-      expect(teamCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "Volley",
-          nickname: "",
-          lineups: expect.any(Array),
-        }),
-      );
-      expect(playerCreate).toHaveBeenCalledWith({
-        name: "Test User",
-        status: "JOINED",
-        number: 1,
-        role: "ADMIN",
-        teamId: "team-1",
-        userId: "user-1",
-      });
-      expect(update).toHaveBeenCalledWith("team-1", {
-        ownerPlayerId: "player-1",
-      });
+        lineups: expect.any(Array),
+      }),
+    );
+    expect(playerCreate).toHaveBeenCalledWith({
+      name: "Test User",
+      status: "JOINED",
+      number: 1,
+      role: "ADMIN",
+      teamId: "team-1",
+      userId: "user-1",
     });
+    expect(update).toHaveBeenCalledWith("team-1", {
+      ownerPlayerId: "player-1",
+    });
+  });
 
-    it.each<[Record<string, unknown>, string]>([
-      [
-        { name: "Volley", nickname: "V", unexpected: true },
-        "strict unknown key",
-      ],
-      [{ name: 12 }, "wrong type without coercion"],
-    ])("rejects invalid request (%s)", async (body) => {
-      const log = silenceConsoleError();
-      const res = await POST(
-        routeRequest("http://localhost/api/teams", "POST", body) as never,
-      );
-      expect(res.status).toBe(400);
-      expect(await res.json()).toMatchObject({
-        code: "VALIDATION",
-        reason: "INVALID_INPUT",
-      });
-      expect(createController).not.toHaveBeenCalled();
-      log.mockRestore();
+  it.each<[Record<string, unknown>, string]>([
+    [{ name: "Volley", nickname: "V", unexpected: true }, "strict unknown key"],
+    [{ name: 12 }, "wrong type without coercion"],
+  ])("rejects invalid request (%s)", async (body) => {
+    const log = silenceConsoleError();
+    const res = await POST(
+      routeRequest("http://localhost/api/teams", "POST", body) as never,
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      code: "VALIDATION",
+      reason: "INVALID_INPUT",
     });
+    expect(createController).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
 
-    it("preserves missing-session contract", async () => {
-      const log = jest.spyOn(console, "warn").mockImplementation(() => {});
-      getSession.mockResolvedValue(null);
-      const res = await POST(
-        routeRequest("http://localhost/api/teams", "POST", {
-          name: "Volley",
-        }) as never,
-      );
-      expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({
-        code: "AUTHENTICATION",
-        reason: "SESSION_REQUIRED",
-      });
-      expect(createController).not.toHaveBeenCalled();
-      log.mockRestore();
+  it("preserves missing-session contract", async () => {
+    const log = jest.spyOn(console, "warn").mockImplementation(() => {});
+    getSession.mockResolvedValue(null);
+    const res = await POST(
+      routeRequest("http://localhost/api/teams", "POST", {
+        name: "Volley",
+      }) as never,
+    );
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      code: "AUTHENTICATION",
+      reason: "SESSION_REQUIRED",
     });
+    expect(createController).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
 
-    it("maps repository failure inside transaction to the route error contract", async () => {
-      const log = jest.spyOn(console, "error").mockImplementation(() => {});
-      const failure = new Error("database offline");
-      const run = jest.fn(async (work: () => Promise<unknown>) => work());
-      const { CreateTeamUseCase } =
-        await import("@/applications/usecases/team/create-team.usecase");
-      createController.mockImplementation((input) =>
-        new CreateTeamUseCase(
-          {
-            create: async () => {
-              throw failure;
-            },
-          } as never,
-          {} as never,
-          { run } as never,
-        ).execute(input as never),
-      );
-      const res = await POST(
-        routeRequest("http://localhost/api/teams", "POST", {
-          name: "Volley",
-        }) as never,
-      );
-      expect(res.status).toBe(500);
-      expect(await res.json()).toEqual({
-        code: "UNEXPECTED",
-        reason: "UNHANDLED_ERROR",
-      });
-      expect(run).toHaveBeenCalledTimes(1);
-      log.mockRestore();
+  it("maps repository failure inside transaction to the route error contract", async () => {
+    const log = jest.spyOn(console, "error").mockImplementation(() => {});
+    const failure = new Error("database offline");
+    const run = jest.fn(async (work: () => Promise<unknown>) => work());
+    const { CreateTeamUseCase } =
+      await import("@/applications/usecases/team/create-team.usecase");
+    createController.mockImplementation((input) =>
+      new CreateTeamUseCase(
+        {
+          create: async () => {
+            throw failure;
+          },
+        } as never,
+        {} as never,
+        { run } as never,
+      ).execute(input as never),
+    );
+    const res = await POST(
+      routeRequest("http://localhost/api/teams", "POST", {
+        name: "Volley",
+      }) as never,
+    );
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      code: "UNEXPECTED",
+      reason: "UNHANDLED_ERROR",
     });
-  },
-);
+    expect(run).toHaveBeenCalledTimes(1);
+    log.mockRestore();
+  });
+});
 
 describe.each(["async"] as const)(
   "update-team %s through PATCH route",
