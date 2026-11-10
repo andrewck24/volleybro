@@ -1,145 +1,90 @@
-/**
- * GET /api/users/{userId}/players Integration Tests
- *
- * Tests for retrieving all teams/players a user belongs to
- * These are contract/behavior tests, not full integration tests
- */
-
+import {
+  routeRequest,
+  silenceConsoleError,
+} from "@test/support/http/route-request";
 import { createPlayer } from "@test/support/fixtures/entities";
 import { PlayerRole } from "@/entities/player";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-jest.mock("@/infrastructure/di/inversify.config");
-jest.mock("@/lib/auth-client");
+const mockGetUserPlayers = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetSession = jest.fn<() => Promise<unknown>>();
 
-describe("Users Players API Route", () => {
-  describe("GET - List user players", () => {
-    it("should retrieve all teams/players for authenticated user", () => {
-      const players = [
-        createPlayer({
-          id: "player-1",
-          name: "User Name",
-          teamId: "team-1",
-          userId: "user-1",
-          role: PlayerRole.ADMIN,
-        }),
-        createPlayer({
-          id: "player-2",
-          name: "User Name",
-          teamId: "team-2",
-          userId: "user-1",
-          role: PlayerRole.MEMBER,
-        }),
-      ];
+jest.mock("@/interface/controllers/player/player.controller", () => ({
+  getUserPlayers: mockGetUserPlayers,
+}));
 
-      expect(players.length).toBe(2);
-      expect(players.every((p) => p.userId === "user-1")).toBe(true);
-    });
+jest.mock("@/infrastructure/db/mongoose/connect-to-mongodb", () => ({
+  connectToMongoDB: jest.fn(),
+}));
 
-    it("should return empty array for user with no teams", () => {
-      const players: ReturnType<typeof createPlayer>[] = [];
+jest.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: mockGetSession } },
+}));
 
-      expect(players.length).toBe(0);
-      expect(Array.isArray(players)).toBe(true);
-    });
+const SESSION = { user: { id: "user-1" } };
 
-    it("should require authentication", () => {
-      const authenticated = { user: { id: "user-1" } };
-      const notAuthenticated: null = null;
+type RouteResponse = { status: number; json: () => Promise<unknown> };
 
-      expect(authenticated.user.id).toBeDefined();
-      expect(notAuthenticated).toBeNull();
-    });
+let GET: (
+  req: never,
+  props: { params: Promise<{ userId: string }> },
+) => Promise<RouteResponse>;
 
-    it("should prevent user from viewing other users players", () => {
-      const sessionUserId = "user-1";
-      const urlUserId = "user-2";
+describe("GET /api/users/[userId]/players", () => {
+  beforeEach(async () => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    mockGetSession.mockResolvedValue(SESSION);
+    mockGetUserPlayers.mockResolvedValue([]);
+    ({ GET } = await import("../route"));
+  });
 
-      expect(sessionUserId).not.toBe(urlUserId);
-    });
+  it("returns 403 when the signed-in user requests another user's players", async () => {
+    const consoleSpy = silenceConsoleError();
 
-    it("should include pending invitations", () => {
-      const players = [
-        createPlayer({
-          id: "player-1",
-          name: "User Name",
-          teamId: "team-1",
-          userId: "user-1",
-          role: PlayerRole.MEMBER,
-        }),
-        createPlayer({
-          id: "player-2",
-          name: "User Name",
-          teamId: "team-2",
-          userId: undefined,
-          role: PlayerRole.ADMIN,
-        }),
-      ];
+    try {
+      const req = routeRequest(
+        "http://localhost/api/users/user-2/players",
+        "GET",
+      );
+      const props = { params: Promise.resolve({ userId: "user-2" }) };
 
-      expect(players.length).toBe(2);
-      expect(players[1]!.userId).toBeUndefined();
-    });
+      const res = await GET(req as never, props);
 
-    it("should return 200 with players array on success", () => {
-      const players = [
-        createPlayer({
-          id: "player-1",
-          name: "Test User",
-          teamId: "team-1",
-          userId: "user-1",
-          role: PlayerRole.ADMIN,
-        }),
-      ];
+      expect(res.status).toBe(403);
+    } finally {
+      consoleSpy.mockRestore();
+    }
+  });
 
-      expect(players).toBeDefined();
-      expect(Array.isArray(players)).toBe(true);
-    });
-
-    it("should return 200 status on success", () => {
-      const successStatus = 200;
-      expect(successStatus).toBe(200);
-    });
-
-    it("should return 401 when not authenticated", () => {
-      const unauthorizedStatus = 401;
-      expect(unauthorizedStatus).toBe(401);
-    });
-
-    it("should return 403 when accessing other user data", () => {
-      const forbiddenStatus = 403;
-      expect(forbiddenStatus).toBe(403);
-    });
-
-    it("should validate response structure", () => {
-      const player = createPlayer({
+  it("returns the requested user's players when the signed-in user owns them", async () => {
+    const player = {
+      ...createPlayer({
         id: "player-1",
-        name: "Test User",
-        teamId: "team-1",
-        userId: "user-1",
+        name: "User One",
         role: PlayerRole.ADMIN,
-      });
+      }),
+      teamName: "Team One",
+    };
+    mockGetUserPlayers.mockResolvedValue([player]);
+    const req = routeRequest(
+      "http://localhost/api/users/user-1/players",
+      "GET",
+    );
+    const props = { params: Promise.resolve({ userId: "user-1" }) };
 
-      expect(player).toHaveProperty("id");
-      expect(player).toHaveProperty("name");
-      expect(player).toHaveProperty("teamId");
-      expect(player).toHaveProperty("role");
-      expect(typeof player.userId).toBe("string");
-    });
+    const res = await GET(req as never, props);
+    const body = await res.json();
 
-    it("should include teamName on each entry", () => {
-      const players = [
-        {
-          ...createPlayer({ id: "player-1", teamId: "team-1" }),
-          teamName: "Team One",
-        },
-        {
-          ...createPlayer({ id: "player-2", teamId: "team-2" }),
-          teamName: undefined,
-        },
-      ];
-
-      expect(players[0]!.teamName).toBe("Team One");
-      expect(players[1]!.teamName).toBeUndefined();
-      expect(players.every((p) => "teamName" in p)).toBe(true);
-    });
+    expect(res.status).toBe(200);
+    expect(body).toMatchObject([
+      {
+        id: "player-1",
+        name: "User One",
+        role: PlayerRole.ADMIN,
+        teamName: "Team One",
+        userId: "user-1",
+      },
+    ]);
   });
 });
