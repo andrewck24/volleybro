@@ -13,10 +13,6 @@ jest.mock("@/interface/controllers/player/player.controller", () => ({
   getUserPlayers: mockGetUserPlayers,
 }));
 
-jest.mock("@/infrastructure/db/mongoose/connect-to-mongodb", () => ({
-  connectToMongoDB: jest.fn(),
-}));
-
 jest.mock("@/lib/auth", () => ({
   auth: { api: { getSession: mockGetSession } },
 }));
