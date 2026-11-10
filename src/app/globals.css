@@ -212,8 +212,7 @@
     box-shadow: none;
   }
 
-  /* Auth routes scroll only when their content overflows, so the docked
-     sheet meets the viewport edge instead of a reserved scrollbar gutter. */
+  /* No reserved gutter, so the docked sheet meets the viewport edge. */
   html:has(.auth-layout) {
     scrollbar-gutter: auto;
   }
