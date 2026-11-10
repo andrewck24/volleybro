@@ -375,7 +375,11 @@ test("a pull request that adds an unclassified path fails before any release", a
 test("CI runs the release path check on pull requests against the base", async () => {
   const { steps } = (await loadWorkflow("ci.yml")).jobs.static;
   const checkout = steps.find((s) => s.uses?.startsWith("actions/checkout"));
-  assert.ok(checkout.with["fetch-depth"] >= 2);
+  const depth = checkout.with["fetch-depth"];
+  assert.ok(
+    depth === 0 || depth >= 2,
+    "needs the base commit; 0 is full history",
+  );
   const check = steps.find((s) => s.run?.includes("check-path-classification"));
   assert.equal(check.if, "github.event_name == 'pull_request'");
   assert.match(check.run, /BASE_SHA=\$\(git rev-parse HEAD\^1\)/);

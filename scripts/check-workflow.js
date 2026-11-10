@@ -3,6 +3,7 @@
 import { lstat, readFile, readdir, readlink, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 import { parse } from "yaml";
 
@@ -531,9 +532,95 @@ export async function checkDecisionRecordLength(root) {
   return diagnostics;
 }
 
+const DECISIONS_DIR = "blueprint/content/decisions";
+const AMEND_TRAILER = "Decision-Amend";
+
+// An adopted decision is replaced, never rewritten: against the merge-base only
+// `supersededBy` may change on a record that already exists. A
+// `Decision-Amend: <id>` trailer on a branch commit records the developer's
+// approval of one record.
+export async function checkDecisionImmutability(root) {
+  const base = await resolveScopeBase(root);
+
+  let mergeBase;
+  let changes;
+  let amended;
+  try {
+    mergeBase = await git(root, ["merge-base", base, "HEAD"]);
+    changes = (
+      await git(root, [
+        "diff",
+        "--name-status",
+        "--no-renames",
+        mergeBase,
+        "HEAD",
+        "--",
+        DECISIONS_DIR,
+      ])
+    )
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => line.split("\t"))
+      .filter(([status]) => status !== "A");
+    amended = new Set(
+      (
+        await git(root, [
+          "log",
+          `${mergeBase}..HEAD`,
+          `--format=%(trailers:key=${AMEND_TRAILER},valueonly)`,
+        ])
+      )
+        .split("\n")
+        .map((value) => value.trim().replace(/^ADR-/i, ""))
+        .filter(Boolean),
+    );
+  } catch {
+    return [];
+  }
+
+  const diagnostics = [];
+  for (const [status, relativePath] of changes) {
+    const id = path.basename(relativePath).match(/^(\d+)-/)?.[1];
+    if (id && amended.has(id)) continue;
+
+    const approval = `or add a "${AMEND_TRAILER}: ${id ?? "<id>"}" trailer the developer approved`;
+    if (status === "D") {
+      diagnostics.push(
+        `${relativePath} [decision-immutable]: an adopted decision is not deleted; set supersededBy on it (${approval})`,
+      );
+      continue;
+    }
+
+    let unchanged = false;
+    try {
+      const before = JSON.parse(
+        await git(root, ["show", `${mergeBase}:${relativePath}`]),
+      );
+      const after = JSON.parse(
+        await git(root, ["show", `HEAD:${relativePath}`]),
+      );
+      delete before.supersededBy;
+      delete after.supersededBy;
+      unchanged = isDeepStrictEqual(before, after);
+    } catch {
+      // A record that does not parse cannot be shown unchanged.
+    }
+    if (!unchanged) {
+      diagnostics.push(
+        `${relativePath} [decision-immutable]: an adopted decision may change only supersededBy; record a new decision and supersede this one (${approval})`,
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
-  const diagnostics = await checkWorkflow();
+  const diagnostics = [
+    ...(await checkWorkflow()),
+    ...(await checkDecisionImmutability(process.cwd())),
+  ];
   const warnings = [
     ...(await checkChangeScope(process.cwd(), {
       changeShardsSlug: flagValue(argv, "--change-shards"),

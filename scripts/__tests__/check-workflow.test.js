@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 
 import {
   checkChangeScope,
+  checkDecisionImmutability,
   checkDecisionRecordLength,
   checkWorkflow,
 } from "../check-workflow.js";
@@ -606,4 +607,101 @@ test("the CLI keeps oversized-decision warnings non-blocking", async () => {
     cwd: root,
   });
   assert.match(result.stderr, /Warning:.*1001 characters/is);
+});
+
+const ADOPTED_PATH = "blueprint/content/decisions/0123-existing.json";
+const ADOPTED = {
+  schemaVersion: 2,
+  id: "0123",
+  title: "Existing decision",
+  capabilities: ["platform/blueprint"],
+  decision: "short",
+};
+
+const rewriteAdopted = (fields) => (root) =>
+  writeFiles(root, {
+    [ADOPTED_PATH]: `${JSON.stringify({ ...ADOPTED, ...fields })}\n`,
+  });
+
+async function amendAdoptedDecision(prefix, edit, message = "amend") {
+  const { root, git } = await initGitRepository(prefix, async (directory) => {
+    await writeFiles(directory, {
+      [ADOPTED_PATH]: `${JSON.stringify(ADOPTED)}\n`,
+    });
+  });
+  await git(["checkout", "-q", "-b", `fast/${prefix}`]);
+  await edit(root);
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", message]);
+  return root;
+}
+
+test("checkDecisionImmutability allows setting supersededBy", async () => {
+  const root = await amendAdoptedDecision(
+    "immutable-superseded",
+    rewriteAdopted({ supersededBy: "0124" }),
+  );
+  assert.deepEqual(await checkDecisionImmutability(root), []);
+});
+
+test("checkDecisionImmutability rejects changing another field", async () => {
+  const root = await amendAdoptedDecision(
+    "immutable-rewrite",
+    rewriteAdopted({ decision: "rewritten", supersededBy: "0124" }),
+  );
+  const diagnostics = await checkDecisionImmutability(root);
+  assert.equal(diagnostics.length, 1);
+  assert.match(diagnostics[0], /0123-existing\.json \[decision-immutable\]/);
+});
+
+test("checkDecisionImmutability rejects deleting a decision", async () => {
+  const root = await amendAdoptedDecision("immutable-delete", (directory) =>
+    rm(path.join(directory, ADOPTED_PATH)),
+  );
+  const diagnostics = await checkDecisionImmutability(root);
+  assert.equal(diagnostics.length, 1);
+  assert.match(diagnostics[0], /\[decision-immutable\].*deleted/);
+});
+
+test("checkDecisionImmutability allows a new decision", async () => {
+  const root = await amendAdoptedDecision("immutable-new", (directory) =>
+    writeFiles(directory, {
+      "blueprint/content/decisions/0124-new.json": `${JSON.stringify({ ...ADOPTED, id: "0124" })}\n`,
+    }),
+  );
+  assert.deepEqual(await checkDecisionImmutability(root), []);
+});
+
+test("checkDecisionImmutability honours a Decision-Amend trailer for that record only", async () => {
+  const rewrite = rewriteAdopted({ decision: "rewritten" });
+  const approved = await amendAdoptedDecision(
+    "immutable-trailer",
+    rewrite,
+    "amend\n\nDecision-Amend: 0123",
+  );
+  assert.deepEqual(await checkDecisionImmutability(approved), []);
+
+  const other = await amendAdoptedDecision(
+    "immutable-trailer-other",
+    rewrite,
+    "amend\n\nDecision-Amend: 0999",
+  );
+  assert.equal((await checkDecisionImmutability(other)).length, 1);
+});
+
+test("the CLI fails on a rewritten decision", async () => {
+  const { root, git } = await initWorkflowRepository("immutable-cli");
+  await git(["checkout", "-q", "main"]);
+  await writeFiles(root, { [ADOPTED_PATH]: `${JSON.stringify(ADOPTED)}\n` });
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "adopt"]);
+  await git(["checkout", "-q", "feat/immutable-cli"]);
+  await git(["merge", "-q", "--ff-only", "main"]);
+  await rewriteAdopted({ decision: "rewritten" })(root);
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "rewrite"]);
+  await assert.rejects(
+    execFileAsync("node", [CHECK_WORKFLOW_SCRIPT], { cwd: root }),
+    (error) => /\[decision-immutable\]/.test(error.stderr),
+  );
 });
