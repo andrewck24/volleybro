@@ -68,9 +68,7 @@ describe("SignInForm OAuth errors", () => {
     mockSearch = "";
   });
 
-  // Better Auth sends a failed Google callback to errorCallbackURL with
-  // ?error=<code>; without it the user lands on Better Auth's own error page.
-  it("asks Better Auth to send a failed sign-in back to this page", async () => {
+  it("sends a failed sign-in back to this page, not Better Auth's error page", async () => {
     mockSignIn.mockResolvedValue(undefined);
     const user = userEvent.setup();
     render(<SignInForm />);

@@ -8,14 +8,12 @@ import { Suspense, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { RiErrorWarningLine } from "react-icons/ri";
 
-// Google's sign-in branding, with the theme chosen against the sheet so the
-// only action stands out: the dark button on the light sheet, the light
-// button on the dark sheet. These are Google's values, not VolleyBro tokens.
-const GOOGLE_BUTTON =
+// The theme contrasts with the sheet: dark button on the light sheet, light
+// button on the dark sheet.
+const GOOGLE_BRAND_BUTTON =
   "h-auto min-h-(--control-size-lg) w-full bg-[#131314] px-4 py-2 text-base whitespace-normal text-[#e3e3e3] ring-[#8e918f] hover:bg-[#2b2b2d] dark:bg-white dark:text-[#1f1f1f] dark:ring-[#747775] dark:hover:bg-[#f2f2f2] focus-visible:ring-2 focus-visible:ring-primary-text dark:focus-visible:ring-primary-text [&>svg]:size-5";
 
-// Better Auth returns a failed Google callback here as ?error=<code>. Only the
-// code picks a fixed message; nothing from the URL is shown.
+// Only the code picks a fixed message; nothing from the URL is shown.
 const signInErrorMessage = (code: string) =>
   code === "access_denied"
     ? "已取消登入，要登入請再按一次下方按鈕。"
@@ -60,7 +58,7 @@ const SignInForm = () => {
       <Button
         variant="outline"
         size="lg"
-        className={GOOGLE_BUTTON}
+        className={GOOGLE_BRAND_BUTTON}
         onClick={handleGoogleSignIn}
         loading={isSubmitting}
       >
