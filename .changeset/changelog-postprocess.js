@@ -3,7 +3,6 @@
 // 1. Fix version headers:  ## X.Y.Z  →  ## [X.Y.Z](compare-link) YYYY-MM-DD
 // 2. Merge duplicate ### type and #### domain headings within each version block
 
-import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,19 +12,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = "https://github.com/andrewck24/volleybro";
 const CHANGELOG = path.resolve(__dirname, "../CHANGELOG.md");
 
-function prevGitVersion(current) {
-  try {
-    return (
-      execSync("git tag --sort=-version:refname", { encoding: "utf-8" })
-        .trim()
-        .split("\n")
-        .filter((t) => /^v\d+\.\d+\.\d+$/.test(t))
-        .map((t) => t.slice(1))
-        .find((v) => v !== current) ?? null
-    );
-  } catch {
-    return null;
-  }
+// Tags are created after production QA, so they can lag behind the changelog.
+// The newest already-processed header is the real previous release.
+function prevChangelogVersion(content, current) {
+  return (
+    [...content.matchAll(/^## \[(\d+\.\d+\.\d+)\]\(/gm)]
+      .map((m) => m[1])
+      .find((v) => v !== current) ?? null
+  );
 }
 
 // Merge duplicate ### type sections and their #### domain sub-sections.
@@ -82,9 +76,8 @@ const today = new Date().toISOString().slice(0, 10);
 const cur = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "../package.json"), "utf8"),
 ).version;
-const prev = prevGitVersion(cur);
-
 const content = fs.readFileSync(CHANGELOG, "utf-8");
+const prev = prevChangelogVersion(content, cur);
 
 // Split on version headers so each block can be processed independently.
 // Blocks not starting with "## " (e.g. the "# packageName" title) pass through.
