@@ -38,11 +38,6 @@ async function reviewedSourceMapping(sha, authorization) {
     await command("git", ["rev-parse", `${sha}^2`]),
     "Reviewed version PR head SHA",
   );
-  await assertAncestor(
-    reviewed,
-    sha,
-    "Reviewed version PR head is not an ancestor of the release merge",
-  );
   const [reviewedTree, releaseTree] = await Promise.all([
     command("git", ["rev-parse", `${reviewed}^{tree}`]),
     command("git", ["rev-parse", `${sha}^{tree}`]),
