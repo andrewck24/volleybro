@@ -21,6 +21,7 @@ test("denies --auto and a merge without --match-head-commit", () => {
     `gh pr merge 12 --auto --merge --match-head-commit ${sha}`,
     "gh pr merge 12 --merge",
     "gh pr merge --auto --squash",
+    "gh pr merge 12 --match-head-commit --merge",
     "cd x && gh  pr merge 12 --merge --match-head-commit",
   ]) {
     assert.match(checkPrMerge(c), /pnpm pr:wait/, c);

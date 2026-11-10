@@ -1,8 +1,6 @@
 #!/usr/bin/env node
-// Claude Code PreToolUse(Bash) hook: WORKFLOW.md section 5 merges with an
-// exact-head `gh pr merge --merge --match-head-commit <sha>` after
-// `pnpm pr:wait`. GitHub auto-merge notifies no agent, and a merge without the
-// head match can land an unreviewed revision, so both are denied.
+// Claude Code PreToolUse(Bash) hook. GitHub auto-merge notifies no agent, and a
+// merge without --match-head-commit can land an unreviewed revision.
 import { fileURLToPath } from "node:url";
 
 // shortcut: regex over the raw command string, not a shell parse; a quoted
@@ -10,7 +8,7 @@ import { fileURLToPath } from "node:url";
 export function checkPrMerge(command) {
   if (!/\bgh\s+pr\s+merge\b/.test(command)) return null;
   const auto = /(^|\s)--auto(\s|=|$)/.test(command);
-  const pinned = /(^|\s)--match-head-commit(\s+|=)\S/.test(command);
+  const pinned = /(^|\s)--match-head-commit(\s+|=)[^\s-]/.test(command);
   if (!auto && pinned) return null;
   return "gh pr merge needs --match-head-commit <reviewed-head> and no --auto. Run `pnpm pr:wait <number> --head <reviewed-head>` first, then merge as WORKFLOW.md section 5 (Merge, reconcile and clean up) says.";
 }
