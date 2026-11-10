@@ -20,7 +20,7 @@
 /public/swe-worker*
 
 # AI agents
-.claude/settings.*
+.claude/settings.local.*
 .claude/worktrees/
 .agent/
 .agents/settings.local.*

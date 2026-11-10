@@ -1,0 +1,31 @@
+{
+  "includeGitInstructions": false,
+  "enabledPlugins": {
+    "diagram-design@diagram-design": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(node -e 'let s=\"\";process.stdin.on(\"data\",c=>s+=c).on(\"end\",()=>process.stdout.write(JSON.parse(s).cwd||\".\"))'); [ -f \"$D/scripts/worktree-setup.sh\" ] && sh \"$D/scripts/worktree-setup.sh\" \"$D\" >&2; exit 0",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/guard-pr-merge.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

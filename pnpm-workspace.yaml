@@ -2,14 +2,19 @@ packages:
   - "."
   - blueprint
 
-# The two @hookform/resolvers entries: only the Zod resolver is used. The package still lists ajv and
-# ajv-formats as peers (optional since 5.x), which these entries strip. Revisit before enabling the AJV resolver.
+# The @hookform/resolvers entry: only the Zod resolver is used, so its optional ajv peer is stripped.
+# Its ajv-formats peer is kept: stripping it also drops ajv-formats 3's own ajv peer, breaking the Storybook build.
 # The zod entry lifts exact upstream pins to a patched version.
 overrides:
   "@hookform/resolvers@6>ajv": "-"
-  "@hookform/resolvers@6>ajv-formats": "-"
   # emdash and @emdash-cms/auth pin zod 4.5.4 exactly and @serwist/build pins 4.6.5; remove once upstream ships a fixed pin.
   zod@>=4.0.0 <4.6.6: ^4.6.7
+  # minimatch 9 (glob 10) and 10 (glob 13, typescript-estree, ts-morph) are inside GHSA-g3hv-75wg-m249; remove once those consumers resolve minimatch >=11.0.1 on their own.
+  minimatch@>=7.0.0 <11.0.1: ^11.0.1
+  # glob 10 (test-exclude) and 13 (jest, @serwist/build) are inside GHSA-3g3m-2fjr-6pw4, whose range also covers the 13.0.7 backport; remove once those consumers resolve glob >=14.0.2 on their own.
+  glob@>=9.0.0 <14.0.2: ^14.0.2
+  # @storybook/builder-webpack5 pins ^6.1.2, inside GHSA-g84c-rxfj-3j2c; remove once Storybook ships webpack-dev-middleware >=7.4.6.
+  webpack-dev-middleware@<7.4.6: ^7.4.6
   # @napi-rs/wasm-runtime's peer range admits the emnapi 2.0.0 beta, which crashes `astro check` on exit; remove once emnapi 2 is stable.
   "@emnapi/core@>=2.0.0-0": ^1.7.1
   "@emnapi/runtime@>=2.0.0-0": ^1.7.1
