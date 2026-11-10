@@ -5,12 +5,14 @@ import {
   type SendResult,
 } from "../pending-core";
 import { createRtkPendingCore } from "../pending-rtk-listener";
+import { createEffectPendingCore } from "../pending-effect";
 import { configureStore } from "@reduxjs/toolkit";
 import { flushScope } from "../pending-rtk-listener";
 
 const variants = [
   ["async", createAsyncPendingCore],
   ["rtk-listener", createRtkPendingCore],
+  ["effect", createEffectPendingCore],
 ] as const;
 describe.each(variants)("pending-write core %s", (_variant, createCore) => {
   it("single-flights concurrent flushes and removes entries after success", async () => {

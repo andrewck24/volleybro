@@ -28,23 +28,39 @@ S02 benchmark (`node scripts/ate-393/measure.mjs bench`, microseconds):
 ## S03
 
 - `async`: production Zod schema and real PATCH route; route owns authorization and validation.
-- `effect`: **BLOCKED** for the same Jest/Effect ESM runtime constraint recorded in S02.
-  Production route behavior and the async variant remain covered.
+- `effect`: Effect.gen implements the update program; the repository Promise call is adapted with
+  `Effect.tryPromise`, with `TeamRepositoryFailure` in the E channel and exhaustive `catchTags`
+  mapping to `UnexpectedError`. The route keeps Zod validation and authorization.
+- Shared suite runs both variants through PATCH, including permission denial before the controller.
+- Adapter cost: effect repository call 1 line; error-to-AppError boundary mapping 8 lines;
+  transaction adapter 0 lines (the update use case is one repository write and the route does not
+  use `ITransactionRunner`). Async adapter cost: 0 lines. No schema adapter applies in S03.
+- Forced boundary limitation: production PATCH route stays Zod-based and owns authorization, so the
+  effect variant is exercised through the real route/controller seam while its Effect program is
+  supplied the same repository port. Production files remain untouched.
 
 ## S04
 
 - `async`: single-flight, injected timer, exponential retry, success removal, failure retention,
   and unknown-outcome retention pass the shared pure-core suite.
 - `rtk-listener`: listener middleware drives the same core and passes the same suite.
-- `effect`: **BLOCKED** because Jest cannot execute Effect 4 ESM modules under the repository's
-  CommonJS test transform. The entry is retained for size inspection, but excluded from the suite.
+- `effect`: Effect.gen owns flush, per-scope single-flight, send result handling, removal,
+  retention, and Schedule-driven exponential delay (capped at 30 seconds). The send Promise adapter
+  maps rejection to `PendingSendFailure` in E; the public Promise runs at the adapter boundary.
+- All variants pass the shared suite for concurrent flushes, success removal, per-scope sending,
+  exponential retry, failure retention, and unknown-outcome retention. Injected `now` and `schedule`
+  ports provide deterministic clock/scheduling; TestClock is not needed.
+- Adapter line counts: async repository 0 / route 0 / transaction 0; RTK listener 0 / listener
+  boundary 4 / transaction 0; Effect send repository 4 / Promise boundary 7 / transaction 0.
+- Forced boundary: `PendingPorts.send` remains Promise-based by the shared contract, so Effect uses
+  `Effect.tryPromise` only for that port call; the pending-write business logic is an Effect program.
 
 S04 bundle measurements (Effect 4.1.2, RTK 2.14.0; baseline `async`):
 
 | Variant      | Raw bytes | Gzip bytes | Raw delta | Gzip delta |
 | ------------ | --------: | ---------: | --------: | ---------: |
 | async        |       562 |        361 |         0 |          0 |
-| effect       |    34,644 |     12,234 |   +34,082 |    +11,873 |
+| effect       |    35,833 |     12,560 |   +35,271 |    +12,199 |
 | rtk-listener |     6,642 |      3,014 |    +6,080 |     +2,653 |
 
 No gzip delta exceeds 20 KB.

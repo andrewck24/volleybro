@@ -228,11 +228,36 @@ export const updateTeamVariants: Record<
 export type UpdateVariantId = "async" | "effect";
 export const updateTeamStyleVariants: Record<
   UpdateVariantId,
-  (input: unknown, execute: Execute<UpdateInput>) => Promise<unknown>
+  (
+    input: unknown,
+    execute: Execute<UpdateInput>,
+    repository?: ITeamRepository,
+    teamId?: string,
+  ) => Promise<unknown>
 > = {
   async: async (input, execute) => execute(TeamUpdateSchema.parse(input)),
-  effect: async (input, execute) =>
-    Effect.runPromise(
-      Effect.promise(() => execute(TeamUpdateSchema.parse(input))),
-    ),
+  effect: async (input, execute, repository, teamId) => {
+    const program = Effect.gen(function* () {
+      return yield* Effect.tryPromise({
+        try: () => {
+          if (!repository || !teamId) throw new Error("Missing update adapter");
+          return repository.update(teamId, input as UpdateInput);
+        },
+        catch: (cause) => new TeamRepositoryFailure({ cause }),
+      });
+    });
+    return Effect.runPromise(
+      Effect.catchTags(program, {
+        TeamRepositoryFailure: (error) =>
+          Effect.fail(
+            new UnexpectedError(
+              CommonReason.UNHANDLED_ERROR,
+              "Unexpected error",
+              error.cause instanceof Error ? error.cause.message : undefined,
+              error.cause,
+            ),
+          ),
+      }),
+    );
+  },
 };

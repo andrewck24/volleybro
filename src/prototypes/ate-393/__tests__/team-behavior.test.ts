@@ -182,17 +182,24 @@ describe.each([
   });
 });
 
-describe.each(["async"] as const)(
+describe.each(["async", "effect"] as const)(
   "update-team %s through PATCH route",
   (variant) => {
     it("updates after route-layer authorization", async () => {
-      updateController.mockImplementation(
-        (teamId, input) =>
-          updateTeamStyleVariants[variant](input, async (value) => ({
-            id: teamId,
-            ...value,
-          })) as Promise<Record<string, unknown>>,
-      );
+      updateController.mockImplementation((teamId, input) => {
+        const repository = {
+          update: async (id: string, value: unknown) => ({
+            id,
+            ...(value as Record<string, unknown>),
+          }),
+        };
+        return updateTeamStyleVariants[variant](
+          input,
+          async (value) => ({ id: teamId, ...value }),
+          repository as never,
+          teamId,
+        ) as Promise<Record<string, unknown>>;
+      });
       const req = routeRequest(
         `http://localhost/api/teams/${TEAM_ID}`,
         "PATCH",
