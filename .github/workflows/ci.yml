@@ -134,11 +134,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Split by file name, not a list, so a new test file always runs in one shard.
+      # The name range balances the slow release-controls files (about 30s / 25s locally).
       - run: |
           if [ "${{ matrix.shard }}" = 1 ]; then
-            node --test scripts/__tests__/release-controls-*.test.js
+            node --test scripts/__tests__/release-controls-[p-z]*.test.js
           else
-            node --test $(ls scripts/__tests__/*.test.js | grep -v /release-controls-)
+            node --test $(ls scripts/__tests__/*.test.js | grep -v '/release-controls-[p-z]')
           fi
 
   integration:
