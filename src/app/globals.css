@@ -211,6 +211,15 @@
   [data-slot="Card"] [data-slot="item"] {
     box-shadow: none;
   }
+
+  /* No reserved gutter, so the docked sheet meets the viewport edge. */
+  html:has(.auth-layout) {
+    scrollbar-gutter: auto;
+  }
+  html:has(.auth-layout) body {
+    overflow-y: auto;
+    overscroll-behavior-y: none;
+  }
 }
 
 /* View Transitions Animations */

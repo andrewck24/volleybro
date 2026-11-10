@@ -1,23 +1,14 @@
-import { RiSpamLine } from "react-icons/ri";
+import { AuthSheet } from "@/components/auth/sheet";
 import { Link } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 
-const Error = () => {
+const AuthError = () => {
   return (
-    <Card className="w-full flex-1">
-      <CardHeader>
-        <CardTitle>Error</CardTitle>
-      </CardHeader>
-      <div className="text-error-text">Oops... Something went wrong!</div>
-      <div className="flex flex-1 items-center justify-center">
-        <RiSpamLine className="size-[40%] text-error-text" />
-      </div>
-      <Link variant="outline" size="lg" href="/auth/sign-in">
-        Go back to the sign-in page
+    <AuthSheet title="登入失敗">
+      <Link size="lg" className="w-full" href="/auth/sign-in">
+        重新登入
       </Link>
-      <CardFooter />
-    </Card>
+    </AuthSheet>
   );
 };
 
-export default Error;
+export default AuthError;

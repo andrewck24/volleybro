@@ -1,38 +1,34 @@
 "use client";
-import { Logo } from "@/components/custom/logo";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AuthSheet } from "@/components/auth/sheet";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { RiAlertLine } from "react-icons/ri";
+import { RiErrorWarningLine } from "react-icons/ri";
+
+// Deliberately inverted against the sheet's theme.
+const GOOGLE_BRAND_BUTTON =
+  "h-auto min-h-(--control-size-lg) w-full bg-[#131314] px-4 py-2 text-base whitespace-normal text-[#e3e3e3] ring-[#8e918f] hover:bg-[#2b2b2d] dark:bg-white dark:text-[#1f1f1f] dark:ring-[#747775] dark:hover:bg-[#f2f2f2] focus-visible:ring-2 focus-visible:ring-primary-text dark:focus-visible:ring-primary-text [&>svg]:size-5";
+
+// Nothing from the URL is shown.
+const signInErrorMessage = (code: string) =>
+  code === "access_denied"
+    ? "已取消登入，要登入請再按一次下方按鈕。"
+    : "登入失敗，請再按一次下方按鈕。";
 
 const SignInError = () => {
   const searchParams = useSearchParams();
-  const urlError = searchParams.get("error");
-  const errorMessage =
-    urlError === "OAuthAccountNotLinked"
-      ? "看來您已使用其他方式註冊，請使用原註冊方式登入"
-      : urlError
-        ? "登入時發生錯誤，請稍後再試"
-        : "";
+  const code = searchParams.get("error");
+  if (!code) return null;
 
-  if (urlError)
-    return (
-      <Alert variant="error">
-        <RiAlertLine />
-        <AlertTitle>登入失敗</AlertTitle>
-        <AlertDescription>{errorMessage}</AlertDescription>
-      </Alert>
-    );
+  return (
+    <Alert variant="error">
+      <RiErrorWarningLine />
+      <AlertTitle className="mb-0">{signInErrorMessage(code)}</AlertTitle>
+    </Alert>
+  );
 };
 
 const SignInForm = () => {
@@ -44,6 +40,7 @@ const SignInForm = () => {
       await authClient.signIn.social({
         provider: "google",
         callbackURL: "/home",
+        errorCallbackURL: "/auth/sign-in",
       });
     } catch {
       // sign-in errors are surfaced via URL error params after redirect
@@ -53,33 +50,24 @@ const SignInForm = () => {
   };
 
   return (
-    <Card className="h-[50%] w-full max-w-150 rounded-lg bg-transparent text-primary-foreground shadow-none">
-      <CardHeader className="flex-1 flex-col items-start">
-        <Logo className="max-h-fit justify-start" />
-        <p className="text-2xl">快速記錄每一場精彩的比賽。</p>
-      </CardHeader>
-      <Separator className="bg-primary-foreground" />
-      <CardContent>
-        <Suspense>
-          <SignInError />
-        </Suspense>
-        <Button
-          variant="outline"
-          size="lg"
-          className="w-full text-foreground"
-          onClick={handleGoogleSignIn}
-          loading={isSubmitting}
-        >
-          <FcGoogle />
-          使用 Google 帳戶繼續
-        </Button>
-      </CardContent>
-      <CardFooter className="items-center pb-[15vh]">
-        <p className="font-thin text-accent">
-          如果註冊，即表示您同意服務條款和隱私政策。
-        </p>
-      </CardFooter>
-    </Card>
+    <AuthSheet title="登入或註冊">
+      <Suspense>
+        <SignInError />
+      </Suspense>
+      <Button
+        variant="outline"
+        size="lg"
+        className={GOOGLE_BRAND_BUTTON}
+        onClick={handleGoogleSignIn}
+        loading={isSubmitting}
+      >
+        <FcGoogle />
+        使用 Google 帳戶登入
+      </Button>
+      <p className="text-sm text-pretty text-muted-foreground">
+        登入即表示您同意服務條款與隱私權政策。
+      </p>
+    </AuthSheet>
   );
 };
 
