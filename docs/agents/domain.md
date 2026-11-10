@@ -2,7 +2,7 @@
 
 Before any Matt Pocock playbook explores or changes domain language, read root `GLOSSARY.md` and the decision records relevant to the affected capabilities. VolleyBro uses one domain context; `domain-modeling` owns glossary format and inline term resolution. Use `domain-modeling` to decide when a trade-off warrants an ADR; the repository stores it at the path below rather than the playbook's default `docs/adr/`.
 
-New workflow rules go in `WORKFLOW.md`, or in the contract file it links for that area (release rules in `docs/release-contract.md`), without a new ADR; existing ADRs are not retroactively rewritten, and a workflow ADR whose rule moves into such a file is retired by setting `supersededBy` to the pull request that moved it.
+New workflow rules go in `WORKFLOW.md`, or in the contract file it links for that area (release rules in `docs/release-contract.md`), without a new ADR; existing ADRs are not rewritten (`pnpm check:workflow` enforces it, see the decision-record lifecycle below), and a workflow ADR whose rule moves into such a file is retired by setting `supersededBy` to the pull request that moved it.
 
 Architectural decision records do not use a parallel canonical `docs/adr/` tree, and they do not belong to a Change. A decision record belongs to the repository: it lives at `blueprint/content/decisions/<nnnn>-<slug>.json`, one flat file per decision, with no per-capability copies. Its number is assigned when it is written, by scanning that directory for the highest number and adding one — one namespace, no renumbering, ever. Four digits, so the directory sorts in the order the records were made; cite a record in prose as `ADR-0046`.
 
@@ -11,6 +11,8 @@ Write a decision record the moment the decision is made — during a Change's Di
 The schema in `blueprint/src/lib/decision-record.ts` is the sole executable definition, version 2; unknown keys fail validation. `originChange` records provenance, while `supersededBy` links replacements: a decision id, or the URL of the pull request that retires a workflow rule without a successor decision. Blueprint rendering never creates a second editable decision source.
 
 A decision record's lifecycle has two events: birth, and replacement by setting `supersededBy` on the record being replaced, pointing at the record that replaces it, or at the pull request that retires a workflow rule without a successor record. Archive does not promote, reconcile, or renumber decision records — a record already lives at its permanent path from the moment it was written.
+
+A record that exists on the merge-base is not rewritten or deleted: `pnpm check:workflow` (`checkDecisionImmutability`) fails the pull request when it changes any field but `supersededBy`. Correct a record by writing its successor and setting `supersededBy`. An edit the developer approved carries a `Decision-Amend: <id>` trailer, for example `Decision-Amend: 0043`, on a commit of the branch; the approval itself follows `WORKFLOW.md`, and the trailer exempts that one record only.
 
 Before changing domain language or a decision, read the affected Feature pages, active Change, code, and tests. Surface contradictions rather than silently rewriting an authority.
 
