@@ -535,10 +535,7 @@ export async function checkDecisionRecordLength(root) {
 const DECISIONS_DIR = "blueprint/content/decisions";
 const AMEND_TRAILER = "Decision-Amend";
 
-// An adopted decision is replaced, never rewritten: against the merge-base only
-// `supersededBy` may change on a record that already exists. A
-// `Decision-Amend: <id>` trailer on a branch commit records the developer's
-// approval of one record.
+// Rule and `Decision-Amend` exemption: docs/agents/domain.md.
 export async function checkDecisionImmutability(root) {
   const base = await resolveScopeBase(root);
 
@@ -571,11 +568,13 @@ export async function checkDecisionImmutability(root) {
         ])
       )
         .split("\n")
-        .map((value) => value.trim().replace(/^ADR-/i, ""))
+        .map((value) => value.trim())
         .filter(Boolean),
     );
-  } catch {
-    return [];
+  } catch (error) {
+    return [
+      `${DECISIONS_DIR} [decision-immutable]: cannot compare against ${base} (${error.message.split("\n")[0]}); fetch the base history so the check can run`,
+    ];
   }
 
   const diagnostics = [];
@@ -591,7 +590,7 @@ export async function checkDecisionImmutability(root) {
       continue;
     }
 
-    let unchanged = false;
+    let isUnchanged = false;
     try {
       const before = JSON.parse(
         await git(root, ["show", `${mergeBase}:${relativePath}`]),
@@ -601,11 +600,11 @@ export async function checkDecisionImmutability(root) {
       );
       delete before.supersededBy;
       delete after.supersededBy;
-      unchanged = isDeepStrictEqual(before, after);
+      isUnchanged = isDeepStrictEqual(before, after);
     } catch {
       // A record that does not parse cannot be shown unchanged.
     }
-    if (!unchanged) {
+    if (!isUnchanged) {
       diagnostics.push(
         `${relativePath} [decision-immutable]: an adopted decision may change only supersededBy; record a new decision and supersede this one (${approval})`,
       );

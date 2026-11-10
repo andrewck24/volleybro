@@ -2,7 +2,7 @@
 
 Before any Matt Pocock playbook explores or changes domain language, read root `GLOSSARY.md` and the decision records relevant to the affected capabilities. VolleyBro uses one domain context; `domain-modeling` owns glossary format and inline term resolution. Use `domain-modeling` to decide when a trade-off warrants an ADR; the repository stores it at the path below rather than the playbook's default `docs/adr/`.
 
-New workflow rules go in `WORKFLOW.md`, or in the contract file it links for that area (release rules in `docs/release-contract.md`), without a new ADR; existing ADRs are not retroactively rewritten, and a workflow ADR whose rule moves into such a file is retired by setting `supersededBy` to the pull request that moved it.
+New workflow rules go in `WORKFLOW.md`, or in the contract file it links for that area (release rules in `docs/release-contract.md`), without a new ADR; existing ADRs are not rewritten (`pnpm check:workflow` enforces it, see the decision-record lifecycle below), and a workflow ADR whose rule moves into such a file is retired by setting `supersededBy` to the pull request that moved it.
 
 Architectural decision records do not use a parallel canonical `docs/adr/` tree, and they do not belong to a Change. A decision record belongs to the repository: it lives at `blueprint/content/decisions/<nnnn>-<slug>.json`, one flat file per decision, with no per-capability copies. Its number is assigned when it is written, by scanning that directory for the highest number and adding one — one namespace, no renumbering, ever. Four digits, so the directory sorts in the order the records were made; cite a record in prose as `ADR-0046`.
 

@@ -689,6 +689,14 @@ test("checkDecisionImmutability honours a Decision-Amend trailer for that record
   assert.equal((await checkDecisionImmutability(other)).length, 1);
 });
 
+test("checkDecisionImmutability fails closed when the base cannot be compared", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "immutable-no-git-"));
+  roots.push(root);
+  const diagnostics = await checkDecisionImmutability(root);
+  assert.equal(diagnostics.length, 1);
+  assert.match(diagnostics[0], /\[decision-immutable\]: cannot compare/);
+});
+
 test("the CLI fails on a rewritten decision", async () => {
   const { root, git } = await initWorkflowRepository("immutable-cli");
   await git(["checkout", "-q", "main"]);
