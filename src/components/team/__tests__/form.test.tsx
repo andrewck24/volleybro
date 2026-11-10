@@ -5,6 +5,7 @@ import TeamForm, {
   EditTeamWorkspace,
   NewTeamWorkspace,
 } from "@/components/team/form";
+import { deferred } from "@test/support/gates";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { server } from "@test/support/msw/server";
 import { createTeam, createUser } from "@test/support/fixtures/entities";
@@ -72,13 +73,10 @@ describe("TeamForm", () => {
 
 describe("EditTeamWorkspace", () => {
   it("renders loading skeleton while team data is loading", async () => {
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
+    const { promise, release } = deferred();
     server.use(
       http.get("/api/teams/team-123", async () => {
-        await gate;
+        await promise;
         return HttpResponse.json({ id: "team-123", name: "Test Team" });
       }),
     );

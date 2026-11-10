@@ -4,6 +4,7 @@ import { Position } from "@/entities/team";
 import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { makeStore } from "@/lib/redux/store";
+import { deferred } from "@test/support/gates";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -72,15 +73,14 @@ describe("Options (set-options panel) submitting state", () => {
   });
 
   it("disables the submit button and shows progress while saving, then posts the set and moves on", async () => {
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { promise, release } = deferred();
     let body: unknown;
     let url!: URL;
     server.use(
       http.post("/api/games/rec-1/sets", async ({ request }) => {
         url = new URL(request.url);
         body = await request.json();
-        await gate;
+        await promise;
         return HttpResponse.json({
           ...game,
           sets: [{ win: null, options: { serve: "away" }, entries: [] }],
