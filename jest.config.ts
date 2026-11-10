@@ -49,7 +49,7 @@ export default async function jestConfig() {
       "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
-      "/node_modules/(?!.*(inversify|@inversifyjs|msw|@mswjs|rettime|until-async|@open-draft|cookie|pele)/)",
+      "/node_modules/(?!.*(inversify|@inversifyjs|msw|@mswjs|rettime|until-async|@open-draft|cookie|pele|effect)/)",
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
@@ -76,6 +76,7 @@ export default async function jestConfig() {
       "<rootDir>/src/infrastructure/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/interface/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/api/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/prototypes/ate-393/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/apple-splash/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}",
       ...serverOnlyLibTests.map((test) => `${test}.{js,jsx,ts,tsx}`),
