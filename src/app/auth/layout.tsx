@@ -2,8 +2,7 @@ import { LogoType } from "@/components/brand";
 import { StatusBarColor } from "@/components/layout/status-bar-color";
 
 // The teal brand ground continues from the launch splash; each auth route
-// supplies the sheet that carries its one action. Below lg the brand sits on
-// top of the sheet, close to the thumb; from lg the sheet docks to the right.
+// supplies the sheet that carries its one action.
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <main className="auth-layout flex min-h-dvh w-full flex-col bg-primary text-primary-foreground lg:flex-row">
