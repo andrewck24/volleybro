@@ -5,8 +5,7 @@ import { mongodbAdapter } from "better-auth/adapters/mongodb";
 
 export const auth = betterAuth({
   database: mongodbAdapter(client.db()),
-  // Only failures whose state cannot be read land here; the rest follow the
-  // client's errorCallbackURL.
+  // Only failures with unreadable OAuth state land here; others use errorCallbackURL.
   onAPIError: {
     errorURL: "/auth/error",
   },
