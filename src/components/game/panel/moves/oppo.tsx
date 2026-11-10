@@ -94,7 +94,7 @@ export const OppoMoves = () => {
   };
 
   return (
-    <Container className="grid-cols-1">
+    <Container data-move-grid="away" className="grid-cols-1">
       {oppoMoves.map((move) => (
         <MoveButton
           key={`${move.type}-${move.num + 15}`}

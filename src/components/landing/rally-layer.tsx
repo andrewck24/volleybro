@@ -46,7 +46,7 @@ export const RallyLayer = () => {
     const rows = layerEl.querySelector(".landing-entry-rows")!;
     const measure = () => {
       const row = rows.querySelector(".landing-entry-row");
-      const badge = row?.querySelector(".size-8");
+      const badge = row?.querySelector("[data-score-badge]");
       if (!row || !badge) return;
       const layerBox = layerEl.getBoundingClientRect();
       const rowsBox = rows.getBoundingClientRect();

@@ -21,11 +21,13 @@ export const Rally = ({
       {home.type ? (
         <>
           <Figure
+            data-score-badge=""
             value={home.score}
             size="sm"
             variant={win ? "primary" : "secondary"}
           />
           <Figure
+            data-score-badge=""
             value={away.score}
             size="sm"
             variant={win ? "secondary" : "away"}
@@ -33,8 +35,18 @@ export const Rally = ({
         </>
       ) : (
         <>
-          <Figure value={home.score} size="sm" variant="secondary" />
-          <Figure value={away.score} size="sm" variant="secondary" />
+          <Figure
+            data-score-badge=""
+            value={home.score}
+            size="sm"
+            variant="secondary"
+          />
+          <Figure
+            data-score-badge=""
+            value={away.score}
+            size="sm"
+            variant="secondary"
+          />
         </>
       )}
       <EntryText className="border-primary">

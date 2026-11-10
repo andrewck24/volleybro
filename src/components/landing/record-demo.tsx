@@ -147,11 +147,15 @@ const Frame = () => {
   const isDotEnabled = useIsFingerDotEnabled();
   return (
     // The app objects sit on one tray in the free-zone teal. Concentric radius:
-    // tray p-2 (8) + card 12 = rounded-[20px]. The court's 35vh cap is lifted:
-    // the frame is zoomed to fit instead.
-    <div className="flex size-full flex-col gap-2 rounded-[20px] bg-(--free-zone) p-2 shadow-lg [&_.max-h-\[35vh\]]:max-h-none">
+    // tray p-2 (8) + card 12 = rounded-[20px]. The court's 35vh cap is lifted
+    // for this frame, which is zoomed to fit.
+    <div className="flex size-full flex-col gap-2 rounded-[20px] bg-(--free-zone) p-2 shadow-lg">
       <div className="w-full shrink-0 overflow-hidden rounded-xl shadow-lg">
-        <GameCourt gameId={DEMO_GAME_ID} mode="general" />
+        <GameCourt
+          gameId={DEMO_GAME_ID}
+          mode="general"
+          isHeightConstrained={false}
+        />
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl shadow-lg">
         <GamePanel
@@ -184,18 +188,17 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
       [...frame.querySelectorAll("p")]
         .find(
           (paragraph) =>
-            paragraph.textContent === number && paragraph.closest(".border-4"),
+            paragraph.textContent === number &&
+            paragraph.closest("[data-player-card]"),
         )
-        ?.closest(".border-4") ?? null
+        ?.closest("[data-player-card]") ?? null
     );
   }
   // taps 2 and 3 are measured in the hidden mirror holding the step before
   // them; its moves body (the progress label also slides in, from below)
   const body = frame
     .querySelector(`[data-mirror="${tap - 1}"]`)
-    ?.querySelector(
-      '[class*="slide-in-from-right"], [class*="slide-in-from-left"]',
-    );
+    ?.querySelector("[data-moves-step]");
   const buttons = [...(body?.querySelectorAll("button") ?? [])];
   if (tap === 2) {
     const move = scoringMoves[SENT_RALLY.home]!;
@@ -203,7 +206,7 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
       buttons.find(
         (button) =>
           button.textContent?.trim() === move.text &&
-          button.className.includes(move.win ? "bg-primary" : "bg-away"),
+          button.dataset.moveOutcome === (move.win ? "win" : "loss"),
       ) ?? null
     );
   }

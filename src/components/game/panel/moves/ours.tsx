@@ -33,6 +33,7 @@ export const OursMoves = () => {
 
   return (
     <Container
+      data-move-grid="home"
       className={
         // See ADR-0122.
         zone === 0 ? "auto-rows-[minmax(44px,1fr)]" : undefined
