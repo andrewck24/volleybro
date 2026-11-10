@@ -212,9 +212,11 @@
     box-shadow: none;
   }
 
-  /* No reserved gutter, so the docked sheet meets the viewport edge. */
+  /* No reserved gutter, so the docked sheet meets the viewport edge; the viewport
+     reads overscroll-behavior from html only, so the pull bounce is stopped here. */
   html:has(.auth-layout) {
     scrollbar-gutter: auto;
+    overscroll-behavior-y: none;
   }
   html:has(.auth-layout) body {
     height: auto;
