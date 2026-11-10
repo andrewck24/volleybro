@@ -1,6 +1,6 @@
 # VolleyBro CHANGELOG
 
-## [0.19.2](https://github.com/andrewck24/volleybro/compare/v0.19.0...v0.19.2) 2026-11-10
+## [0.19.2](https://github.com/andrewck24/volleybro/compare/v0.19.1...v0.19.2) 2026-11-10
 
 ### Fixed
 
