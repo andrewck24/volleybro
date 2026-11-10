@@ -22,6 +22,10 @@ test("denies --auto and a merge without --match-head-commit", () => {
     "gh pr merge 12 --merge",
     "gh pr merge --auto --squash",
     "gh pr merge 12 --match-head-commit --merge",
+    `gh pr merge 1 --merge; gh pr merge 2 --match-head-commit ${sha}`,
+    `gh pr merge 1 --match-head-commit ${sha} && gh pr merge 2 --merge`,
+    "gh pr merge 1 --merge\ngh pr view 1",
+    "gh pr merge 1 --match-head-commit=",
     "cd x && gh  pr merge 12 --merge --match-head-commit",
   ]) {
     assert.match(checkPrMerge(c), /pnpm pr:wait/, c);
@@ -44,4 +48,14 @@ test("hook entry point emits a deny decision from stdin JSON", () => {
       .permissionDecision,
     "deny",
   );
+});
+
+test("hook entry point fails closed on invalid stdin", () => {
+  const r = spawnSync(
+    "node",
+    [new URL("../guard-pr-merge.js", import.meta.url).pathname],
+    { input: "not json", encoding: "utf8" },
+  );
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /not valid JSON/);
 });

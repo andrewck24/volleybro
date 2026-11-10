@@ -77,14 +77,14 @@ A worktree starts without `node_modules`. The [pnpm version update policy](docs/
 
 Run `pnpm install --frozen-lockfile --prefer-offline` in it rather than symlinking the main checkout's `node_modules`, which pnpm's dependency check and Turbopack both reject.
 
-Git hooks need no per-worktree setup: `prepare` points the shared `core.hooksPath` at the main checkout's `.husky/_` by absolute path, so every worktree, including one made with plain `git worktree add`, runs commitlint and lint-staged on commit. In a worktree without `node_modules` the hook installs first, so the first commit is slow. The main checkout must have run `pnpm install` once for the hooks to exist. `scripts/worktree-setup.sh` installs when `node_modules` is missing and does nothing otherwise; have agent tools run it whenever they create a worktree, so the install does not wait for the first commit:
+Git hooks need no per-worktree setup: `prepare` points the shared `core.hooksPath` at the main checkout's `.husky/_` by absolute path, so every worktree, including one made with plain `git worktree add`, runs commitlint and lint-staged on commit. In a worktree without `node_modules` the hook installs first, so the first commit is slow. The hooks are the main checkout's `.husky/*`, so a hook change on a branch takes effect only after it merges. The main checkout must have run `pnpm install` once for the hooks to exist. `scripts/worktree-setup.sh` installs when `node_modules` is missing and does nothing otherwise; have agent tools run it whenever they create a worktree, so the install does not wait for the first commit:
 
 - **Claude Code** (desktop worktree sessions): a `SessionStart` hook (matcher `startup`) in the main checkout's `.claude/settings.json`. Those sessions read hooks from the main checkout and run them there, so the hook passes the worktree path from its input's `cwd` field: `sh "$D/scripts/worktree-setup.sh" "$D"`. Subagents with `isolation: "worktree"` start no session, so their brief includes the install.
 - **Codex app**: set the local environment's setup script to `sh scripts/worktree-setup.sh`.
 
 Delegate to Codex through `codex:rescue` or the companion runtime, never a bare `codex exec`, which idles when its stdin is left open.
 
-An agent that merges pull requests registers `scripts/guard-pr-merge.js` as a `PreToolUse` hook (matcher `Bash`) in `.claude/settings.json`, which is untracked: `{"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/guard-pr-merge.js\""}`. It denies `gh pr merge` with `--auto` or without `--match-head-commit`, and points to `pnpm pr:wait` and WORKFLOW.md section 5.
+`.claude/settings.json` registers `scripts/guard-pr-merge.js` as a `PreToolUse` hook on `Bash`: it denies `gh pr merge` with `--auto` or without `--match-head-commit`, and points to `pnpm pr:wait` and WORKFLOW.md section 5.
 
 `.worktreeinclude` lists `.env.local`, so agent tooling that reads that file copies it into each worktree it creates. A worktree made with plain `git worktree add`, or by a tool that ignores the file, gets no copy: copy `.env.local` yourself before running `pnpm build` or `pnpm dev`.
 
