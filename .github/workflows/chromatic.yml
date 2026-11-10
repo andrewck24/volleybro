@@ -66,7 +66,7 @@ jobs:
           node scripts/chromatic-scope.js --base "$BASE_SHA" --head "$HEAD_SHA" \
             --stats storybook-static/preview-stats.json
 
-      - uses: chromaui/action@80379940a37537422d4419aa4c9578673b8bcd34 # v18.13.9
+      - uses: chromaui/action@6ac4c49524e1b1358b8c593c5eea877604228268 # v18.14.2
         env:
           CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
           CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
