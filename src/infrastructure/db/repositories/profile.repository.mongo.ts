@@ -10,11 +10,14 @@ import { translateRepositoryError } from "@/infrastructure/db/repositories/error
 export class ProfileRepositoryImpl implements IProfileRepository {
   private toProfile(doc: ProfileDocument): Profile {
     const obj = doc.toObject();
+    const definedFields = Object.fromEntries(
+      Object.entries(obj).filter(([, value]) => value !== undefined),
+    );
     return {
-      ...obj,
+      ...definedFields,
       id: obj._id.toString(),
       userId: obj.userId.toString(),
-    };
+    } as Profile;
   }
 
   async findByUserId(userId: string): Promise<Profile | null> {
