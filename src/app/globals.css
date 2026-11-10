@@ -217,6 +217,7 @@
     scrollbar-gutter: auto;
   }
   html:has(.auth-layout) body {
+    height: auto;
     overflow-y: auto;
     overscroll-behavior-y: none;
   }
