@@ -64,3 +64,19 @@ S04 bundle measurements (Effect 4.1.2, RTK 2.14.0; baseline `async`):
 | rtk-listener |     6,642 |      3,014 |    +6,080 |     +2,653 |
 
 No gzip delta exceeds 20 KB.
+
+## S05
+
+Three drills, four create-team variants, three independent agent runs each (Codex gpt-6-luna, clean
+state from 326818acb). Prompts and raw results are in `drills/`. All 36 runs passed typecheck and the
+shared suite. Averages per run (non-test places changed, non-test lines, test lines):
+
+| Drill                    | zod-async       | schema-async    | zod-effect       | schema-effect   |
+| ------------------------ | --------------- | --------------- | ---------------- | --------------- |
+| d1 nickname conflict     | 3.3 / 23.0 / 54 | 4.0 / 28.7 / 57 | 9.7 / 30.7 / 47  | 7.3 / 44.3 / 51 |
+| d2 outcome-unknown retry | 3.0 / 28.3 / 99 | 3.7 / 40.3 / 67 | 10.0 / 66.7 / 78 | 8.0 / 60.7 / 89 |
+| d3 tracing               | 3.0 / 33.3 / 60 | 3.0 / 37.0 / 51 | 4.3 / 38.3 / 53  | 4.0 / 31.7 / 50 |
+
+Threshold 1 probe (coordinator): `Effect.runPromise` accepts any E; an inline `Effect.catchTags`
+handler map assigned where `Effect<_, never>` is expected type-checks with a tag missing; only a
+separately declared variable typed `never` reports it.
