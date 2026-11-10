@@ -1,5 +1,13 @@
 # VolleyBro CHANGELOG
 
+## [0.19.3](https://github.com/andrewck24/volleybro/compare/v0.19.2...v0.19.3) 2026-11-10
+
+### Fixed
+
+#### Auth
+
+- The sign-in page no longer bounces when pulled on iPhone
+
 ## [0.19.2](https://github.com/andrewck24/volleybro/compare/v0.19.1...v0.19.2) 2026-11-10
 
 ### Fixed
