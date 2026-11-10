@@ -1,5 +1,13 @@
 # VolleyBro CHANGELOG
 
+## [0.19.2](https://github.com/andrewck24/volleybro/compare/v0.19.0...v0.19.2) 2026-11-10
+
+### Fixed
+
+#### Auth
+
+- The sign-in page fits the screen on iPhone and no longer scrolls
+
 ## [0.19.1](https://github.com/andrewck24/volleybro/compare/v0.19.0...v0.19.1) 2026-11-10
 
 ### Changed
