@@ -121,18 +121,6 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2]
-    env:
-      # Shard 1 runs every test file not listed here, so a new file cannot be skipped.
-      SHARD_2_FILES: >-
-        scripts/__tests__/changelog-postprocess.test.js
-        scripts/__tests__/chromatic-scope.test.js
-        scripts/__tests__/design-document.test.js
-        scripts/__tests__/guard-pr-merge.test.js
-        scripts/__tests__/release-controls-authorization.test.js
-        scripts/__tests__/release-controls-gates.test.js
-        scripts/__tests__/release-controls-smoke.test.js
-        scripts/__tests__/release-controls-trust-path.test.js
-        scripts/__tests__/release-pr-body.test.js
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
@@ -145,13 +133,13 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
 
+      # Split by file name, not a list, so a new test file always runs in one shard.
       - run: |
-          if [ "${{ matrix.shard }}" = 2 ]; then
-            files=$SHARD_2_FILES
+          if [ "${{ matrix.shard }}" = 1 ]; then
+            node --test scripts/__tests__/release-controls-*.test.js
           else
-            files=$(ls scripts/__tests__/*.test.js | grep -vxF -f <(tr ' ' '\n' <<<"$SHARD_2_FILES"))
+            node --test $(ls scripts/__tests__/*.test.js | grep -v /release-controls-)
           fi
-          node --test $files
 
   integration:
     name: Integration
