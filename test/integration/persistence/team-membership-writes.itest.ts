@@ -7,6 +7,7 @@ import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-r
 import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories/player.repository.mongo";
 import { PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -309,6 +310,42 @@ describe("invitations reach the account behind the address", () => {
       (p) => p.status === PlayerStatus.INVITED,
     );
     expect(invited).toHaveLength(1);
+  });
+
+  it("refuses the second of two account invitations as already invited, whichever index fires first", async () => {
+    const first = await seatFor("Hana");
+    const second = await seatFor("Hana again");
+    await register("hana@example.com");
+    await invite(first, "hana@example.com");
+    // Existing databases built the (teamId, userId) index before the invitee
+    // one, so the server reports that collision first.
+    const inviteeIndex = "teamId_1_inviteeEmail_1";
+    await PlayerModel.init();
+    const spec = (await PlayerModel.collection.indexes()).find(
+      (i) => i.name === inviteeIndex,
+    )!;
+    await PlayerModel.collection.dropIndex(inviteeIndex);
+    await PlayerModel.collection.createIndex(spec.key, {
+      name: inviteeIndex,
+      unique: true,
+      partialFilterExpression: spec.partialFilterExpression,
+    });
+    const preChecks = [
+      jest
+        .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
+        .mockResolvedValue(null),
+      jest
+        .spyOn(PlayerRepositoryImpl.prototype, "findByTeamIdAndUserId")
+        .mockResolvedValue(null),
+    ];
+
+    try {
+      await expect(invite(second, "hana@example.com")).rejects.toMatchObject({
+        reason: PlayerReason.ALREADY_INVITED,
+      });
+    } finally {
+      preChecks.forEach((spy) => spy.mockRestore());
+    }
   });
 
   it("creates a linked invitee straight from create-player", async () => {

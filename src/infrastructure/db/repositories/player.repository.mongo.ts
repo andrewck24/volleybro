@@ -28,8 +28,12 @@ import { translateRepositoryError } from "@/infrastructure/db/repositories/error
  * (teamId, inviteeEmail) close the races the use cases' checks cannot; which
  * one fired is in the driver error's key pattern. To the caller a collision is
  * a roster conflict, not the generic duplicate-resource one.
+ *
+ * Two invitations to one account break both the userId and the invitee index,
+ * and the server reports whichever it checks first, so a userId collision is
+ * told apart by the status of the row already holding the seat.
  */
-const translatePlayerWriteError = (error: unknown) => {
+const translatePlayerWriteError = async (error: unknown) => {
   const { code, keyPattern, keyValue } = (error ?? {}) as {
     code?: unknown;
     keyPattern?: object;
@@ -37,7 +41,16 @@ const translatePlayerWriteError = (error: unknown) => {
   };
   if (code === 11000) {
     const keys = Object.keys(keyPattern ?? keyValue ?? {});
-    if (keys.includes("email") || keys.includes("inviteeEmail"))
+    const invited =
+      keys.includes("email") ||
+      keys.includes("inviteeEmail") ||
+      (keys.includes("userId") &&
+        keyValue !== undefined &&
+        (await PlayerModel.exists({
+          ...keyValue,
+          status: PlayerStatus.INVITED,
+        })) !== null);
+    if (invited)
       return new ConflictError(
         PlayerReason.ALREADY_INVITED,
         "This person has already been invited to this team",
@@ -117,7 +130,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
       const newPlayer = await PlayerModel.create(player);
       return fromDocument(newPlayer);
     } catch (error) {
-      throw translatePlayerWriteError(error);
+      throw await translatePlayerWriteError(error);
     }
   }
 
@@ -136,7 +149,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
       }
       return fromDocument(updated);
     } catch (error) {
-      throw translatePlayerWriteError(error);
+      throw await translatePlayerWriteError(error);
     }
   }
 
