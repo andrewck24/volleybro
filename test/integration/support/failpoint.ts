@@ -4,7 +4,9 @@ import mongoose from "mongoose";
 // another test file set, whatever appName that file named, so files take turns.
 export async function withFailPoint<T>(
   mode: "alwaysOn" | { times: number },
-  data: { failCommands: string[]; errorCode: number; errorLabels?: string[] },
+  data:
+    | { failCommands: string[]; errorCode: number; errorLabels?: string[] }
+    | { failCommands: string[]; closeConnection: true },
   run: () => Promise<T>,
 ): Promise<T> {
   const client = mongoose.connection.getClient();

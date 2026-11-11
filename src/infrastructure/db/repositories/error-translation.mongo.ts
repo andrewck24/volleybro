@@ -48,6 +48,7 @@ export function translateRepositoryError(error: unknown): AppError {
         "A temporary database error occurred, please retry",
         error.message,
         { source: "database", retryable: true },
+        error,
       );
     }
     return new UnexpectedError(

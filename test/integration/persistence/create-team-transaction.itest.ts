@@ -1,5 +1,10 @@
+import mongoose from "mongoose";
 import type { ICreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import type { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { Position } from "@/entities/team";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
@@ -59,6 +64,82 @@ describe("creating a team with its owner", () => {
 
     expect(await TeamModel.countDocuments({ name: "Retried" })).toBe(1);
     expect(await PlayerModel.countDocuments({ teamId: team.id })).toBe(1);
+  });
+
+  it("retries repository writes after a transaction network failure", async () => {
+    const teamRepository = container.get<ITeamRepository>(TYPES.TeamRepository);
+    const playerRepository = container.get<IPlayerRepository>(
+      TYPES.PlayerRepository,
+    );
+    const transactionRunner = container.get<ITransactionRunner>(
+      TYPES.TransactionRunner,
+    );
+    let callbackRuns = 0;
+
+    const result = await withFailPoint(
+      { times: 1 },
+      { failCommands: ["insert"], closeConnection: true },
+      () =>
+        transactionRunner.run(async () => {
+          callbackRuns += 1;
+          const team = await teamRepository.create({
+            name: "Network retry",
+            lineups: new Array(3).fill({
+              options: {
+                liberoReplaceMode: 0,
+                liberoReplacePosition: Position.NONE,
+              },
+              starting: new Array(6).fill({ id: null }),
+              liberos: [],
+              substitutes: [],
+            }),
+          });
+          const owner = await playerRepository.create({
+            name: "Network retry owner",
+            status: PlayerStatus.JOINED,
+            number: 1,
+            role: PlayerRole.ADMIN,
+            teamId: team.id,
+            userId: oid(),
+          });
+
+          return { team, owner };
+        }),
+    );
+
+    expect(callbackRuns).toBe(2);
+    expect(
+      await TeamModel.countDocuments({
+        _id: result.team.id,
+        name: "Network retry",
+      }),
+    ).toBe(1);
+    expect(
+      await PlayerModel.countDocuments({
+        _id: result.owner.id,
+        teamId: result.team.id,
+      }),
+    ).toBe(1);
+  });
+
+  it("does not retry an unlabelled network error", async () => {
+    const transactionRunner = container.get<ITransactionRunner>(
+      TYPES.TransactionRunner,
+    );
+    let callbackRuns = 0;
+
+    await expect(
+      transactionRunner.run(async () => {
+        callbackRuns += 1;
+        await TeamModel.create({ name: "Unlabelled failure", lineups: [] });
+        throw new mongoose.mongo.MongoNetworkError("unlabelled network error");
+      }),
+    ).rejects.toMatchObject({ code: "TRANSIENT", httpStatus: 503 });
+
+    expect(callbackRuns).toBe(1);
+    expect(await TeamModel.countDocuments({ name: "Unlabelled failure" })).toBe(
+      0,
+    );
   });
 
   it("leaves no team behind when the owner cannot be written", async () => {

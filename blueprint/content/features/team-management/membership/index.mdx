@@ -32,7 +32,7 @@ A roster row on a team, `Player`, is one of three kinds. An unlinked player has 
 - A signed-in user can still tell whether a player id exists, because a missing `teamId` on a player returns 403 while a missing player returns 404.
 - Several use cases — find-game, cancel-invitation, update-role, remove-player and update-player-info — read their target before authorizing against it, unlike the three read endpoints above.
 - Unlinking an account (an admin disconnecting someone else's account, leaving their roster row as an unlinked player) is not built yet.
-- Team creation is three non-atomic writes: a failure partway leaves a team with no players and no owner, and a double submit creates two teams.
+- Team creation writes the team, owner player and owner reference in one transaction; a failed write rolls them all back, and a labelled transient transaction error reruns the whole callback. A double submit can still create two teams.
 
 ## Implemented decisions
 
