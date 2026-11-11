@@ -42,16 +42,15 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return minimal user info when found by email", async () => {
-    mockUserRepository.findByEmail.mockResolvedValue(foundUser);
+    mockUserRepository.findByEmail.mockImplementation(async (address) =>
+      address === "john@example.com" ? foundUser : null,
+    );
 
     const result = await useCase.execute({
       email: "  JOHN@example.com ",
       ...caller,
     });
 
-    expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-      "john@example.com",
-    );
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.id).toBe("user-1");

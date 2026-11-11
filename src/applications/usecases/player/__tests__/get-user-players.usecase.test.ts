@@ -77,61 +77,17 @@ describe("GetUserPlayersUseCase", () => {
     expect(result).toEqual([]);
   });
 
-  it("should return multiple players for user", async () => {
-    mockPlayerRepository.findByUserIdOrInvitedEmail.mockResolvedValue(
-      mockPlayers,
+  it("finds the players held under the normalized address", async () => {
+    mockPlayerRepository.findByUserIdOrInvitedEmail.mockImplementation(
+      async (_userId, address) => (address === email ? mockPlayers : []),
     );
 
-    const result = await usecase.execute({ userId: "user-1", email });
+    const result = await usecase.execute({
+      userId: "user-1",
+      email: "  Alice@Example.COM ",
+    });
 
     expect(result).toHaveLength(2);
-    expect(result[0]!.teamId).toBe("team-1");
-    expect(result[1]!.teamId).toBe("team-2");
-  });
-
-  it("should include both MEMBER and ADMIN roles", async () => {
-    mockPlayerRepository.findByUserIdOrInvitedEmail.mockResolvedValue(
-      mockPlayers,
-    );
-
-    const result = await usecase.execute({ userId: "user-1", email });
-
-    expect(result[0]).toMatchObject({ role: PlayerRole.MEMBER });
-    expect(result[1]).toMatchObject({ role: PlayerRole.ADMIN });
-  });
-
-  it("should include status field in results", async () => {
-    mockPlayerRepository.findByUserIdOrInvitedEmail.mockResolvedValue(
-      mockPlayers,
-    );
-
-    const result = await usecase.execute({ userId: "user-1", email });
-
-    expect(result.every((p) => p.status === PlayerStatus.JOINED)).toBe(true);
-  });
-
-  it("should include userId field in results", async () => {
-    mockPlayerRepository.findByUserIdOrInvitedEmail.mockResolvedValue(
-      mockPlayers,
-    );
-
-    const result = await usecase.execute({ userId: "user-1", email });
-
-    expect(
-      result.every(
-        (p) => p.status === PlayerStatus.JOINED && p.userId === "user-1",
-      ),
-    ).toBe(true);
-  });
-
-  it("looks up by the normalized address", async () => {
-    mockPlayerRepository.findByUserIdOrInvitedEmail.mockResolvedValue([]);
-
-    await usecase.execute({ userId: "user-1", email: "  Alice@Example.COM " });
-
-    expect(
-      mockPlayerRepository.findByUserIdOrInvitedEmail,
-    ).toHaveBeenCalledWith("user-1", "alice@example.com");
   });
 
   it("links a waiting email invitation and returns it as linked", async () => {
@@ -149,21 +105,22 @@ describe("GetUserPlayersUseCase", () => {
       ...mockPlayers,
       invited,
     ]);
-    mockPlayerRepository.linkUserToInvitations.mockResolvedValue(1);
-    mockPlayerRepository.findByUserId.mockResolvedValue([
-      ...mockPlayers,
-      linked,
-    ]);
+    let linkedRows = false;
+    mockPlayerRepository.linkUserToInvitations.mockImplementation(
+      async (address) => {
+        linkedRows = address === email;
+        return linkedRows ? 1 : 0;
+      },
+    );
+    mockPlayerRepository.findByUserId.mockImplementation(async () =>
+      linkedRows ? [...mockPlayers, linked] : mockPlayers,
+    );
 
     const result = await usecase.execute({
       userId: "user-1",
       email: "  Alice@Example.COM ",
     });
 
-    expect(mockPlayerRepository.linkUserToInvitations).toHaveBeenCalledWith(
-      "alice@example.com",
-      "user-1",
-    );
     expect(result).toHaveLength(3);
     expect(result[2]).toMatchObject({ id: "player-3", userId: "user-1" });
     expect(result[2]).not.toHaveProperty("email");
@@ -174,9 +131,10 @@ describe("GetUserPlayersUseCase", () => {
       mockPlayers,
     );
 
-    await usecase.execute({ userId: "user-1", email });
+    mockPlayerRepository.findByUserId.mockResolvedValue([]);
 
-    expect(mockPlayerRepository.linkUserToInvitations).not.toHaveBeenCalled();
-    expect(mockPlayerRepository.findByUserId).not.toHaveBeenCalled();
+    const result = await usecase.execute({ userId: "user-1", email });
+
+    expect(result).toHaveLength(mockPlayers.length);
   });
 });

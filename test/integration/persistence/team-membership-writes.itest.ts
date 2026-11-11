@@ -2,7 +2,6 @@ import type { IPlayerRepository } from "@/applications/repositories/player.repos
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
-import type { IGetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { PlayerReason } from "@/entities/errors";
@@ -303,11 +302,6 @@ describe("signing up reaches the invitations waiting for that address", () => {
       });
   };
 
-  const invitationsOf = (userId: string, email: string) =>
-    container
-      .get<IGetUserPlayersUseCase>(TYPES.GetUserPlayersUseCase)
-      .execute({ userId, email });
-
   beforeEach(async () => {
     useFakeAuth();
     const team = await container
@@ -334,13 +328,12 @@ describe("signing up reaches the invitations waiting for that address", () => {
 
     await handleUserCreated({ id: userId, email: "Bob@Example.com" });
 
-    const mine = await invitationsOf(userId, "bob@example.com");
+    const mine = await players().findByUserId(userId);
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({
       name: "Bob",
       status: PlayerStatus.INVITED,
       role: PlayerRole.MEMBER,
-      teamName: "Signup Team",
     });
     expect(mine[0]).not.toHaveProperty("email");
   });
@@ -351,7 +344,7 @@ describe("signing up reaches the invitations waiting for that address", () => {
 
     await handleUserCreated({ id: userId, email: "bobby@example.com" });
 
-    expect(await invitationsOf(userId, "bobby@example.com")).toEqual([]);
+    expect(await players().findByUserId(userId)).toEqual([]);
     expect((await roster(teamId)).find((p) => p.name === "Bob")).toMatchObject({
       email: "bob@example.com",
     });

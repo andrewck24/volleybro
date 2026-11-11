@@ -85,9 +85,6 @@ describe("CreatePlayerUseCase", () => {
       });
 
       expect(result).toEqual(created);
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-        "wang@example.com",
-      );
       expect(mockPlayerRepository.create).toHaveBeenCalledWith({
         name: "王小明",
         status: PlayerStatus.INVITED,
@@ -97,6 +94,30 @@ describe("CreatePlayerUseCase", () => {
         email: "wang@example.com",
         role: PlayerRole.ADMIN,
       });
+    });
+
+    it("links the account that holds the normalized address", async () => {
+      const invitee = createUser({
+        id: "user_invitee",
+        email: "wang@example.com",
+      });
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockUserRepository.findByEmail.mockImplementation(async (address) =>
+        address === "wang@example.com" ? invitee : null,
+      );
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
+      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+      mockPlayerRepository.create.mockImplementation(async (player) =>
+        createInvitedPlayer({ teamId, ...player } as never),
+      );
+
+      const result = await useCase.execute({
+        teamId,
+        data: { name: "王小明", email: "  Wang@Example.COM " },
+        userId,
+      });
+
+      expect(result).toMatchObject({ userId: invitee.id });
     });
 
     it("links the account when the email is already registered", async () => {

@@ -53,19 +53,21 @@ describe("GET /api/users/[userId]/players", () => {
     }
   });
 
-  it("passes the session email to the controller", async () => {
+  it("returns what the controller finds for the session email", async () => {
+    mockGetUserPlayers.mockImplementation(async (input) =>
+      (input as { email: string }).email === "user1@example.com"
+        ? [{ ...createPlayer({ id: "player-9", name: "Invited" }) }]
+        : [],
+    );
     const req = routeRequest(
       "http://localhost/api/users/user-1/players",
       "GET",
     );
     const props = { params: Promise.resolve({ userId: "user-1" }) };
 
-    await GET(req as never, props);
+    const res = await GET(req as never, props);
 
-    expect(mockGetUserPlayers).toHaveBeenCalledWith({
-      userId: "user-1",
-      email: "user1@example.com",
-    });
+    expect(await res.json()).toMatchObject([{ id: "player-9" }]);
   });
 
   it("returns the requested user's players when the signed-in user owns them", async () => {

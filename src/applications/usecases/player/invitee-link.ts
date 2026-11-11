@@ -32,14 +32,14 @@ export const resolveInviteeLink = async (
 ): Promise<InviteeLink> => {
   const address = normalizeEmail(email);
   const user = await users.findByEmail(address);
+  if (await players.findInvitedByTeamIdAndEmail(teamId, address))
+    throw alreadyOnRoster();
+
   if (user) {
     if (await players.findByTeamIdAndUserId(teamId, user.id))
       throw alreadyOnRoster();
     return { userId: user.id };
   }
-
-  if (await players.findInvitedByTeamIdAndEmail(teamId, address))
-    throw alreadyOnRoster();
   return { email: address };
 };
 

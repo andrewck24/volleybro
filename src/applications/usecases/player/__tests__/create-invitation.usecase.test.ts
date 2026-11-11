@@ -103,20 +103,46 @@ describe("CreateInvitationUseCase", () => {
       });
     });
 
-    it("looks the address up normalized, so no character is a wildcard", async () => {
+    it("links the account that holds the normalized address", async () => {
+      const invitee = createUser({ id: "user_invitee", email: "a.b@x.com" });
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      unregistered();
-      mockPlayerRepository.update.mockResolvedValue(createInvitedPlayer());
+      mockUserRepository.findByEmail.mockImplementation(async (address) =>
+        address === "a.b@x.com" ? invitee : null,
+      );
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
+      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+      mockPlayerRepository.update.mockImplementation(async (id, patch) =>
+        createInvitedPlayer({ id, teamId, ...patch } as never),
+      );
 
-      await useCase.execute({
+      const result = await useCase.execute({
         playerId,
         email: " A.B@x.com ",
         role,
         userId,
       });
 
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith("a.b@x.com");
+      expect(result).toMatchObject({ userId: invitee.id });
+    });
+
+    it("rejects an account whose address this team already invited", async () => {
+      const invitee = createUser({ id: "user_invitee", email });
+      mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockUserRepository.findByEmail.mockResolvedValue(invitee);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
+      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockImplementation(
+        async (_team, address) =>
+          address === email
+            ? createInvitedPlayer({ id: "player_other", teamId, email })
+            : null,
+      );
+
+      await expect(
+        useCase.execute({ playerId, email, role, userId }),
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_ON_ROSTER });
+      expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
 
     it("rejects an account that already has a player on this team", async () => {
