@@ -146,9 +146,8 @@ const Frame = () => {
   // the mirrors exist only to aim the finger dot
   const isDotEnabled = useIsFingerDotEnabled();
   return (
-    // The app objects sit on one tray in the free-zone teal. Concentric radius:
-    // tray p-2 (8) + card 12 = rounded-[20px]. The court's 35vh cap is lifted
-    // for this frame, which is zoomed to fit.
+    // Concentric radii, see ADR-0106: tray p-2 (8) + card 12 = rounded-[20px].
+    // The court's 35vh cap is lifted for this frame, which is zoomed to fit.
     <div className="flex size-full flex-col gap-2 rounded-[20px] bg-(--free-zone) p-2 shadow-lg">
       <div className="w-full shrink-0 overflow-hidden rounded-xl shadow-lg">
         <GameCourt
@@ -195,7 +194,7 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
     );
   }
   // taps 2 and 3 are measured in the hidden mirror holding the step before
-  // them; its moves body (the progress label also slides in, from below)
+  // them
   const body = frame
     .querySelector(`[data-mirror="${tap - 1}"]`)
     ?.querySelector("[data-moves-step]");
