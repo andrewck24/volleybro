@@ -1,5 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import type { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 import { authorizeManagePlayer } from "@/applications/usecases/player/membership";
 import {
   NotFoundError,
@@ -26,6 +27,8 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     private playerRepository: IPlayerRepository,
     @inject(TYPES.TeamRepository)
     private teamRepository: ITeamRepository,
+    @inject(TYPES.TransactionRunner)
+    private transactionRunner: ITransactionRunner,
   ) {}
 
   async execute({
@@ -45,24 +48,26 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
         PlayerReason.PLAYER_NOT_FOUND,
         "Player has no team",
       );
+    const teamId = player.teamId;
     await authorizeManagePlayer(
       this.playerRepository,
       this.teamRepository,
-      player.teamId,
+      teamId,
       player,
       userId,
     );
 
-    // Lineups first: a failed delete leaves a player that can be removed again.
-    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
+    await this.transactionRunner.run(async () => {
+      await this.teamRepository.removePlayerFromLineups(teamId, playerId);
 
-    const deleted = await this.playerRepository.delete(playerId);
-    if (!deleted) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to delete player",
-      );
-    }
+      const deleted = await this.playerRepository.delete(playerId);
+      if (!deleted) {
+        throw new UnexpectedError(
+          CommonReason.UNHANDLED_ERROR,
+          "Failed to delete player",
+        );
+      }
+    });
 
     return { success: true };
   }
