@@ -97,9 +97,6 @@ PlayerSchema.index(
   { unique: true, partialFilterExpression: { email: { $type: "string" } } },
 );
 
-// One open invitation per person per team, whichever way it reaches them: the
-// address stays on the row after an account is linked, so an invitation by
-// email and one by userId for the same person collide here.
 PlayerSchema.index(
   { teamId: 1, inviteeEmail: 1 },
   {

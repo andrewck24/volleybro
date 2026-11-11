@@ -161,10 +161,6 @@ describe("player writes leave the roster readable", () => {
   });
 });
 
-/**
- * Whether an address reaches an account is decided by the database's exact
- * match, which no repository double can stand in for.
- */
 describe("invitations reach the account behind the address", () => {
   let teamId: string;
   const ownerUserId = "0".repeat(24);
@@ -190,6 +186,39 @@ describe("invitations reach the account behind the address", () => {
         role: PlayerRole.MEMBER,
         userId: ownerUserId,
       });
+
+  const raceBothPreWriteChecks = () => {
+    const spies = [
+      jest
+        .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
+        .mockResolvedValue(null),
+      jest
+        .spyOn(PlayerRepositoryImpl.prototype, "findByTeamIdAndUserId")
+        .mockResolvedValue(null),
+    ];
+    return () => spies.forEach((spy) => spy.mockRestore());
+  };
+
+  const raceInvitationPreWriteCheck = () => {
+    const spy = jest
+      .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
+      .mockResolvedValue(null);
+    return () => spy.mockRestore();
+  };
+
+  const buildInviteeIndexAfterUserIdIndexLikeExistingDatabases = async () => {
+    const inviteeIndex = "teamId_1_inviteeEmail_1";
+    await PlayerModel.init();
+    const spec = (await PlayerModel.collection.indexes()).find(
+      (index) => index.name === inviteeIndex,
+    )!;
+    await PlayerModel.collection.dropIndex(inviteeIndex);
+    await PlayerModel.collection.createIndex(spec.key, {
+      name: inviteeIndex,
+      unique: true,
+      partialFilterExpression: spec.partialFilterExpression,
+    });
+  };
 
   beforeEach(async () => {
     useFakeAuth();
@@ -269,18 +298,14 @@ describe("invitations reach the account behind the address", () => {
     const byAccount = await seatFor("Frank again");
     await invite(byEmail, "frank@example.com");
     await register("frank@example.com");
-    // Both invitations read "nobody invited yet" before either wrote; the
-    // second then reaches the write while the first row already stands.
-    const preCheck = jest
-      .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
-      .mockResolvedValue(null);
+    const restorePreWriteCheck = raceInvitationPreWriteCheck();
 
     try {
       await expect(
         invite(byAccount, "frank@example.com"),
       ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
     } finally {
-      preCheck.mockRestore();
+      restorePreWriteCheck();
     }
 
     const frank = (await roster(teamId)).filter(
@@ -294,16 +319,14 @@ describe("invitations reach the account behind the address", () => {
     const first = await seatFor("Gina");
     const second = await seatFor("Gina again");
     await invite(first, "gina@example.com");
-    const preCheck = jest
-      .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
-      .mockResolvedValue(null);
+    const restorePreWriteCheck = raceInvitationPreWriteCheck();
 
     try {
       await expect(invite(second, "gina@example.com")).rejects.toMatchObject({
         reason: PlayerReason.ALREADY_INVITED,
       });
     } finally {
-      preCheck.mockRestore();
+      restorePreWriteCheck();
     }
 
     const invited = (await roster(teamId)).filter(
@@ -317,34 +340,15 @@ describe("invitations reach the account behind the address", () => {
     const second = await seatFor("Hana again");
     await register("hana@example.com");
     await invite(first, "hana@example.com");
-    // Existing databases built the (teamId, userId) index before the invitee
-    // one, so the server reports that collision first.
-    const inviteeIndex = "teamId_1_inviteeEmail_1";
-    await PlayerModel.init();
-    const spec = (await PlayerModel.collection.indexes()).find(
-      (i) => i.name === inviteeIndex,
-    )!;
-    await PlayerModel.collection.dropIndex(inviteeIndex);
-    await PlayerModel.collection.createIndex(spec.key, {
-      name: inviteeIndex,
-      unique: true,
-      partialFilterExpression: spec.partialFilterExpression,
-    });
-    const preChecks = [
-      jest
-        .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
-        .mockResolvedValue(null),
-      jest
-        .spyOn(PlayerRepositoryImpl.prototype, "findByTeamIdAndUserId")
-        .mockResolvedValue(null),
-    ];
+    await buildInviteeIndexAfterUserIdIndexLikeExistingDatabases();
+    const restorePreWriteChecks = raceBothPreWriteChecks();
 
     try {
       await expect(invite(second, "hana@example.com")).rejects.toMatchObject({
         reason: PlayerReason.ALREADY_INVITED,
       });
     } finally {
-      preChecks.forEach((spy) => spy.mockRestore());
+      restorePreWriteChecks();
     }
   });
 

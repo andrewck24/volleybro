@@ -13,8 +13,7 @@ import { PlayerRole, PlayerStatus, type Player } from "@/entities/player";
 const isInvitedTo = (player: Player, email: string) =>
   player.status === PlayerStatus.INVITED && player.email === email;
 
-/** The player port over a rows array, so a test sees the state a call leaves behind. */
-const inMemoryPlayers = (rows: Player[]) => {
+const statefulPlayerRepository = (rows: Player[]) => {
   const repository = createMockPlayerRepository();
   repository.findByUserId.mockImplementation(async (userId) =>
     rows.filter((p) => "userId" in p && p.userId === userId),
@@ -64,7 +63,7 @@ describe("GetUserPlayersUseCase", () => {
   });
 
   const build = (rows: Player[]) => {
-    const players = inMemoryPlayers(rows);
+    const players = statefulPlayerRepository(rows);
     return {
       players,
       usecase: new GetUserPlayersUseCase(players, mockTeamRepository),

@@ -3,10 +3,6 @@ import type { IUserRepository } from "@/applications/repositories/user.repositor
 import { ConflictError, PlayerReason } from "@/entities/errors";
 import { normalizeEmail } from "@/entities/user";
 
-/**
- * The one way an invitation reaches its recipient: an account, or an address.
- * `inviteeEmail` is the address it was sent to either way.
- */
 export type InviteeLink = { inviteeEmail: string } & (
   { userId: string; email?: never } | { email: string; userId?: never }
 );

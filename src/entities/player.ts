@@ -81,7 +81,6 @@ export type PlayerFields = PlayerBase & {
   status: PlayerStatus;
   userId?: string;
   email?: string;
-  /** Persistence only: the address an invitation was sent to, kept after linking. */
   inviteeEmail?: string;
   role?: PlayerRole;
 };

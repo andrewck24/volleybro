@@ -10,16 +10,15 @@ export interface IGetUserPlayersInput {
   email: string;
 }
 
+const isInvitationNotLinkedToAccount = (player: Player) =>
+  player.status === PlayerStatus.INVITED && Boolean(player.email);
+
 export type PlayerWithTeamName = Player & { teamName?: string };
 
 export interface IGetUserPlayersUseCase {
   execute(input: IGetUserPlayersInput): Promise<PlayerWithTeamName[]>;
 }
 
-/**
- * Every team seat the user holds. Invitations sent to the user's email that
- * the sign-up hook never linked are linked here, then returned as linked.
- */
 @injectable()
 export class GetUserPlayersUseCase implements IGetUserPlayersUseCase {
   constructor(
@@ -39,11 +38,7 @@ export class GetUserPlayersUseCase implements IGetUserPlayersUseCase {
       address,
     );
 
-    if (
-      players.some(
-        (player) => player.status === PlayerStatus.INVITED && player.email,
-      )
-    ) {
+    if (players.some(isInvitationNotLinkedToAccount)) {
       await this.playerRepository.linkUserToInvitations(address, userId);
       players = await this.playerRepository.findByUserId(userId);
     }

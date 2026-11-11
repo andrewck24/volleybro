@@ -23,44 +23,44 @@ import {
 } from "@/infrastructure/db/repositories/player.mapping.mongo";
 import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 
-/**
- * The partial unique indexes on (teamId, userId), (teamId, email) and
- * (teamId, inviteeEmail) close the races the use cases' checks cannot; which
- * one fired is in the driver error's key pattern. To the caller a collision is
- * a roster conflict, not the generic duplicate-resource one.
- *
- * Two invitations to one account break both the userId and the invitee index,
- * and the server reports whichever it checks first, so a userId collision is
- * told apart by the status of the row already holding the seat.
- */
+const DUPLICATE_KEY = 11000;
+
+const alreadyInvited = () =>
+  new ConflictError(
+    PlayerReason.ALREADY_INVITED,
+    "This person has already been invited to this team",
+  );
+
+const alreadyOnRoster = () =>
+  new ConflictError(
+    PlayerReason.ALREADY_ON_ROSTER,
+    "This account already belongs to a player on this team",
+  );
+
+const isSeatHeldByInvitation = async (seat: object | undefined) =>
+  seat !== undefined &&
+  (await PlayerModel.exists({ ...seat, status: PlayerStatus.INVITED })) !==
+    null;
+
 const translatePlayerWriteError = async (error: unknown) => {
   const { code, keyPattern, keyValue } = (error ?? {}) as {
     code?: unknown;
     keyPattern?: object;
     keyValue?: object;
   };
-  if (code === 11000) {
-    const keys = Object.keys(keyPattern ?? keyValue ?? {});
-    const isAlreadyInvited =
-      keys.includes("email") ||
-      keys.includes("inviteeEmail") ||
-      (keys.includes("userId") &&
-        keyValue !== undefined &&
-        (await PlayerModel.exists({
-          ...keyValue,
-          status: PlayerStatus.INVITED,
-        })) !== null);
-    if (isAlreadyInvited)
-      return new ConflictError(
-        PlayerReason.ALREADY_INVITED,
-        "This person has already been invited to this team",
-      );
-    if (keys.includes("userId"))
-      return new ConflictError(
-        PlayerReason.ALREADY_ON_ROSTER,
-        "This account already belongs to a player on this team",
-      );
-  }
+  if (code !== DUPLICATE_KEY) return translateRepositoryError(error);
+
+  const collidedKeys = Object.keys(keyPattern ?? keyValue ?? {});
+  const isInviteeCollision =
+    collidedKeys.includes("email") || collidedKeys.includes("inviteeEmail");
+  const isSeatCollision = collidedKeys.includes("userId");
+
+  if (
+    isInviteeCollision ||
+    (isSeatCollision && (await isSeatHeldByInvitation(keyValue)))
+  )
+    return alreadyInvited();
+  if (isSeatCollision) return alreadyOnRoster();
   return translateRepositoryError(error);
 };
 
