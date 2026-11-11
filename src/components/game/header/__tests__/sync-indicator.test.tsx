@@ -10,6 +10,7 @@ import { PENDING_WRITE_UNSENT_ATTEMPTS } from "@/lib/features/game/pending-write
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
+import { deferred } from "@test/support/gates";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -301,13 +302,10 @@ describe("SyncIndicator", () => {
   // button looks inert. The feedback stays on the button rather than in the
   // status, which would flash on every background retry too.
   it("shows the retry control as busy while its own request is in flight", async () => {
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
+    const { promise, release } = deferred();
     server.use(
       http.put("/api/games/game-1/sets/entries", async () => {
-        await gate;
+        await promise;
         return HttpResponse.json({ entries: [{ id: "e1" }] });
       }),
     );
