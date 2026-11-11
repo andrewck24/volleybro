@@ -113,10 +113,14 @@ jobs:
       - run: pnpm lint
 
   workflow-tests:
-    name: Workflow tests
+    name: Workflow tests (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: inputs.source == ''
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
@@ -129,7 +133,14 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm test:workflow
+      # Split by file name, not a list, so a new test file always runs in one shard.
+      # The name range balances the slow release-controls files (about 30s / 25s locally).
+      - run: |
+          if [ "${{ matrix.shard }}" = 1 ]; then
+            node --test scripts/__tests__/release-controls-[p-z]*.test.js
+          else
+            node --test $(ls scripts/__tests__/*.test.js | grep -v '/release-controls-[p-z]')
+          fi
 
   integration:
     name: Integration
@@ -265,6 +276,6 @@ jobs:
           echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           echo "commitlint=${{ needs.commitlint.result }}"
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.test.result != 'success' || needs.integration.result != 'success' || (github.event_name == 'pull_request' && needs.commitlint.result != 'success') }}" = "true" ]; then
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.test.result != 'success' || needs.integration.result != 'success' || (inputs.source == '' && needs.workflow-tests.result != 'success') || (github.event_name == 'pull_request' && needs.commitlint.result != 'success') }}" = "true" ]; then
             exit 1
           fi
