@@ -21,7 +21,10 @@ export const PATCH = (
 
     switch (action) {
       case "accept": {
-        await invitationController.acceptInvitation({ playerId, userId });
+        await invitationController.acceptInvitationController({
+          playerId,
+          userId,
+        });
         return NextResponse.json(
           { success: true, message: "Invitation accepted" },
           { status: 200 },
@@ -29,7 +32,10 @@ export const PATCH = (
       }
 
       case "reject": {
-        await invitationController.rejectInvitation({ playerId, userId });
+        await invitationController.rejectInvitationController({
+          playerId,
+          userId,
+        });
         return NextResponse.json(
           { success: true, message: "Invitation rejected" },
           { status: 200 },
@@ -37,7 +43,7 @@ export const PATCH = (
       }
 
       case "leave": {
-        await invitationController.leaveTeam({ playerId, userId });
+        await invitationController.leaveTeamController({ playerId, userId });
         return NextResponse.json(
           { success: true, message: "Left team successfully" },
           { status: 200 },

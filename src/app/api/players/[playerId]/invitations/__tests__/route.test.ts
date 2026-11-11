@@ -9,8 +9,8 @@ const mockLeaveTeam = jest.fn<(input: unknown) => Promise<unknown>>();
 const mockGetSession = jest.fn<() => Promise<unknown>>();
 
 jest.mock("@/interface/controllers/player/invitation.controller", () => ({
-  acceptInvitation: mockAcceptInvitation,
-  leaveTeam: mockLeaveTeam,
+  acceptInvitationController: mockAcceptInvitation,
+  leaveTeamController: mockLeaveTeam,
 }));
 
 jest.mock("@/lib/auth", () => ({

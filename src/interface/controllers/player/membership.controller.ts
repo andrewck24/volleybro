@@ -19,7 +19,7 @@ import { TYPES } from "@/infrastructure/di/types";
  * 透過 DI container 獲取 use cases 並執行業務邏輯
  */
 
-export const createInvitation = async (
+export const createInvitationController = async (
   input: ICreateInvitationInput,
 ): Promise<Player> => {
   const useCase = container.get<ICreateInvitationUseCase>(
@@ -28,12 +28,14 @@ export const createInvitation = async (
   return await useCase.execute(input);
 };
 
-export const updateRole = async (input: IUpdateRoleInput): Promise<Player> => {
+export const updateRoleController = async (
+  input: IUpdateRoleInput,
+): Promise<Player> => {
   const useCase = container.get<IUpdateRoleUseCase>(TYPES.UpdateRoleUseCase);
   return await useCase.execute(input);
 };
 
-export const cancelInvitation = async (
+export const cancelInvitationController = async (
   input: ICancelInvitationInput,
 ): Promise<Player> => {
   const useCase = container.get<ICancelInvitationUseCase>(

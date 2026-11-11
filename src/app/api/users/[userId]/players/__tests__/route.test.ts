@@ -10,7 +10,7 @@ const mockGetUserPlayers = jest.fn<(input: unknown) => Promise<unknown>>();
 const mockGetSession = jest.fn<() => Promise<unknown>>();
 
 jest.mock("@/interface/controllers/player/player.controller", () => ({
-  getUserPlayers: mockGetUserPlayers,
+  getUserPlayersController: mockGetUserPlayers,
 }));
 
 jest.mock("@/lib/auth", () => ({

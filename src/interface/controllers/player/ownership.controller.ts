@@ -11,7 +11,7 @@ import { TYPES } from "@/infrastructure/di/types";
  * 透過 DI container 獲取 use cases 並執行業務邏輯
  */
 
-export const transferOwnership = async (
+export const transferOwnershipController = async (
   input: ITransferOwnershipInput,
 ): Promise<Team> => {
   const useCase = container.get<ITransferOwnershipUseCase>(

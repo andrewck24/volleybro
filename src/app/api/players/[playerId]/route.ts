@@ -21,7 +21,10 @@ export const GET = (
     const { playerId } = await props.params;
     assertObjectId(playerId, "playerId");
 
-    const player = await playerController.getPlayer({ playerId, userId });
+    const player = await playerController.getPlayerController({
+      playerId,
+      userId,
+    });
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
   })(_req);
@@ -37,7 +40,7 @@ export const PATCH = (
     const body = await req.json();
     const validatedData = UpdatePlayerInfoSchema.parse(body);
 
-    const updatedPlayer = await playerController.updatePlayer({
+    const updatedPlayer = await playerController.updatePlayerController({
       playerId,
       updates: validatedData,
       userId,
@@ -55,7 +58,7 @@ export const DELETE = (
     const { playerId } = await props.params;
     assertObjectId(playerId, "playerId");
 
-    await playerController.removePlayer({ playerId, userId });
+    await playerController.removePlayerController({ playerId, userId });
 
     return NextResponse.json(
       { success: true, message: "Player removed successfully" },

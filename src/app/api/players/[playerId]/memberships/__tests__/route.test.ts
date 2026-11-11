@@ -10,8 +10,8 @@ const mockUpdateRole = jest.fn<(input: unknown) => Promise<unknown>>();
 const mockGetSession = jest.fn<() => Promise<unknown>>();
 
 jest.mock("@/interface/controllers/player/membership.controller", () => ({
-  createInvitation: mockCreateInvitation,
-  updateRole: mockUpdateRole,
+  createInvitationController: mockCreateInvitation,
+  updateRoleController: mockUpdateRole,
 }));
 
 jest.mock("@/lib/auth", () => ({

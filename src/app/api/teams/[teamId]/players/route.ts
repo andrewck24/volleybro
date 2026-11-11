@@ -23,7 +23,7 @@ export const POST = (
     const body = await req.json();
     const validatedData = CreatePlayerSchema.parse(body);
 
-    const player = await playerController.createPlayer({
+    const player = await playerController.createPlayerController({
       teamId,
       data: validatedData,
       userId,
@@ -40,7 +40,10 @@ export const GET = (
     const { teamId } = await props.params;
     assertObjectId(teamId, "teamId");
 
-    const players = await playerController.getTeamPlayers({ teamId, userId });
+    const players = await playerController.getTeamPlayersController({
+      teamId,
+      userId,
+    });
 
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 

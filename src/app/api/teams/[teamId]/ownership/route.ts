@@ -19,7 +19,7 @@ export const POST = (
     const body = await req.json();
     const { newOwnerId } = TransferOwnershipSchema.parse(body);
 
-    const team = await ownershipController.transferOwnership({
+    const team = await ownershipController.transferOwnershipController({
       teamId,
       newOwnerId,
       userId,

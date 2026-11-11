@@ -17,7 +17,7 @@ import { TYPES } from "@/infrastructure/di/types";
  * Invitation Controller - 被邀請者操作
  * 透過 DI container 獲取 use cases 並執行業務邏輯
  */
-export const acceptInvitation = async (
+export const acceptInvitationController = async (
   input: IAcceptInvitationInput,
 ): Promise<void> => {
   const useCase = container.get<IAcceptInvitationUseCase>(
@@ -26,7 +26,7 @@ export const acceptInvitation = async (
   await useCase.execute(input);
 };
 
-export const rejectInvitation = async (
+export const rejectInvitationController = async (
   input: IRejectInvitationInput,
 ): Promise<void> => {
   const useCase = container.get<IRejectInvitationUseCase>(
@@ -35,7 +35,7 @@ export const rejectInvitation = async (
   return await useCase.execute(input);
 };
 
-export const leaveTeam = async (
+export const leaveTeamController = async (
   input: ILeaveTeamInput,
 ): Promise<{ success: boolean }> => {
   const useCase = container.get<ILeaveTeamUseCase>(TYPES.LeaveTeamUseCase);

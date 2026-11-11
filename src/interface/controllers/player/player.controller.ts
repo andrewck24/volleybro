@@ -33,7 +33,9 @@ import { TYPES } from "@/infrastructure/di/types";
  * 透過 DI container 獲取 use cases 並執行業務邏輯
  */
 
-export const getPlayer = async (input: IGetPlayerInput): Promise<Player> => {
+export const getPlayerController = async (
+  input: IGetPlayerInput,
+): Promise<Player> => {
   const useCase = container.get<IGetPlayerUseCase>(TYPES.GetPlayerUseCase);
   const player = await useCase.execute(input);
   if (!player) {
@@ -42,7 +44,7 @@ export const getPlayer = async (input: IGetPlayerInput): Promise<Player> => {
   return player;
 };
 
-export const getTeamPlayers = async (
+export const getTeamPlayersController = async (
   input: IGetTeamPlayersInput,
 ): Promise<Player[]> => {
   const useCase = container.get<IGetTeamPlayersUseCase>(
@@ -51,7 +53,7 @@ export const getTeamPlayers = async (
   return await useCase.execute(input);
 };
 
-export const getUserPlayers = async (
+export const getUserPlayersController = async (
   input: IGetUserPlayersInput,
 ): Promise<PlayerWithTeamName[]> => {
   const useCase = container.get<IGetUserPlayersUseCase>(
@@ -60,7 +62,7 @@ export const getUserPlayers = async (
   return await useCase.execute(input);
 };
 
-export const createPlayer = async (
+export const createPlayerController = async (
   input: ICreatePlayerInput,
 ): Promise<Player> => {
   const useCase = container.get<ICreatePlayerUseCase>(
@@ -69,7 +71,7 @@ export const createPlayer = async (
   return await useCase.execute(input);
 };
 
-export const updatePlayer = async (
+export const updatePlayerController = async (
   input: IUpdatePlayerInfoInput,
 ): Promise<Player> => {
   const useCase = container.get<IUpdatePlayerInfoUseCase>(
@@ -78,7 +80,7 @@ export const updatePlayer = async (
   return await useCase.execute(input);
 };
 
-export const removePlayer = async (
+export const removePlayerController = async (
   input: IRemovePlayerInput,
 ): Promise<{ success: boolean }> => {
   const useCase = container.get<IRemovePlayerUseCase>(
