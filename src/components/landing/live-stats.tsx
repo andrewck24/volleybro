@@ -39,7 +39,7 @@ export const LiveStats = () => {
   return (
     <div
       inert
-      className="w-full max-lg:[&_.size-15]:size-10 max-lg:[&_.size-15]:text-2xl max-[23.75rem]:[&_.size-15]:size-8 max-[23.75rem]:[&_.size-15]:text-xl [&_.transition-all]:duration-700 [&_.transition-all]:ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:[&_.transition-all]:duration-0"
+      className="w-full [&_[data-stat-bar]]:duration-700 [&_[data-stat-bar]]:ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:[&_[data-stat-bar]]:duration-0 max-lg:[&_[data-stat-figure]]:size-10 max-lg:[&_[data-stat-figure]]:text-2xl max-[23.75rem]:[&_[data-stat-figure]]:size-8 max-[23.75rem]:[&_[data-stat-figure]]:text-xl"
     >
       <section className="flex w-full flex-col gap-1 lg:gap-2">
         {SCORING.map((scoring) => (

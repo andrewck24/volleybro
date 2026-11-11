@@ -29,6 +29,17 @@ describe("Entry", () => {
 });
 
 describe("EntryRow", () => {
+  it("exposes stable hooks on rally score badges", () => {
+    render(<EntryRow entry={entry} players={players} isLatest={true} />);
+
+    expect(
+      screen.getByText("1", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("0", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+  });
+
   it("is collapsed by default", () => {
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 

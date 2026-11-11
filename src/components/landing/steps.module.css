@@ -413,7 +413,8 @@
    scroll or squeeze on phones — three opponent errors, the first two skill
    rows (the demo rally's 攻擊 is among them). Landing-only; the app is not
    changed. */
-.frame :global([class*="slide-in-from"] > .auto-rows-fr > :nth-child(n + 4)),
-.frame :global([class*="slide-in-from"] > .grid-cols-2 > :nth-child(n + 5)) {
+.frame :global([data-moves-step] > [data-move-grid="away"] > :nth-child(n + 4)),
+.frame
+  :global([data-moves-step] > [data-move-grid="home"] > :nth-child(n + 5)) {
   display: none;
 }

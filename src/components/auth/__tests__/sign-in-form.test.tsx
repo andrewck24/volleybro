@@ -1,5 +1,6 @@
 import SignInForm from "@/components/auth/sign-in/form";
 import { authClient } from "@/lib/auth-client";
+import { deferred } from "@test/support/gates";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -27,12 +28,8 @@ describe("SignInForm submitting state", () => {
   });
 
   it("disables Google button and marks it busy while signing in", async () => {
-    let resolveSignIn!: () => void;
-    mockSignIn.mockReturnValue(
-      new Promise<void>((resolve) => {
-        resolveSignIn = resolve;
-      }),
-    );
+    const { promise, release } = deferred();
+    mockSignIn.mockReturnValue(promise);
 
     const user = userEvent.setup();
     render(<SignInForm />);
@@ -45,7 +42,7 @@ describe("SignInForm submitting state", () => {
     expect(btn).toBeDisabled();
     expect(btn).toHaveAttribute("aria-busy", "true");
 
-    resolveSignIn();
+    release();
     await waitFor(() => expect(btn).toBeEnabled());
   });
 
