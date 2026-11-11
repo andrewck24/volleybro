@@ -1,5 +1,5 @@
 import { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import { User } from "@/entities/user";
+import { NormalizedEmail, User } from "@/entities/user";
 import {
   UserDocument,
   User as UserModel,
@@ -24,7 +24,7 @@ export class UserRepositoryImpl implements IUserRepository {
     }
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: NormalizedEmail): Promise<User | null> {
     try {
       const doc = await UserModel.findOne({ email }).exec();
       return doc ? this.toUser(doc) : null;

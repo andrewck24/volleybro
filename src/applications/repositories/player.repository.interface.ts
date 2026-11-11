@@ -1,4 +1,5 @@
 import { NewPlayer, Player, PlayerFields, PlayerRole } from "@/entities/player";
+import type { NormalizedEmail } from "@/entities/user";
 
 /**
  * IPlayerRepository Interface
@@ -23,12 +24,12 @@ export interface IPlayerRepository {
 
   findByUserIdOrInvitedEmail(
     userId: string,
-    normalizedEmail: string,
+    email: NormalizedEmail,
   ): Promise<Player[]>;
 
   findInvitedByTeamIdAndEmail(
     teamId: string,
-    normalizedEmail: string,
+    email: NormalizedEmail,
   ): Promise<Player | null>;
 
   /**
@@ -71,7 +72,7 @@ export interface IPlayerRepository {
    * Returns the number of players modified.
    */
   linkUserToInvitations(
-    normalizedEmail: string,
+    email: NormalizedEmail,
     userId: string,
   ): Promise<number>;
 }

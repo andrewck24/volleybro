@@ -1,6 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { normalizeEmail } from "@/entities/user";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -89,7 +90,7 @@ describe("player reads and writes", () => {
   });
 
   describe("email invitations", () => {
-    const email = "alice@example.com";
+    const email = normalizeEmail("alice@example.com");
     const invited = (overrides: Record<string, unknown>) =>
       PlayerModel.create({
         name: "Invitee",

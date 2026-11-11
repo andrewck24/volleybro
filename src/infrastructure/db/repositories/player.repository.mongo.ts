@@ -12,6 +12,7 @@ import {
   PlayerRole,
   PlayerStatus,
 } from "@/entities/player";
+import type { NormalizedEmail } from "@/entities/user";
 import {
   PlayerModel,
   type PlayerDocument,
@@ -21,9 +22,10 @@ import {
   type RawPlayer,
   toPlayerUpdateOps,
 } from "@/infrastructure/db/repositories/player.mapping.mongo";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
-
-const DUPLICATE_KEY = 11000;
+import {
+  DUPLICATE_KEY_CODE,
+  translateRepositoryError,
+} from "@/infrastructure/db/repositories/error-translation.mongo";
 
 const alreadyInvited = () =>
   new ConflictError(
@@ -48,7 +50,7 @@ const translatePlayerWriteError = async (error: unknown) => {
     keyPattern?: object;
     keyValue?: object;
   };
-  if (code !== DUPLICATE_KEY) return translateRepositoryError(error);
+  if (code !== DUPLICATE_KEY_CODE) return translateRepositoryError(error);
 
   const collidedKeys = Object.keys(keyPattern ?? keyValue ?? {});
   const isInviteeCollision =
@@ -97,7 +99,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
 
   async findByUserIdOrInvitedEmail(
     userId: string,
-    email: string,
+    email: NormalizedEmail,
   ): Promise<Player[]> {
     try {
       const docs = await PlayerModel.find({
@@ -111,7 +113,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
 
   async findInvitedByTeamIdAndEmail(
     teamId: string,
-    email: string,
+    email: NormalizedEmail,
   ): Promise<Player | null> {
     try {
       const doc = await PlayerModel.findOne({
@@ -191,7 +193,10 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async linkUserToInvitations(email: string, userId: string): Promise<number> {
+  async linkUserToInvitations(
+    email: NormalizedEmail,
+    userId: string,
+  ): Promise<number> {
     try {
       const result = await PlayerModel.updateMany(
         { email, status: PlayerStatus.INVITED },

@@ -1,6 +1,6 @@
-import type { User } from "@/entities/user";
+import type { NormalizedEmail, User } from "@/entities/user";
 
 export interface IUserRepository {
   findById(id: string): Promise<User | null>;
-  findByEmail(normalizedEmail: string): Promise<User | null>;
+  findByEmail(email: NormalizedEmail): Promise<User | null>;
 }
