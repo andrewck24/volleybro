@@ -41,7 +41,7 @@ const translatePlayerWriteError = async (error: unknown) => {
   };
   if (code === 11000) {
     const keys = Object.keys(keyPattern ?? keyValue ?? {});
-    const invited =
+    const isAlreadyInvited =
       keys.includes("email") ||
       keys.includes("inviteeEmail") ||
       (keys.includes("userId") &&
@@ -50,7 +50,7 @@ const translatePlayerWriteError = async (error: unknown) => {
           ...keyValue,
           status: PlayerStatus.INVITED,
         })) !== null);
-    if (invited)
+    if (isAlreadyInvited)
       return new ConflictError(
         PlayerReason.ALREADY_INVITED,
         "This person has already been invited to this team",
