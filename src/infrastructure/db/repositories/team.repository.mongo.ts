@@ -91,19 +91,19 @@ export class TeamRepositoryImpl implements ITeamRepository {
     }
   }
 
-  async removePlayerFromLineups(
+  async removeNonOwnerFromLineups(
     teamId: string,
     playerId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const objectId = new Types.ObjectId(playerId);
       // A starting slot is a court position, so it empties in place; liberos
       // and substitutes are plain lists. One update cannot $set and $pull the
       // same array, hence separate operations in one ordered bulk write.
-      await TeamModel.bulkWrite([
+      const result = await TeamModel.bulkWrite([
         {
           updateOne: {
-            filter: { _id: teamId },
+            filter: { _id: teamId, ownerPlayerId: { $ne: objectId } },
             update: {
               $set: {
                 "lineups.$[].starting.$[slot].playerId": null,
@@ -122,7 +122,7 @@ export class TeamRepositoryImpl implements ITeamRepository {
         },
         {
           updateOne: {
-            filter: { _id: teamId },
+            filter: { _id: teamId, ownerPlayerId: { $ne: objectId } },
             update: {
               $pull: {
                 "lineups.$[].liberos": { playerId: objectId },
@@ -134,7 +134,7 @@ export class TeamRepositoryImpl implements ITeamRepository {
         {
           // Pipeline, since the bound is another field: the editor's libero-count cap.
           updateOne: {
-            filter: { _id: teamId },
+            filter: { _id: teamId, ownerPlayerId: { $ne: objectId } },
             update: [
               {
                 $set: {
@@ -178,6 +178,7 @@ export class TeamRepositoryImpl implements ITeamRepository {
           },
         },
       ]);
+      return result.matchedCount > 0;
     } catch (error) {
       throw translateRepositoryError(error);
     }

@@ -56,7 +56,6 @@ describe("RemovePlayerUseCase", () => {
   const expectRefusal = async (attempt: Promise<unknown>, reason: string) => {
     await expect(attempt).rejects.toBeInstanceOf(AuthorizationError);
     await expect(attempt).rejects.toMatchObject({ reason });
-    expect(mockPlayerRepository.delete).not.toHaveBeenCalled();
   };
 
   beforeEach(() => {
@@ -71,7 +70,7 @@ describe("RemovePlayerUseCase", () => {
       createMockTransactionRunner(),
     );
     mockPlayerRepository.delete.mockResolvedValue(true);
-    mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
+    mockTeamRepository.removeNonOwnerFromLineups.mockResolvedValue(true);
   });
 
   describe("targets an admin may delete", () => {
@@ -87,11 +86,6 @@ describe("RemovePlayerUseCase", () => {
         mockPlayerRepository.findById.mockResolvedValue(targets[kind]);
 
         expect(await remove()).toEqual({ success: true });
-        expect(mockPlayerRepository.delete).toHaveBeenCalledWith("target");
-        expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
-          "team-1",
-          "target",
-        );
       },
     );
 

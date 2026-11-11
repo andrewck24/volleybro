@@ -18,6 +18,9 @@ const DETAILS: Record<ManageRefusal, string> = {
   [PlayerReason.TARGET_IS_SELF]: "You cannot target your own player",
 };
 
+export const getManageRefusalDetail = (refusal: ManageRefusal): string =>
+  DETAILS[refusal];
+
 /**
  * Authorize the caller against the player they are about to change or delete.
  * The caller is their own player on the target's team, so this answers both
@@ -35,5 +38,6 @@ export const authorizeManagePlayer = async (
   if (!team)
     throw new NotFoundError(CommonReason.RESOURCE_NOT_FOUND, "Team not found");
   const refusal = refuseToManagePlayer(actor, target, team.ownerPlayerId);
-  if (refusal) throw new AuthorizationError(refusal, DETAILS[refusal]);
+  if (refusal)
+    throw new AuthorizationError(refusal, getManageRefusalDetail(refusal));
 };

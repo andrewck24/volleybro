@@ -26,7 +26,7 @@ export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
     update: jest.fn(),
     transferOwnership: jest.fn(),
     updateLineups: jest.fn(),
-    removePlayerFromLineups: jest.fn(),
+    removeNonOwnerFromLineups: jest.fn().mockResolvedValue(true),
   };
 }
 

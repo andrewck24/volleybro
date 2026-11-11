@@ -11,6 +11,8 @@ import { isTeamMember, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
+const OWNER_CANNOT_LEAVE_DETAIL = "Team owner cannot leave the team";
+
 export interface ILeaveTeamInput {
   playerId: string;
   userId: string;
@@ -65,12 +67,21 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     if (team.ownerPlayerId === player.id) {
       throw new AuthorizationError(
         PlayerReason.OWNER_CANNOT_LEAVE,
-        "Team owner cannot leave the team",
+        OWNER_CANNOT_LEAVE_DETAIL,
       );
     }
 
     await this.transactionRunner.run(async () => {
-      await this.teamRepository.removePlayerFromLineups(teamId, playerId);
+      const canRemove = await this.teamRepository.removeNonOwnerFromLineups(
+        teamId,
+        playerId,
+      );
+      if (!canRemove) {
+        throw new AuthorizationError(
+          PlayerReason.OWNER_CANNOT_LEAVE,
+          OWNER_CANNOT_LEAVE_DETAIL,
+        );
+      }
 
       await this.playerRepository.update(playerId, {
         status: PlayerStatus.NONE,

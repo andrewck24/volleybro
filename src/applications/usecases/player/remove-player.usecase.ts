@@ -1,8 +1,12 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
-import { authorizeManagePlayer } from "@/applications/usecases/player/membership";
 import {
+  authorizeManagePlayer,
+  getManageRefusalDetail,
+} from "@/applications/usecases/player/membership";
+import {
+  AuthorizationError,
   NotFoundError,
   UnexpectedError,
   CommonReason,
@@ -58,7 +62,16 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     );
 
     await this.transactionRunner.run(async () => {
-      await this.teamRepository.removePlayerFromLineups(teamId, playerId);
+      const canRemove = await this.teamRepository.removeNonOwnerFromLineups(
+        teamId,
+        playerId,
+      );
+      if (!canRemove) {
+        throw new AuthorizationError(
+          PlayerReason.TARGET_IS_OWNER,
+          getManageRefusalDetail(PlayerReason.TARGET_IS_OWNER),
+        );
+      }
 
       const deleted = await this.playerRepository.delete(playerId);
       if (!deleted) {

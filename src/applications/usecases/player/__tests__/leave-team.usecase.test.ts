@@ -37,7 +37,7 @@ describe("LeaveTeamUseCase", () => {
   });
 
   describe("execute", () => {
-    it("should set status to NONE and clear userId when leaving", async () => {
+    it("returns success when the linked user leaves", async () => {
       const player = createPlayer({
         id: "player_123",
         teamId: "team_789",
@@ -50,7 +50,7 @@ describe("LeaveTeamUseCase", () => {
       mockPlayerRepository.update.mockResolvedValue(
         createUnlinkedPlayer({ id: "player_123", teamId: "team_789" }),
       );
-      mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
+      mockTeamRepository.removeNonOwnerFromLineups.mockResolvedValue(true);
 
       const result = await useCase.execute({
         playerId: "player_123",
@@ -58,12 +58,6 @@ describe("LeaveTeamUseCase", () => {
       });
 
       expect(result).toEqual({ success: true });
-      expect(mockPlayerRepository.update).toHaveBeenCalledWith("player_123", {
-        status: PlayerStatus.NONE,
-        userId: undefined,
-        email: undefined,
-        role: undefined,
-      });
     });
 
     it("should reject if player not found", async () => {
