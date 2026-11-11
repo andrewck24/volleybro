@@ -26,6 +26,7 @@ export interface PlayerDocument extends Document {
   teamId?: Types.ObjectId;
   userId?: Types.ObjectId;
   email?: string;
+  inviteeEmail?: string;
   role?: "MEMBER" | "ADMIN";
   createdAt: Date;
   updatedAt: Date;
@@ -68,6 +69,9 @@ const PlayerSchema = new Schema<PlayerDocument>(
       type: String,
       trim: true,
     },
+    inviteeEmail: {
+      type: String,
+    },
     role: {
       type: String,
       enum: ["MEMBER", "ADMIN"],
@@ -91,6 +95,20 @@ PlayerSchema.index({ email: 1 });
 PlayerSchema.index(
   { teamId: 1, email: 1 },
   { unique: true, partialFilterExpression: { email: { $type: "string" } } },
+);
+
+// One open invitation per person per team, whichever way it reaches them: the
+// address stays on the row after an account is linked, so an invitation by
+// email and one by userId for the same person collide here.
+PlayerSchema.index(
+  { teamId: 1, inviteeEmail: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      inviteeEmail: { $type: "string" },
+      status: "INVITED",
+    },
+  },
 );
 
 PlayerSchema.index(

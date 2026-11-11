@@ -70,7 +70,7 @@ type DistributiveOmit<T, K extends keyof never> = T extends unknown
 export type NewPlayer = DistributiveOmit<
   Player,
   "id" | "createdAt" | "updatedAt"
->;
+> & { inviteeEmail?: string };
 
 /**
  * Every field a player document can carry. Writes patch single fields, so a
@@ -81,6 +81,8 @@ export type PlayerFields = PlayerBase & {
   status: PlayerStatus;
   userId?: string;
   email?: string;
+  /** Persistence only: the address an invitation was sent to, kept after linking. */
+  inviteeEmail?: string;
   role?: PlayerRole;
 };
 

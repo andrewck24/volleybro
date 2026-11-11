@@ -3,14 +3,24 @@ import type { IUserRepository } from "@/applications/repositories/user.repositor
 import { ConflictError, CommonReason, PlayerReason } from "@/entities/errors";
 import { normalizeEmail } from "@/entities/user";
 
-/** The one way an invitation reaches its recipient: an account, or an address. */
-export type InviteeLink =
-  { userId: string; email?: never } | { email: string; userId?: never };
+/**
+ * The one way an invitation reaches its recipient: an account, or an address.
+ * `inviteeEmail` is the address it was sent to either way.
+ */
+export type InviteeLink = { inviteeEmail: string } & (
+  { userId: string; email?: never } | { email: string; userId?: never }
+);
 
 export interface InviteeRepositories {
   players: IPlayerRepository;
   users: IUserRepository;
 }
+
+const alreadyInvited = () =>
+  new ConflictError(
+    PlayerReason.ALREADY_INVITED,
+    "This person has already been invited to this team",
+  );
 
 const alreadyOnRoster = () =>
   new ConflictError(
@@ -33,23 +43,30 @@ export const resolveInviteeLink = async (
   const address = normalizeEmail(email);
   const user = await users.findByEmail(address);
   if (await players.findInvitedByTeamIdAndEmail(teamId, address))
-    throw alreadyOnRoster();
+    throw alreadyInvited();
 
   if (user) {
     if (await players.findByTeamIdAndUserId(teamId, user.id))
       throw alreadyOnRoster();
-    return { userId: user.id };
+    return { userId: user.id, inviteeEmail: address };
   }
-  return { email: address };
+  return { email: address, inviteeEmail: address };
 };
 
 /**
- * The partial unique indexes on (teamId, userId) and (teamId, email) close the
- * race the checks above cannot. To the caller it is the same conflict, not the
- * generic duplicate-resource one.
+ * The partial unique indexes on (teamId, userId), (teamId, email) and
+ * (teamId, inviteeEmail) close the race the checks above cannot. To the caller
+ * it is the same conflict, not the generic duplicate-resource one. The error
+ * exposes only the driver's message, so the invitee index is told apart by its
+ * field name in it.
  */
-export const asRosterConflict = (error: unknown): unknown =>
-  error instanceof ConflictError &&
-  error.reason === CommonReason.DUPLICATE_RESOURCE
-    ? alreadyOnRoster()
-    : error;
+export const asRosterConflict = (error: unknown): unknown => {
+  if (
+    !(error instanceof ConflictError) ||
+    error.reason !== CommonReason.DUPLICATE_RESOURCE
+  )
+    return error;
+  return error.message.includes("inviteeEmail")
+    ? alreadyInvited()
+    : alreadyOnRoster();
+};

@@ -4,6 +4,7 @@ import type { ICreateInvitationUseCase } from "@/applications/usecases/player/cr
 import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
+import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories/player.repository.mongo";
 import { PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
@@ -258,8 +259,34 @@ describe("invitations reach the account behind the address", () => {
     const second = await seatFor("Dave again");
 
     await expect(invite(second, "dave@example.com")).rejects.toMatchObject({
-      reason: PlayerReason.ALREADY_ON_ROSTER,
+      reason: PlayerReason.ALREADY_INVITED,
     });
+  });
+
+  it("refuses the second of two invitations that both passed the pre-write check", async () => {
+    const byEmail = await seatFor("Frank");
+    const byAccount = await seatFor("Frank again");
+    await invite(byEmail, "frank@example.com");
+    await register("frank@example.com");
+    // Both invitations read "nobody invited yet" before either wrote; the
+    // second then reaches the write while the first row already stands.
+    const preCheck = jest
+      .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
+      .mockResolvedValue(null);
+
+    try {
+      await expect(
+        invite(byAccount, "frank@example.com"),
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
+    } finally {
+      preCheck.mockRestore();
+    }
+
+    const frank = (await roster(teamId)).filter(
+      (p) => p.status === PlayerStatus.INVITED,
+    );
+    expect(frank).toHaveLength(1);
+    expect(frank[0]).toMatchObject({ email: "frank@example.com" });
   });
 
   it("creates a linked invitee straight from create-player", async () => {

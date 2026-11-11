@@ -28,8 +28,8 @@ export interface IPlayerRepository {
   findByUserIdOrInvitedEmail(userId: string, email: string): Promise<Player[]>;
 
   /**
-   * Find invited players for a team (email exists, userId doesn't).
-   * `email` must already be normalized.
+   * Find the invitation a team sent to an address, whether it reaches them by
+   * email or by account. `email` must already be normalized.
    */
   findInvitedByTeamIdAndEmail(
     teamId: string,

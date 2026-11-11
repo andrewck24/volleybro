@@ -79,6 +79,7 @@ describe("CreateInvitationUseCase", () => {
         role,
         userId: undefined,
         email,
+        inviteeEmail: email,
       });
     });
 
@@ -100,6 +101,7 @@ describe("CreateInvitationUseCase", () => {
         role,
         userId: invitee.id,
         email: undefined,
+        inviteeEmail: email,
       });
     });
 
@@ -141,7 +143,7 @@ describe("CreateInvitationUseCase", () => {
 
       await expect(
         useCase.execute({ playerId, email, role, userId }),
-      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_ON_ROSTER });
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
       expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
 
@@ -170,7 +172,7 @@ describe("CreateInvitationUseCase", () => {
 
       await expect(
         useCase.execute({ playerId, email, role, userId }),
-      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_ON_ROSTER });
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
       expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
 

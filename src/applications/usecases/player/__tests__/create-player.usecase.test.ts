@@ -92,6 +92,7 @@ describe("CreatePlayerUseCase", () => {
         position: undefined,
         teamId,
         email: "wang@example.com",
+        inviteeEmail: "wang@example.com",
         role: PlayerRole.ADMIN,
       });
     });
@@ -201,6 +202,26 @@ describe("CreatePlayerUseCase", () => {
       expect(mockPlayerRepository.create).not.toHaveBeenCalled();
     });
 
+    it("rejects an account whose address this team already invited", async () => {
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockUserRepository.findByEmail.mockResolvedValue(
+        createUser({ id: "user_invitee", email: "test@example.com" }),
+      );
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
+      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(
+        createInvitedPlayer({ teamId, email: "test@example.com" }),
+      );
+
+      await expect(
+        useCase.execute({
+          teamId,
+          data: { name: "Test Player", email: "test@example.com" },
+          userId,
+        }),
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
+      expect(mockPlayerRepository.create).not.toHaveBeenCalled();
+    });
+
     it("should reject if email already invited in team", async () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockUserRepository.findByEmail.mockResolvedValue(null);
@@ -218,7 +239,7 @@ describe("CreatePlayerUseCase", () => {
           data: { name: "Test Player", email: "test@example.com" },
           userId,
         }),
-      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_ON_ROSTER });
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
       expect(mockPlayerRepository.create).not.toHaveBeenCalled();
     });
   });

@@ -12,7 +12,7 @@ export type RawPlayer = Omit<PlayerFields, "id" | "teamId" | "userId"> & {
 };
 
 export function toPlayer(raw: RawPlayer): Player {
-  const { _id, teamId, userId, ...rest } = raw;
+  const { _id, teamId, userId, inviteeEmail: _inviteeEmail, ...rest } = raw;
   return narrowPlayer({
     ...rest,
     id: _id.toString(),

@@ -68,7 +68,11 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     email: string,
   ): Promise<Player | null> {
     try {
-      const doc = await PlayerModel.findOne({ teamId, email }).exec();
+      const doc = await PlayerModel.findOne({
+        teamId,
+        status: PlayerStatus.INVITED,
+        $or: [{ email }, { inviteeEmail: email }],
+      }).exec();
       return doc ? fromDocument(doc) : null;
     } catch (error) {
       throw translateRepositoryError(error);
