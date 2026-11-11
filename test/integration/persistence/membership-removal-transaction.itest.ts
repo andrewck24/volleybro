@@ -84,12 +84,6 @@ const playerSnapshot = async (playerId: string) =>
   (await PlayerModel.findById(playerId))?.toJSON();
 
 describe("membership removal transactions", () => {
-  // A transaction can hit a catalog-change error if its first write creates a collection.
-  beforeAll(async () => {
-    await TeamModel.createCollection();
-    await PlayerModel.createCollection();
-  });
-
   it("rolls back lineup removal when leave's player update fails", async () => {
     const membership = await createMembership();
     const before = await playerSnapshot(membership.playerId);
