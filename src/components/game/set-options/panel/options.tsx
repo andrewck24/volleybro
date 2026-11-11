@@ -69,7 +69,7 @@ export const Options = ({ gameId }: { gameId: string }) => {
     [game, setIndex],
   );
 
-  const form = useForm({
+  const form = useForm<SetOptionsFormValues>({
     resolver: zodResolver(SetOptionsFormSchema),
     defaultValues,
   });

@@ -219,7 +219,6 @@ async function validateMergedVersionPr(pullRequest, sha) {
     );
   await verifyMetadataOnly(parent, sha);
   validateReviewEnvironment(environment);
-  return pr;
 }
 
 async function mergedPullsForPush(sha) {

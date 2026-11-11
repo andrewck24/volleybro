@@ -17,6 +17,7 @@ import { localStoragePendingWrites } from "@/lib/features/game/pending-writes-st
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
+import { deferred } from "@test/support/gates";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 
 import { answerEntries, type EntryPut } from "@test/support/msw/entries";
@@ -266,12 +267,9 @@ describe("usePendingWrites", () => {
   });
 
   it("dedupes concurrent flush calls into a single in-flight request", async () => {
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
+    const { promise, release } = deferred();
     const puts = serve(async () => {
-      await gate;
+      await promise;
       return HttpResponse.json(confirmed("e1"));
     });
     const { result } = renderQueue();
@@ -461,12 +459,9 @@ describe("PendingWritesContext: single owner", () => {
     // The request is held open: an instant answer would let a first (buggy)
     // flush clear the queue before a second instance's timer fires, hiding
     // the race this test exists to catch.
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
+    const { promise, release } = deferred();
     const puts = serve(async () => {
-      await gate;
+      await promise;
       return HttpResponse.json(confirmed("e1"));
     });
     enqueueDirectly("e1", 0);
