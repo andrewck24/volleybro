@@ -1,5 +1,6 @@
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 import {
   AuthorizationError,
   ConflictError,
@@ -30,6 +31,8 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
     private playerRepository: IPlayerRepository,
     @inject(TYPES.TeamRepository)
     private teamRepository: ITeamRepository,
+    @inject(TYPES.TransactionRunner)
+    private transactionRunner: ITransactionRunner,
   ) {}
 
   async execute({
@@ -93,17 +96,30 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
         "Target player must be an administrator",
       );
     }
-    const updated = await this.teamRepository.transferOwnership(
-      teamId,
-      currentOwner.id,
-      newOwner.id,
-    );
-    if (!updated) {
-      throw new AuthorizationError(
-        PlayerReason.NOT_TEAM_OWNER,
-        "Only the current team owner can transfer ownership",
+    return this.transactionRunner.run(async () => {
+      const updated = await this.teamRepository.transferOwnership(
+        teamId,
+        currentOwner.id,
+        newOwner.id,
       );
-    }
-    return updated;
+      if (!updated) {
+        throw new AuthorizationError(
+          PlayerReason.NOT_TEAM_OWNER,
+          "Only the current team owner can transfer ownership",
+        );
+      }
+
+      // Write the team first so a concurrent removal conflicts before this read.
+      const persistedNewOwner =
+        await this.playerRepository.findById(newOwnerId);
+      if (!persistedNewOwner || !isTeamMember(persistedNewOwner)) {
+        throw new ConflictError(
+          PlayerReason.TARGET_NOT_MEMBER,
+          "Target player must be an active member of the team",
+        );
+      }
+
+      return updated;
+    });
   }
 }

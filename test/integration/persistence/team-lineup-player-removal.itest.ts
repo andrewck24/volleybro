@@ -40,7 +40,7 @@ describe("removing a player from a team's lineups", () => {
     teamId = team.id;
     await repo().updateLineups(teamId, [lineup]);
 
-    await repo().removePlayerFromLineups(teamId, removed);
+    await repo().removeNonOwnerFromLineups(teamId, removed);
   });
 
   const read = async () => (await repo().findById(teamId))!.lineups[0]!;
@@ -102,7 +102,7 @@ describe("removing a player from a lineup stored without a libero mode", () => {
       { $unset: { "lineups.0.options.liberoReplaceMode": "" } },
     );
 
-    await repo().removePlayerFromLineups(team.id, removed);
+    await repo().removeNonOwnerFromLineups(team.id, removed);
 
     const [lineup] = (await repo().findById(team.id))!.lineups;
     expect(lineup!.options.liberoReplaceMode).toBe(0);

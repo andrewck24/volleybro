@@ -1,5 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import type { ITransactionRunner } from "@/applications/services/transaction/transaction-runner.interface";
 import {
   AuthorizationError,
   NotFoundError,
@@ -9,6 +10,8 @@ import {
 import { isTeamMember, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
+
+const OWNER_CANNOT_LEAVE_DETAIL = "Team owner cannot leave the team";
 
 export interface ILeaveTeamInput {
   playerId: string;
@@ -26,6 +29,8 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     private playerRepository: IPlayerRepository,
     @inject(TYPES.TeamRepository)
     private teamRepository: ITeamRepository,
+    @inject(TYPES.TransactionRunner)
+    private transactionRunner: ITransactionRunner,
   ) {}
 
   async execute({
@@ -52,7 +57,8 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
         PlayerReason.PLAYER_NOT_FOUND,
         "Player has no team",
       );
-    const team = await this.teamRepository.findById(player.teamId);
+    const teamId = player.teamId;
+    const team = await this.teamRepository.findById(teamId);
     if (!team)
       throw new NotFoundError(
         CommonReason.RESOURCE_NOT_FOUND,
@@ -61,18 +67,28 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     if (team.ownerPlayerId === player.id) {
       throw new AuthorizationError(
         PlayerReason.OWNER_CANNOT_LEAVE,
-        "Team owner cannot leave the team",
+        OWNER_CANNOT_LEAVE_DETAIL,
       );
     }
 
-    // Lineups first: a failed update leaves a member who can leave again.
-    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
+    await this.transactionRunner.run(async () => {
+      const canRemove = await this.teamRepository.removeNonOwnerFromLineups(
+        teamId,
+        playerId,
+      );
+      if (!canRemove) {
+        throw new AuthorizationError(
+          PlayerReason.OWNER_CANNOT_LEAVE,
+          OWNER_CANNOT_LEAVE_DETAIL,
+        );
+      }
 
-    await this.playerRepository.update(playerId, {
-      status: PlayerStatus.NONE,
-      userId: undefined,
-      email: undefined,
-      role: undefined,
+      await this.playerRepository.update(playerId, {
+        status: PlayerStatus.NONE,
+        userId: undefined,
+        email: undefined,
+        role: undefined,
+      });
     });
 
     return { success: true };

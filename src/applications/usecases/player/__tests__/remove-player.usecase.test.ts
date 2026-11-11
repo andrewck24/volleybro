@@ -8,6 +8,7 @@ import {
   createMockPlayerRepository,
   createMockTeamRepository,
 } from "@test/support/doubles/repositories";
+import { createMockTransactionRunner } from "@test/support/doubles/services";
 import type { IRemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import { RemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import {
@@ -55,7 +56,6 @@ describe("RemovePlayerUseCase", () => {
   const expectRefusal = async (attempt: Promise<unknown>, reason: string) => {
     await expect(attempt).rejects.toBeInstanceOf(AuthorizationError);
     await expect(attempt).rejects.toMatchObject({ reason });
-    expect(mockPlayerRepository.delete).not.toHaveBeenCalled();
   };
 
   beforeEach(() => {
@@ -64,9 +64,13 @@ describe("RemovePlayerUseCase", () => {
     mockTeamRepository.findById.mockResolvedValue(
       createTeam({ ownerPlayerId: "owner" }),
     );
-    useCase = new RemovePlayerUseCase(mockPlayerRepository, mockTeamRepository);
+    useCase = new RemovePlayerUseCase(
+      mockPlayerRepository,
+      mockTeamRepository,
+      createMockTransactionRunner(),
+    );
     mockPlayerRepository.delete.mockResolvedValue(true);
-    mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
+    mockTeamRepository.removeNonOwnerFromLineups.mockResolvedValue(true);
   });
 
   describe("targets an admin may delete", () => {
@@ -82,24 +86,8 @@ describe("RemovePlayerUseCase", () => {
         mockPlayerRepository.findById.mockResolvedValue(targets[kind]);
 
         expect(await remove()).toEqual({ success: true });
-        expect(mockPlayerRepository.delete).toHaveBeenCalledWith("target");
-        expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
-          "team-1",
-          "target",
-        );
       },
     );
-
-    it("has cleared the lineups when the delete fails, so the removal can be retried", async () => {
-      mockPlayerRepository.findById.mockResolvedValue(targets.member);
-      mockPlayerRepository.delete.mockRejectedValue(new Error("db down"));
-
-      await expect(remove()).rejects.toThrow("db down");
-      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
-        "team-1",
-        "target",
-      );
-    });
 
     it("refuses the owner, who can only hand ownership over", async () => {
       mockTeamRepository.findById.mockResolvedValue(

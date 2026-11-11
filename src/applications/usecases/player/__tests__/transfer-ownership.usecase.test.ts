@@ -7,6 +7,7 @@ import {
   createMockPlayerRepository,
   createMockTeamRepository,
 } from "@test/support/doubles/repositories";
+import { createMockTransactionRunner } from "@test/support/doubles/services";
 import { TransferOwnershipUseCase } from "../transfer-ownership.usecase";
 import {
   CommonReason,
@@ -33,10 +34,15 @@ describe("TransferOwnershipUseCase", () => {
   const input = { teamId: "team", userId: "user", newOwnerId: "target" };
   const players = createMockPlayerRepository();
   const teams = createMockTeamRepository();
-  const useCase = new TransferOwnershipUseCase(players, teams);
+  let useCase: TransferOwnershipUseCase;
 
   beforeEach(() => {
     jest.resetAllMocks();
+    useCase = new TransferOwnershipUseCase(
+      players,
+      teams,
+      createMockTransactionRunner(),
+    );
     teams.findById.mockResolvedValue(team);
     players.findByTeamIdAndUserId.mockResolvedValue(owner);
     players.findById.mockResolvedValue(target);

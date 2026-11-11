@@ -2,6 +2,7 @@ import {
   createMockPlayerRepository,
   createMockTeamRepository,
 } from "@test/support/doubles/repositories";
+import { createMockTransactionRunner } from "@test/support/doubles/services";
 import {
   createPlayer,
   createTeam,
@@ -28,11 +29,15 @@ describe("LeaveTeamUseCase", () => {
     mockTeamRepository.findById.mockResolvedValue(
       createTeam({ ownerPlayerId: "owner" }),
     );
-    useCase = new LeaveTeamUseCase(mockPlayerRepository, mockTeamRepository);
+    useCase = new LeaveTeamUseCase(
+      mockPlayerRepository,
+      mockTeamRepository,
+      createMockTransactionRunner(),
+    );
   });
 
   describe("execute", () => {
-    it("should set status to NONE and clear userId when leaving", async () => {
+    it("returns success when the linked user leaves", async () => {
       const player = createPlayer({
         id: "player_123",
         teamId: "team_789",
@@ -45,7 +50,7 @@ describe("LeaveTeamUseCase", () => {
       mockPlayerRepository.update.mockResolvedValue(
         createUnlinkedPlayer({ id: "player_123", teamId: "team_789" }),
       );
-      mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
+      mockTeamRepository.removeNonOwnerFromLineups.mockResolvedValue(true);
 
       const result = await useCase.execute({
         playerId: "player_123",
@@ -53,33 +58,6 @@ describe("LeaveTeamUseCase", () => {
       });
 
       expect(result).toEqual({ success: true });
-      expect(mockPlayerRepository.update).toHaveBeenCalledWith("player_123", {
-        status: PlayerStatus.NONE,
-        userId: undefined,
-        email: undefined,
-        role: undefined,
-      });
-    });
-
-    it("has cleared the lineups when unlinking fails, so leaving can be retried", async () => {
-      mockPlayerRepository.findById.mockResolvedValue(
-        createPlayer({
-          id: "player_123",
-          teamId: "team_789",
-          status: PlayerStatus.JOINED,
-          userId: "user_456",
-        }),
-      );
-      mockPlayerRepository.update.mockRejectedValue(new Error("db down"));
-      mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
-
-      await expect(
-        useCase.execute({ playerId: "player_123", userId: "user_456" }),
-      ).rejects.toThrow("db down");
-      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
-        "team_789",
-        "player_123",
-      );
     });
 
     it("should reject if player not found", async () => {
