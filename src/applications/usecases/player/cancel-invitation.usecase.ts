@@ -1,11 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import {
-  NotFoundError,
-  UnexpectedError,
-  CommonReason,
-  PlayerReason,
-} from "@/entities/errors";
+import { NotFoundError, PlayerReason } from "@/entities/errors";
 import type { Player } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
@@ -58,13 +53,6 @@ export class CancelInvitationUseCase implements ICancelInvitationUseCase {
       userId: undefined,
       role: undefined,
     });
-
-    if (!updated) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to cancel invitation",
-      );
-    }
 
     return updated;
   }

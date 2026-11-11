@@ -16,9 +16,11 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 export const GameCourt = ({
   gameId,
   mode,
+  isHeightConstrained = true,
 }: {
   gameId: string;
   mode: ReduxGameState["mode"];
+  isHeightConstrained?: boolean;
 }) => {
   const dispatch = useAppDispatch();
   const { setIndex } = useAppSelector((state) => state.game);
@@ -29,7 +31,7 @@ export const GameCourt = ({
 
   if (status.isSetInProgress === false) {
     return (
-      <Court>
+      <Court isHeightConstrained={isHeightConstrained}>
         <Outside className="inner">
           {Array.from({ length: 3 }).map((_, index) => (
             <PlaceholderCard key={index} />
@@ -45,7 +47,7 @@ export const GameCourt = ({
   }
 
   return (
-    <Court>
+    <Court isHeightConstrained={isHeightConstrained}>
       <Outside className="inner">
         <AdjustButton />
         {liberos.map((player, index) => (

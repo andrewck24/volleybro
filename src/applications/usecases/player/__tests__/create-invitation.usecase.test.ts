@@ -14,7 +14,6 @@ import { CreateInvitationUseCase } from "@/applications/usecases/player/create-i
 import {
   ConflictError,
   NotFoundError,
-  UnexpectedError,
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
@@ -262,15 +261,17 @@ describe("CreateInvitationUseCase", () => {
       expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
 
-    it("should reject if update fails", async () => {
+    it("propagates when the player disappears during update", async () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       unregistered();
-      mockPlayerRepository.update.mockResolvedValue(null);
+      mockPlayerRepository.update.mockRejectedValue(
+        new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player not found"),
+      );
 
       await expect(
         useCase.execute({ playerId, email, role, userId }),
-      ).rejects.toBeInstanceOf(UnexpectedError);
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
   });
 });

@@ -39,7 +39,7 @@ export interface IPlayerRepository {
    * document's fields rather than the three player shapes; the caller is
    * responsible for leaving the document in one of them.
    */
-  update(id: string, updates: Partial<PlayerFields>): Promise<Player | null>;
+  update(id: string, updates: Partial<PlayerFields>): Promise<Player>;
 
   /**
    * Change a player's role only while it still equals `from`. Returns null

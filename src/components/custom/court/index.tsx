@@ -11,16 +11,19 @@ type CardPlayer = {
 };
 
 export const Court = ({
+  isHeightConstrained = true,
   className,
   children,
 }: {
+  isHeightConstrained?: boolean;
   className?: string;
   children?: React.ReactNode;
 }) => {
   return (
     <div
       className={cn(
-        "flex aspect-11/9 max-h-[35vh] w-full flex-row justify-center bg-primary p-2",
+        "flex aspect-11/9 w-full flex-row justify-center bg-primary p-2",
+        isHeightConstrained && "max-h-[35vh]",
         className,
       )}
     >
@@ -156,6 +159,7 @@ export const PlayerCard = ({
 }) => {
   return (
     <Card
+      data-player-card=""
       style={list === "starting" ? { gridArea: `z${zone}` } : {}}
       toggled={toggled}
       empty={!player}

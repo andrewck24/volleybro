@@ -1,11 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import {
-  NotFoundError,
-  UnexpectedError,
-  CommonReason,
-  PlayerReason,
-} from "@/entities/errors";
+import { NotFoundError, PlayerReason } from "@/entities/errors";
 import { type Player, type Position } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
@@ -63,13 +58,6 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
       playerId,
       updateData,
     );
-
-    if (!updatedPlayer) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to update player info",
-      );
-    }
 
     return updatedPlayer;
   }

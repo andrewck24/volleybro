@@ -49,6 +49,7 @@ export const GameMoves = ({
     >
       <div
         key={step}
+        data-moves-step={step}
         className={cn(
           "flex min-h-0 w-full flex-1 flex-col overflow-y-auto duration-300 ease-out animate-in fade-in",
           // Full panel-width directional slide (tab-container feel): forward
@@ -68,12 +69,17 @@ export const GameMoves = ({
 export const Container = ({
   children,
   className,
+  "data-move-grid": moveGrid,
 }: {
   children?: React.ReactNode;
   className?: string;
+  "data-move-grid"?: "home" | "away";
 }) => {
   return (
-    <div className={cn("grid w-full flex-1 grid-cols-2 gap-2", className)}>
+    <div
+      data-move-grid={moveGrid}
+      className={cn("grid w-full flex-1 grid-cols-2 gap-2", className)}
+    >
       {children}
     </div>
   );
@@ -117,6 +123,7 @@ export const MoveButton = ({
   return (
     <Button
       key={`${move.type}-${move.num}`}
+      data-move-outcome={move.win ? "win" : "loss"}
       variant={look.variant}
       size="lg"
       className={cn(

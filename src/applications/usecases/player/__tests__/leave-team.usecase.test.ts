@@ -12,7 +12,7 @@ import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usec
 import {
   AuthorizationError,
   NotFoundError,
-  UnexpectedError,
+  PlayerReason,
 } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -125,7 +125,7 @@ describe("LeaveTeamUseCase", () => {
       ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
-    it("should reject if update fails", async () => {
+    it("propagates when the player disappears during update", async () => {
       const player = createPlayer({
         id: "player_123",
         teamId: "team_789",
@@ -134,11 +134,13 @@ describe("LeaveTeamUseCase", () => {
       });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
-      mockPlayerRepository.update.mockResolvedValue(null);
+      mockPlayerRepository.update.mockRejectedValue(
+        new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player not found"),
+      );
 
       await expect(
         useCase.execute({ playerId: "player_123", userId: "user_456" }),
-      ).rejects.toBeInstanceOf(UnexpectedError);
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
   });
 });

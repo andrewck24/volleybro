@@ -6,7 +6,7 @@ import { createMockAuthorizationService } from "@test/support/doubles/services";
 import { createMockPlayerRepository } from "@test/support/doubles/repositories";
 import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
-import { NotFoundError, UnexpectedError } from "@/entities/errors";
+import { NotFoundError, PlayerReason } from "@/entities/errors";
 import { PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -92,7 +92,7 @@ describe("CancelInvitationUseCase", () => {
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it("should reject if update fails", async () => {
+    it("propagates when the player disappears during update", async () => {
       const invitedPlayer = createInvitedPlayer({
         id: "player_123",
         email: "invited@example.com",
@@ -101,11 +101,13 @@ describe("CancelInvitationUseCase", () => {
 
       mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.update.mockResolvedValue(null);
+      mockPlayerRepository.update.mockRejectedValue(
+        new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player not found"),
+      );
 
       await expect(
         useCase.execute({ playerId: "player_123", userId: "user_456" }),
-      ).rejects.toBeInstanceOf(UnexpectedError);
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
   });
 });

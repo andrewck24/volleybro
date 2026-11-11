@@ -13,6 +13,7 @@ import {
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry, PersistedQueue } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
+import { deferred } from "@test/support/gates";
 
 // Consecutive dispatches inside one tick coalesce by design, so anything
 // asserting a later snapshot has to let the microtask queue drain first.
@@ -32,12 +33,12 @@ const entry = (id: string): PendingEntry["entry"] => ({
 
 const fakeStorage = () => {
   const saved: PersistedQueue[] = [];
-  let release: (() => void) | null = null;
+  let saveGate: ReturnType<typeof deferred> | null = null;
   const storage: PendingWritesStorage = {
     load: async () => null,
     save: async (snapshot) => {
       saved.push(snapshot);
-      if (release) await new Promise<void>((r) => (release = r));
+      if (saveGate) await saveGate.promise;
     },
     clear: async () => {},
     probe: async () => {},
@@ -48,12 +49,12 @@ const fakeStorage = () => {
     // Holds the next save open so a burst of dispatches can be observed
     // while one write is still in flight.
     blockSaves: () => {
-      release = () => {};
+      saveGate = deferred();
     },
     releaseSaves: () => {
-      const r = release;
-      release = null;
-      r?.();
+      const gate = saveGate;
+      saveGate = null;
+      gate?.release();
     },
   };
 };
