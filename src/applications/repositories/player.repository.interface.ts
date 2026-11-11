@@ -22,7 +22,14 @@ export interface IPlayerRepository {
   findByUserId(userId: string): Promise<Player[]>;
 
   /**
-   * Find invited players for a team (email exists, userId doesn't)
+   * Find a user's players together with the players invited by `email`, in one
+   * query. `email` must already be normalized.
+   */
+  findByUserIdOrInvitedEmail(userId: string, email: string): Promise<Player[]>;
+
+  /**
+   * Find invited players for a team (email exists, userId doesn't).
+   * `email` must already be normalized.
    */
   findInvitedByTeamIdAndEmail(
     teamId: string,
@@ -66,7 +73,8 @@ export interface IPlayerRepository {
   /**
    * Batch-link pending INVITED players (by email) to a registered userId.
    * Uses updateMany: sets userId, clears email, idempotent.
-   * Returns the number of players modified.
+   * Returns the number of players modified. `email` must already be
+   * normalized; it matches the stored (lowercase) address exactly.
    */
   linkUserToInvitations(email: string, userId: string): Promise<number>;
 }

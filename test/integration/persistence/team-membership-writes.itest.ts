@@ -161,8 +161,8 @@ describe("player writes leave the roster readable", () => {
 });
 
 /**
- * Whether an address reaches an account is decided by the database's collation,
- * which no repository double can stand in for.
+ * Whether an address reaches an account is decided by the database's exact
+ * match, which no repository double can stand in for.
  */
 describe("invitations reach the account behind the address", () => {
   let teamId: string;
@@ -221,10 +221,10 @@ describe("invitations reach the account behind the address", () => {
   });
 
   it("links an address that differs only in case", async () => {
-    const userId = await register("Bob@Example.com");
+    const userId = await register("bob@example.com");
     const seat = await seatFor("Bob");
 
-    expect(await invite(seat, " bob@example.com ")).toMatchObject({ userId });
+    expect(await invite(seat, " Bob@Example.COM ")).toMatchObject({ userId });
   });
 
   it("does not let a dot in the address reach another account", async () => {
@@ -235,16 +235,6 @@ describe("invitations reach the account behind the address", () => {
 
     expect(invited).toMatchObject({ email: "a.b@x.com" });
     expect(invited).not.toHaveProperty("userId");
-  });
-
-  it("refuses to guess between two accounts differing only in case", async () => {
-    await register("Twin@example.com");
-    await register("twin@example.com");
-    const seat = await seatFor("Twin");
-
-    await expect(invite(seat, "twin@example.com")).rejects.toMatchObject({
-      reason: PlayerReason.AMBIGUOUS_EMAIL,
-    });
   });
 
   it("refuses an account that already holds a seat on this team", async () => {
@@ -313,10 +303,10 @@ describe("signing up reaches the invitations waiting for that address", () => {
       });
   };
 
-  const invitationsOf = (userId: string) =>
+  const invitationsOf = (userId: string, email: string) =>
     container
       .get<IGetUserPlayersUseCase>(TYPES.GetUserPlayersUseCase)
-      .execute({ userId });
+      .execute({ userId, email });
 
   beforeEach(async () => {
     useFakeAuth();
@@ -344,7 +334,7 @@ describe("signing up reaches the invitations waiting for that address", () => {
 
     await handleUserCreated({ id: userId, email: "Bob@Example.com" });
 
-    const mine = await invitationsOf(userId);
+    const mine = await invitationsOf(userId, "bob@example.com");
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({
       name: "Bob",
@@ -361,7 +351,7 @@ describe("signing up reaches the invitations waiting for that address", () => {
 
     await handleUserCreated({ id: userId, email: "bobby@example.com" });
 
-    expect(await invitationsOf(userId)).toEqual([]);
+    expect(await invitationsOf(userId, "bobby@example.com")).toEqual([]);
     expect((await roster(teamId)).find((p) => p.name === "Bob")).toMatchObject({
       email: "bob@example.com",
     });

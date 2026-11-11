@@ -17,7 +17,7 @@ jest.mock("@/lib/auth", () => ({
   auth: { api: { getSession: mockGetSession } },
 }));
 
-const SESSION = { user: { id: "user-1" } };
+const SESSION = { user: { id: "user-1", email: "user1@example.com" } };
 
 type RouteResponse = { status: number; json: () => Promise<unknown> };
 
@@ -51,6 +51,21 @@ describe("GET /api/users/[userId]/players", () => {
     } finally {
       consoleSpy.mockRestore();
     }
+  });
+
+  it("passes the session email to the controller", async () => {
+    const req = routeRequest(
+      "http://localhost/api/users/user-1/players",
+      "GET",
+    );
+    const props = { params: Promise.resolve({ userId: "user-1" }) };
+
+    await GET(req as never, props);
+
+    expect(mockGetUserPlayers).toHaveBeenCalledWith({
+      userId: "user-1",
+      email: "user1@example.com",
+    });
   });
 
   it("returns the requested user's players when the signed-in user owns them", async () => {

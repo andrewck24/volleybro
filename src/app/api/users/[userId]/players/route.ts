@@ -17,7 +17,7 @@ export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ userId: string }> },
 ) =>
-  withAuth(async (_req, { userId: requestingUserId }) => {
+  withAuth(async (_req, { userId: requestingUserId, email }) => {
     const { userId: targetUserId } = await props.params;
 
     if (requestingUserId !== targetUserId) {
@@ -29,6 +29,7 @@ export const GET = (
 
     const players = await playerController.getUserPlayersController({
       userId: targetUserId,
+      email,
     });
 
     const validatedPlayers = players.map((p) => UserPlayerSchema.parse(p));

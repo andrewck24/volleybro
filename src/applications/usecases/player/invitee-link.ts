@@ -1,6 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { ConflictError, CommonReason, PlayerReason } from "@/entities/errors";
+import { normalizeEmail } from "@/entities/user";
 
 /** The one way an invitation reaches its recipient: an account, or an address. */
 export type InviteeLink =
@@ -29,27 +30,17 @@ export const resolveInviteeLink = async (
   teamId: string,
   email: string,
 ): Promise<InviteeLink> => {
-  const address = email.trim();
-  const matches = await users.findAllByEmailInsensitive(address);
-
-  if (matches.length > 1) {
-    throw new ConflictError(
-      PlayerReason.AMBIGUOUS_EMAIL,
-      "This email matches more than one account",
-    );
-  }
-
-  const user = matches[0];
+  const address = normalizeEmail(email);
+  const user = await users.findByEmail(address);
   if (user) {
     if (await players.findByTeamIdAndUserId(teamId, user.id))
       throw alreadyOnRoster();
     return { userId: user.id };
   }
 
-  const unregistered = address.toLowerCase();
-  if (await players.findInvitedByTeamIdAndEmail(teamId, unregistered))
+  if (await players.findInvitedByTeamIdAndEmail(teamId, address))
     throw alreadyOnRoster();
-  return { email: unregistered };
+  return { email: address };
 };
 
 /**

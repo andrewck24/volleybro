@@ -66,7 +66,6 @@ const PlayerSchema = new Schema<PlayerDocument>(
     },
     email: {
       type: String,
-      lowercase: true,
       trim: true,
     },
     role: {

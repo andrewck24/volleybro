@@ -7,3 +7,6 @@ export type User = {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+export const normalizeEmail = (email: string): string =>
+  email.trim().toLowerCase();

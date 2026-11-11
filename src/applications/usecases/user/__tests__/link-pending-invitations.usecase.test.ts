@@ -21,6 +21,17 @@ describe("LinkPendingInvitationsUseCase", () => {
     expect(result).toBe(3);
   });
 
+  it("passes the normalized address to the repository", async () => {
+    mockPlayerRepository.linkUserToInvitations.mockResolvedValue(1);
+
+    await useCase.execute({ email: "  Alice@Example.COM ", userId: "user-1" });
+
+    expect(mockPlayerRepository.linkUserToInvitations).toHaveBeenCalledWith(
+      "alice@example.com",
+      "user-1",
+    );
+  });
+
   it("should return 0 when no invitations are found", async () => {
     mockPlayerRepository.linkUserToInvitations.mockResolvedValue(0);
 

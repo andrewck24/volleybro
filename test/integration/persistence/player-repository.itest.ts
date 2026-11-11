@@ -87,4 +87,53 @@ describe("player reads and writes", () => {
       await players().updateRoleIf(oid(), PlayerRole.ADMIN, PlayerRole.MEMBER),
     ).toBeNull();
   });
+
+  describe("email invitations", () => {
+    const email = "alice@example.com";
+    const invited = (overrides: Record<string, unknown>) =>
+      PlayerModel.create({
+        name: "Invitee",
+        status: PlayerStatus.INVITED,
+        role: PlayerRole.MEMBER,
+        teamId: oid(),
+        ...overrides,
+      });
+
+    it("finds a user's players together with the invitations to their address", async () => {
+      const userId = oid();
+      await invited({ name: "Mine", userId });
+      await invited({ name: "ByEmail", email });
+      await invited({ name: "OtherUser", userId: oid() });
+      await invited({ name: "OtherEmail", email: "bob@example.com" });
+
+      const found = await players().findByUserIdOrInvitedEmail(userId, email);
+
+      expect(found.map((p) => p.name).sort()).toEqual(["ByEmail", "Mine"]);
+    });
+
+    it("ignores rows that carry the address without being invitations", async () => {
+      await PlayerModel.create({
+        name: "Stale",
+        status: PlayerStatus.NONE,
+        teamId: oid(),
+        email,
+      });
+
+      expect(await players().findByUserIdOrInvitedEmail(oid(), email)).toEqual(
+        [],
+      );
+    });
+
+    it("links invitations stored under the lowercase address exactly", async () => {
+      const userId = oid();
+      await invited({ name: "Exact", email });
+      await invited({ name: "Mixed", email: "Alice@example.com" });
+
+      expect(await players().linkUserToInvitations(email, userId)).toBe(1);
+
+      const mine = await players().findByUserId(userId);
+      expect(mine.map((p) => p.name)).toEqual(["Exact"]);
+      expect(mine[0]).not.toHaveProperty("email");
+    });
+  });
 });

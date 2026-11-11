@@ -9,6 +9,7 @@ export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
     findById: jest.fn(),
     findByTeamId: jest.fn(),
     findByUserId: jest.fn(),
+    findByUserIdOrInvitedEmail: jest.fn(),
     findInvitedByTeamIdAndEmail: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -46,7 +47,6 @@ export function createMockUserRepository(): jest.Mocked<IUserRepository> {
   return {
     findById: jest.fn(),
     findByEmail: jest.fn(),
-    findAllByEmailInsensitive: jest.fn(),
   };
 }
 

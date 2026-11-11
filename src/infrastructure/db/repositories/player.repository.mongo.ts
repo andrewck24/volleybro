@@ -49,6 +49,20 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
+  async findByUserIdOrInvitedEmail(
+    userId: string,
+    email: string,
+  ): Promise<Player[]> {
+    try {
+      const docs = await PlayerModel.find({
+        $or: [{ userId }, { email, status: PlayerStatus.INVITED }],
+      }).exec();
+      return docs.map((doc) => fromDocument(doc));
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
   async findInvitedByTeamIdAndEmail(
     teamId: string,
     email: string,
@@ -129,17 +143,13 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
 
   async linkUserToInvitations(email: string, userId: string): Promise<number> {
     try {
-      // The address arrives in whatever case the identity provider holds it,
-      // and an invitation stored before this release kept the case it was typed
-      // in. The same collation the user lookup uses lets the two meet, without
-      // a $regex, whose `.` would reach a different address.
       const result = await PlayerModel.updateMany(
         { email, status: PlayerStatus.INVITED },
         {
           $set: { userId, status: PlayerStatus.INVITED },
           $unset: { email: "" },
         },
-      ).collation({ locale: "en", strength: 2 });
+      );
       return result.modifiedCount;
     } catch (error) {
       throw translateRepositoryError(error);

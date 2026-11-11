@@ -27,14 +27,6 @@ describe("user lookups", () => {
     expect(await users().findById(oid())).toBeNull();
   });
 
-  it("finds an account regardless of email case", async () => {
-    await UserModel.create({ name: "Alice", email: "Alice@example.com" });
-
-    expect(
-      await users().findAllByEmailInsensitive("alice@EXAMPLE.com"),
-    ).toMatchObject([{ name: "Alice" }]);
-  });
-
   it("finds the user holding an address exactly, and none for another", async () => {
     await UserModel.create({ name: "Alice", email: "alice@example.com" });
     await UserModel.create({ name: "Bob", email: "bob@example.com" });
@@ -43,5 +35,20 @@ describe("user lookups", () => {
       name: "Bob",
     });
     expect(await users().findByEmail("carol@example.com")).toBeNull();
+  });
+
+  it("does not match an address that differs in case", async () => {
+    await UserModel.create({ name: "Alice", email: "alice@example.com" });
+
+    expect(await users().findByEmail("Alice@example.com")).toBeNull();
+  });
+
+  it("rejects a second account holding the same address", async () => {
+    await UserModel.init();
+    await UserModel.create({ name: "Alice", email: "alice@example.com" });
+
+    await expect(
+      UserModel.create({ name: "Twin", email: "alice@example.com" }),
+    ).rejects.toMatchObject({ code: 11000 });
   });
 });
