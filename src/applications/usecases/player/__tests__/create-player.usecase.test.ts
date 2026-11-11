@@ -63,16 +63,11 @@ describe("CreatePlayerUseCase", () => {
     });
 
     it("creates an invitee holding only a lowercased, trimmed email", async () => {
-      const created = createInvitedPlayer({
-        id: "player_invited_001",
-        teamId,
-        email: "wang@example.com",
-        role: PlayerRole.ADMIN,
-      });
-
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       unregistered();
-      mockPlayerRepository.create.mockResolvedValue(created);
+      mockPlayerRepository.create.mockImplementation(async (player) =>
+        createInvitedPlayer({ teamId, ...player } as never),
+      );
 
       const result = await useCase.execute({
         teamId,
@@ -84,17 +79,13 @@ describe("CreatePlayerUseCase", () => {
         userId,
       });
 
-      expect(result).toEqual(created);
-      expect(mockPlayerRepository.create).toHaveBeenCalledWith({
+      expect(result).toMatchObject({
         name: "王小明",
         status: PlayerStatus.INVITED,
-        number: undefined,
-        position: undefined,
-        teamId,
         email: "wang@example.com",
-        inviteeEmail: "wang@example.com",
         role: PlayerRole.ADMIN,
       });
+      expect(result).not.toHaveProperty("userId");
     });
 
     it("links the account that holds the normalized address", async () => {

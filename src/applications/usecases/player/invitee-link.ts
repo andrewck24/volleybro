@@ -1,6 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import { ConflictError, CommonReason, PlayerReason } from "@/entities/errors";
+import { ConflictError, PlayerReason } from "@/entities/errors";
 import { normalizeEmail } from "@/entities/user";
 
 /**
@@ -51,22 +51,4 @@ export const resolveInviteeLink = async (
     return { userId: user.id, inviteeEmail: address };
   }
   return { email: address, inviteeEmail: address };
-};
-
-/**
- * The partial unique indexes on (teamId, userId), (teamId, email) and
- * (teamId, inviteeEmail) close the race the checks above cannot. To the caller
- * it is the same conflict, not the generic duplicate-resource one. The error
- * exposes only the driver's message, so the invitee index is told apart by its
- * field name in it.
- */
-export const asRosterConflict = (error: unknown): unknown => {
-  if (
-    !(error instanceof ConflictError) ||
-    error.reason !== CommonReason.DUPLICATE_RESOURCE
-  )
-    return error;
-  return error.message.includes("inviteeEmail")
-    ? alreadyInvited()
-    : alreadyOnRoster();
 };

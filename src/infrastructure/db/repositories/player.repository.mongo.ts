@@ -1,5 +1,10 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { NotFoundError, CommonReason } from "@/entities/errors";
+import {
+  ConflictError,
+  NotFoundError,
+  CommonReason,
+  PlayerReason,
+} from "@/entities/errors";
 import {
   NewPlayer,
   Player,
@@ -17,6 +22,34 @@ import {
   toPlayerUpdateOps,
 } from "@/infrastructure/db/repositories/player.mapping.mongo";
 import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
+
+/**
+ * The partial unique indexes on (teamId, userId), (teamId, email) and
+ * (teamId, inviteeEmail) close the races the use cases' checks cannot; which
+ * one fired is in the driver error's key pattern. To the caller a collision is
+ * a roster conflict, not the generic duplicate-resource one.
+ */
+const translatePlayerWriteError = (error: unknown) => {
+  const { code, keyPattern, keyValue } = (error ?? {}) as {
+    code?: unknown;
+    keyPattern?: object;
+    keyValue?: object;
+  };
+  if (code === 11000) {
+    const keys = Object.keys(keyPattern ?? keyValue ?? {});
+    if (keys.includes("email") || keys.includes("inviteeEmail"))
+      return new ConflictError(
+        PlayerReason.ALREADY_INVITED,
+        "This person has already been invited to this team",
+      );
+    if (keys.includes("userId"))
+      return new ConflictError(
+        PlayerReason.ALREADY_ON_ROSTER,
+        "This account already belongs to a player on this team",
+      );
+  }
+  return translateRepositoryError(error);
+};
 
 const fromDocument = (doc: PlayerDocument): Player =>
   toPlayer(doc.toObject() as RawPlayer);
@@ -84,7 +117,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
       const newPlayer = await PlayerModel.create(player);
       return fromDocument(newPlayer);
     } catch (error) {
-      throw translateRepositoryError(error);
+      throw translatePlayerWriteError(error);
     }
   }
 
@@ -103,7 +136,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
       }
       return fromDocument(updated);
     } catch (error) {
-      throw translateRepositoryError(error);
+      throw translatePlayerWriteError(error);
     }
   }
 

@@ -289,6 +289,28 @@ describe("invitations reach the account behind the address", () => {
     expect(frank[0]).toMatchObject({ email: "frank@example.com" });
   });
 
+  it("refuses the second of two email invitations to one address that both passed the pre-write check", async () => {
+    const first = await seatFor("Gina");
+    const second = await seatFor("Gina again");
+    await invite(first, "gina@example.com");
+    const preCheck = jest
+      .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
+      .mockResolvedValue(null);
+
+    try {
+      await expect(invite(second, "gina@example.com")).rejects.toMatchObject({
+        reason: PlayerReason.ALREADY_INVITED,
+      });
+    } finally {
+      preCheck.mockRestore();
+    }
+
+    const invited = (await roster(teamId)).filter(
+      (p) => p.status === PlayerStatus.INVITED,
+    );
+    expect(invited).toHaveLength(1);
+  });
+
   it("creates a linked invitee straight from create-player", async () => {
     const userId = await register("erin@example.com");
 

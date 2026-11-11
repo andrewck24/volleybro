@@ -1,5 +1,5 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { CommonReason, ConflictError, NotFoundError } from "@/entities/errors";
+import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { container } from "@/infrastructure/di/inversify.config";
@@ -33,7 +33,7 @@ describe("player reads and writes", () => {
     expect(await players().delete(id)).toBe(false);
   });
 
-  it("reports a second seat for the same account in a team as a conflict", async () => {
+  it("refuses a second seat for the same account in a team as already on the roster", async () => {
     await PlayerModel.init();
     const userId = oid();
     const seat = {
@@ -49,7 +49,7 @@ describe("player reads and writes", () => {
 
     await expect(rejection).rejects.toBeInstanceOf(ConflictError);
     await expect(rejection).rejects.toMatchObject({
-      reason: CommonReason.DUPLICATE_RESOURCE,
+      reason: PlayerReason.ALREADY_ON_ROSTER,
     });
   });
 

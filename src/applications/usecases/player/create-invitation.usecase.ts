@@ -1,10 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import {
-  asRosterConflict,
-  resolveInviteeLink,
-} from "@/applications/usecases/player/invitee-link";
+import { resolveInviteeLink } from "@/applications/usecases/player/invitee-link";
 import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
 import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
@@ -78,17 +75,13 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
       email,
     );
 
-    const updated = await this.playerRepository
-      .update(playerId, {
-        status: PlayerStatus.INVITED,
-        role,
-        userId: undefined,
-        email: undefined,
-        ...link,
-      })
-      .catch((error: unknown) => {
-        throw asRosterConflict(error);
-      });
+    const updated = await this.playerRepository.update(playerId, {
+      status: PlayerStatus.INVITED,
+      role,
+      userId: undefined,
+      email: undefined,
+      ...link,
+    });
 
     return updated;
   }
