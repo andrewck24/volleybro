@@ -70,16 +70,19 @@ export class TransientError extends AppError {
   readonly isTransient = true;
   readonly source?: string;
   readonly retryable?: boolean;
+  readonly originalError?: unknown;
 
   constructor(
     reason: string,
     detail: string,
     internalMessage?: string,
     options?: { source?: string; retryable?: boolean },
+    originalError?: unknown,
   ) {
     super(reason, detail, internalMessage);
     this.source = options?.source;
     this.retryable = options?.retryable;
+    this.originalError = originalError;
   }
 }
 
