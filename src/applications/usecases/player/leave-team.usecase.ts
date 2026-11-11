@@ -3,7 +3,6 @@ import type { ITeamRepository } from "@/applications/repositories/team.repositor
 import {
   AuthorizationError,
   NotFoundError,
-  UnexpectedError,
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
@@ -69,18 +68,12 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     // Lineups first: a failed update leaves a member who can leave again.
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
-    const updated = await this.playerRepository.update(playerId, {
+    await this.playerRepository.update(playerId, {
       status: PlayerStatus.NONE,
       userId: undefined,
       email: undefined,
       role: undefined,
     });
-    if (!updated) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to leave team",
-      );
-    }
 
     return { success: true };
   }

@@ -5,13 +5,7 @@ import {
   asRosterConflict,
   resolveInviteeLink,
 } from "@/applications/usecases/player/invitee-link";
-import {
-  ConflictError,
-  NotFoundError,
-  UnexpectedError,
-  CommonReason,
-  PlayerReason,
-} from "@/entities/errors";
+import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
 import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
@@ -95,13 +89,6 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
       .catch((error: unknown) => {
         throw asRosterConflict(error);
       });
-
-    if (!updated) {
-      throw new UnexpectedError(
-        CommonReason.UNHANDLED_ERROR,
-        "Failed to create invitation",
-      );
-    }
 
     return updated;
   }
