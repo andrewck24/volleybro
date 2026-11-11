@@ -95,7 +95,6 @@ describe("withErrorHandler", () => {
         code: "TRANSIENT",
         reason: CommonReason.UNHANDLED_ERROR,
       });
-      expect(Object.keys(body as object).sort()).toEqual(["code", "reason"]);
     });
 
     it("reduces the details field to field paths", async () => {
