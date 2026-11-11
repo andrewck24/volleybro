@@ -1,6 +1,7 @@
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam } from "@/hooks/use-data";
+import { deferred } from "@test/support/gates";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -42,13 +43,10 @@ function renderSection(props: {
 
 // Holds the response until the test releases it, so the request stays in flight.
 function holdResponse(method: "delete" | "post", path: string): () => void {
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
+  const { promise, release } = deferred();
   server.use(
     http[method](path, async () => {
-      await gate;
+      await promise;
       return HttpResponse.json({});
     }),
   );

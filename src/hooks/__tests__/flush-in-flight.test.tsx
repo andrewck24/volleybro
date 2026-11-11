@@ -9,6 +9,7 @@ import type { GameView, PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 
+import { deferred } from "@test/support/gates";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
 
@@ -50,10 +51,7 @@ beforeEach(() => {
 // The flush replaces the set's entries with the server's answer, which cannot
 // include a rally recorded after that request went out.
 it("keeps a rally recorded while a flush was already in flight", async () => {
-  let settle!: () => void;
-  const firstAnswer = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
+  const { promise: firstAnswer, release: settle } = deferred();
   const sent: string[][] = [];
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(serverGame())),
