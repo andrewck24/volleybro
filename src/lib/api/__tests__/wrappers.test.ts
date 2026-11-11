@@ -1,6 +1,7 @@
 import {
   ConflictError,
   NotFoundError,
+  TransientError,
   ValidationError,
   AuthReason,
   CommonReason,
@@ -78,16 +79,22 @@ describe("withErrorHandler", () => {
 
     it("serializes a closed set of keys, so free text cannot return under another name", async () => {
       const handler = withErrorHandler(async () => {
-        throw new NotFoundError(
-          "PLAYER_NOT_FOUND",
-          "The specified player does not exist",
-          "Player 6721a not found in team abc",
+        throw new TransientError(
+          CommonReason.UNHANDLED_ERROR,
+          "A temporary database error occurred, please retry",
+          "connection 6 closed",
+          { source: "database", retryable: true },
+          new Error("connection 6 closed"),
         );
       });
 
-      const { body } = await call(handler as never);
+      const { status, body } = await call(handler as never);
 
-      expect(Object.keys(body as object).sort()).toEqual(["code", "reason"]);
+      expect(status).toBe(503);
+      expect(body).toEqual({
+        code: "TRANSIENT",
+        reason: CommonReason.UNHANDLED_ERROR,
+      });
     });
 
     it("reduces the details field to field paths", async () => {

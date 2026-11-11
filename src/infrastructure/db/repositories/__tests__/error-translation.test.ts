@@ -1,5 +1,6 @@
 import {
   ConflictError,
+  CommonReason,
   NotFoundError,
   TransientError,
   UnexpectedError,
@@ -48,7 +49,14 @@ describe("Repository error translation", () => {
           Object.assign(new Error("connection lost"), { name }),
         );
         expect(result).toBeInstanceOf(TransientError);
-        expect(result).toMatchObject({ source: "database", retryable: true });
+        expect(result).toMatchObject({
+          code: "TRANSIENT",
+          httpStatus: 503,
+          reason: CommonReason.UNHANDLED_ERROR,
+          detail: "A temporary database error occurred, please retry",
+          source: "database",
+          retryable: true,
+        });
       },
     );
   });
