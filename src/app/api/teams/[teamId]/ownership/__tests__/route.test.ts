@@ -8,7 +8,7 @@ const mockTransferOwnership = jest.fn<(input: unknown) => Promise<unknown>>();
 const mockGetSession = jest.fn<() => Promise<unknown>>();
 
 jest.mock("@/interface/controllers/player/ownership.controller", () => ({
-  transferOwnership: mockTransferOwnership,
+  transferOwnershipController: mockTransferOwnership,
 }));
 
 jest.mock("@/lib/auth", () => ({

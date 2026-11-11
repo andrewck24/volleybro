@@ -25,7 +25,7 @@ export const POST = (
     const body = await req.json();
     const validatedData = ManagePlayerMembershipSchema.parse(body);
 
-    const player = await membershipController.createInvitation({
+    const player = await membershipController.createInvitationController({
       playerId,
       email: validatedData.email,
       role: validatedData.role,
@@ -47,7 +47,7 @@ export const PATCH = (
     const body = await req.json();
     const validatedData = UpdatePlayerRoleSchema.parse(body);
 
-    const player = await membershipController.updateRole({
+    const player = await membershipController.updateRoleController({
       playerId,
       newRole: validatedData.role,
       userId,
@@ -65,7 +65,7 @@ export const DELETE = (
     const { playerId } = await props.params;
     assertObjectId(playerId, "playerId");
 
-    const player = await membershipController.cancelInvitation({
+    const player = await membershipController.cancelInvitationController({
       playerId,
       userId,
     });

@@ -27,7 +27,7 @@ export const GET = (
       );
     }
 
-    const players = await playerController.getUserPlayers({
+    const players = await playerController.getUserPlayersController({
       userId: targetUserId,
     });
 
