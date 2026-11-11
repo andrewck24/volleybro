@@ -24,11 +24,13 @@ export const Figures = ({
         )}
       >
         <Figure
+          data-stat-figure=""
           value={values.left}
           variant={isLeftLarger ? "primaryText" : "secondary"}
         />
         <span className="flex flex-1 items-center justify-center">{label}</span>
         <Figure
+          data-stat-figure=""
           value={values.right}
           variant={isRightLarger ? "awayText" : "secondary"}
         />
@@ -66,11 +68,24 @@ export interface FigureProps
     React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof figureVariants> {
   value?: number;
+  "data-score-badge"?: string;
+  "data-stat-figure"?: string;
 }
 
-export const Figure = ({ value, size, variant, className }: FigureProps) => {
+export const Figure = ({
+  value,
+  size,
+  variant,
+  className,
+  "data-score-badge": scoreBadge,
+  "data-stat-figure": statFigure,
+}: FigureProps) => {
   return (
-    <div className={cn(figureVariants({ size, variant }), className)}>
+    <div
+      data-score-badge={scoreBadge}
+      data-stat-figure={statFigure}
+      className={cn(figureVariants({ size, variant }), className)}
+    >
       {value}
     </div>
   );
@@ -88,10 +103,12 @@ export const BarChart = ({
   return (
     <div className="grid h-2 w-full grid-cols-2 overflow-hidden rounded bg-secondary">
       <div
+        data-stat-bar=""
         className={cn("origin-left bg-primary transition-all")}
         style={{ transform: `scaleX(${leftScale})` }}
       />
       <div
+        data-stat-bar=""
         className={cn("origin-right bg-court transition-all")}
         style={{ transform: `scaleX(${rightScale})` }}
       />

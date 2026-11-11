@@ -67,8 +67,8 @@ export const useStepObserver = (
 };
 
 const ENTER_ANIMATIONS_SETTLE_MS = 900;
-// the app's panels slide in after every state change (tailwind-animate)
-const SLIDE_SELECTOR = '[class*="slide-in-from"]';
+// the moves panel slides in on each step; re-measure once it lands
+const SLIDE_SELECTOR = "[data-moves-step]";
 
 // The dot's path is a CSS scroll-driven animation; its tap targets are measured
 // live, taps 2 and 3 in the hidden mirror panels so the visible store is never
