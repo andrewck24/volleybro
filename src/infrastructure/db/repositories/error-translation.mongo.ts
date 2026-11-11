@@ -8,6 +8,8 @@ import {
   CommonReason,
 } from "@/entities/errors";
 
+export const DUPLICATE_KEY_CODE = 11000;
+
 const NETWORK_ERROR_NAMES = new Set([
   "MongoNetworkError",
   "MongoNetworkTimeoutError",
@@ -34,7 +36,7 @@ export function translateRepositoryError(error: unknown): AppError {
     }
     if (
       error.name === "MongoServerError" &&
-      (error as { code?: unknown }).code === 11000
+      (error as { code?: unknown }).code === DUPLICATE_KEY_CODE
     ) {
       return new ConflictError(
         CommonReason.DUPLICATE_RESOURCE,
