@@ -14,6 +14,7 @@ The stats section is a second court in the page's grammar. Code is in `src/compo
 - The active slide's title, body and badge show in the opponent zone as a polite live region. A change fades the old description out (160 ms) before the new one fades in, never two at once; reduced motion swaps instantly.
 - Slides mount lazily: only the active slide and its neighbours render, and each slide's component is a dynamic import outside first-load JS.
 - Equal height: below `lg` the card has a fixed height (five compact Points rows, smaller on narrow phones); from `lg` the track has a fixed 24.5 rem height. Every slide centres in that box, and the Entry slide shows whole rows only, so switching slides never resizes the card.
+- On narrow phones, the card sits on the net so the three-line lead clears its top edge.
 
 ## Constraints
 

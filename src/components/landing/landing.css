@@ -1,16 +1,11 @@
-/* The landing's court-plan world: tokens, layers, type floors and contrast
-   are specified in DESIGN.md and ADR-0106. */
-
 .landing {
   --court-line: #fff;
   --free-zone-foreground: hsl(330 10% 96.08%);
   --free-zone-muted-foreground: hsl(192 45% 86%);
-  /* line width outside a drawn court (about the hero court's 5 cm at 1280);
-     a court drawn in metres overrides it with 0.05 m */
+
   --court-line-width: 3px;
   --ease-landing: cubic-bezier(0.2, 0.8, 0.2, 1);
-  /* below lg every drawn court (hero, walkthrough field, stats, closing)
-     shares this width cap, so their side lines line up */
+
   --court-max-width: 30rem;
   background: var(--free-zone);
   color: var(--free-zone-foreground);
@@ -21,12 +16,6 @@
   --free-zone-muted-foreground: hsl(192 30% 78%);
 }
 
-/* The free zone is the page ground. It is set on <html> so the canvas behind
-   the page (overscroll, scrollbar gutter) and the status bar tint
-   (StatusBarColor reads it, and re-reads it when the theme class flips) share
-   it. A classic scrollbar's gutter cannot carry page content, so the
-   full-bleed closing court stops at it; the bar is thin and its track
-   transparent, so the gutter reads as free zone beyond the court. */
 html:has(.landing) {
   --landing-header-height: 4rem;
   --free-zone: hsl(192 77.46% 27.84%);
@@ -39,8 +28,6 @@ html.dark:has(.landing) {
   --free-zone: hsl(192 70% 13%);
 }
 
-/* the walkthrough turns mandatory snap on only while its stage is pinned
-   (steps-section.tsx); snap points sit under the floating header */
 html:has(.landing) {
   scroll-padding-top: var(--landing-header-height);
 }
@@ -49,9 +36,6 @@ html.landing-snap {
   scroll-snap-type: y mandatory;
 }
 
-/* while snap is on, the sections before and after the walkthrough are its
-   way in and out, so a fling past the first or last step is never pulled
-   back onto it */
 .landing-snap-point {
   scroll-snap-align: start;
 }
@@ -61,13 +45,11 @@ html.landing-snap {
   color: var(--court-foreground);
 }
 
-/* a fixed width: --court-line-width shrinks to 0.05 m inside a drawn court */
 .landing :focus-visible {
   outline: 3px solid var(--court-line);
   outline-offset: 3px;
 }
 
-/* a size container: --court-meter is one metre in cqw, so everything on it scales with the court */
 .landing-court {
   position: relative;
   container-type: inline-size;
@@ -76,8 +58,6 @@ html.landing-snap {
   --court-line-width: calc(0.05 * var(--court-meter));
 }
 
-/* closing: our half alone below lg (9 × 9); from lg our half plus their
-   attack zone (12 × 9), same zone grammar as the full court */
 .landing-square {
   position: relative;
   container-type: inline-size;
@@ -87,8 +67,6 @@ html.landing-snap {
 }
 
 @media (min-width: 64rem) {
-  /* the full 18 m court, one metre = 5.5vw: from the gutter it always runs
-     past the viewport's right edge (the section clips it) */
   .landing-square {
     container-type: normal;
     aspect-ratio: 2 / 1;
@@ -200,12 +178,6 @@ html.landing-snap {
   }
 }
 
-/* The zone is a size container. The app's EntryRow (40px, Figure sm + p-1)
-   stacks on a 44px pitch inside the card (p-1.5 = 12px). Row count comes
-   from the zone's height, rounded down to whole rows (no half row ever
-   shows), capped at 10. Where the card is narrow the rows are zoomed down
-   instead of dropping a column, so both moves always show on one line
-   (each needs ~300px at zoom 1). */
 .landing-entries {
   container-type: size;
 }
@@ -248,8 +220,9 @@ html.landing-snap {
   inset-inline: 0;
   top: 0;
   zoom: var(--rows-zoom);
-  /* zoom scales this translate too, so it is in unzoomed units */
-  transform: translateY(calc(var(--row-index) * 2.75rem));
+  --landing-entry-row-offset-y-unzoomed: calc(var(--row-index) * 2.75rem);
+
+  transform: translateY(var(--landing-entry-row-offset-y-unzoomed));
 }
 
 .landing-entry-row[data-is-animated] {
@@ -268,9 +241,7 @@ html.landing-snap {
     var(--distance-from-side-line-portrait, var(--distance-from-side-line)) *
       var(--court-meter)
   );
-  /* Where it files: the first Entry row's first score badge. RallyLayer
-     measures it into --mark-target-x/-y (px, layer coordinates); the
-     fallbacks (metres) hold until the first row exists. */
+
   --mark-offset-x: calc(
     var(--mark-target-x, calc(1 * var(--court-meter))) -
       var(--distance-from-side-line-portrait, var(--distance-from-side-line)) *
@@ -326,12 +297,10 @@ html.landing-snap {
   white-space: nowrap;
 }
 
-/* landscape: a point lost lands on our front zone and labels toward our end
-   line, so the label never crosses the net */
 @media (min-width: 64rem) {
   .landing-mark[data-lands-on-our-half] .landing-mark-label {
     left: auto;
-    /* the mark box spans spot..spot + 0.5 m (the dot is pulled back half) */
+
     right: calc(0.9 * var(--court-meter));
   }
 }
@@ -380,12 +349,6 @@ html.landing-snap {
   }
 }
 
-/* ---------- stats court: portrait below lg, landscape from lg ----------
-   Composes with .landing-court. Below lg the Points card has a fixed height
-   and sits centred on the net; our half above it holds the heading, the
-   opponent half below it the list. From lg the zones follow the court: back
-   zone / between the attack lines / their back zone. */
-
 .landing-stats {
   --stats-card-height: 19rem;
   --stats-card-top: calc(9 * var(--court-meter) - var(--stats-card-height) / 2);
@@ -415,8 +378,6 @@ html.landing-snap {
   inset: var(--stats-card-bottom) 0 0;
 }
 
-/* narrow phones (320): smaller figures, and the card sits on the net so the
-   three-line lead clears its top edge */
 @media (max-width: 23.74rem) {
   .landing-stats {
     --stats-card-height: 16rem;
@@ -440,8 +401,6 @@ html.landing-snap {
   }
 }
 
-/* the carousel track: native scroll-snap, horizontal only; a horizontal swipe
-   stays inside it, a vertical wheel or drag still scrolls the page */
 .landing-stats-slides {
   overscroll-behavior-x: contain;
   scrollbar-width: none;
