@@ -1,5 +1,7 @@
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { act, renderHook } from "@testing-library/react";
+import { createElement } from "react";
+import { renderToString } from "react-dom/server";
 
 type TestForm = { name: string; value: string };
 
@@ -34,6 +36,37 @@ describe("useFormDraft", () => {
     expect(result.current.form.getValues()).toEqual(saved);
   });
 
+  it("preserves default keys omitted from persisted JSON", () => {
+    const defaults: TestForm = { name: "default-name", value: "default-value" };
+    storage["draft:team:t1"] = JSON.stringify({ name: "saved-name" });
+
+    const { result } = renderHook(() =>
+      useFormDraft<TestForm>("draft:team:t1", { defaultValues: defaults }),
+    );
+
+    expect(result.current.form.getValues()).toEqual({
+      name: "saved-name",
+      value: "default-value",
+    });
+  });
+
+  it("keeps a stored draft out of server-rendered form values", () => {
+    storage["draft:team:t1"] = JSON.stringify({
+      name: "saved-name",
+      value: "saved-value",
+    });
+    const DraftSnapshot = () => {
+      const { form } = useFormDraft<TestForm>("draft:team:t1", {
+        defaultValues: { name: "default-name", value: "default-value" },
+      });
+      return createElement("span", null, form.getValues().name);
+    };
+
+    expect(renderToString(createElement(DraftSnapshot))).toBe(
+      "<span>default-name</span>",
+    );
+  });
+
   it("initializes form with provided defaultValues when no draft exists", () => {
     const defaults: TestForm = { name: "default-name", value: "" };
 
@@ -60,8 +93,6 @@ describe("useFormDraft", () => {
   it("does not persist a draft while the form stays pristine", () => {
     const defaults: TestForm = { name: "default-name", value: "" };
 
-    // renderHook flushes the initial render and effects inside its own act(),
-    // so the persistence effect has already run by the time it returns.
     renderHook(() =>
       useFormDraft<TestForm>("draft:team:new", { defaultValues: defaults }),
     );

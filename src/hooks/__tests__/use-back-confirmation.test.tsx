@@ -17,7 +17,6 @@ describe("useBackConfirmation", () => {
     act(() => result.current.cancelLeave());
     expect(result.current.confirming).toBe(false);
 
-    // A trap that disarmed itself would let the next press through silently.
     act(back);
     expect(result.current.confirming).toBe(true);
     expect(onLeave).not.toHaveBeenCalled();

@@ -7,15 +7,6 @@ import {
 } from "@/lib/features/game/pending-writes";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
-/**
- * The editing dialog cannot be abandoned while its write is still in
- * flight -- only the pending-write queue (via `writing`/`failed`) knows
- * whether it's safe to leave. `guardDismiss` blocks the dialog primitive's
- * own escape/outside-click dismissal while writing (a no-op once failed or
- * idle, so those fall through to a normal close); `leaveEditing` is the back
- * control's handler, and once the write has exhausted its attempts it tells
- * the recorder the edit did not save before leaving.
- */
 export function useEditingGuard() {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
@@ -33,7 +24,6 @@ export function useEditingGuard() {
   const leaveEditing = () => {
     if (writing) return;
     if (failed) {
-      // No reason key: the app's own state, not a failed request.
       toast({
         title: "編輯未儲存",
         description: "這筆逐球紀錄的修改沒有送出成功，之後可以在紀錄列表重試。",

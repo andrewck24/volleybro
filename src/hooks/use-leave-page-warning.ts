@@ -30,7 +30,7 @@ export function useLeavePageWarning(isDirty: boolean): void {
         return;
       }
       e.preventDefault();
-      e.returnValue = ""; // required for cross-browser compatibility
+      e.returnValue = "";
     };
 
     window.addEventListener("beforeunload", handler);

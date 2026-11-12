@@ -14,8 +14,7 @@ import { answerEntries } from "@test/support/msw/entries";
 
 let store: AppStore;
 let cachedGame: GameView;
-// The game is seeded into the SWR cache: this hook reads it, and what the
-// tests vary is the game's stored result, not how it is fetched.
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <Provider store={store}>
     <SWRConfig
@@ -59,9 +58,6 @@ beforeEach(() => {
 });
 
 describe("useUnconfirmedSetCompletion", () => {
-  // Callers only invoke this once Interval has established the set is over,
-  // so a fetched win still null with no session signal is a set whose result
-  // was never saved.
   it("detects a cold start with no extra persisted state: fetched win still null", () => {
     const { result } = renderUnconfirmed(null);
 
@@ -71,16 +67,12 @@ describe("useUnconfirmedSetCompletion", () => {
 
   it("is unconfirmed and attempting while the initial flush is in flight", () => {
     enqueue("e1", "game-1", 0);
-    const { result } = renderUnconfirmed(true); // optimistic write already applied
+    const { result } = renderUnconfirmed(true);
 
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(true);
   });
 
-  // A flush covers every pending set of one game, so game identity alone is
-  // not enough: an entry queued for another game, or for a different set of
-  // this game, must not read as this set's attempt and raise the dialog over
-  // a set whose result already landed.
   it.each([
     ["a different game", "game-2", 3],
     ["a different set of the same game", "game-1", 5],
@@ -95,9 +87,6 @@ describe("useUnconfirmedSetCompletion", () => {
     },
   );
 
-  // A scheduled background-retry attempt must read as attempting even with no
-  // request on the wire, or the dialog disappears for the whole backoff
-  // window between a failed attempt and the next flush.
   it("is attempting during the background backoff window, with no flush in flight", () => {
     enqueue("e1", "game-1", 0);
     store.dispatch(
@@ -109,13 +98,8 @@ describe("useUnconfirmedSetCompletion", () => {
     expect(result.current.attempting).toBe(true);
   });
 
-  // The optimistic write has already put `win` on the cached set, so once the
-  // retry budget runs out the queue is the only evidence the result was never
-  // saved; without it every signal says confirmed over an unsent result.
   it("stays unconfirmed, no longer attempting, once the queued entry has exhausted its backoff", () => {
     enqueue("e1", "game-1", 0);
-    // retryable: false spends the budget outright: nothing will send this
-    // entry again without a manual retry.
     store.dispatch(
       pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
     );
@@ -125,9 +109,6 @@ describe("useUnconfirmedSetCompletion", () => {
     expect(result.current.attempting).toBe(false);
   });
 
-  // The queue term must not outlive its purpose: once a flush lands without
-  // reporting a completion result, the entry has left the queue and the
-  // dialog has nothing left to cover.
   it("closes once the flush succeeds and the entry leaves the queue", () => {
     enqueue("e1", "game-1", 0);
     store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
@@ -181,9 +162,6 @@ describe("useUnconfirmedSetCompletion", () => {
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
   });
 
-  // An entry already on the server is resent as the same creation: the same
-  // `at` and sender makes the server treat it as a resend, where a fresh `at`
-  // would stamp a false editor on it.
   it("retry resends a stored entry with its recordedAt so the server sees a resend, not an edit", async () => {
     const requests = answerEntries(() =>
       HttpResponse.json({ entries: [lastRally] }),
@@ -216,9 +194,6 @@ describe("useUnconfirmedSetCompletion", () => {
     ]);
   });
 
-  // An optimistic entry has no recordedAt yet, but carries the `at` it was
-  // first sent with. A write that landed with a lost response must read as a
-  // resend, so that `at` has to survive instead of being replaced by now.
   it("retry resends an optimistic entry with its own at, not a fresh one", async () => {
     const requests = answerEntries(() =>
       HttpResponse.json({ entries: [lastRally] }),
@@ -249,10 +224,6 @@ describe("useUnconfirmedSetCompletion", () => {
     ]);
   });
 
-  // The manual retry bypasses the queue: it sends the entry itself, so
-  // nothing removes the entry on its way out. A successful retry must still
-  // close the dialog, and a response that omits the field means a different
-  // attempt already matched the derived result, which is a confirmation.
   it("closes after a successful retry even though the entry is still queued and the response omits the field", async () => {
     answerEntries(() => HttpResponse.json({ entries: [lastRally] }));
     enqueue("e1", "game-1", 0);
@@ -268,8 +239,6 @@ describe("useUnconfirmedSetCompletion", () => {
 
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
     expect(result.current.unconfirmed).toBe(false);
-    // An entry left behind would keep the sync indicator reporting it unsent
-    // for the rest of the session.
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 

@@ -3,9 +3,7 @@ import { useEffect, useState, type RefObject } from "react";
 
 type InViewOptions = {
   rootMargin?: string;
-  /** stop observing, and stay `true`, after the first intersection */
   once?: boolean;
-  /** the answer before the observer first reports */
   initial?: boolean;
 };
 

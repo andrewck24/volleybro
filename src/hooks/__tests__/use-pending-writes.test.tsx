@@ -23,7 +23,6 @@ import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { answerEntries, type EntryPut } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
 
-// null is a signed-in user that cannot be read, as when the device is offline.
 let currentUserId: string | null = "user-a";
 const answerCurrentUser = () =>
   server.use(
@@ -71,10 +70,6 @@ const unavailable = () =>
     { status: 503 },
   );
 
-/**
- * Serves the game and its rally endpoint, and records each PUT. `respond`
- * decides the answer to each one.
- */
 const serve = (
   respond: (put: { si: number; n: number }) => Response | Promise<Response>,
 ) => {
@@ -90,8 +85,6 @@ const sent = (puts: EntryPut[]) =>
     ids: (body as { id: string }[]).map((e) => e.id),
   }));
 
-// A request settles on real I/O ticks, so under fake timers the clock is
-// stepped with a real pause between steps until the condition holds.
 const realSetTimeout = globalThis.setTimeout;
 const advanceUntil = async (condition: () => boolean) => {
   for (let i = 0; i < 400 && !condition(); i++) {
@@ -127,7 +120,6 @@ const renderQueue = (setIndex = 0) =>
     { wrapper },
   );
 
-// The writer comes from /api/users, which answers after the first render.
 const renderSignedIn = async (setIndex = 0) => {
   const view = renderQueue(setIndex);
   await waitFor(() =>
@@ -161,7 +153,6 @@ describe("usePendingWrites", () => {
     const puts = serve(() => HttpResponse.json(confirmed("e1")));
     const { result: asA, unmount: leaveA } = await renderSignedIn();
     act(() =>
-      // Restore parses the snapshot, so this entry has to be a valid rally.
       asA.current.queue.enqueue({
         ...entry("e1"),
         at: "2026-10-27T01:02:03.000Z",
@@ -282,7 +273,6 @@ describe("usePendingWrites", () => {
       second = result.current.queue.flush();
     });
     await waitFor(() => expect(puts).toHaveLength(1));
-    // A second request, if one were made, arrives right behind the first.
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(puts).toHaveLength(1);
 
@@ -295,7 +285,6 @@ describe("usePendingWrites", () => {
 
   describe("with backoff", () => {
     beforeEach(() => {
-      // With process.nextTick faked, fetch never settles under MSW.
       jest.useFakeTimers({ doNotFake: ["nextTick"] });
     });
 
@@ -316,7 +305,6 @@ describe("usePendingWrites", () => {
       });
       await advanceUntilSettled(flushed);
 
-      // Inline retries exhausted; the item now waits on the background schedule.
       expect(puts).toHaveLength(
         PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS.length + 1,
       );
@@ -352,8 +340,6 @@ describe("usePendingWrites", () => {
       let online!: Promise<unknown>;
       act(() => {
         window.dispatchEvent(new Event("online"));
-        // The online listener's flush is already in flight; flush() dedupes
-        // to the same promise, so awaiting it waits for that request.
         online = result.current.queue.flush();
       });
       await advanceUntilSettled(online);
@@ -404,8 +390,6 @@ describe("usePendingWrites", () => {
       );
       enqueueDirectly("e0", 0);
 
-      // Nothing calls flush() here: the hook's own background-retry effect
-      // must pick up an entry left behind by a set no longer being recorded.
       renderQueue(1);
       await advanceUntil(
         () =>
@@ -446,9 +430,6 @@ describe("usePendingWrites", () => {
   });
 });
 
-// A component reading enqueue/flush/retry through the context rather than
-// calling usePendingWrites itself, standing in for each of the four real
-// call sites (Game, useSubmitEntryDraft, GamePreview, SyncIndicator).
 const ContextConsumer = () => {
   usePendingWritesContext();
   return null;
@@ -456,9 +437,6 @@ const ContextConsumer = () => {
 
 describe("PendingWritesContext: single owner", () => {
   it("fires exactly one background-retry request for one due entry, no matter how many components read the queue", async () => {
-    // The request is held open: an instant answer would let a first (buggy)
-    // flush clear the queue before a second instance's timer fires, hiding
-    // the race this test exists to catch.
     const { promise, release } = deferred();
     const puts = serve(async () => {
       await promise;
@@ -486,7 +464,6 @@ describe("PendingWritesContext: single owner", () => {
       </Provider>,
     );
 
-    // The entry is due immediately, so every mounted retry effect fires now.
     await waitFor(() => expect(puts).toHaveLength(1));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(puts).toHaveLength(1);
