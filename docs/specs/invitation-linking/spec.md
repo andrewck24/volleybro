@@ -22,12 +22,12 @@ When a new user registers, the system SHALL automatically link all Player record
 
 ### Requirement: Registration hook uses use case directly
 
-The `user.create.after` hook in Better Auth SHALL resolve use cases directly from the DI container, not through controllers (Infrastructure layer). The existing `createProfileController` call SHALL also be refactored to use `CreateProfileUseCase` directly.
+The `user.create.after` hook in Better Auth SHALL resolve use cases directly from the DI container, not through controllers (Infrastructure layer).
 
 #### Scenario: Hook execution order
 
 - **WHEN** a new user is created
-- **THEN** the hook SHALL first execute `CreateProfileUseCase.execute({ userId })`
+- **THEN** the hook SHALL connect to MongoDB, logging a connection failure without propagating it
 - **THEN** the hook SHALL execute `LinkPendingInvitationsUseCase.execute({ userId, email })`
 
 ---
@@ -52,12 +52,12 @@ The `LinkPendingInvitationsUseCase` SHALL use a repository method that performs 
 
 ### Requirement: Retry on transient failure
 
-If the `LinkPendingInvitationsUseCase` fails with a TransientError, the registration hook SHALL retry once after a short delay. If the retry also fails, the hook SHALL log the error and allow registration to complete (Infrastructure layer).
+If the `LinkPendingInvitationsUseCase` fails with a TransientError, the registration hook SHALL retry once immediately. If the retry also fails, the hook SHALL log the error and allow registration to complete (Infrastructure layer).
 
 #### Scenario: First attempt fails, retry succeeds
 
 - **WHEN** the first `LinkPendingInvitationsUseCase` execution fails with a TransientError
-- **THEN** the hook SHALL wait briefly and retry once
+- **THEN** the hook SHALL retry once
 - **THEN** the retry SHALL succeed and all matching Player records SHALL be linked
 
 #### Scenario: Both attempts fail
@@ -65,7 +65,7 @@ If the `LinkPendingInvitationsUseCase` fails with a TransientError, the registra
 - **WHEN** both the first and retry attempts fail
 - **THEN** the hook SHALL log the error with `console.error`
 - **THEN** the user registration SHALL complete successfully (not blocked)
-- **THEN** the Profile creation (step 1) SHALL NOT be rolled back
+- **THEN** the hook SHALL NOT propagate the error
 
 ---
 

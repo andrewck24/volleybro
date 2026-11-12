@@ -5,7 +5,7 @@ import {
   NotFoundError,
   ValidationError,
   CommonReason,
-  ProfileReason,
+  PlayerReason,
 } from "@/entities/errors";
 import { normalizeEmail } from "@/entities/user";
 import { TYPES } from "@/infrastructure/di/types";
@@ -51,7 +51,7 @@ export class SearchUserUseCase implements ISearchUserUseCase {
       return {
         ok: false,
         error: new ValidationError(
-          ProfileReason.INVALID_EMAIL,
+          PlayerReason.INVALID_EMAIL,
           "Invalid email format",
         ),
       };

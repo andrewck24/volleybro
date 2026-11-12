@@ -17,7 +17,7 @@ describe("error-messages catalogue", () => {
   it("derives its reasons from the errors module rather than a written list", () => {
     // Guards the derivation itself: a filter that silently matched nothing
     // would make every assertion below vacuously true.
-    expect(allReasons).toContain(errors.ProfileReason.PROFILE_NOT_FOUND);
+    expect(allReasons).toContain(errors.PlayerReason.INVALID_EMAIL);
     expect(allReasons.length).toBeGreaterThanOrEqual(24);
   });
 

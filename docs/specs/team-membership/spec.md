@@ -128,7 +128,7 @@ A user with a pending invitation (`status: INVITED`, `userId` matches requesting
 
 - **WHEN** a user accepts an invitation for a player with `status: INVITED` and matching `userId`
 - **THEN** the player SHALL be updated to `status: JOINED`
-- **THEN** the user's `Profile.activeTeamId` SHALL be set to the player's `teamId`
+- **THEN** the API SHALL NOT write any server-side active-team record
 - **THEN** the API SHALL respond with HTTP 200
 
 #### Scenario: Accept invitation for non-INVITED player
@@ -197,40 +197,40 @@ When a new team is created via `POST /api/teams`, the owner player record SHALL 
 
 - **WHEN** a user creates a new team
 - **THEN** an owner player SHALL be created with `status: JOINED`, `role: OWNER`, `userId: <creator_id>`
-- **THEN** the creator's `Profile.activeTeamId` SHALL be set to the new team's ID
+- **THEN** the API SHALL NOT write any server-side active-team record
 
 ---
 
-### Requirement: Profile.teams removal and activeTeamId
+### Requirement: Active team is a device-local preference
 
-The `Profile.teams.joined[]` and `Profile.teams.inviting[]` fields SHALL be removed. A new `Profile.activeTeamId` field (optional string) SHALL replace the team ordering functionality (Domain + Infrastructure layers).
+The system SHALL NOT store a user's active team on the server. The active team SHALL be a per-device preference holding `{ version, userId, teamId }` in client storage (Frontend layer: `src/lib/features/team/active-team-preference*.ts`).
 
 #### Scenario: Determine active team
 
-- **WHEN** the frontend reads `Profile.activeTeamId`
-- **THEN** it SHALL use that team as the current active team for navigation and display
+- **WHEN** the frontend resolves the active team
+- **THEN** it SHALL use the stored preference's team once the preference belongs to the current user and the preferred team's own request has confirmed membership
 
-#### Scenario: activeTeamId is null
+#### Scenario: No preference
 
-- **WHEN** `Profile.activeTeamId` is null (new user, no teams)
-- **THEN** the frontend SHALL show new user guidance
+- **WHEN** no preference is stored on the device (new user, or new device)
+- **THEN** the frontend SHALL fall back to the first JOINED team, or show new user guidance if none exist
 
-#### Scenario: activeTeamId points to invalid team
+#### Scenario: Preference points to invalid team
 
-- **WHEN** `Profile.activeTeamId` points to a team the user is no longer a member of
-- **THEN** the frontend SHALL fallback to the first JOINED player's teamId, or show new user guidance if none exist
+- **WHEN** the stored preference's team is one the user is no longer a member of, or belongs to a different user
+- **THEN** the frontend SHALL discard the preference and fall back to the first JOINED team, or show new user guidance if none exist
 
 #### Scenario: Switch active team
 
-- **WHEN** a user switches teams via `PATCH /api/profiles` with `{ activeTeamId: <teamId> }`
-- **THEN** `Profile.activeTeamId` SHALL be updated
-- **THEN** the API SHALL respond with HTTP 200
+- **WHEN** a user switches teams
+- **THEN** the frontend SHALL save the new `teamId` to the device-local preference
+- **THEN** no API request SHALL be made
 
 ---
 
 ### Requirement: Query user teams via Player
 
-The system SHALL derive a user's joined and invited teams from `Player.find({ userId })` rather than from `Profile.teams` (Application layer: GetUserPlayersUseCase).
+The system SHALL derive a user's joined and invited teams from `Player.find({ userId })` rather than from a stored team list (Application layer: GetUserPlayersUseCase).
 
 #### Scenario: Get user's teams
 
