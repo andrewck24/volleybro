@@ -19,6 +19,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
+import type { Cache } from "swr";
 
 const lineups = {
   home: {
@@ -64,7 +65,7 @@ const renderPanel = async (
   editingEntryIndex?: number,
   benchPlayer = /選手二/,
   options: {
-    cache?: Map<string, unknown>;
+    cache?: Cache;
     setup?: (store: ReturnType<typeof makeStore>) => void;
   } = {},
 ) => {
@@ -161,10 +162,12 @@ describe("Substitutes with a substitution still queued", () => {
       await gate.promise;
       return HttpResponse.json({ entries: [] });
     });
-    const cache = new Map<string, unknown>();
+    const cache = new Map();
+    let pending!: () => unknown[];
     await renderPanel(gameWith([]), undefined, /選手三/, {
       cache,
       setup: (store) => {
+        pending = () => store.getState().pendingWrites.pending;
         store.dispatch(
           pendingWritesActions.enqueued({
             gameId: "game-1",
@@ -184,14 +187,18 @@ describe("Substitutes with a substitution still queued", () => {
       },
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /確認/ }));
+    try {
+      await userEvent.click(screen.getByRole("button", { name: /確認/ }));
 
-    await waitFor(() => expect(puts).toHaveLength(1));
-    const cached = cache.get("/api/games/game-1") as {
-      data: ReturnType<typeof gameWith>;
-    };
-    expect(cached.data.sets[0]!.entries).toEqual([]);
-    await act(async () => gate.release());
+      await waitFor(() => expect(puts).toHaveLength(1));
+      const cached = cache.get("/api/games/game-1") as {
+        data: ReturnType<typeof gameWith>;
+      };
+      expect(cached.data.sets[0]!.entries).toEqual([]);
+    } finally {
+      gate.release();
+    }
+    await waitFor(() => expect(pending()).toEqual([]));
   });
 });
 

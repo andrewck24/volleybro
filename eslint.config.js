@@ -375,7 +375,6 @@ const filesStillCarryingComments = [
   "test/support/react/pending-writes-owner.tsx",
   "test/support/react/render-editing-game.tsx",
   "test/support/react/render-game.tsx",
-  "test/support/react/swr-isolation.tsx",
   "test/support/release-controls-fixture.js",
   "test/support/storage/active-team-preference.ts",
 ];
