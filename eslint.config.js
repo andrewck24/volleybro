@@ -87,8 +87,6 @@ const filesStillCarryingComments = [
   "scripts/verify.js",
   "src/__tests__/proxy.test.ts",
   "src/app/\\(tabs\\)/@modal/\\(...\\)team/new/__tests__/page.test.tsx",
-  "src/app/\\(tabs\\)/@modal/default.tsx",
-  "src/app/\\(tabs\\)/@modal/team/\\[...catchAll\\]/page.tsx",
   "src/app/api/games/\\[gameId\\]/sets/__tests__/route.test.ts",
   "src/app/api/players/\\[playerId\\]/__tests__/route.test.ts",
   "src/app/api/players/\\[playerId\\]/invitations/__tests__/route.test.ts",
