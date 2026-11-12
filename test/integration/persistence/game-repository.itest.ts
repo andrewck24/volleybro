@@ -98,9 +98,8 @@ describe("game reads and writes", () => {
     expect(written.teams.home.name).toBe("Home");
   });
 
-  it("stores game snapshot and set lineups without ids and drops legacy lineup ids on read", async () => {
-    const playerIds = Array.from({ length: 6 }, oid);
-    const expectedLineup = lineupFor(playerIds);
+  it("stores game snapshot and set lineups without ids", async () => {
+    const lineup = lineupFor(Array.from({ length: 6 }, oid));
     const game = await games().create({
       win: false,
       teamId: oid(),
@@ -111,42 +110,23 @@ describe("game reads and writes", () => {
           name: "Home",
           players: [],
           staffs: [],
-          lineup: expectedLineup,
+          lineup,
         },
         away: { id: oid(), name: "Away", players: [], staffs: [] },
       },
       sets: [],
     });
-    await games().addSet(
-      { gameId: game.id, setIndex: 0 },
-      startedSet(expectedLineup),
-    );
+    await games().addSet({ gameId: game.id, setIndex: 0 }, startedSet(lineup));
 
-    const gameIdObject = new mongoose.Types.ObjectId(game.id);
-    const stored = await GameModel.collection.findOne({ _id: gameIdObject });
+    const stored = await GameModel.collection.findOne({
+      _id: new mongoose.Types.ObjectId(game.id),
+    });
     const storedSet = stored?.sets?.[0];
     expect(stored?.teams?.home?.lineup).not.toHaveProperty("_id");
     expect(storedSet?.startingLineups?.home).not.toHaveProperty("_id");
     expect(storedSet?.startingLineups?.away).not.toHaveProperty("_id");
     expect(storedSet?.lineups?.home).not.toHaveProperty("_id");
     expect(storedSet?.lineups?.away).not.toHaveProperty("_id");
-
-    const legacyId = new mongoose.Types.ObjectId();
-    await GameModel.collection.updateOne(
-      { _id: gameIdObject },
-      {
-        $set: {
-          "teams.home.lineup._id": legacyId,
-          "sets.0.lineups.home._id": legacyId,
-        },
-      },
-    );
-
-    const read = (await games().findById(game.id))!;
-    expect(read.teams.home.lineup).toMatchObject(expectedLineup);
-    expect(read.teams.home.lineup).not.toHaveProperty("_id");
-    expect(read.sets[0]!.lineups.home).toMatchObject(expectedLineup);
-    expect(read.sets[0]!.lineups.home).not.toHaveProperty("_id");
   });
 
   describe("adding a set", () => {

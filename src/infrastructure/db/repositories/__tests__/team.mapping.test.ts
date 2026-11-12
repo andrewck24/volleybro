@@ -69,6 +69,24 @@ describe("team document mapping", () => {
     expect(lineup!.starting[1]!.id).toBeNull();
   });
 
+  it("does not expose a Mongoose subdocument id in a team lineup", () => {
+    const stored = {
+      _id: new Types.ObjectId(),
+      name: "Team",
+      lineups: [
+        {
+          _id: new Types.ObjectId(),
+          options,
+          starting: [],
+          liberos: [],
+          substitutes: [],
+        },
+      ],
+    } as unknown as RawTeam;
+
+    expect(toTeam(stored).lineups[0]).not.toHaveProperty("_id");
+  });
+
   it("reads a team stored without lineups as an empty list", () => {
     const stored = { _id: new Types.ObjectId(), name: "Team" } as RawTeam;
 
