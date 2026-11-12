@@ -42,7 +42,9 @@ The Standards review applies that document's Test Value and Test Support Code ru
 
 ## Correctness, load, leanness and security
 
-Review checks correctness, behavior under expected load (races, work repeated per caller, unbounded growth), leanness (dead code, unused options, duplicated helpers, code beyond the spec) and security, using `security-review` when available.
+Review checks correctness, behavior under expected load (races, work repeated per caller, unbounded growth), leanness and security, using `security-review` when available.
+
+Leanness means nothing beyond what the spec needs and nothing written twice: no dead code, unused options, speculative features or duplicated helpers; existing code reused before new code is written; and each rule stated in one document, which others point to instead of restating it. This definition serves every review that checks leanness, of a spec as well as of a diff.
 
 ### Multi-write and cross-aggregate writes
 

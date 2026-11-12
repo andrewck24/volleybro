@@ -1,7 +1,8 @@
 {
   "includeGitInstructions": false,
   "enabledPlugins": {
-    "diagram-design@diagram-design": true
+    "diagram-design@diagram-design": true,
+    "ponytail@ponytail": false
   },
   "hooks": {
     "SessionStart": [
