@@ -9,24 +9,21 @@ The rules a writer applies while writing live where that writer reads them, and 
 
 ## Comments
 
-Default to none. Code that needs a comment to be understood usually needs a better name or a smaller function — the fix is that rewrite, and the comment survives only if the rewrite does not carry the information.
+New code carries no comments, doc comments included. A comment is a claim nothing checks, so what it would say goes where the compiler, a test or the tracker holds it:
 
-A comment is justified only for what the code cannot say by itself:
+- **A rule about a value** becomes a type. A string that must already be normalized is a branded `NormalizedEmail`, not a parameter named `normalizedEmail`.
+- **The reason for a branch** becomes a guard clause on a named predicate: `if (!isSeatHeldByInvitation(seat)) return alreadyOnRoster();`.
+- **The meaning of a number** becomes a named constant, exported once and imported wherever that number appears.
+- **An invisible constraint** (an ordering requirement, a platform limit, a browser quirk) becomes a test whose name states the constraint, so removing it fails the suite.
+- **Why an alternative was rejected** goes in a decision record when it meets the record threshold, otherwise in the commit body. Source does not cite either.
+- **Work left undone** becomes a Linear issue, linked from the pull request body. Source carries no TODO, FIXME, HACK or XXX marker.
+- **A lint rule that does not fit** is answered by removing the reason: a Testing Library query instead of node access, a generic instead of `any`, a stable dependency instead of an empty array. Only when the rule cannot apply to a file without weakening what it proves, turn the rule off for that file in `eslint.config.js`, in a list whose name says why.
 
-- a constraint that is invisible locally — a browser quirk, an ordering requirement, a platform limit;
-- why an obvious alternative was rejected, where the next reader would otherwise reintroduce it;
-- a consequence that lands somewhere else in the codebase.
+In JavaScript and TypeScript files ESLint enforces it: every comment fails the lint, so inline configuration (`eslint-disable` and the like) and `@ts-*` directives cannot be written either. In other files (CSS, MDX, Astro) review enforces it.
 
-A comment never restates what the line does, and never re-argues a decision a decision record already owns. It cites the record instead of copying it, or the two drift apart:
+### Existing comments
 
-```ts
-// Deliberately the same judgement as the indicator's warning tone.
-// See ADR-NNNN.
-```
-
-Fitting one of those reasons is necessary, not sufficient. For every comment a diff adds, review names the mistake the next reader would make without it; a comment for which no such mistake can be named is deleted, however true it is.
-
-What survives stays short. One or two lines is the norm; a doc comment longer than the code it describes means the rationale belongs in a decision record or the commit body, not the file.
+Files that still held comments when the rule arrived are listed in `filesStillCarryingComments` in `eslint.config.js`. The list only shrinks: a change that clears a file removes it from the list, and no change adds a file to it. Inside a listed file a comment in a hunk the diff modifies is replaced as above in the same change, and review rejects every comment line a diff adds. Other comments in a touched file may be cleared in a separate `refactor:` commit of the same pull request, never mixed into a behaviour change.
 
 ## No volatile references in source
 

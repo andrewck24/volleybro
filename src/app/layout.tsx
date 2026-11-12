@@ -144,8 +144,6 @@ export default async function RootLayout({
           property="og:description"
           content="Best volleyball stats app ever"
         />
-        {/* TODO: 尚未補上 og 圖片 */}
-        {/* TODO: twitter 設定待補 */}
       </head>
       <body>
         <SerwistProvider

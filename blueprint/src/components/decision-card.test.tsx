@@ -37,8 +37,14 @@ function renderFull(card: DecisionRecord) {
 }
 
 describe("DecisionCard compact mode", () => {
-  it("shows only the number and title while collapsed", () => {
+  it("keeps the adr anchor id that hash links target", () => {
     const { container } = renderCompact(record);
+
+    expect(container.innerHTML).toMatch(/ id="adr-0045"/);
+  });
+
+  it("shows only the number and title while collapsed", () => {
+    renderCompact(record);
 
     expect(screen.getByText("ADR-0045")).toBeInTheDocument();
     expect(screen.getByText(record.title)).toBeInTheDocument();
@@ -46,9 +52,6 @@ describe("DecisionCard compact mode", () => {
       "aria-expanded",
       "false",
     );
-    // Anchor ids are the hash-link contract and have no accessible role.
-    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
-    expect(container.querySelector("#adr-0045")).toBeInTheDocument();
     expect(screen.queryByText(record.decision)).not.toBeInTheDocument();
   });
 
@@ -123,12 +126,15 @@ const fullRecord = {
 } satisfies DecisionRecord;
 
 describe("DecisionCard full mode", () => {
+  it("keeps the adr anchor id that hash links target", () => {
+    const { container } = renderFull(fullRecord);
+
+    expect(container.innerHTML).toMatch(/ id="adr-0001"/);
+  });
+
   it("renders every record field in order and preserves inline code", () => {
     const { container } = renderFull(fullRecord);
 
-    // Anchor ids are the hash-link contract and have no accessible role.
-    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
-    expect(container.querySelector("#adr-0001")).toBeInTheDocument();
     expect(screen.getByText("platform/delivery-workflow")).toBeInTheDocument();
     expect(
       screen

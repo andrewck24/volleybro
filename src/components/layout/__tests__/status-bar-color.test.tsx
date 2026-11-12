@@ -1,12 +1,10 @@
 import { StatusBarColor } from "@/components/layout/status-bar-color";
-import { act, render } from "@testing-library/react";
+import { act, queryAllByAttribute, render } from "@testing-library/react";
 
 const metas: HTMLMetaElement[] = [];
 
-// theme-color lives in <head>, which Testing Library's screen does not query.
 const headThemeColors = () => {
-  // eslint-disable-next-line testing-library/no-node-access
-  const all = document.head.querySelectorAll('meta[name="theme-color"]');
+  const all = queryAllByAttribute("name", document.head, "theme-color");
   return Array.from(all, (meta) => [
     meta.getAttribute("media") ?? "",
     meta.getAttribute("content"),
