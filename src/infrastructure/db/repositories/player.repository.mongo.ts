@@ -41,8 +41,11 @@ const alreadyOnRoster = () =>
 
 const isSeatHeldByInvitation = async (seat: object | undefined) =>
   seat !== undefined &&
-  (await PlayerModel.exists({ ...seat, status: PlayerStatus.INVITED })) !==
-    null;
+  (await PlayerModel.exists({ ...seat, status: PlayerStatus.INVITED }).catch(
+    (lookupError) => {
+      throw translateRepositoryError(lookupError);
+    },
+  )) !== null;
 
 const translatePlayerWriteError = async (error: unknown) => {
   const { code, keyPattern, keyValue } = (error ?? {}) as {

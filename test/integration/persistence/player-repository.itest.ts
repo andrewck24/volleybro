@@ -1,5 +1,10 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
+import {
+  ConflictError,
+  NotFoundError,
+  PlayerReason,
+  TransientError,
+} from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { normalizeEmail } from "@/entities/user";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
@@ -52,6 +57,31 @@ describe("player reads and writes", () => {
     await expect(rejection).rejects.toMatchObject({
       reason: PlayerReason.ALREADY_ON_ROSTER,
     });
+  });
+
+  it("reports a temporary failure when the seat lookup after a collision cannot reach the database", async () => {
+    await PlayerModel.init();
+    const seat = {
+      name: "Member",
+      status: PlayerStatus.JOINED,
+      teamId,
+      userId: oid(),
+      role: PlayerRole.MEMBER,
+    } as const;
+    await players().create(seat);
+    const lookup = jest.spyOn(PlayerModel, "exists").mockRejectedValue(
+      Object.assign(new Error("connection reset"), {
+        name: "MongoNetworkError",
+      }),
+    );
+
+    try {
+      await expect(
+        players().create({ ...seat, name: "Twin" }),
+      ).rejects.toBeInstanceOf(TransientError);
+    } finally {
+      lookup.mockRestore();
+    }
   });
 
   it("changes a role only while the player still holds the expected one", async () => {
