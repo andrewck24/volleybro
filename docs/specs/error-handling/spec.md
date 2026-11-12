@@ -965,12 +965,12 @@ Components SHALL determine user-facing toast messages by switching on `error.cod
 
 #### Scenario: apiClient throws structured error on failure
 
-- **WHEN** `apiClient("/api/teams/abc/players", { method: "POST", body })` receives a 409 response with `{ code: "CONFLICT", reason: "ALREADY_INVITED", detail: "This player already has a pending invitation" }`
+- **WHEN** `apiClient("/api/teams/000000000000000000000000/players", { method: "POST", body })` receives a 409 response with `{ code: "CONFLICT", reason: "ALREADY_INVITED", detail: "This player already has a pending invitation" }`
 - **THEN** the thrown error SHALL have `status: 409`, `code: "CONFLICT"`, `reason: "ALREADY_INVITED"`, `detail: "This player already has a pending invitation"`
 
 #### Scenario: SWR hook uses apiClient
 
-- **WHEN** a SWR hook fetches `/api/teams/abc` and receives a 404 response
+- **WHEN** a SWR hook fetches `/api/teams/000000000000000000000000` and receives a 404 response
 - **THEN** the SWR `error` SHALL have `status: 404`, `code: "NOT_FOUND"`, and `reason` fields
 
 #### Scenario: Component displays zh-TW toast with reason-based message
