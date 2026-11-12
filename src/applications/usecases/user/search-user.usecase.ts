@@ -5,6 +5,7 @@ import {
   NotFoundError,
   ValidationError,
   CommonReason,
+  PlayerReason,
 } from "@/entities/errors";
 import { normalizeEmail } from "@/entities/user";
 import { TYPES } from "@/infrastructure/di/types";
