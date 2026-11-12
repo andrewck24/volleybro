@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
-import { SWRConfig } from "swr";
+import { SWRConfig, type Cache } from "swr";
 
-/** Gives a test its own SWR cache, so a response cached by one test never answers another. */
-export function SwrIsolation({ children }: { children: ReactNode }) {
+export function SwrIsolation({
+  children,
+  cache = new Map(),
+}: {
+  children: ReactNode;
+  cache?: Cache;
+}) {
   return (
-    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+    <SWRConfig value={{ provider: () => cache, dedupingInterval: 0 }}>
       {children}
     </SWRConfig>
   );
