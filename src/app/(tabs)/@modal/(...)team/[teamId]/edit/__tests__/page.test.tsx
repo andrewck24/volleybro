@@ -63,7 +63,7 @@ describe("EditTeamModalPage", () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it("renders the edit route with synchronous params in jsdom", async () => {
+  it("sends the edited team, refetches it and closes on success", async () => {
     let patchBody: unknown;
     let teamFetches = 0;
     server.use(

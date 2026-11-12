@@ -58,7 +58,7 @@ describe("GET /api/games/[gameId]", () => {
     });
   });
 
-  it("recognizes a NotFoundError instance imported after resetModules", async () => {
+  it("returns 404 when the controller finds no game", async () => {
     const consoleSpy = silenceConsoleError();
     mockFindGameController.mockRejectedValue(
       new NotFoundError("GAME_NOT_FOUND", "Game not found"),

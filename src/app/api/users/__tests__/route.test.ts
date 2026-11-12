@@ -91,7 +91,7 @@ describe("GET /api/users", () => {
     consoleSpy.mockRestore();
   });
 
-  it("recognizes a NotFoundError instance imported after resetModules", async () => {
+  it("returns the status of the error the controller reports", async () => {
     const consoleSpy = silenceConsoleError();
     mockSearchUserController.mockResolvedValue({
       ok: false,
