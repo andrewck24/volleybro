@@ -46,9 +46,7 @@ describe("DecisionCard compact mode", () => {
       "aria-expanded",
       "false",
     );
-    // Anchor ids are the hash-link contract and have no accessible role.
-    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
-    expect(container.querySelector("#adr-0045")).toBeInTheDocument();
+    expect(container.innerHTML).toContain('id="adr-0045"');
     expect(screen.queryByText(record.decision)).not.toBeInTheDocument();
   });
 
@@ -126,9 +124,7 @@ describe("DecisionCard full mode", () => {
   it("renders every record field in order and preserves inline code", () => {
     const { container } = renderFull(fullRecord);
 
-    // Anchor ids are the hash-link contract and have no accessible role.
-    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
-    expect(container.querySelector("#adr-0001")).toBeInTheDocument();
+    expect(container.innerHTML).toContain('id="adr-0001"');
     expect(screen.getByText("platform/delivery-workflow")).toBeInTheDocument();
     expect(
       screen

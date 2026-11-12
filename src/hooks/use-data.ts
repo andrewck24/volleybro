@@ -22,8 +22,7 @@ import useSWRInfinite from "swr/infinite";
 
 export { ApiClientError };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const fetcher = (url: string) => apiClient<any>(url);
+const fetcher = <Data>(url: string) => apiClient<Data>(url);
 
 const useHasCache = (key: string) => {
   const { cache } = useSWRConfig();
