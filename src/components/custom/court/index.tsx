@@ -50,7 +50,6 @@ export const Outside = ({
     </div>
   );
 };
-// TODO: 目前手機版未沒有寬度更大的球場，未來需注意其他螢幕大小的排版
 
 export const Inside = ({ children }: { children?: React.ReactNode }) => {
   return (
@@ -60,7 +59,6 @@ export const Inside = ({ children }: { children?: React.ReactNode }) => {
   );
 };
 
-// TODO: 移除 onSwitchClick 後，重新檢視參數定義
 const Card = ({
   children,
   className,

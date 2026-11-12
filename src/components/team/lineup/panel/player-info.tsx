@@ -105,7 +105,6 @@ export const PlayerInfo = ({
           </ItemActions>
         </Item>
       </ItemGroup>
-      {/* TODO: Add data statistics table here  */}
     </PanelContent>
   );
 };
