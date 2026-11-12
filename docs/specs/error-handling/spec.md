@@ -237,7 +237,6 @@ code:
   - src/components/game/header/index.tsx
   - src/components/match/stats/index.tsx
   - src/applications/usecases/player/transfer-ownership.usecase.ts
-  - src/applications/usecases/user/profile.usecase.ts
   - src/components/game/sets/list.tsx
   - src/infrastructure/db/repositories/team.repository.mongo.ts
   - src/infrastructure/di/inversify.config.ts
@@ -257,7 +256,6 @@ code:
   - src/components/game/entry/index.tsx
   - src/app/api/matches/route.ts
   - src/app/api/records/[recordId]/sets/substitutions/route.ts
-  - src/applications/repositories/profile.repository.interface.ts
   - src/app/api/records/route.ts
   - src/components/record/entry/substitution.tsx
   - src/app/api/games/[gameId]/sets/substitutions/route.ts
@@ -285,7 +283,6 @@ code:
   - src/app/game/layout.tsx
   - src/components/game/options/edit/index.tsx
   - public/landing/features/game-demo-2-light.png
-  - src/entities/profile.ts
   - src/lib/features/game/helpers/optimistic/rally.helper.ts
   - src/infrastructure/di/types.ts
   - src/components/team/lineup/panel/index.tsx
@@ -359,7 +356,6 @@ code:
   - src/interface/controllers/user/user.controller.ts
   - src/lib/features/game/types.ts
   - src/lib/features/team/lineup-slice.ts
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
   - src/interface/controllers/game/game.controller.ts
   - src/app/api/games/[gameId]/route.ts
   - src/lib/features/record/actions/create-substitution.ts
@@ -461,7 +457,6 @@ tests:
   - src/applications/usecases/player/__tests__/remove-player.usecase.test.ts
   - src/applications/usecases/player/__tests__/get-player.usecase.test.ts
   - src/infrastructure/db/repositories/__tests__/game.repository.test.ts
-  - src/applications/usecases/user/__tests__/create-profile.usecase.test.ts
   - src/applications/usecases/player/__tests__/update-role.usecase.test.ts
   - src/__tests__/helpers/index.ts
   - src/applications/usecases/game/__tests__/create-substitution.usecase.test.ts
@@ -621,7 +616,6 @@ code:
   - src/components/game/header/index.tsx
   - src/components/match/stats/index.tsx
   - src/applications/usecases/player/transfer-ownership.usecase.ts
-  - src/applications/usecases/user/profile.usecase.ts
   - src/components/game/sets/list.tsx
   - src/infrastructure/db/repositories/team.repository.mongo.ts
   - src/infrastructure/di/inversify.config.ts
@@ -641,7 +635,6 @@ code:
   - src/components/game/entry/index.tsx
   - src/app/api/matches/route.ts
   - src/app/api/records/[recordId]/sets/substitutions/route.ts
-  - src/applications/repositories/profile.repository.interface.ts
   - src/app/api/records/route.ts
   - src/components/record/entry/substitution.tsx
   - src/app/api/games/[gameId]/sets/substitutions/route.ts
@@ -669,7 +662,6 @@ code:
   - src/app/game/layout.tsx
   - src/components/game/options/edit/index.tsx
   - public/landing/features/game-demo-2-light.png
-  - src/entities/profile.ts
   - src/lib/features/game/helpers/optimistic/rally.helper.ts
   - src/infrastructure/di/types.ts
   - src/components/team/lineup/panel/index.tsx
@@ -743,7 +735,6 @@ code:
   - src/interface/controllers/user/user.controller.ts
   - src/lib/features/game/types.ts
   - src/lib/features/team/lineup-slice.ts
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
   - src/interface/controllers/game/game.controller.ts
   - src/app/api/games/[gameId]/route.ts
   - src/lib/features/record/actions/create-substitution.ts
@@ -845,7 +836,6 @@ tests:
   - src/applications/usecases/player/__tests__/remove-player.usecase.test.ts
   - src/applications/usecases/player/__tests__/get-player.usecase.test.ts
   - src/infrastructure/db/repositories/__tests__/game.repository.test.ts
-  - src/applications/usecases/user/__tests__/create-profile.usecase.test.ts
   - src/applications/usecases/player/__tests__/update-role.usecase.test.ts
   - src/__tests__/helpers/index.ts
   - src/applications/usecases/game/__tests__/create-substitution.usecase.test.ts
@@ -980,7 +970,7 @@ Components SHALL determine user-facing toast messages by switching on `error.cod
 
 #### Scenario: SWR hook uses apiClient
 
-- **WHEN** a SWR hook fetches `/api/profiles` and receives a 404 response
+- **WHEN** a SWR hook fetches `/api/teams/abc` and receives a 404 response
 - **THEN** the SWR `error` SHALL have `status: 404`, `code: "NOT_FOUND"`, and `reason` fields
 
 #### Scenario: Component displays zh-TW toast with reason-based message
