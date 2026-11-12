@@ -16,8 +16,8 @@ const Placeholder = ({
   intro: ReactNode;
   ref?: Ref<HTMLDivElement>;
 }) => (
-  <div ref={ref} data-testid="lazy-demo-placeholder" className={styles.section}>
-    <div data-testid="lazy-demo-stage" className={styles.stage}>
+  <div ref={ref} className={styles.section}>
+    <div className={styles.stage}>
       <div className={styles.introColumn}>{intro}</div>
     </div>
   </div>

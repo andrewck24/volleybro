@@ -7,7 +7,7 @@ const HeroEntries = dynamic(
 );
 
 export const EntryRows = () => (
-  <div data-testid="landing-entry-rows" className="landing-entry-rows">
+  <div className="landing-entry-rows">
     <HeroEntries />
   </div>
 );

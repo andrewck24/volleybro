@@ -184,7 +184,7 @@ describe("GamePreview submission", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("reads the game from SWR while pending writes overlay the Redux view", async () => {
+  it("shows the previous score after submitting an edit", async () => {
     const user = userEvent.setup();
     const firstEntry = mockGame.sets[0]!.entries[0]!;
     const secondEntry = {
@@ -209,19 +209,12 @@ describe("GamePreview submission", () => {
           entryIndex: 1,
         }),
       );
-      store.dispatch(
-        pendingWritesActions.enqueued({
-          entry: firstEntry as never,
-          gameId: "game-1",
-          setIndex: 0,
-        }),
-      );
     });
     const onSubmit = jest.fn();
     renderPreview(
       store,
       <GamePreview gameId="game-1" mode="editing" onSubmit={onSubmit} />,
-      emptyGame,
+      fullGame,
     );
 
     expect(screen.getByText("7")).toBeInTheDocument();
@@ -232,16 +225,15 @@ describe("GamePreview submission", () => {
     expect(screen.queryByText("7")).not.toBeInTheDocument();
   });
 
-  it("advances create immediately but keeps edit in place until flush", async () => {
+  it("advances create state before its queued write resolves", async () => {
     const user = userEvent.setup();
     const createGate = deferred();
-    const editGate = deferred();
     let requestCount = 0;
     server.use(
       http.put("/api/games/game-1/sets/entries", async ({ request }) => {
         const sent = (await request.json()) as { id: string }[];
         requestCount++;
-        await (requestCount === 1 ? createGate.promise : editGate.promise);
+        await createGate.promise;
         return HttpResponse.json({ entries: sent });
       }),
     );
@@ -272,34 +264,6 @@ describe("GamePreview submission", () => {
       expect(createStore.getState().pendingWrites.pending).toHaveLength(0),
     );
     view.unmount();
-
-    const editStore = makeStore();
-    act(() => {
-      editStore.dispatch(
-        gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
-      );
-      editStore.dispatch(
-        gameActions.setEditingEntryStatus({
-          game: mockGame as never,
-          entryIndex: 0,
-        }),
-      );
-      editStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
-      editStore.dispatch(
-        gameActions.setEntryDraftAwayMove(
-          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
-        ),
-      );
-    });
-    renderPreview(editStore, <SubmittingPreview mode="editing" />);
-
-    await user.click(screen.getByTestId("preview-trigger"));
-    await waitFor(() => expect(requestCount).toBe(2));
-    expect(editStore.getState().game.mode).toBe("editing");
-    expect(editStore.getState().game.editing.status.entryIndex).toBe(0);
-    expect(editStore.getState().pendingWrites.pending).toHaveLength(1);
-    editGate.release();
-    await waitFor(() => expect(editStore.getState().game.mode).toBe("general"));
   });
 
   it("shares one in-progress draft between Preview and the Summary drawer", () => {

@@ -62,12 +62,6 @@ const STATUS_STYLE: Record<
   },
 };
 
-/**
- * `online` is read only in the unsent case, and only to choose between two
- * sentences that are both true: `false` can promise an automatic send, `true`
- * can promise only further attempts. `othersPending` likewise only names the
- * way out of a full store when there is one to name.
- */
 const copyFor = (
   status: SyncStatus,
   count: number,
@@ -231,6 +225,9 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
               {detail}
             </p>
           )}
+          {/* Offline it can only fail; online it is the only recourse, since
+              no `online` event fires for a device that never left the
+              network. */}
           {status === "unsent" && online && (
             <button
               type="button"

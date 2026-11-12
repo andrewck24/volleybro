@@ -58,7 +58,6 @@ const meta = {
   args: {
     players,
     previousEntry,
-    isComplete: false,
     onSubmit: fn(),
     onExpand: fn(),
   },
@@ -79,7 +78,6 @@ export const Idle: Story = {
   args: {
     entry: previousEntry,
     isEditing: false,
-    isComplete: false,
   },
 };
 
@@ -89,7 +87,6 @@ export const Undecided: Story = {
   args: {
     entry: undecidedEntry,
     isEditing: true,
-    isComplete: false,
     isPulsing: true,
   },
 };

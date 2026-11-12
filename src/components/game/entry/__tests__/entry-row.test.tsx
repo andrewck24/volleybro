@@ -38,7 +38,7 @@ describe("EntryRow", () => {
     ).toBeInTheDocument();
   });
 
-  it("asserts collapsed visibility without relying on element absence", () => {
+  it("starts with collapsed detail state", () => {
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 
     expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(

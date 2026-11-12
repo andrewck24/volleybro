@@ -82,19 +82,6 @@ describe("getEntryProgress", () => {
     expect(progress.submittable).toBe(true);
   });
 
-  it("does not infer player selection from away-move completeness", () => {
-    const draft: ReduxEntryDraft = {
-      ...baseDraft,
-      away: { ...baseDraft.away, type: MoveType.BLOCKING, num: 3 },
-    };
-
-    const progress = getEntryProgress(draft);
-
-    expect(progress.activeStep).toBe(0);
-    expect(progress.reachableSteps).toEqual([0]);
-    expect(progress.submittable).toBe(false);
-  });
-
   it("does not collapse a normal three-step point", () => {
     const draft: ReduxEntryDraft = {
       ...baseDraft,

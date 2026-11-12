@@ -22,13 +22,15 @@ import { RiSendPlaneLine } from "react-icons/ri";
 
 export type PreviewCardProps = {
   hasPreview: true;
-  entry: EntryView;
-  previousEntry: EntryView | undefined;
+  entry?: EntryView;
+  previousEntry?: EntryView;
   players: GamePlayerView[];
-  isEditing: boolean;
-  isComplete: boolean;
-  entryIndex: number;
+  isEditing?: boolean;
+  isComplete?: boolean;
   isPulsing?: boolean;
+};
+
+type PreviewCardComponentProps = Omit<PreviewCardProps, "hasPreview"> & {
   writing?: boolean;
   failed?: boolean;
   onRetry?: () => void;
@@ -50,7 +52,7 @@ export const PreviewCard = ({
   onSubmit,
   onExpand,
   className,
-}: Omit<PreviewCardProps, "hasPreview" | "entryIndex">) => {
+}: PreviewCardComponentProps) => {
   const [frozen, setFrozen] = useState(false);
   const [flashing, setFlashing] = useState(false);
 

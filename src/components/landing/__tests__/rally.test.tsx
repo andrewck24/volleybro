@@ -73,12 +73,19 @@ describe("RallyProvider clock", () => {
     expect(read()).toBe("8|0|live");
   });
 
-  it("pauses offscreen and hidden-tab animation and respects reduced motion", () => {
-    const view = mount({ initialRalliesPlayed: 5 });
+  it("holds while its box is off screen and resumes when it returns", () => {
+    mount({ initialRalliesPlayed: 5 });
     intersectBox(false);
     beats(3);
     expect(read()).toBe("5|0|still");
 
+    intersectBox(true);
+    beats(1);
+    expect(read()).toBe("6|0|live");
+  });
+
+  it("holds while the tab is hidden", () => {
+    mount({ initialRalliesPlayed: 5 });
     intersectBox(true);
     Object.defineProperty(document, "hidden", {
       configurable: true,
@@ -95,10 +102,11 @@ describe("RallyProvider clock", () => {
     act(() => document.dispatchEvent(new Event("visibilitychange")));
     beats(1);
     expect(read()).toBe("6|0|live");
+  });
 
-    view.unmount();
+  it("shows one fixed snapshot under reduced motion", () => {
     (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
-      matches: query === "(prefers-reduced-motion: reduce)",
+      matches: true,
       media: query,
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
@@ -106,8 +114,8 @@ describe("RallyProvider clock", () => {
     mount({ initialRalliesPlayed: 5 });
     const snapshot = read();
     beats(5);
-    expect(snapshot).toBe("22|-1|still");
     expect(read()).toBe(snapshot);
+    expect(snapshot).toBe("22|-1|still");
   });
 
   it("rests a beat on the finished set, then replays it from replayFrom", () => {

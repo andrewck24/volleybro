@@ -49,7 +49,7 @@ const permanentFailure = {
   status: 400,
 };
 
-it("derives failed-entry ids from the pending-write queue", async () => {
+it("marks a queued rally the server rejected, on a row only the merge provides", async () => {
   const store: AppStore = makeStore();
   store.dispatch(
     pendingWritesActions.enqueued({

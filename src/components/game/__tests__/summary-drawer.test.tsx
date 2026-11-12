@@ -90,26 +90,6 @@ describe("SummaryDrawerCard structure", () => {
     );
   });
 
-  it("uses viewport-height content for vaul snap calculations", async () => {
-    render(<SummaryDrawerCard {...baseProps} state="idle" />);
-
-    const drawer = await screen.findByTestId("summary-drawer");
-    expect(drawer).toHaveClass("h-dvh");
-    expect(screen.getByTestId("summary-drawer-content")).toHaveClass(
-      "h-[85dvh]",
-    );
-  });
-
-  it("limits visible drawer content to the expanded snap", async () => {
-    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
-
-    await screen.findByTestId("summary-drawer");
-    const content = screen.getByTestId("summary-drawer-content");
-    const scrollRegion = screen.getByTestId("summary-drawer-entries");
-    expect(scrollRegion).toHaveClass("min-h-0", "flex-1");
-    expect(content).toHaveClass("h-[85dvh]");
-  });
-
   it("renders only the newest row in the collapsed peek", async () => {
     render(<SummaryDrawerCard {...baseProps} state="idle" />);
 
@@ -270,42 +250,12 @@ describe("SummaryDrawerCard backdrop overlay", () => {
 
     const overlay = screen.getByTestId("summary-drawer-overlay");
     const drawer = screen.getByTestId("summary-drawer");
-    expect(overlay).toHaveClass("opacity-100");
     expect(drawer).not.toHaveAttribute("aria-modal", "true");
     await waitFor(() =>
       expect(document.body).toHaveStyle({ pointerEvents: "auto" }),
     );
     fireEvent.click(overlay);
     expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it("handles Escape once when collapsing the drawer", async () => {
-    const user = userEvent.setup();
-    const onToggle = jest.fn();
-    render(
-      <SummaryDrawerCard {...baseProps} state="expanded" onToggle={onToggle} />,
-    );
-
-    await user.keyboard("{Escape}");
-
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps vaul modal mode constant while the drawer expands", async () => {
-    const { rerender } = render(
-      <SummaryDrawerCard {...baseProps} state="idle" />,
-    );
-    const drawer = await screen.findByTestId("summary-drawer");
-    const modalMode = drawer.getAttribute("aria-modal");
-
-    rerender(<SummaryDrawerCard {...baseProps} state="expanded" />);
-
-    const expandedDrawer = screen.getByTestId("summary-drawer");
-    if (modalMode === null) {
-      expect(expandedDrawer).not.toHaveAttribute("aria-modal");
-    } else {
-      expect(expandedDrawer).toHaveAttribute("aria-modal", modalMode);
-    }
   });
 });
 

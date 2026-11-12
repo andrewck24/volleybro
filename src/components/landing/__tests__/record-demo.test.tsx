@@ -23,7 +23,7 @@ beforeEach(() => {
   setFingerDotSupport(false);
 });
 afterEach(() => {
-  delete (HTMLElement.prototype as Partial<HTMLElement>).getAnimations;
+  delete (Element.prototype as Partial<Element>).getAnimations;
 });
 
 const sees = (text: string) =>
@@ -57,7 +57,7 @@ describe("walkthrough demo", () => {
     await waitToSee(away);
   });
 
-  it("resets the entry draft before replaying the same player tap", async () => {
+  it("reverts each state when scrolling back", async () => {
     await mount();
     scrollTo(3);
     await waitToSee(scoringMoves[SENT_RALLY.awayMoveIndex]!.text);
@@ -66,23 +66,21 @@ describe("walkthrough demo", () => {
     await waitToSee("我方得失分紀錄");
     expect(sees("對方得失分紀錄")).toBe(false);
 
-    scrollTo(3);
-    await waitToSee(scoringMoves[SENT_RALLY.awayMoveIndex]!.text);
+    scrollTo(0);
+    await waitToSee("選擇球員或對方失誤");
     expect(sees("我方得失分紀錄")).toBe(false);
   });
 
   it("rests on the unrecorded rally after a reload, whatever the mirrors hold", async () => {
     setFingerDotSupport(true);
-    const getAnimations = jest.fn(() => []);
-    Object.defineProperty(HTMLElement.prototype, "getAnimations", {
-      configurable: true,
-      value: getAnimations,
-    });
+    Element.prototype.getAnimations = () => [];
     await mount();
-    await waitFor(() => expect(getAnimations).toHaveBeenCalled());
 
     await waitFor(() =>
       expect(screen.getAllByText("對方得失分紀錄").length).toBeGreaterThan(0),
+    );
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
     expect(sees("選擇球員或對方失誤")).toBe(true);
     expect(sees("我方得失分紀錄")).toBe(false);

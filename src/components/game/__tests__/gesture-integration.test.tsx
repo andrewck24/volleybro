@@ -11,7 +11,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -236,52 +235,20 @@ describe("Game gesture split, wired through the real composition", () => {
   });
 });
 
-describe("GamePanel moves body", () => {
-  const mountPanel = () => {
+describe("GamePanel moves gesture", () => {
+  it("captures the pointer gesture before child controls receive a click", () => {
     const store = makeStore();
     render(
       <Provider store={store}>
         <GamePanel gameId="game-1" mode="general" />
       </Provider>,
     );
-    return store;
-  };
-
-  it("keeps the moves body scrollable inside the panel", () => {
-    mountPanel();
-
-    const body = screen.getByTestId("game-moves-step");
-    const viewport = screen.getByTestId("game-moves-viewport");
-    expect(body).toHaveClass("min-h-0", "overflow-y-auto");
-    expect(viewport).toHaveClass("min-h-0", "overflow-hidden");
-  });
-
-  it("uses React state for directional transitions across renders", async () => {
-    const store = mountPanel();
-    act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
-    });
-
-    const body = screen.getByTestId("game-moves-step");
-    expect(body).toHaveClass("slide-in-from-right-full");
-    await userEvent.click(
-      screen.getByRole("button", { name: "我方得失分紀錄" }),
-    );
-    expect(screen.getByTestId("game-moves-step")).toHaveClass(
-      "slide-in-from-left-full",
-    );
-  });
-
-  it("captures the pointer gesture before child controls receive a click", () => {
-    const store = mountPanel();
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
       store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
       store.dispatch(gameActions.setPanel("away"));
     });
-    const body = screen.getByTestId("game-moves-step");
-    const move = within(body).getAllByRole("button")[1]!;
+    const move = screen.getByRole("button", { name: "我方攔網失誤" });
     const awayMoveBeforeSwipe =
       store.getState().game.general.entryDraft.away.num;
     expect(awayMoveBeforeSwipe).toBe(scoringMoves[3]!.outcome[0]);

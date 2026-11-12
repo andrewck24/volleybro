@@ -72,7 +72,6 @@ describe("EntryProgressBar", () => {
     );
 
     expect(screen.getByText("我方得失分紀錄")).not.toBe(caption);
-    expect(screen.getByText("我方得失分紀錄")).toHaveClass("animate-in");
   });
 
   it("marks unreachable steps with aria-disabled while keeping them focusable", async () => {

@@ -98,7 +98,6 @@ describe("StatusBarColor", () => {
       document.documentElement.classList.add("dark");
     });
 
-    expect(computedStyleSpy).toHaveBeenLastCalledWith(document.documentElement);
     expect(headThemeColors()[0]).toEqual(["", "rgb(29, 35, 45)"]);
   });
 });

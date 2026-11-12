@@ -77,7 +77,7 @@ describe("StatsCarousel", () => {
     await waitFor(() => expect(heading()).toHaveTextContent("分差折線圖"));
   });
 
-  it("never shows both opponent descriptions during a transition", async () => {
+  it("replaces the slide body when the transition completes", async () => {
     jest.useFakeTimers({ doNotFake: ["nextTick"] });
     try {
       render(
@@ -95,7 +95,7 @@ describe("StatsCarousel", () => {
       ).toBeInTheDocument();
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(160);
+        await jest.advanceTimersToNextTimerAsync();
       });
       expect(heading()).toHaveTextContent("逐球記錄");
       expect(

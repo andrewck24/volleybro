@@ -28,7 +28,6 @@ export const GameMoves = ({
 
   return (
     <div
-      data-testid="game-moves-viewport"
       className={cn(
         "flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden bg-card p-2",
         className,
@@ -37,7 +36,6 @@ export const GameMoves = ({
     >
       <div
         key={step}
-        data-testid="game-moves-step"
         data-moves-step={step}
         className={cn(
           "flex min-h-0 w-full flex-1 flex-col overflow-y-auto duration-300 ease-out animate-in fade-in",

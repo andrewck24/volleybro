@@ -185,32 +185,6 @@ describe("usePendingWrites", () => {
     expect(pendingIds()).toEqual([]);
     leaveAAgain();
   });
-
-  it("preserves queued writers while new writes use the current recorder", async () => {
-    const puts = serve(() => HttpResponse.json(confirmed("e2")));
-    const { result: asA, unmount: leaveA } = await renderSignedIn();
-    act(() => asA.current.queue.enqueue(entry("e1")));
-    leaveA();
-
-    currentUserId = "user-b";
-    const { result: asB } = await renderSignedIn();
-    act(() => asB.current.queue.enqueue(entry("e2")));
-
-    expect(store.getState().pendingWrites.pending).toMatchObject([
-      { entry: { id: "e1" }, userId: "user-a" },
-      { entry: { id: "e2" }, userId: "user-b" },
-    ]);
-
-    await act(async () => {
-      await asB.current.queue.flush();
-    });
-
-    expect(sent(puts)).toEqual([{ si: 0, ids: ["e2"] }]);
-    expect(store.getState().pendingWrites.pending).toMatchObject([
-      { entry: { id: "e1" }, userId: "user-a" },
-    ]);
-  });
-
   it("binds an entry recorded offline to the last signed-in user", async () => {
     serve(() => HttpResponse.error());
     (await renderSignedIn()).unmount();

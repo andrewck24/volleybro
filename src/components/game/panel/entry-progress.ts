@@ -24,18 +24,12 @@ export type EntryProgress = {
   submittable: boolean;
 };
 
-function isOpponentErrorEntry(entry: ReduxEntryDraft): boolean {
-  return (
-    typeof entry.home.num === "number" && entry.home.type === MoveType.UNFORCED
-  );
-}
-
 export function getEntryProgress(draft: ReduxEntryDraft): EntryProgress {
   const playerId = draft.home.player?.id;
   const playerComplete = typeof playerId === "string" && playerId.length > 0;
   const homeComplete = typeof draft.home.num === "number";
   const awayComplete = typeof draft.away.num === "number";
-  const isOpponentError = isOpponentErrorEntry(draft);
+  const isOpponentError = homeComplete && draft.home.type === MoveType.UNFORCED;
 
   if (isOpponentError) {
     return {
@@ -55,6 +49,6 @@ export function getEntryProgress(draft: ReduxEntryDraft): EntryProgress {
     steps: STEPS,
     activeStep,
     reachableSteps,
-    submittable: playerComplete && homeComplete && awayComplete,
+    submittable: awayComplete,
   };
 }

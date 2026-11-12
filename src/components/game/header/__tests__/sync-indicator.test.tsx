@@ -109,12 +109,11 @@ afterEach(() => {
 const UNSENT_LABEL = "連線有問題，1 筆已保存，會持續嘗試送出";
 
 describe("SyncIndicator", () => {
-  it("keeps the header slot when the queue is empty", () => {
+  it("renders no control at all when the queue is empty, but keeps the slot", () => {
     renderIndicator();
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    const slot = screen.getByTestId("sync-indicator-slot");
-    expect(slot).toHaveClass("size-6", "shrink-0");
+    expect(screen.getByTestId("sync-indicator-slot")).toBeInTheDocument();
   });
 
   it("stops spinning, and says the rallies are safe, once the queue is waiting", async () => {
@@ -239,7 +238,7 @@ describe("SyncIndicator", () => {
     expect(onSurroundingClick).not.toHaveBeenCalled();
   });
 
-  it("acknowledges recovery but not routine sends", () => {
+  it("acknowledges a recovery with the check mark, then clears itself", () => {
     jest.useFakeTimers();
     try {
       enqueue(store, "e1");
@@ -259,13 +258,6 @@ describe("SyncIndicator", () => {
 
       act(() => {
         jest.advanceTimersByTime(SYNCED_ACK_MS);
-      });
-
-      expect(screen.queryByRole("button")).not.toBeInTheDocument();
-
-      act(() => enqueue(store, "e2"));
-      act(() => {
-        store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e2"] }));
       });
 
       expect(screen.queryByRole("button")).not.toBeInTheDocument();

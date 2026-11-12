@@ -18,7 +18,9 @@ import { useMemo, useState } from "react";
 
 export type SummaryDrawerState = "idle" | "expanded";
 
-export type SummaryDrawerPreview = Omit<PreviewCardProps, "hasPreview">;
+export type SummaryDrawerPreview = Omit<PreviewCardProps, "hasPreview"> & {
+  entryIndex: number;
+};
 
 export type IndexedEntry = { entry: EntryView; originalIndex: number };
 
@@ -125,10 +127,7 @@ export const SummaryDrawerCard = ({
           }}
           className={cn("mx-auto h-dvh max-w-160", className)}
         >
-          <div
-            data-testid="summary-drawer-content"
-            className="flex h-[85dvh] flex-col"
-          >
+          <div className="flex h-[85dvh] flex-col">
             <DrawerTitle className="sr-only">逐球紀錄</DrawerTitle>
             <button
               data-testid="summary-drawer-handle"
@@ -139,10 +138,7 @@ export const SummaryDrawerCard = ({
             >
               <span className="mx-auto block h-1.5 w-10 rounded-full bg-muted-foreground/40" />
             </button>
-            <div
-              data-testid="summary-drawer-entries"
-              className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-6"
-            >
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-6">
               {preview && (
                 <PreviewCard
                   key={preview.entryIndex}
