@@ -26,7 +26,6 @@ const defaultPositions = [
   Position.OH,
 ];
 
-/** A rally the home side won (`true`) or lost, with scores that keep the set in progress. */
 export const homeRally = (win: boolean, seq: number) =>
   createRecordedRally({
     id: `e${seq}`,

@@ -19,7 +19,6 @@ export const cli = fileURLToPath(
   new URL("../../scripts/release-controls.js", import.meta.url),
 );
 
-// Names the controller matches on are read from the real workflows, so a rename cannot leave the fake API behind.
 const jobsOf = (file) =>
   parseYaml(
     readFileSync(

@@ -145,8 +145,6 @@ const MirrorPanel = ({ step }: { step: number }) => {
 const Frame = () => {
   const isDotEnabled = useIsFingerDotEnabled();
   return (
-    // Concentric radii, see ADR-0106: tray p-2 (8) + card 12 = rounded-[20px].
-    // The court's 35vh cap is lifted for this frame, which is zoomed to fit.
     <div className="flex size-full flex-col gap-2 rounded-[20px] bg-(--free-zone) p-2 shadow-lg">
       <div className="w-full shrink-0 overflow-hidden rounded-xl shadow-lg">
         <GameCourt

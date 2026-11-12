@@ -12,11 +12,6 @@ export const FAKE_USER: User = {
   emailVerified: true,
 };
 
-/**
- * Replace the real auth services with doubles so integration tests exercise the
- * route -> usecase -> repository -> DB seam without a Better Auth session.
- * Returns a restore fn; the authenticated userId and the team player they act as are overridable.
- */
 export const useFakeAuth = ({
   userId = FAKE_USER.id,
   playerId = "0".repeat(23) + "1",

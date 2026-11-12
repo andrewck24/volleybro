@@ -11,7 +11,6 @@ export const storedActiveTeamPreference = () => {
   return raw === null ? null : JSON.parse(raw);
 };
 
-/** The value the app is expected to store for a preference. */
 export const storedPreferenceOf = (userId: string, teamId: string) => ({
   version: 1,
   userId,

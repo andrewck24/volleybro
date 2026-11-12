@@ -50,11 +50,6 @@ type InvitedOverrides = Partial<
   Omit<InvitedPlayer, "status" | "userId" | "email">
 > & { userId?: string; email?: string };
 
-/**
- * An invitee. Exactly one link is written: the userId when the invitee's
- * account is known, the email otherwise — the cast is what expresses that to
- * the compiler, which cannot follow the choice through the spread.
- */
 export function createInvitedPlayer(
   overrides: InvitedOverrides = {},
 ): InvitedPlayer {

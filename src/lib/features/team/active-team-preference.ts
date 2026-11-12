@@ -81,11 +81,6 @@ export type PreferenceActionInput = PreferenceState & {
   loadedTeamId: string | undefined;
 };
 
-/**
- * A refused request or another user discards the preference. A preference
- * that is not rejected is never replaced, whatever else is unknown. Without
- * one, the resolved team is stored once its data has loaded for a known user.
- */
 export const decidePreferenceAction = (
   input: PreferenceActionInput,
 ): PreferenceAction => {

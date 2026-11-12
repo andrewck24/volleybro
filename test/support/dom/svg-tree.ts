@@ -10,7 +10,6 @@ export type SvgLikeElement = ReactElement<{
   height?: number;
 }>;
 
-/** Collect every element of a given `type` (e.g. "svg", "path", "g") from the tree. */
 export function collect(
   node: ReactNode,
   type: string,

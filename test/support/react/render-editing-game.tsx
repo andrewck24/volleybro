@@ -8,14 +8,12 @@ import { server } from "../msw/server";
 import { PendingWritesOwner } from "./pending-writes-owner";
 import { renderGame } from "./render-game";
 
-/** Renders `ui` on a real store that is already editing the fixture game's first entry. */
 export function renderEditingGame(ui: ReactNode) {
   return renderGame(<PendingWritesOwner>{ui}</PendingWritesOwner>, game, {
     editingEntryIndex: 0,
   });
 }
 
-/** Queues the edited rally and keeps its write in flight for the rest of the test. */
 export function holdEditedWrite(store: AppStore) {
   server.use(
     http.put("/api/games/game-1/sets/entries", () => delay("infinite")),

@@ -18,7 +18,6 @@ const emptyTeam = (
   staffs: [],
 });
 
-/** A lineup referencing the given player ids for the starting six. */
 export const lineupFor = (playerIds: string[]): Lineup => ({
   options: { liberoReplaceMode: 0, liberoReplacePosition: Position.NONE },
   starting: playerIds.slice(0, 6).map((id, i) => ({
@@ -43,7 +42,6 @@ export interface SeededGame {
   lineup: Lineup;
 }
 
-/** Persist a minimal game (home team with 6 players, no sets) for reuse. */
 export const seedGame = async ({
   includeNullIdPlayer = false,
   playerCount = 6,

@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-// failCommand is one server-wide setting: configuring it replaces whatever
-// another test file set, whatever appName that file named, so files take turns.
 export async function withFailPoint<T>(
   mode: "alwaysOn" | { times: number },
   data:
@@ -14,7 +12,6 @@ export async function withFailPoint<T>(
   const locks = client
     .db("itest-locks")
     .collection<{ _id: string }>("failpoints");
-  // Under Jest's 5s test timeout, so a stuck lock fails with its own reason.
   const deadline = Date.now() + 4_000;
   for (;;) {
     try {

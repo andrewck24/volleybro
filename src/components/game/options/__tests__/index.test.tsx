@@ -5,8 +5,6 @@ import { render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 
 describe("GameOptions", () => {
-  // The play-by-play list moved to the summary drawer; a tab for it here would
-  // resurrect a second, diverging entry point.
   it("exposes only the overview and settings tabs", () => {
     render(
       <Provider store={makeStore()}>

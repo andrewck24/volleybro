@@ -1,13 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { required } from "./env";
 
-// A failed session check skips the team test.
 test.describe.configure({ mode: "serial" });
 
 test("@smoke session is valid", async ({ page }) => {
   const email = required("SMOKE_USER_EMAIL");
 
-  // Through the page so the browser's own cookie handling (WebKit ITP) is exercised.
   await page.goto("/");
   const session = await page.evaluate(() =>
     fetch("/api/auth/get-session", { credentials: "include" }).then((r) =>

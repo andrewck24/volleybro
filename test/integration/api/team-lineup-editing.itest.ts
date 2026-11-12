@@ -6,7 +6,6 @@ import { NextRequest } from "next/server";
 import { useFakeAuth } from "../support/auth";
 import { lineupFor, oid } from "../support/seed";
 
-// `withAuth` bypasses the container, so this is the one seam that cannot run for real.
 jest.mock("@/lib/auth", () => ({
   auth: {
     api: { getSession: async () => ({ user: { id: "0".repeat(24) } }) },

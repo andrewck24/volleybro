@@ -67,11 +67,9 @@ describe("the lineup a set stores with its entries", () => {
       findSet: (ref: unknown) => Promise<object>;
     };
     const stale = await internals.findSet(ref());
-    // Another device records its substitution after this one read the set.
     await write([substitution("sub-1", 1, benchIds[0]!)]);
     jest.spyOn(internals, "findSet").mockResolvedValueOnce(stale);
 
-    // Player 0 is already out, which the stale read cannot show.
     await expect(
       instance.upsertEntries(
         ref(),
@@ -88,8 +86,6 @@ describe("the lineup a set stores with its entries", () => {
   });
 
   it("aborts a multi-entry batch another write overtook, leaving none of it", async () => {
-    // The competing substitution lands between planning the batch and writing
-    // it, so the batch's version guards were computed from the earlier set.
     const games = mongoose.model("Game");
     const bulkWrite = games.bulkWrite.bind(games);
     jest
