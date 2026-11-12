@@ -43,7 +43,7 @@ const game = (overrides: {
 });
 
 describe("deriveSetCompletion", () => {
-  it("handles a set created between the read and write", () => {
+  it("returns null for a set absent at read time", () => {
     const entries = [rally(1, 0)];
     const g = game({ sets: [] });
 

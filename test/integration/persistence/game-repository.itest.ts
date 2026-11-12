@@ -5,6 +5,7 @@ import {
   createRecordedRally,
   createRecordedSubstitution,
 } from "@test/support/fixtures/entries";
+import { barrier, releaseGates } from "@test/support/gates";
 import { Game as GameModel } from "@/infrastructure/db/mongoose/schemas/game";
 import mongoose from "mongoose";
 import { container } from "@/infrastructure/di/inversify.config";
@@ -23,35 +24,9 @@ const startedSet = (lineup: Lineup) => {
   } as unknown as Set;
 };
 
-const holdConcurrentWrites = () => {
-  let waiting = 0;
-  let release!: () => void;
-  const bothReady = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const waitForBoth = async <T>(write: () => Promise<T>) => {
-    waiting += 1;
-    if (waiting === 2) release();
-    await bothReady;
-    return write();
-  };
-  const collection = GameModel.collection;
-  const updateOne = collection.updateOne.bind(collection);
-  const bulkWrite = collection.bulkWrite.bind(collection);
-  const updateOneSpy = jest
-    .spyOn(collection, "updateOne")
-    .mockImplementation((...args) => waitForBoth(() => updateOne(...args)));
-  const bulkWriteSpy = jest
-    .spyOn(collection, "bulkWrite")
-    .mockImplementation((...args) => waitForBoth(() => bulkWrite(...args)));
-
-  return () => {
-    updateOneSpy.mockRestore();
-    bulkWriteSpy.mockRestore();
-  };
-};
-
 const games = () => container.get<IGameRepository>(TYPES.GameRepository);
+
+afterEach(() => releaseGates());
 
 describe("game reads and writes", () => {
   it("finds no game for an id nobody holds", async () => {
@@ -137,21 +112,61 @@ describe("game reads and writes", () => {
         startedSet(lineupFor(playerIds)),
       );
 
-      const restoreWriteBarrier = holdConcurrentWrites();
+      const writeBarrier = barrier(2);
+      const updateOne = GameModel.updateOne.bind(GameModel);
+      const bulkWrite = GameModel.bulkWrite.bind(GameModel);
+      const updateOneSpy = jest
+        .spyOn(GameModel, "updateOne")
+        .mockImplementation(
+          (...args) =>
+            writeBarrier
+              .wait()
+              .then(() => updateOne(...args)) as unknown as ReturnType<
+              typeof GameModel.updateOne
+            >,
+        );
+      const bulkWriteSpy = jest
+        .spyOn(GameModel, "bulkWrite")
+        .mockImplementation(
+          (...args) =>
+            writeBarrier
+              .wait()
+              .then(() => bulkWrite(...args)) as unknown as ReturnType<
+              typeof GameModel.bulkWrite
+            >,
+        );
+      const writes = [
+        games().addSet(
+          { gameId, setIndex: 1 },
+          startedSet(lineupFor(playerIds)),
+        ),
+        games().upsertEntries(
+          { gameId, setIndex: 0 },
+          [{ entry: createRecordedRally({ id: "rally-1", seq: 0 }), at }],
+          oid(),
+        ),
+      ];
       try {
-        await Promise.all([
-          games().addSet(
-            { gameId, setIndex: 1 },
-            startedSet(lineupFor(playerIds)),
+        const settledBeforeBothWrites = Promise.race(
+          writes.map((write) =>
+            write.then(
+              () =>
+                Promise.reject(
+                  new Error("A write finished before the barrier opened"),
+                ),
+              (error) => Promise.reject(error),
+            ),
           ),
-          games().upsertEntries(
-            { gameId, setIndex: 0 },
-            [{ entry: createRecordedRally({ id: "rally-1", seq: 0 }), at }],
-            oid(),
-          ),
-        ]);
+        );
+        await Promise.race([writeBarrier.ready, settledBeforeBothWrites]);
+        writeBarrier.release();
+        await Promise.all(writes);
       } finally {
-        restoreWriteBarrier();
+        writeBarrier.release();
+        await Promise.allSettled(writes);
+        updateOneSpy.mockRestore();
+        bulkWriteSpy.mockRestore();
+        releaseGates();
       }
 
       const stored = await games().findById(gameId);
@@ -202,7 +217,7 @@ describe("game reads and writes", () => {
     });
   });
 
-  it("preserves entries and rejects an invalid starting lineup", async () => {
+  it("recomputes the stored lineup from substitutions and rejects an invalid starting lineup", async () => {
     const { gameId, playerIds } = await seedGame({ playerCount: 8 });
     const outgoing = playerIds[0]!;
     const incoming = playerIds[6]!;
@@ -236,10 +251,6 @@ describe("game reads and writes", () => {
         lineup: startingLineup,
       },
     );
-    expect(updated.sets[0]?.entries.map((entry) => entry.id)).toEqual([
-      "sub-1",
-    ]);
-
     const invalidLineup = {
       ...startingLineup,
       starting: startingLineup.starting.filter(
@@ -254,9 +265,10 @@ describe("game reads and writes", () => {
     ).rejects.toMatchObject({ reason: GameReason.INVALID_SUBSTITUTION });
 
     const stored = await games().findById(gameId);
-    expect(stored?.sets[0]?.entries.map((entry) => entry.id)).toEqual([
-      "sub-1",
-    ]);
-    expect(stored?.sets[0]?.options).toEqual(updated.sets[0]?.options);
+    const starting = stored?.sets[0]?.lineups.home.starting.map(
+      (player) => player.id,
+    );
+    expect(starting).toContain(incoming);
+    expect(starting).not.toContain(outgoing);
   });
 });

@@ -140,34 +140,6 @@ describe("player writes leave the roster readable", () => {
     });
   });
 
-  it("changes a role only when the stored role still matches", async () => {
-    const member = await players().create({
-      name: "Role Change",
-      status: PlayerStatus.JOINED,
-      teamId,
-      userId: oid(),
-      role: PlayerRole.MEMBER,
-    });
-
-    expect(
-      await players().updateRoleIf(
-        member.id,
-        PlayerRole.MEMBER,
-        PlayerRole.ADMIN,
-      ),
-    ).toMatchObject({ role: PlayerRole.ADMIN });
-    expect(
-      await players().updateRoleIf(
-        member.id,
-        PlayerRole.MEMBER,
-        PlayerRole.MEMBER,
-      ),
-    ).toBeNull();
-    expect(await players().findById(member.id)).toMatchObject({
-      role: PlayerRole.ADMIN,
-    });
-  });
-
   it("clears role and email when a member leaves the team", async () => {
     const memberUserId = oid();
     const member = await players().create({

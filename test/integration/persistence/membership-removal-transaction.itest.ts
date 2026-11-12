@@ -17,6 +17,7 @@ import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
+import { barrier, releaseGates } from "@test/support/gates";
 import { withFailPoint } from "../support/failpoint";
 import { oid } from "../support/seed";
 
@@ -87,24 +88,6 @@ const runAfter = (compete: () => Promise<unknown>): ITransactionRunner => ({
   },
 });
 
-const runTogether = (participants: number): ITransactionRunner => {
-  let arrived = 0;
-  let release!: () => void;
-  const ready = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  return {
-    async run<T>(operation: () => Promise<T>): Promise<T> {
-      return transactionRunner().run(async () => {
-        arrived += 1;
-        if (arrived === participants) release();
-        await ready;
-        return operation();
-      });
-    },
-  };
-};
-
 const leaveTeamWith = (runner: ITransactionRunner) =>
   new LeaveTeamUseCase(playerRepository(), teamRepository(), runner);
 const removePlayerWith = (runner: ITransactionRunner) =>
@@ -130,6 +113,8 @@ const withWriteFailure = (
     { failCommands: ["findAndModify"], ...failure },
     run,
   );
+
+afterEach(() => releaseGates());
 
 const expectPlayerInLineup = async (teamId: string, playerId: string) => {
   const team = await TeamModel.findById(teamId).lean();
@@ -333,8 +318,16 @@ describe("membership removal transactions", () => {
 
   it("conflicts ownership transfer with concurrent removal", async () => {
     const membership = await createAdminMembership();
-    const runner = runTogether(2);
-    const results = await Promise.allSettled([
+    const transactionBarrier = barrier(2);
+    const runner: ITransactionRunner = {
+      async run<T>(operation: () => Promise<T>): Promise<T> {
+        return transactionRunner().run(async () => {
+          await transactionBarrier.wait();
+          return operation();
+        });
+      },
+    };
+    const operations = [
       transferOwnershipWith(runner).execute({
         teamId: membership.teamId,
         newOwnerId: membership.playerId,
@@ -344,7 +337,36 @@ describe("membership removal transactions", () => {
         playerId: membership.playerId,
         userId: membership.ownerUserId,
       }),
-    ]);
+    ];
+    let failedBeforeBothTransactions = false;
+    let failure: unknown;
+    try {
+      const settledBeforeBothTransactions = Promise.race(
+        operations.map((operation) =>
+          operation.then(
+            () =>
+              Promise.reject(
+                new Error(
+                  "An operation finished before both transactions started",
+                ),
+              ),
+            (error) => Promise.reject(error),
+          ),
+        ),
+      );
+      await Promise.race([
+        transactionBarrier.ready,
+        settledBeforeBothTransactions,
+      ]);
+    } catch (error) {
+      failedBeforeBothTransactions = true;
+      failure = error;
+    } finally {
+      transactionBarrier.release();
+      releaseGates();
+    }
+    const results = await Promise.allSettled(operations);
+    if (failedBeforeBothTransactions) throw failure;
 
     expect(
       results.filter((result) => result.status === "fulfilled"),

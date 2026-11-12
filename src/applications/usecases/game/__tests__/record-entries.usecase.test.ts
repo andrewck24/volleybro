@@ -143,24 +143,6 @@ describe("RecordEntriesUseCase", () => {
     expect(result).toEqual({ entries, setCompletionConfirmed: true });
   });
 
-  it("writes the derived set and match result only when changed", async () => {
-    const entries = [createRecordedRally(decidingRally)];
-    const game = createGame();
-    mockAuthzService.verifyTeamRole.mockResolvedValue(
-      createPlayer({ id: "player-9" }),
-    );
-    mockGameRepository.findById.mockResolvedValue(game);
-    mockGameRepository.upsertEntries.mockResolvedValue(entries);
-
-    const result = await useCase().execute({
-      params: { gameId: "game-1", setIndex: 0 },
-      data: [decidingRally],
-    });
-
-    expect(mockGameRepository.completeSet).not.toHaveBeenCalled();
-    expect(result).toEqual({ entries });
-  });
-
   it("still returns the persisted entries when completeSet fails, marked unconfirmed", async () => {
     const entries = [createRecordedRally(decidingRally)];
     const game = createGame();

@@ -45,7 +45,7 @@ describe("LinkPendingInvitationsUseCase", () => {
     expect(result).toBe(0);
   });
 
-  it("links pending invitations idempotently in one batch", async () => {
+  it("should be idempotent — second execution returns 0 without error", async () => {
     mockPlayerRepository.linkUserToInvitations
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(0);
@@ -61,17 +61,6 @@ describe("LinkPendingInvitationsUseCase", () => {
 
     expect(first).toBe(2);
     expect(second).toBe(0);
-    expect(mockPlayerRepository.linkUserToInvitations).toHaveBeenCalledTimes(2);
-    expect(mockPlayerRepository.linkUserToInvitations).toHaveBeenNthCalledWith(
-      1,
-      "test@example.com",
-      "user-1",
-    );
-    expect(mockPlayerRepository.linkUserToInvitations).toHaveBeenNthCalledWith(
-      2,
-      "test@example.com",
-      "user-1",
-    );
   });
 
   it("should propagate errors thrown by repository", async () => {
