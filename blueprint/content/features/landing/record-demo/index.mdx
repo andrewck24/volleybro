@@ -24,7 +24,7 @@ The walkthrough shows how one rally is recorded. Code is in `src/components/land
 
 - The demo fixture must stay valid against the app store's shape (`demo-data.ts`, `demo-game.ts`); changes to the app's game components show on the landing automatically.
 - Two extra hidden `GamePanel` trees exist solely to measure the finger's targets.
-- At `lg`, the section clips the attack-line overrun without becoming a scroll container, preserving the sticky stage.
+- At `lg`, the attack line runs through the step chip's centre; a dashed continuation runs outside the court from the page's left edge to the chip. The section clips the overrun without becoming a scroll container, preserving the sticky stage.
 - On phones, the frame shows the first three opponent choices and first four home choices so every button fits without scrolling or squeezing.
 - The frame is 23rem wide: 22rem app cards sit inside a tray with 0.5rem padding on each side.
 - Snap applies only while the stage is pinned.
