@@ -12,7 +12,6 @@ import { lineupFor, oid } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
-/** The exact body `NewGameForm.createGame` sends. */
 const newGameBody = (teamId: string, playerIds: string[]) => ({
   info: {
     name: "Test Match",
@@ -28,7 +27,6 @@ const newGameBody = (teamId: string, playerIds: string[]) => ({
     home: {
       id: teamId,
       name: "Home",
-      // NewGameForm strips the local `list` grouping field before sending.
       players: playerIds.map((id, i) => ({
         id,
         name: `Player ${i + 1}`,
@@ -60,7 +58,6 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
     expect(res.status).toBe(201);
     const { id: gameId } = (await res.json()) as { id: string };
 
-    // The set-options panel submits the lineup it read back off the game.
     const persisted = await repo().findById(gameId);
     const setRes = await callRoute(createSet, {
       gameId,
@@ -70,8 +67,6 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
     });
     expect(setRes.status).toBe(201);
 
-    // The entry draft Redux actually submits: the home side carries the tapped
-    // player, the away side keeps the initial-state placeholder `id: ""`.
     const draft = {
       type: EntryType.RALLY,
       id: "entry-1",

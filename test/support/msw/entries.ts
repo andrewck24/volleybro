@@ -3,10 +3,6 @@ import { server } from "./server";
 
 export type EntryPut = { si: string | null; body: unknown };
 
-/**
- * Answers `PUT /api/games/game-1/sets/entries` and records each request. The
- * Nth request gets the Nth responder; the last responder answers every later one.
- */
 export const answerEntries = (
   ...responders: ((put: EntryPut, n: number) => Response | Promise<Response>)[]
 ) => {

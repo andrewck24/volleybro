@@ -9,11 +9,6 @@ export const PENDING_WRITES_VERSION = 2;
 
 const PROBE_VALUE = "1";
 
-/**
- * The queue's storage. Asynchronous throughout, and failures are not swallowed
- * here -- see D1 and D4 for both arguments. `load` returns whatever was in the
- * store, unvalidated: the caller decides what an unrecognisable snapshot means.
- */
 export type PendingWritesStorage = {
   load(): Promise<unknown>;
   save(snapshot: PersistedQueue): Promise<void>;

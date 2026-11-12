@@ -1,4 +1,3 @@
-// Suppress harmless third-party warnings that clutter test output
 const originalError = console.error;
 const harmlessWarnings = [
   "DeprecationWarning",

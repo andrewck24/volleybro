@@ -3,7 +3,6 @@ import { Position } from "@/entities/player";
 import { createGame } from "./entities";
 import { createRecordedRally } from "./entries";
 
-/** A one-set game with a single rally, for tests that open a game's edit dialogs. */
 export const rally = createRecordedRally({
   id: "e1",
   win: true,

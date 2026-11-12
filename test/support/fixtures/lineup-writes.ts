@@ -6,7 +6,6 @@ import {
 } from "@/entities/game";
 import { Position, type Lineup } from "@/entities/team";
 
-/** Six starters a-f, libero l, bench x and y. */
 export const lineup = (): Lineup => ({
   options: { liberoReplaceMode: 0, liberoReplacePosition: Position.NONE },
   starting: ["a", "b", "c", "d", "e", "f"].map((id) => ({
@@ -17,7 +16,6 @@ export const lineup = (): Lineup => ({
   substitutes: [{ id: "x" }, { id: "y" }],
 });
 
-/** A home substitution entry with id `sub-<seq>`. */
 export const sub = (seq: number, out: string, into: string): EntryContent => ({
   type: EntryType.SUBSTITUTION,
   id: `sub-${seq}`,

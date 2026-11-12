@@ -10,9 +10,7 @@ type Gate = Promise<void>;
 
 type TeamRequests = {
   user?: User;
-  /** The teams the server answers for; it refuses any other id as a non-member request. */
   teams?: Team[];
-  /** The ids of `teams` the user has joined; all of them by default. */
   joinedTeamIds?: string[];
   gates?: {
     user?: Gate;
@@ -22,10 +20,6 @@ type TeamRequests = {
   };
 };
 
-/**
- * Answers the requests the active team depends on, and returns the paths in
- * the order they arrived and those that have been answered.
- */
 export const answerTeamRequests = ({
   user = createUser(),
   teams = [createTeam()],

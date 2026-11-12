@@ -79,11 +79,6 @@ const retryRequested: CaseReducer<
   }
 };
 
-/**
- * Puts back what a previous run left on disk. Merges rather than replaces and
- * the in-memory copy wins, because the read is asynchronous and a rally can be
- * recorded while it is still in flight. The schedule is recomputed: see D2.
- */
 const rehydrated: CaseReducer<
   PendingWritesState,
   PayloadAction<{ items: PersistedPendingEntry[] }>

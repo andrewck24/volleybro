@@ -73,3 +73,29 @@ describe.each(cases)("$name", (hook) => {
     expect(paths).toEqual([hook.path("team-123")]);
   });
 });
+
+it("isolates SWR cache state between renders", async () => {
+  let response = { id: "team-first" };
+  server.use(
+    http.get("/api/teams/cache-isolation", () => HttpResponse.json(response)),
+  );
+
+  const { result: firstResult, unmount } = renderHook(
+    () => useTeam("cache-isolation"),
+    {
+      wrapper: SwrIsolation,
+    },
+  );
+  await waitFor(() => expect(firstResult.current.team).toEqual(response));
+  unmount();
+
+  response = { id: "team-second" };
+  const { result: secondResult } = renderHook(
+    () => useTeam("cache-isolation"),
+    {
+      wrapper: SwrIsolation,
+    },
+  );
+
+  await waitFor(() => expect(secondResult.current.team).toEqual(response));
+});

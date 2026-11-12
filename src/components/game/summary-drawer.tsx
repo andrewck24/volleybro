@@ -27,24 +27,6 @@ export type IndexedEntry = { entry: EntryView; originalIndex: number };
 const PEEK_SNAP = "80px";
 const SNAP_POINTS: (number | string)[] = [PEEK_SNAP, 0.85];
 
-/**
- * The Summary is a single vaul drawer (design.tsx model), NOT a separate peek
- * plus a portalled modal. Using vaul's `snapPoints`, the same always-mounted
- * DrawerContent shows only its top edge at the peek snap and rises to ~85dvh
- * when expanded, so the peek's top row IS the top of the expanded drawer.
- *
- * The top row follows the two states (`entry-ui` change):
- * - **recording**: a pulsing draft `PreviewCard` sits above the committed list;
- *   tapping it submits (when complete), the handle toggles the drawer.
- * - **idle**: there is no separate Preview bar -- the newest committed entry is
- *   simply the top `EntryRow`; tapping it while collapsed expands the drawer,
- *   and while expanded it inline-expands (accordion) like any other row.
- *
- * The committed list always shows every committed entry as an actionable row;
- * only the uncommitted draft is rendered as the distinct Preview bar. Inline
- * expansion is single-open, owned here so tapping one row collapses the
- * others.
- */
 export const SummaryDrawerCard = ({
   entries,
   players,

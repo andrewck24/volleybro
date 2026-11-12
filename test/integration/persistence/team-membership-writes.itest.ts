@@ -13,14 +13,10 @@ import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { handleUserCreated } from "@/lib/auth-hook";
+import mongoose from "mongoose";
 import { useFakeAuth } from "../support/auth";
 import { oid } from "../support/seed";
 
-/**
- * Reading a team's roster narrows every document, so one document that does not
- * fit the model takes the whole roster down. These are the write paths that used
- * to produce one, exercised against a real database and read back.
- */
 const players = () => container.get<IPlayerRepository>(TYPES.PlayerRepository);
 
 const roster = (teamId: string) => players().findByTeamId(teamId);
@@ -47,6 +43,19 @@ describe("player writes leave the roster readable", () => {
     await container
       .get<ITeamRepository>(TYPES.TeamRepository)
       .update(teamId, { ownerPlayerId: owner.id });
+  });
+
+  it("rejects a roster read containing a document outside the player union", async () => {
+    await PlayerModel.collection.insertOne({
+      _id: new mongoose.Types.ObjectId(),
+      name: "Unknown status",
+      status: "UNKNOWN",
+      teamId: new mongoose.Types.ObjectId(teamId),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+
+    await expect(roster(teamId)).rejects.toThrow();
   });
 
   it("allows exactly one concurrent ownership transfer", async () => {
@@ -414,11 +423,6 @@ describe("invitations reach the account behind the address", () => {
   });
 });
 
-/**
- * An invitation to an unregistered address is stored lowercased, while the
- * identity provider hands the sign-up hook whatever case the person typed.
- * Only a real database decides whether the two meet.
- */
 describe("signing up reaches the invitations waiting for that address", () => {
   let teamId: string;
   const ownerUserId = "0".repeat(24);

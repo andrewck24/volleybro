@@ -21,11 +21,59 @@ const createTeam = (
     .execute({ ...input, userId });
 
 describe("creating a team with its owner", () => {
-  // A transaction that creates a collection on its first write can fail with a
-  // catalog-change error, so the collections exist before any transaction runs.
   beforeAll(async () => {
     await TeamModel.createCollection();
     await PlayerModel.createCollection();
+  });
+
+  it("fails the failpoint lock with its own deadline before Jest timeout", async () => {
+    const locks = mongoose.connection
+      .getClient()
+      .db("itest-locks")
+      .collection<{ _id: string }>("failpoints");
+    let lockAcquired = false;
+    while (!lockAcquired) {
+      try {
+        await locks.insertOne({ _id: "failCommand" });
+        lockAcquired = true;
+      } catch (error) {
+        if ((error as { code?: number }).code !== 11000) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    }
+
+    const startTime = Date.now();
+    let elapsed = 0;
+    let rejectedAt: number | undefined;
+    const now = jest
+      .spyOn(Date, "now")
+      .mockImplementation(() => startTime + elapsed);
+    const attempt = withFailPoint(
+      "alwaysOn",
+      { failCommands: ["insert"], errorCode: 112 },
+      async () => undefined,
+    ).catch((error: unknown) => {
+      rejectedAt = elapsed;
+      throw error;
+    });
+    const deadlineTick = setTimeout(() => {
+      elapsed = 4_001;
+    }, 0);
+    const safetyTick = setTimeout(() => {
+      elapsed = 100_000;
+    }, 3_000);
+
+    try {
+      await expect(attempt).rejects.toThrow(
+        "Another test file never released the failpoint lock",
+      );
+      expect(rejectedAt).toBe(4_001);
+    } finally {
+      clearTimeout(deadlineTick);
+      clearTimeout(safetyTick);
+      now.mockRestore();
+      await locks.deleteOne({ _id: "failCommand" });
+    }
   });
 
   it("persists the team and its owner together", async () => {
@@ -51,7 +99,6 @@ describe("creating a team with its owner", () => {
   });
 
   it("retries the whole creation when the database reports a transient conflict", async () => {
-    // Fails the first insert once as a write conflict the driver may retry.
     const team = await withFailPoint(
       { times: 1 },
       {
@@ -143,7 +190,6 @@ describe("creating a team with its owner", () => {
   });
 
   it("leaves no team behind when the owner cannot be written", async () => {
-    // An empty owner name fails the player schema after the team is inserted.
     await expect(
       createTeam({ name: "Orphan", userName: "" }),
     ).rejects.toThrow();

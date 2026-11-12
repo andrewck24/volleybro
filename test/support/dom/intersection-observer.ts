@@ -5,11 +5,6 @@ type FakeObserver = {
   targets: Element[];
 };
 
-/**
- * Replaces IntersectionObserver with one the test drives: `observers` lists
- * every observer the component created with its targets, and `intersect`
- * plays the browser reporting one target entering or leaving the viewport.
- */
 export const mockIntersectionObserver = () => {
   const observers: FakeObserver[] = [];
   global.IntersectionObserver = jest.fn().mockImplementation((callback) => {

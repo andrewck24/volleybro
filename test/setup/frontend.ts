@@ -14,7 +14,6 @@ import "./shared";
 
 expect.extend(toHaveNoViolations);
 
-// Node's fetch schedules its work with setImmediate, which jsdom hides.
 globalThis.setImmediate ??= nodeSetImmediate as typeof setImmediate;
 globalThis.clearImmediate ??= nodeClearImmediate;
 
@@ -43,7 +42,6 @@ global.ResizeObserver = jest.fn().mockImplementation((_callback) => ({
   unobserve: jest.fn(),
 }));
 
-// jsdom lacks the Pointer Capture API that vaul's Drawer calls on interaction.
 if (!HTMLElement.prototype.setPointerCapture) {
   HTMLElement.prototype.setPointerCapture = jest.fn();
   HTMLElement.prototype.releasePointerCapture = jest.fn();
@@ -57,8 +55,8 @@ Object.defineProperty(window, "matchMedia", {
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(), // deprecated
-    removeListener: jest.fn(), // deprecated
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),

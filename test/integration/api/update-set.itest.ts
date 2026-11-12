@@ -32,7 +32,6 @@ describe("PUT /api/games/:id/sets", () => {
       body: { lineup: seeded.lineup, options },
     });
 
-    // Move the setter (index 5) into the outside-hitter position.
     const editedLineup = structuredClone(seeded.lineup);
     editedLineup.starting[5]!.position = Position.OH;
 

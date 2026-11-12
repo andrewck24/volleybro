@@ -1,4 +1,4 @@
-import type { Game } from "@/entities/game";
+import { isSetFinished, type Game } from "@/entities/game";
 import { Position } from "@/entities/player";
 import { useLineup } from "@/lib/features/game/hooks/use-lineup";
 import type { ReduxStatus } from "@/lib/features/game/types";
@@ -40,6 +40,12 @@ const loaded = (result: { current: Court }) =>
   waitFor(() => expect(result.current.starting).toHaveLength(6));
 
 describe("useLineup", () => {
+  it("keeps fixture rallies below the set-ending score", () => {
+    const game = createLineupGame({ entries: [homeRally(true, 0)] });
+
+    expect(isSetFinished(game.sets[0], game.info.scoring, 0)).toBe(false);
+  });
+
   describe("when there is no lineup to show", () => {
     it("is empty until the game has loaded", () => {
       const { result } = renderLineup(createLineupGame());

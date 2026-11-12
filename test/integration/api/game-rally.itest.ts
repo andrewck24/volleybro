@@ -29,8 +29,6 @@ describe("PUT /api/games/:id/sets/entries", () => {
 
   beforeEach(async () => {
     useFakeAuth();
-    // A null roster id is not what broke rally recording, but create-set walks
-    // the whole squad and must not throw on one.
     seeded = await seedGame({ includeNullIdPlayer: true });
   });
 
@@ -45,7 +43,6 @@ describe("PUT /api/games/:id/sets/entries", () => {
     });
     expect(created.status).toBe(201);
 
-    // The set must actually be in the database, not just in the response.
     const afterSet = await repo().findById(seeded.gameId);
     expect(afterSet!.sets).toHaveLength(1);
 
@@ -59,7 +56,6 @@ describe("PUT /api/games/:id/sets/entries", () => {
     expect(res.status).toBe(200);
     const afterRally = await repo().findById(seeded.gameId);
     expect(afterRally!.sets[0]!.entries).toHaveLength(1);
-    // The identity and sequence the client sent must round-trip unchanged.
     expect(afterRally!.sets[0]!.entries[0]).toMatchObject({
       id: rally.id,
       seq: rally.seq,

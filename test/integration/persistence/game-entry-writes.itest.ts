@@ -87,7 +87,6 @@ describe("identity-keyed entry writes", () => {
       [{ entry: rally("entry-1", 0, 1), at: recordedAt }],
       other,
     );
-    // The pre-read ran before the other create landed.
     const internals = instance as unknown as {
       findSet: (ref: unknown) => Promise<object>;
     };

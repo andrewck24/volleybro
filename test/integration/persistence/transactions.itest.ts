@@ -1,8 +1,25 @@
+import { execFileSync } from "node:child_process";
 import mongoose from "mongoose";
 
-// Each test uses collections of its own: the cleanup between tests empties
-// only the models' collections.
 describe("transactions", () => {
+  it("loads transaction context before Next captures AsyncLocalStorage", () => {
+    expect(() =>
+      execFileSync(
+        process.execPath,
+        [
+          "--import",
+          new URL("../../setup/integration.preload.js", import.meta.url).href,
+          "--input-type=module",
+          "--eval",
+          `import { AsyncLocalStorage } from "node:async_hooks";
+import { workAsyncStorage } from "next/dist/server/app-render/work-async-storage.external.js";
+if (!(workAsyncStorage instanceof AsyncLocalStorage)) process.exitCode = 1;`,
+        ],
+        { cwd: process.cwd(), env: { ...process.env, NODE_OPTIONS: "" } },
+      ),
+    ).not.toThrow();
+  });
+
   it("commits two writes together and reads both back", async () => {
     const db = mongoose.connection.db!;
     const session = await mongoose.startSession();
