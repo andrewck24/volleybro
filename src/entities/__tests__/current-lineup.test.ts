@@ -63,17 +63,19 @@ describe("Current lineup recomputation through upsertEntries", () => {
   it("names the first substitution in seq order that cannot apply", () => {
     const result = write(sub(2, "a", "x"), sub(1, "x", "y"), sub(3, "q", "y"));
 
-    expect(result).toMatchObject({ invalid: { id: "sub-1" } });
+    expect(result).toMatchObject({ invalid: { substitutionId: "sub-1" } });
   });
 
   it("refuses a substitution whose incoming player is already on court", () => {
-    expect(write(sub(0, "a", "b"))).toMatchObject({ invalid: { id: "sub-0" } });
+    expect(write(sub(0, "a", "b"))).toMatchObject({
+      invalid: { substitutionId: "sub-0" },
+    });
   });
 
   it("refuses a substitution on a side that has no lineup", () => {
     const away = { ...sub(0, "a", "x"), team: Side.AWAY };
 
-    expect(write(away)).toMatchObject({ invalid: { id: "sub-0" } });
+    expect(write(away)).toMatchObject({ invalid: { substitutionId: "sub-0" } });
   });
 
   it("leaves liberos and the starting lineups themselves untouched", () => {

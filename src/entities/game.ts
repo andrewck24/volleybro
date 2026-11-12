@@ -206,12 +206,6 @@ export enum EntryType {
   CHALLENGE = "Challenge",
 }
 
-/**
- * A stable identity and an ordering position, generated on the client before
- * the optimistic update runs. Identity never changes once assigned; position
- * is renumberable, which is why they are separate fields rather than one
- * order-bearing id.
- */
 export type EntryIdentity = {
   id: string;
   seq: number;
@@ -230,7 +224,6 @@ export type ChallengeEntry = { type: EntryType.CHALLENGE } & EntryIdentity &
 export type EntryContent =
   RallyEntry | SubstitutionEntry | TimeoutEntry | ChallengeEntry;
 
-/** Server-stamped authorship of an entry; see ADR 0144. */
 export type EntryRecord = {
   recordedBy: string;
   recordedAt: Date;
@@ -240,7 +233,6 @@ export type EntryRecord = {
 
 export type Entry = EntryContent & EntryRecord;
 
-/** An entry's content and the instant the client performed the action. */
 export type EntryWrite = { entry: EntryContent; at: Date };
 
 export const createRallyEntry = (rally: Rally & EntryIdentity): RallyEntry => ({
@@ -273,9 +265,7 @@ export type SetLineups = {
 
 export type Set = {
   win: boolean | null;
-  /** Who started the set; the only lineup a person edits. See ADR-0145. */
   startingLineups: SetLineups;
-  /** Who is on court now, derived from `startingLineups` and the entries. */
   lineups: SetLineups;
   options: {
     serve: "home" | "away";
@@ -309,18 +299,6 @@ export type GameSummary = {
   };
 };
 
-/* -------------------------------------------------------------- derivation */
-
-/**
- * Entries are the only stored record of what happened in a set; statistics,
- * serve rights and the set phase are computed from them.
- *
- * These functions declare only the structure they read so that both the domain
- * `Entry` and the presentation `EntryView` satisfy them. Neither caller has to
- * adopt the other's shape, which is what keeps the rules shareable without
- * dragging a domain data shape into the frontend.
- */
-
 type DerivableDetail = {
   score: number;
   type: MoveType;
@@ -341,7 +319,6 @@ export type DerivableEntry = {
   team?: Side;
 };
 
-/** Per-set allowances the rules grant each team; remaining = limit - used. */
 export const SET_ALLOWANCES = {
   substitution: 6,
   timeout: 2,
@@ -442,7 +419,6 @@ function mergeEntries<T extends EntryIdentity>(
   return next.sort((a, b) => a.seq - b.seq);
 }
 
-/** What the lineup rules read of an entry; both `Entry` and `EntryView` satisfy it. */
 export type LineupEntry = {
   type: EntryType;
   seq: number;
@@ -451,10 +427,8 @@ export type LineupEntry = {
 };
 
 type LineupRecomputation<T extends LineupEntry> = {
-  /** The lineups after every valid substitution has been applied. */
   lineups: SetLineups;
-  /** The first substitution, in seq order, the lineup cannot apply. */
-  invalid?: T;
+  firstInvalid?: T;
 };
 
 function applySubstitution(
@@ -496,12 +470,6 @@ function applySubstitution(
   };
 }
 
-/**
- * Applies a set's substitutions to its starting lineups in seq order, so the
- * result does not depend on the order the entries arrived in. A substitution
- * is valid only when the player going out is on court and the player coming in
- * is on the bench. Liberos are carried over untouched. See ADR-0145.
- */
 function recomputeLineups<T extends LineupEntry>(
   startingLineups: SetLineups,
   entries: readonly T[],
@@ -513,35 +481,25 @@ function recomputeLineups<T extends LineupEntry>(
 
     const side = entry.team === Side.AWAY ? "away" : "home";
     const next = applySubstitution(lineups[side], entry.players, entry.seq);
-    if (!next) return { lineups, invalid: entry };
+    if (!next) return { lineups, firstInvalid: entry };
     lineups = { ...lineups, [side]: next };
   }
 
   return { lineups };
 }
 
-/** What an entry write needs of an entry: identity, ordering, lineup and score structure. */
 type WritableEntry = EntryIdentity & LineupEntry & DerivableEntry;
 
-/** A set as the entry write rules see it. */
 type WritableSet = {
   startingLineups: SetLineups;
   entries: readonly WritableEntry[];
 };
 
 export type InvalidEntryWrite = {
-  /** The first substitution the lineup cannot apply. */
-  id: string;
-  /** The score of the last rally before it (0:0 if none). */
-  score: { home: number; away: number };
+  substitutionId: string;
+  scoreBefore: { home: number; away: number };
 };
 
-/**
- * Writes entries into a set: overwrite by id, order by seq, then recompute the
- * Current lineup from the starting lineups and every substitution. Returns the
- * first refused substitution when one no longer fits, with the merged entries
- * and the lineups the set already had. See ADR-0024 and ADR-0145.
- */
 export function upsertEntries<S extends WritableSet>(
   set: S,
   entries: readonly S["entries"][number][],
@@ -552,14 +510,17 @@ export function upsertEntries<S extends WritableSet>(
       set: S & { entries: S["entries"][number][] };
     } {
   const merged = mergeEntries(set.entries, entries);
-  const { lineups, invalid } = recomputeLineups(set.startingLineups, merged);
-  if (invalid) {
-    const previous = getPreviousRally(merged, merged.indexOf(invalid));
-    const score = previous
+  const { lineups, firstInvalid } = recomputeLineups(
+    set.startingLineups,
+    merged,
+  );
+  if (firstInvalid) {
+    const previous = getPreviousRally(merged, merged.indexOf(firstInvalid));
+    const scoreBefore = previous
       ? { home: previous.home.score, away: previous.away.score }
       : { home: 0, away: 0 };
     return {
-      invalid: { id: invalid.id, score },
+      invalid: { substitutionId: firstInvalid.id, scoreBefore },
       set: { ...set, entries: merged },
     };
   }
@@ -569,13 +530,6 @@ export function upsertEntries<S extends WritableSet>(
 export type EntryUpsertStep =
   { id: string; created: Entry } | { id: string; edited: Entry };
 
-/**
- * Plans a batch of client writes against a stored set, server side: classifies
- * each write as a create (stamped with the operator and the client's instant),
- * a creation resend (same recorder and instant, no step) or an edit (recorder
- * kept, last editor stamped), then upserts the result. Later writes of an id
- * classify against earlier ones in the batch.
- */
 export function planEntryUpserts<
   S extends { startingLineups: SetLineups; entries: readonly Entry[] },
 >(
@@ -591,7 +545,6 @@ export function planEntryUpserts<
       invalid: InvalidEntryWrite;
       set: S & { entries: Entry[] };
     } {
-  // A write without an id would match every other entry that has none.
   if (
     writes.some(
       ({ entry }) =>
@@ -697,8 +650,6 @@ export function deriveSetStats(
       const homeStat = home[entry.home.type] as Tally | undefined;
       const awayStat = away[entry.away.type] as Tally | undefined;
 
-      // A stored rally can name a move outside MoveType, which has no tally to
-      // add to. See ADR-0025.
       if (homeStat && awayStat) {
         if (win) {
           homeStat.success += 1;

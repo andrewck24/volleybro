@@ -1,4 +1,4 @@
-import { upsertEntries } from "@/entities/game";
+import { upsertEntries, type InvalidEntryWrite } from "@/entities/game";
 import type { GameView, PendingSubstitution } from "@/lib/features/game/types";
 
 /**
@@ -13,9 +13,7 @@ export const applySubstitution = (
   game: GameView,
   setIndex: number,
   entry: PendingSubstitution,
-):
-  | { game: GameView }
-  | { invalid: { id: string; score: { home: number; away: number } } } => {
+): { game: GameView } | { invalid: InvalidEntryWrite } => {
   const set = game.sets[setIndex]!;
   const result = upsertEntries(set, [entry]);
   if ("invalid" in result) return { invalid: result.invalid };
