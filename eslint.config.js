@@ -5,6 +5,10 @@ import storybook from "eslint-plugin-storybook";
 import testingLibrary from "eslint-plugin-testing-library";
 import { defineConfig, globalIgnores } from "eslint/config";
 
+const testsAssertingSerializedSvgMarkup = [
+  "blueprint/src/components/diagram.test.tsx",
+];
+
 const eslintConfig = defineConfig([
   // Next.js core configurations (includes React and React Hooks rules)
   ...nextVitals,
@@ -25,11 +29,35 @@ const eslintConfig = defineConfig([
       ...jestDom.configs.recommended.rules,
     },
   },
+  {
+    files: testsAssertingSerializedSvgMarkup,
+    rules: { "testing-library/no-node-access": "off" },
+  },
 
   // Project-specific rules and overrides
   {
+    linterOptions: {
+      noInlineConfig: true,
+      reportUnusedDisableDirectives: "error",
+    },
+  },
+  {
     files: ["**/*.{js,jsx,ts,tsx}"],
     rules: {
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-check": false,
+          "ts-expect-error": true,
+          "ts-ignore": true,
+          "ts-nocheck": true,
+        },
+      ],
+      "no-warning-comments": [
+        "error",
+        { terms: ["todo", "fixme", "hack", "xxx"], location: "anywhere" },
+      ],
+
       // TypeScript: Allow empty interfaces extending base (Clean Architecture repository pattern)
       "@typescript-eslint/no-empty-object-type": [
         "error",

@@ -4,9 +4,6 @@ import { blockSchema } from "../lib/emdash-change-record";
 import type { DiagramBlock } from "../lib/diagram-schema";
 import { Diagram } from "./diagram";
 
-// SVG geometry and marker contracts require checking exact serialized DOM attributes.
-/* eslint testing-library/no-node-access: off */
-
 const diagram = {
   _type: "diagram",
   _version: 1,
