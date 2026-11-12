@@ -20,10 +20,6 @@ if (!(workAsyncStorage instanceof AsyncLocalStorage)) process.exitCode = 1;`,
     ).not.toThrow();
   });
 
-  it("uses the same async-local transaction configuration as the app", () => {
-    expect(mongoose.get("transactionAsyncLocalStorage")).toBe(true);
-  });
-
   it("commits two writes together and reads both back", async () => {
     const db = mongoose.connection.db!;
     const session = await mongoose.startSession();

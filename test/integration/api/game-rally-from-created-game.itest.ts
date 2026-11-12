@@ -6,7 +6,6 @@ import { POST as createGame } from "@/app/api/games/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { PUT as recordEntries } from "@/app/api/games/[gameId]/sets/entries/route";
 import { NextRequest } from "next/server";
-import * as newGameForm from "@/lib/features/game/new-game-form";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
 import { lineupFor, oid } from "../support/seed";
@@ -35,6 +34,7 @@ const newGameBody = (teamId: string, playerIds: string[]) => ({
       })),
       lineup: lineupFor(playerIds),
     },
+    // The opponent field has no default and no required marker.
     away: { name: "" },
   },
 });
@@ -43,36 +43,6 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
   beforeEach(() => useFakeAuth());
 
   const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
-
-  it("omits the form-only lineup list from the API request", async () => {
-    const teamId = oid();
-    const playerIds = Array.from({ length: 6 }, oid);
-    const body = newGameForm.newGameBody({
-      info: newGameForm.newGameFormDefaults("Home"),
-      teamId,
-      players: playerIds.map((id, i) => ({
-        id,
-        name: `Player ${i + 1}`,
-        number: i + 1,
-        list: "starting" as const,
-      })),
-      lineup: lineupFor(playerIds),
-    });
-
-    expect(
-      body.teams.home.players.every((player) => !Object.hasOwn(player, "list")),
-    ).toBe(true);
-
-    const response = await createGame(
-      new NextRequest(`http://localhost/api/games?ti=${teamId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-    );
-
-    expect(response.status).toBe(201);
-  });
 
   it("records the first rally of a game created through POST /api/games", async () => {
     const teamId = oid();

@@ -58,6 +58,21 @@ describe("what the new-game form submits", () => {
 
     expect(CreateGameSchema.safeParse(asSent(body)).success).toBe(true);
   });
+
+  it("omits the form-only list field from serialized home players", () => {
+    const sentPlayers: Record<string, unknown>[] = asSent(
+      newGameBody({
+        info: newGameFormDefaults("My Team"),
+        teamId: TEAM_ID,
+        players: roster,
+        lineup,
+      }),
+    ).teams.home.players;
+
+    expect(sentPlayers.every((player) => !Object.hasOwn(player, "list"))).toBe(
+      true,
+    );
+  });
 });
 
 describe("what the set-options form submits", () => {

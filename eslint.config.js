@@ -129,6 +129,7 @@ const filesStillCarryingComments = [
   "src/proxy.ts",
   "src/stories/game/header.stories.tsx",
   "test/e2e/session.e2e.ts",
+  "test/integration/api/game-rally-from-created-game.itest.ts",
   "test/integration/api/game-set-completion.itest.ts",
   "test/integration/api/game-substitution.itest.ts",
   "test/integration/support/seed.ts",

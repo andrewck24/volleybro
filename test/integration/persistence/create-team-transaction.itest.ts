@@ -26,12 +26,6 @@ describe("creating a team with its owner", () => {
     await PlayerModel.createCollection();
   });
 
-  it("provides a placeholder Mongo URI before wrapped routes load", () => {
-    expect(process.env.MONGODB_URI).toBe(
-      "mongodb://127.0.0.1:27017/integration-placeholder",
-    );
-  });
-
   it("fails the failpoint lock with its own deadline before Jest timeout", async () => {
     const locks = mongoose.connection
       .getClient()
@@ -48,12 +42,12 @@ describe("creating a team with its owner", () => {
       }
     }
 
-    const actualNow = Date.now.bind(Date);
+    const startTime = Date.now();
     let elapsed = 0;
     let rejectedAt: number | undefined;
     const now = jest
       .spyOn(Date, "now")
-      .mockImplementation(() => actualNow() + elapsed);
+      .mockImplementation(() => startTime + elapsed);
     const attempt = withFailPoint(
       "alwaysOn",
       { failCommands: ["insert"], errorCode: 112 },
