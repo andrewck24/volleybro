@@ -20,6 +20,7 @@ Most skills in `.agents/skills/` are vendored and written for any repository; an
 | `plan-spec`                     | `docs/agents/domain.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/artifact-lifecycle.md`, `docs/agents/blueprint.md` |
 | `plan-tickets`                  | `docs/agents/domain.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/artifact-lifecycle.md`                             |
 | `ponytail`                      | no adapter                                                                                                                                               |
+| `ponytail-audit`                | no adapter                                                                                                                                               |
 | `ponytail-review`               | no adapter                                                                                                                                               |
 | `pr`                            | `WORKFLOW.md`, `docs/agents/domain.md`, `docs/agents/artifact-lifecycle.md`                                                                              |
 | `pre-pr-review`                 | `docs/agents/issue-tracker.md`, `docs/agents/artifact-lifecycle.md`, `docs/agents/test-audit.md`                                                         |
