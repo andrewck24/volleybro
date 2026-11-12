@@ -38,20 +38,19 @@ describe("SearchUserUseCase", () => {
       "team-1",
       "admin-1",
     );
-    expect(mockUserRepository.findAllByEmailInsensitive).not.toHaveBeenCalled();
+    expect(mockUserRepository.findByEmail).not.toHaveBeenCalled();
   });
 
   it("should return minimal user info when found by email", async () => {
-    mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([foundUser]);
+    mockUserRepository.findByEmail.mockImplementation(async (address) =>
+      address === "john@example.com" ? foundUser : null,
+    );
 
     const result = await useCase.execute({
-      email: "JOHN@example.com",
+      email: "  JOHN@example.com ",
       ...caller,
     });
 
-    expect(mockUserRepository.findAllByEmailInsensitive).toHaveBeenCalledWith(
-      "JOHN@example.com",
-    );
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.id).toBe("user-1");
@@ -61,7 +60,7 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return NotFoundError when user not found", async () => {
-    mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([]);
+    mockUserRepository.findByEmail.mockResolvedValue(null);
 
     const result = await useCase.execute({
       email: "notexist@example.com",
@@ -81,7 +80,7 @@ describe("SearchUserUseCase", () => {
     const failure = result as { ok: false; error: ValidationError };
     expect(failure.error).toBeInstanceOf(ValidationError);
     expect(failure.error.code).toBe("VALIDATION");
-    expect(mockUserRepository.findAllByEmailInsensitive).not.toHaveBeenCalled();
+    expect(mockUserRepository.findByEmail).not.toHaveBeenCalled();
   });
 
   it("should return ValidationError for empty email", async () => {
@@ -93,7 +92,7 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should not expose email address in result value", async () => {
-    mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([foundUser]);
+    mockUserRepository.findByEmail.mockResolvedValue(foundUser);
 
     const result = await useCase.execute({
       email: "john@example.com",
@@ -115,9 +114,7 @@ describe("SearchUserUseCase", () => {
       email: "john@example.com",
       image: undefined,
     });
-    mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([
-      userWithoutImage,
-    ]);
+    mockUserRepository.findByEmail.mockResolvedValue(userWithoutImage);
 
     const result = await useCase.execute({
       email: "john@example.com",

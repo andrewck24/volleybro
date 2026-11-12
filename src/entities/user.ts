@@ -7,3 +7,9 @@ export type User = {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+declare const normalized: unique symbol;
+export type NormalizedEmail = string & { readonly [normalized]: true };
+
+export const normalizeEmail = (email: string) =>
+  email.trim().toLowerCase() as NormalizedEmail;

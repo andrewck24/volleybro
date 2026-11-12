@@ -2,107 +2,144 @@ import {
   createMockPlayerRepository,
   createMockTeamRepository,
 } from "@test/support/doubles/repositories";
-import { createPlayer, createTeam } from "@test/support/fixtures/entities";
+import {
+  createInvitedPlayer,
+  createPlayer,
+  createTeam,
+} from "@test/support/fixtures/entities";
 import { GetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerRole, PlayerStatus, type Player } from "@/entities/player";
+
+const isInvitedTo = (player: Player, email: string) =>
+  player.status === PlayerStatus.INVITED && player.email === email;
+
+const statefulPlayerRepository = (rows: Player[]) => {
+  const repository = createMockPlayerRepository();
+  repository.findByUserId.mockImplementation(async (userId) =>
+    rows.filter((p) => "userId" in p && p.userId === userId),
+  );
+  repository.findByUserIdOrInvitedEmail.mockImplementation(
+    async (userId, email) =>
+      rows.filter(
+        (p) => ("userId" in p && p.userId === userId) || isInvitedTo(p, email),
+      ),
+  );
+  repository.linkUserToInvitations.mockImplementation(async (email, userId) => {
+    let linked = 0;
+    rows.forEach((p, i) => {
+      if (!isInvitedTo(p, email)) return;
+      const { email: _email, ...rest } = p as Player & { email: string };
+      rows[i] = { ...rest, userId } as Player;
+      linked += 1;
+    });
+    return linked;
+  });
+  return repository;
+};
 
 describe("GetUserPlayersUseCase", () => {
-  let usecase: GetUserPlayersUseCase;
-  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
   let mockTeamRepository: ReturnType<typeof createMockTeamRepository>;
 
-  const mockPlayers = [
-    createPlayer({
-      id: "player-1",
-      name: "User",
-      status: PlayerStatus.JOINED,
-    }),
+  const email = "alice@example.com";
+  const mine = [
+    createPlayer({ id: "player-1", teamId: "team-1", userId: "user-1" }),
     createPlayer({
       id: "player-2",
-      name: "User",
       teamId: "team-2",
-      status: PlayerStatus.JOINED,
+      userId: "user-1",
       role: PlayerRole.ADMIN,
     }),
   ];
+  const othersSeat = createPlayer({ id: "player-9", userId: "user-2" });
+  const otherAddress = createInvitedPlayer({
+    id: "player-8",
+    teamId: "team-8",
+    email: "bob@example.com",
+  });
+  const waiting = createInvitedPlayer({
+    id: "player-3",
+    teamId: "team-3",
+    email,
+  });
+
+  const build = (rows: Player[]) => {
+    const players = statefulPlayerRepository(rows);
+    return {
+      players,
+      usecase: new GetUserPlayersUseCase(players, mockTeamRepository),
+    };
+  };
 
   beforeEach(() => {
-    mockPlayerRepository = createMockPlayerRepository();
     mockTeamRepository = createMockTeamRepository();
     mockTeamRepository.findById.mockImplementation(async (id: string) =>
       createTeam({ id, name: `Team ${id}` }),
     );
-    usecase = new GetUserPlayersUseCase(
-      mockPlayerRepository,
-      mockTeamRepository,
-    );
   });
 
-  it("should return all players for a user with their teamName", async () => {
-    mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
+  it("returns the user's seats with their teamName, and no one else's", async () => {
+    const { usecase } = build([...mine, othersSeat, otherAddress]);
 
-    const result = await usecase.execute({ userId: "user-1" });
+    const result = await usecase.execute({ userId: "user-1", email });
 
     expect(result).toEqual([
-      { ...mockPlayers[0], teamName: "Team team-1" },
-      { ...mockPlayers[1], teamName: "Team team-2" },
+      { ...mine[0], teamName: "Team team-1" },
+      { ...mine[1], teamName: "Team team-2" },
     ]);
   });
 
-  it("should keep the entry with no teamName when its team cannot be found", async () => {
-    mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
+  it("keeps the entry with no teamName when its team cannot be found", async () => {
+    const { usecase } = build([...mine]);
     mockTeamRepository.findById.mockResolvedValue(null);
 
-    const result = await usecase.execute({ userId: "user-1" });
+    const result = await usecase.execute({ userId: "user-1", email });
 
     expect(result).toHaveLength(2);
     expect(result.every((p) => p.teamName === undefined)).toBe(true);
   });
 
-  it("should return empty array if user has no players", async () => {
-    mockPlayerRepository.findByUserId.mockResolvedValue([]);
+  it("returns an empty list when the user has no seats", async () => {
+    const { usecase } = build([othersSeat, otherAddress]);
 
-    const result = await usecase.execute({ userId: "user-1" });
-
-    expect(result).toEqual([]);
+    expect(await usecase.execute({ userId: "user-1", email })).toEqual([]);
   });
 
-  it("should return multiple players for user", async () => {
-    mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
+  it("links the invitation to this user, leaves other rows alone, and returns the linked seat", async () => {
+    const rows: Player[] = [...mine, othersSeat, otherAddress, waiting];
+    const { usecase } = build(rows);
 
-    const result = await usecase.execute({ userId: "user-1" });
+    const result = await usecase.execute({
+      userId: "user-1",
+      email: "  Alice@Example.COM ",
+    });
 
-    expect(result).toHaveLength(2);
-    expect(result[0]!.teamId).toBe("team-1");
-    expect(result[1]!.teamId).toBe("team-2");
+    const held = rows.find((p) => p.id === "player-3");
+    expect(held).toMatchObject({ userId: "user-1" });
+    expect(held).not.toHaveProperty("email");
+    expect(rows.find((p) => p.id === "player-9")).toBe(othersSeat);
+    expect(rows.find((p) => p.id === "player-8")).toBe(otherAddress);
+    expect(result.map((p) => p.id).sort()).toEqual([
+      "player-1",
+      "player-2",
+      "player-3",
+    ]);
+    expect(result.find((p) => p.id === "player-3")).toMatchObject({
+      userId: "user-1",
+      teamName: "Team team-3",
+    });
   });
 
-  it("should include both MEMBER and ADMIN roles", async () => {
-    mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
+  it("makes one repository query and no link or re-read when no invitation is waiting", async () => {
+    const rows: Player[] = [...mine, othersSeat, otherAddress];
+    const snapshot = [...rows];
+    const { usecase, players } = build(rows);
 
-    const result = await usecase.execute({ userId: "user-1" });
+    const result = await usecase.execute({ userId: "user-1", email });
 
-    expect(result[0]).toMatchObject({ role: PlayerRole.MEMBER });
-    expect(result[1]).toMatchObject({ role: PlayerRole.ADMIN });
-  });
-
-  it("should include status field in results", async () => {
-    mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
-
-    const result = await usecase.execute({ userId: "user-1" });
-
-    expect(result.every((p) => p.status === PlayerStatus.JOINED)).toBe(true);
-  });
-
-  it("should include userId field in results", async () => {
-    mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
-
-    const result = await usecase.execute({ userId: "user-1" });
-
-    expect(
-      result.every(
-        (p) => p.status === PlayerStatus.JOINED && p.userId === "user-1",
-      ),
-    ).toBe(true);
+    expect(rows).toEqual(snapshot);
+    expect(result.map((p) => p.id)).toEqual(["player-1", "player-2"]);
+    expect(players.findByUserIdOrInvitedEmail).toHaveBeenCalledTimes(1);
+    expect(players.linkUserToInvitations).not.toHaveBeenCalled();
+    expect(players.findByUserId).not.toHaveBeenCalled();
   });
 });

@@ -26,6 +26,7 @@ export interface PlayerDocument extends Document {
   teamId?: Types.ObjectId;
   userId?: Types.ObjectId;
   email?: string;
+  inviteeEmail?: string;
   role?: "MEMBER" | "ADMIN";
   createdAt: Date;
   updatedAt: Date;
@@ -66,8 +67,10 @@ const PlayerSchema = new Schema<PlayerDocument>(
     },
     email: {
       type: String,
-      lowercase: true,
       trim: true,
+    },
+    inviteeEmail: {
+      type: String,
     },
     role: {
       type: String,
@@ -92,6 +95,17 @@ PlayerSchema.index({ email: 1 });
 PlayerSchema.index(
   { teamId: 1, email: 1 },
   { unique: true, partialFilterExpression: { email: { $type: "string" } } },
+);
+
+PlayerSchema.index(
+  { teamId: 1, inviteeEmail: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      inviteeEmail: { $type: "string" },
+      status: "INVITED",
+    },
+  },
 );
 
 PlayerSchema.index(
