@@ -4,6 +4,7 @@ import { EntryType, MoveType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
+import { createGame } from "@test/support/fixtures/entities";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import {
   act,
@@ -146,6 +147,41 @@ const setUpGame = () => {
 beforeEach(() => answerSignedInUser());
 
 describe("Game gesture split, wired through the real composition", () => {
+  it("starts a new set after the existing set count", async () => {
+    const user = userEvent.setup();
+    const set = createGame().sets[0]!;
+    const completedSet = {
+      ...set,
+      entries: set.entries.map((entry) =>
+        entry.type === EntryType.RALLY
+          ? {
+              ...entry,
+              home: { ...entry.home, score: 25 },
+              away: { ...entry.away, score: 20 },
+            }
+          : entry,
+      ),
+    };
+    const game = createGame({
+      win: null,
+      sets: [completedSet, { ...completedSet, win: null, entries: [] }],
+    });
+    server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
+    render(
+      <Provider store={makeStore()}>
+        <SwrIsolation>
+          <Game gameId="game-1" setIndex={0} />
+        </SwrIsolation>
+      </Provider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "新的一局" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "第 3 局設定" }),
+    ).toBeInTheDocument();
+  });
+
   it("tapping the handle expands the drawer from the idle peek", async () => {
     const user = userEvent.setup();
     setUpGame();

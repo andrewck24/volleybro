@@ -91,13 +91,19 @@ describe("StatusBarColor", () => {
     const computedStyleSpy = jest.spyOn(window, "getComputedStyle");
     render(<StatusBarColor color="var(--color-card)" />);
 
-    computedStyleSpy.mockReturnValue({
-      backgroundColor: "rgb(29, 35, 45)",
-    } as CSSStyleDeclaration);
+    const htmlColor = "rgb(29, 35, 45)";
+    const bodyColor = "rgb(79, 85, 95)";
+    computedStyleSpy.mockImplementation(
+      (element) =>
+        ({
+          backgroundColor:
+            element === document.documentElement ? htmlColor : bodyColor,
+        }) as CSSStyleDeclaration,
+    );
     await act(async () => {
       document.documentElement.classList.add("dark");
     });
 
-    expect(headThemeColors()[0]).toEqual(["", "rgb(29, 35, 45)"]);
+    expect(headThemeColors()[0]).toEqual(["", htmlColor]);
   });
 });

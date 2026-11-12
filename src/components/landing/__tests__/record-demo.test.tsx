@@ -71,6 +71,21 @@ describe("walkthrough demo", () => {
     expect(sees("我方得失分紀錄")).toBe(false);
   });
 
+  it("keeps the player selected when replaying its tap", async () => {
+    await mount();
+
+    scrollTo(1);
+    await waitToSee("我方得失分紀錄");
+    scrollTo(0);
+    await waitToSee("選擇球員或對方失誤");
+    scrollTo(1);
+    await waitToSee("我方得失分紀錄");
+
+    expect(
+      screen.getByRole("button", { name: "我方得失分紀錄" }),
+    ).toHaveAttribute("aria-disabled", "false");
+  });
+
   it("rests on the unrecorded rally after a reload, whatever the mirrors hold", async () => {
     setFingerDotSupport(true);
     Element.prototype.getAnimations = () => [];
@@ -118,7 +133,7 @@ describe("walkthrough demo", () => {
 
   it("measures hidden mirrors to aim the finger dot", async () => {
     setFingerDotSupport(true);
-    HTMLElement.prototype.getAnimations = () => [];
+    Element.prototype.getAnimations = () => [];
     const rect = (
       left: number,
       top: number,
