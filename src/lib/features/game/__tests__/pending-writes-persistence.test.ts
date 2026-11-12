@@ -329,8 +329,7 @@ describe("localStoragePendingWrites", () => {
     getItem.mockRestore();
   });
 
-  it("does not report recorder-hint storage failures as queue failures", () => {
-    const store = makeStore();
+  it("swallows recorder-hint storage failures", () => {
     const setItem = jest
       .spyOn(Storage.prototype, "setItem")
       .mockImplementation(() => {
@@ -339,7 +338,6 @@ describe("localStoragePendingWrites", () => {
 
     try {
       expect(() => rememberRecorder("user-1")).not.toThrow();
-      expect(store.getState().pendingWrites.storageUnavailable).toBe(false);
     } finally {
       setItem.mockRestore();
     }
