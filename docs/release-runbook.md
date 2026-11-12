@@ -22,7 +22,7 @@ If a normal release run failed, the version PR was merged by someone else, or a 
 
 The smoke test uses a Google test account's real session, exported as Playwright `storageState` (the Better Auth session cookie only) and kept as the `SMOKE_STORAGE_STATE` secret of the `production-smoke` environment. A scheduled keepalive extends it every 3 days; GitHub's failure notification for that workflow means the session is no longer valid. A release run that reports a smoke infrastructure failure has either a failed session check or no smoke report at all (runner or install failure); the Production smoke job log tells which, and only the first needs a re-login.
 
-The smoke suite requires `PRODUCTION_ALIAS`, `AUTH_GOOGLE_ID`, `SMOKE_STORAGE_STATE`, `SMOKE_USER_EMAIL`, `SMOKE_TEAM_ID` and `PLAYWRIGHT_JSON_OUTPUT_NAME`; a missing value fails the test that needs it.
+The smoke suite requires `PRODUCTION_ALIAS`, `AUTH_GOOGLE_ID`, `SMOKE_STORAGE_STATE`, `SMOKE_USER_EMAIL` and `SMOKE_TEAM_ID`; a missing value fails the test that needs it. The production release sets `PLAYWRIGHT_JSON_OUTPUT_NAME` to `${{ runner.temp }}/smoke-report.json` so Playwright's JSON reporter writes its report there; the release then reads that file through `SMOKE_REPORT_FILE` to summarize smoke results. When `PLAYWRIGHT_JSON_OUTPUT_NAME` is unset, the JSON reporter writes to stdout.
 
 Re-login and refresh:
 

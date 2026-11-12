@@ -1,3 +1,5 @@
+import { inspect } from "node:util";
+
 jest.mock(
   "emdash",
   () => ({
@@ -60,7 +62,10 @@ describe("canonical content publish policy", () => {
     const secretUrl =
       "https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/00000000-0000-4000-8000-000000000001";
     const thrownDetails = "upstream response included private request data";
-    const logs: unknown[][] = [];
+    const logs: string[] = [];
+    const captureLog = (...args: unknown[]) => {
+      logs.push(args.map((argument) => inspect(argument)).join(" "));
+    };
     await plugin.hooks["content:afterPublish"](
       { collection: "blueprint_changes" },
       {
@@ -71,14 +76,14 @@ describe("canonical content publish policy", () => {
           },
         },
         log: {
-          error: (...args: unknown[]) => logs.push(args),
-          info: (...args: unknown[]) => logs.push(args),
-          warn: (...args: unknown[]) => logs.push(args),
+          error: captureLog,
+          info: captureLog,
+          warn: captureLog,
         },
       },
     );
 
-    const output = JSON.stringify(logs);
+    const output = logs.join("\n");
     expect(output).toContain("Blueprint build hook request failed");
     expect(output).not.toContain(secretUrl);
     expect(output).not.toContain(thrownDetails);
