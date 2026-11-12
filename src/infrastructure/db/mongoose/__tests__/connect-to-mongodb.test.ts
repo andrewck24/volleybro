@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { deferred } from "@test/support/gates";
+import { deferred, releaseGates } from "@test/support/gates";
 
 jest.unmock("@/infrastructure/db/mongoose/connect-to-mongodb");
 
@@ -11,6 +11,7 @@ describe("connectToMongoDB", () => {
   });
 
   afterEach(() => {
+    releaseGates();
     jest.restoreAllMocks();
   });
 

@@ -165,6 +165,19 @@ describe("the lineup a set stores with its entries", () => {
     expect(raw!.sets[0].ver).toBe(2);
   });
 
+  it("accepts a write to a set stored before versions existed", async () => {
+    await mongoose.connection
+      .collection("games")
+      .updateOne(
+        { _id: new mongoose.Types.ObjectId(seeded.gameId) },
+        { $unset: { "sets.0.ver": "" } },
+      );
+
+    await write([substitution("sub-1", 1, benchIds[0]!)]);
+
+    expect((await storedSet()).entries.map((e) => e.id)).toEqual(["sub-1"]);
+  });
+
   it("keeps an existing set's entries and version when the next set is created", async () => {
     await write([substitution("sub-1", 1, benchIds[0]!)]);
     const verOf = async () =>
