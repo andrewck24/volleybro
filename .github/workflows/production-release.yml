@@ -75,8 +75,9 @@ jobs:
             controller_sha=$(git rev-parse HEAD^1)
             mode=normal
           fi
-          set -o pipefail
-          git archive "$controller_sha" scripts/release-controls.js scripts/release-controls | tar -x --strip-components=1 -C "$RUNNER_TEMP"
+          git archive -o "$RUNNER_TEMP/controller.tar" "$controller_sha" scripts/release-controls.js scripts/release-controls
+          tar -xf "$RUNNER_TEMP/controller.tar" --strip-components=1 -C "$RUNNER_TEMP"
+          rm "$RUNNER_TEMP/controller.tar"
           echo "controller_sha=$controller_sha" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
