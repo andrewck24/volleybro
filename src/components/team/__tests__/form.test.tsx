@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 describe("TeamForm", () => {
-  it("resets late defaults only while the form is untouched", async () => {
+  it("loads defaults that arrive after mount", async () => {
     const { rerender } = render(
       <TeamForm draftKey="draft:team:abc" onSubmit={onSubmit} />,
     );
@@ -46,6 +46,7 @@ describe("TeamForm", () => {
   });
 
   it("does not overwrite user input when form is dirty", async () => {
+    const user = userEvent.setup();
     const { rerender } = render(
       <TeamForm
         draftKey="draft:team:def"
@@ -53,6 +54,9 @@ describe("TeamForm", () => {
         onSubmit={onSubmit}
       />,
     );
+    const nameInput = screen.getByPlaceholderText("日本國家男子排球隊");
+    await user.clear(nameInput);
+    await user.type(nameInput, "My edited team");
 
     rerender(
       <TeamForm
@@ -62,8 +66,7 @@ describe("TeamForm", () => {
       />,
     );
 
-    const nameInput = screen.getByPlaceholderText("日本國家男子排球隊");
-    expect((nameInput as HTMLInputElement).value).toBe("Old Name");
+    await waitFor(() => expect(nameInput).toHaveValue("My edited team"));
   });
 });
 
