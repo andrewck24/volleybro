@@ -10,6 +10,7 @@ import { normalizeEmail } from "@/entities/user";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
+import mongoose from "mongoose";
 import { oid } from "../support/seed";
 
 const players = () => container.get<IPlayerRepository>(TYPES.PlayerRepository);
@@ -19,6 +20,17 @@ describe("player reads and writes", () => {
 
   it("finds no player for an id nobody holds", async () => {
     expect(await players().findById(oid())).toBeNull();
+  });
+
+  it("refuses a stored player without a status rather than reading it as unlinked", async () => {
+    const { insertedId } = await PlayerModel.collection.insertOne({
+      name: "Old document",
+      teamId: new mongoose.Types.ObjectId(),
+    });
+
+    await expect(
+      players().findById(insertedId.toString()),
+    ).rejects.toMatchObject({ httpStatus: 400 });
   });
 
   it("refuses to update a player that does not exist", async () => {

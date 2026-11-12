@@ -49,7 +49,6 @@ import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usec
 
 const container = new Container();
 
-// register repositories
 container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepositoryImpl);
 container.bind<ITeamRepository>(TYPES.TeamRepository).to(TeamRepositoryImpl);
 container.bind<IGameRepository>(TYPES.GameRepository).to(GameRepositoryImpl);
@@ -57,7 +56,6 @@ container
   .bind<IPlayerRepository>(TYPES.PlayerRepository)
   .to(PlayerRepositoryImpl);
 
-// register services
 container
   .bind<IAuthenticationService>(TYPES.AuthenticationService)
   .to(AuthenticationService);
@@ -68,8 +66,6 @@ container
   .bind<ITransactionRunner>(TYPES.TransactionRunner)
   .to(MongooseTransactionRunner);
 
-// register usecases
-// team usecases
 container
   .bind<CreateTeamUseCase>(TYPES.CreateTeamUseCase)
   .to(CreateTeamUseCase);
@@ -81,7 +77,6 @@ container
   .bind<UpdateTeamLineupsUseCase>(TYPES.UpdateTeamLineupsUseCase)
   .to(UpdateTeamLineupsUseCase);
 
-// user auth usecases
 container
   .bind<LinkPendingInvitationsUseCase>(TYPES.LinkPendingInvitationsUseCase)
   .to(LinkPendingInvitationsUseCase);
@@ -92,7 +87,6 @@ container
   .bind<GetUserByIdUseCase>(TYPES.GetUserByIdUseCase)
   .to(GetUserByIdUseCase);
 
-// game usecases
 container.bind<FindGameUseCase>(TYPES.FindGameUseCase).to(FindGameUseCase);
 container
   .bind<CreateGameUseCase>(TYPES.CreateGameUseCase)
@@ -106,7 +100,6 @@ container
   .bind<RecordEntriesUseCase>(TYPES.RecordEntriesUseCase)
   .to(RecordEntriesUseCase);
 
-// player usecases
 container
   .bind<CreateInvitationUseCase>(TYPES.CreateInvitationUseCase)
   .to(CreateInvitationUseCase);

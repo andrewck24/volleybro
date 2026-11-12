@@ -54,8 +54,6 @@ function mapLineupPlayerRead(p: RawLineupPlayer) {
 
 function toLineupRead(lineup: RawLineup | undefined) {
   if (!lineup) return lineup;
-  // The subdocument's own `_id` has no field on `Lineup` and no place in
-  // the request the client builds from this value.
   return {
     options: lineup.options,
     starting: (lineup.starting ?? []).map((p) => mapLineupPlayerRead(p)),
@@ -90,7 +88,6 @@ function mapRallyDetailRead(detail: RawRallyDetail | undefined) {
   };
 }
 
-/** A stored entry always names its recorder; one that does not is unreadable. */
 function mapRecorderRead(entry: RawEntry) {
   if (!entry?.recordedBy || !entry.recordedAt)
     throw new ValidationError(
@@ -171,8 +168,7 @@ export function toGame(obj: RawGame): Game {
   } as unknown as Game;
 }
 
-/** Only `null` casts to an ObjectId ref; absent and empty both mean the same. */
-function toPlayerRef(id: string | null | undefined) {
+function normalizePlayerReference(id: string | null | undefined) {
   return id || null;
 }
 
@@ -182,11 +178,11 @@ function mapLineupPlayerWrite(p: {
   sub?: { id?: string; entryIndex?: { in?: number; out?: number } };
 }) {
   return {
-    playerId: toPlayerRef(p?.id),
+    playerId: normalizePlayerReference(p?.id),
     position: p?.position,
     sub: p?.sub
       ? {
-          playerId: toPlayerRef(p.sub.id),
+          playerId: normalizePlayerReference(p.sub.id),
           entryIndex: p.sub.entryIndex,
         }
       : undefined,
@@ -217,7 +213,7 @@ function mapSnapshotWrite(
   snapshot: { id?: string | null } & Record<string, unknown>,
 ) {
   const { id, ...rest } = snapshot;
-  return { ...rest, playerId: toPlayerRef(id) };
+  return { ...rest, playerId: normalizePlayerReference(id) };
 }
 
 function mapTeamWrite(
@@ -257,7 +253,7 @@ function mapRallyDetailWrite(detail: unknown) {
   return {
     ...d,
     player: {
-      playerId: toPlayerRef(d.player.id),
+      playerId: normalizePlayerReference(d.player.id),
       zone: d.player.zone,
     },
   };
@@ -280,8 +276,8 @@ export function mapEntryWrite(
     return {
       ...entry,
       players: {
-        in: toPlayerRef(players.in),
-        out: toPlayerRef(players.out),
+        in: normalizePlayerReference(players.in),
+        out: normalizePlayerReference(players.out),
       },
     };
   }

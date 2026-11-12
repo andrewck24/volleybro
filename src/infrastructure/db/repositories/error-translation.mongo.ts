@@ -19,8 +19,6 @@ export function translateRepositoryError(error: unknown): AppError {
   if (error instanceof AppError) return error;
   if (error instanceof Error) {
     if (error.name === "CastError") {
-      // Only an uncastable `_id` is a lookup miss; anywhere else it is the
-      // payload being written that the database cannot store.
       if ((error as { path?: unknown }).path === "_id") {
         return new NotFoundError(
           CommonReason.RESOURCE_NOT_FOUND,

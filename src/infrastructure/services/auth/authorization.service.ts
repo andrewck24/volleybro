@@ -43,9 +43,6 @@ export class AuthorizationService implements IAuthorizationService {
     return player;
   }
 
-  /**
-   * Verify user is admin or owner of the team
-   */
   async verifyIsTeamAdmin(teamId: string, userId: string): Promise<void> {
     await this.verifyTeamRole(teamId, userId, PlayerRole.ADMIN);
   }

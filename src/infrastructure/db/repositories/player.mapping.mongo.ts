@@ -21,7 +21,6 @@ export function toPlayer(raw: RawPlayer): Player {
   });
 }
 
-/** `undefined` removes the field from the document; it does not skip it. */
 export function toPlayerUpdateOps(updates: Partial<PlayerFields>) {
   const $set: Record<string, unknown> = {};
   const $unset: Record<string, string> = {};

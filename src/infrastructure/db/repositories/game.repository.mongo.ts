@@ -44,8 +44,6 @@ const toRawEntry = (entry: Entry) =>
 
 const MAX_ATTEMPTS = 5;
 
-// Sets written before versions existed have none, read as zero. Not `null`:
-// under an array index it would also match any set.
 const atVer = (path: string, ver: number) => ({
   [`${path}.ver`]: ver ? ver : { $not: { $gt: 0 } },
 });

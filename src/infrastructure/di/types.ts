@@ -1,28 +1,22 @@
 export const TYPES = {
-  // repositories
   UserRepository: Symbol.for("UserRepository"),
   TeamRepository: Symbol.for("TeamRepository"),
   GameRepository: Symbol.for("GameRepository"),
   PlayerRepository: Symbol.for("PlayerRepository"),
 
-  // services
   AuthenticationService: Symbol.for("AuthenticationService"),
   AuthorizationService: Symbol.for("AuthorizationService"),
   TransactionRunner: Symbol.for("TransactionRunner"),
 
-  // usecases
-  // team usecases
   CreateTeamUseCase: Symbol.for("CreateTeamUseCase"),
   GetTeamUseCase: Symbol.for("GetTeamUseCase"),
   UpdateTeamUseCase: Symbol.for("UpdateTeamUseCase"),
   UpdateTeamLineupsUseCase: Symbol.for("UpdateTeamLineupsUseCase"),
 
-  // user auth usecases
   LinkPendingInvitationsUseCase: Symbol.for("LinkPendingInvitationsUseCase"),
   SearchUserUseCase: Symbol.for("SearchUserUseCase"),
   GetUserByIdUseCase: Symbol.for("GetUserByIdUseCase"),
 
-  // game usecases
   FindGameUseCase: Symbol.for("FindGameUseCase"),
   CreateGameUseCase: Symbol.for("CreateGameUseCase"),
   FindGameSummariesUseCase: Symbol.for("FindGameSummariesUseCase"),
@@ -30,7 +24,6 @@ export const TYPES = {
   UpdateSetUseCase: Symbol.for("UpdateSetUseCase"),
   RecordEntriesUseCase: Symbol.for("RecordEntriesUseCase"),
 
-  // player usecases
   CreateInvitationUseCase: Symbol.for("CreateInvitationUseCase"),
   GetUserPlayersUseCase: Symbol.for("GetUserPlayersUseCase"),
   AcceptInvitationUseCase: Symbol.for("AcceptInvitationUseCase"),

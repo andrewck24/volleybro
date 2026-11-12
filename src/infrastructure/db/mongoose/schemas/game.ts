@@ -136,9 +136,6 @@ interface PlayerDocument extends Document {
   playerId: Types.ObjectId | null;
   name: string;
   number: number;
-  // Statistics are derived from a set's entries (see deriveSetStats in
-  // src/entities/game.ts), not read from this field. It has no writer; the
-  // column is kept for a future materialization decision rather than dropped.
   stats: PlayerStatsDocument[];
 }
 
@@ -219,8 +216,6 @@ interface TeamDocument extends Document {
   name: string;
   players: PlayerDocument[];
   staffs: StaffDocument[];
-  // Same as PlayerDocument.stats: no writer, kept for a future materialization
-  // decision. Team totals are derived from entries on read.
   stats: TeamStatsDocument[];
   lineup: { [key: number]: Types.ObjectId };
 }
@@ -247,8 +242,6 @@ interface RallyDetailDocument extends Document {
   };
 }
 
-// `required` records which fields a rally cannot do without; it guards nothing,
-// as bulkWrite updates skip validation. See ADR-0026.
 const rallyDetailSchema = new Schema<RallyDetailDocument>(
   {
     score: { type: Number, required: true },
@@ -380,8 +373,6 @@ const setSchema = new Schema<SetDocument>({
     },
   },
   entries: [entrySchema],
-  // Bumped by entry writes and updateSet, so a write planned from a stale read
-  // matches nothing.
   ver: { type: Number, default: 0 },
 });
 
