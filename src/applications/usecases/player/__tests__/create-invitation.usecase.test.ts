@@ -12,7 +12,7 @@ import {
 import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import { CreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
-import { PlayerRole } from "@/entities/player";
+import { narrowPlayer, PlayerRole, type PlayerFields } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 describe("CreateInvitationUseCase", () => {
@@ -46,6 +46,10 @@ describe("CreateInvitationUseCase", () => {
       number: undefined,
       position: undefined,
     });
+    const applyPatchToNonePlayer = async (
+      _id: string,
+      patch: Partial<PlayerFields>,
+    ) => narrowPlayer({ ...nonePlayer, ...patch } as PlayerFields);
 
     /** No account holds the address, and nobody on the team was invited to it. */
     const unregistered = () => {
@@ -57,9 +61,7 @@ describe("CreateInvitationUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       unregistered();
-      mockPlayerRepository.update.mockImplementation(async (id, patch) =>
-        createInvitedPlayer({ id, teamId, ...patch } as never),
-      );
+      mockPlayerRepository.update.mockImplementation(applyPatchToNonePlayer);
 
       const result = await useCase.execute({
         playerId,
@@ -77,14 +79,12 @@ describe("CreateInvitationUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockUserRepository.findByEmail.mockResolvedValue(invitee);
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
-      mockPlayerRepository.update.mockImplementation(async (id, patch) =>
-        createInvitedPlayer({ id, teamId, ...patch } as never),
-      );
+      mockPlayerRepository.update.mockImplementation(applyPatchToNonePlayer);
 
       const result = await useCase.execute({ playerId, email, role, userId });
 
       expect(result).toMatchObject({ userId: invitee.id, role });
-      expect(result).not.toHaveProperty("email");
+      expect(result.email).toBeUndefined();
     });
 
     it("links the account that holds the normalized address", async () => {
@@ -96,9 +96,7 @@ describe("CreateInvitationUseCase", () => {
       );
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
       mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-      mockPlayerRepository.update.mockImplementation(async (id, patch) =>
-        createInvitedPlayer({ id, teamId, ...patch } as never),
-      );
+      mockPlayerRepository.update.mockImplementation(applyPatchToNonePlayer);
 
       const result = await useCase.execute({
         playerId,
