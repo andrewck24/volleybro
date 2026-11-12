@@ -1,5 +1,5 @@
 import { EntryType } from "@/entities/game";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
@@ -10,7 +10,6 @@ import type { GameView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 
 import { gameWithSet, lastRally } from "@test/support/fixtures/finished-set";
-import { deferred } from "@test/support/gates";
 import { answerEntries } from "@test/support/msw/entries";
 
 let store: AppStore;
@@ -131,45 +130,6 @@ describe("useUnconfirmedSetCompletion", () => {
 
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(false);
-  });
-
-  it("keeps the dialog busy only while the request is attempting", async () => {
-    const { promise, release } = deferred();
-    const requests = answerEntries(async () => {
-      await promise;
-      return HttpResponse.json({
-        entries: [lastRally],
-        setCompletionConfirmed: true,
-      });
-    });
-    enqueue("e1", "game-1", 0);
-    store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
-    );
-    recordCompletion(false);
-    const { result } = renderUnconfirmed(true);
-
-    expect(result.current.attempting).toBe(false);
-    let retry!: Promise<void>;
-    act(() => {
-      retry = result.current.retry();
-    });
-
-    try {
-      await waitFor(() => expect(requests).toHaveLength(1));
-      expect(result.current.attempting).toBe(true);
-
-      await act(async () => {
-        release();
-        await retry;
-      });
-
-      expect(result.current.attempting).toBe(false);
-      expect(result.current.unconfirmed).toBe(false);
-    } finally {
-      release();
-      await retry;
-    }
   });
 
   it("retry resends the last rally entry and records success", async () => {

@@ -58,13 +58,7 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
       sent.push(((await request.json()) as { id: string }[]).map((r) => r.id));
       if (sent.length > 1) {
         await laterAnswer;
-        return HttpResponse.json({
-          entries: [
-            storedRally("s0", 0),
-            storedRally("q1", 1),
-            storedRally("q2", 2),
-          ],
-        });
+        return HttpResponse.json({ entries: [] });
       }
       await firstAnswer;
       return HttpResponse.json({

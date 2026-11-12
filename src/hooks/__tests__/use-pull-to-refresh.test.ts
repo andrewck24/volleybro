@@ -3,7 +3,6 @@ import {
   usePullToRefresh,
 } from "@/hooks/use-pull-to-refresh";
 import { act, renderHook } from "@testing-library/react";
-import { deferred } from "@test/support/gates";
 
 const setStandalone = (standalone: boolean) => {
   Object.defineProperty(window, "matchMedia", {
@@ -378,8 +377,9 @@ describe("usePullToRefresh", () => {
     });
 
     it("calls onError with RefreshTimeoutError after refreshTimeout ms", async () => {
-      const { promise, release } = deferred();
-      const onRefresh = jest.fn(() => promise);
+      const onRefresh = jest
+        .fn()
+        .mockImplementation(() => new Promise<void>(() => {}));
       const onError = jest.fn();
 
       const { result } = renderHook(() =>
@@ -407,8 +407,6 @@ describe("usePullToRefresh", () => {
       expect(onError).toHaveBeenCalledTimes(1);
       expect(onError.mock.calls[0][0]).toBeInstanceOf(RefreshTimeoutError);
       expect(result.current.refreshError).toBeInstanceOf(RefreshTimeoutError);
-      release();
-      await promise;
     });
 
     it("resets refreshError to null on the next touchstart", async () => {

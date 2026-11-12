@@ -85,13 +85,13 @@ const sent = (puts: EntryPut[]) =>
     ids: (body as { id: string }[]).map((e) => e.id),
   }));
 
-const realSetImmediate = globalThis.setImmediate;
+const realSetTimeout = globalThis.setTimeout;
 const advanceUntil = async (condition: () => boolean) => {
   for (let i = 0; i < 400 && !condition(); i++) {
     await act(async () => {
       await jest.advanceTimersByTimeAsync(50);
     });
-    await new Promise<void>((resolve) => realSetImmediate(resolve));
+    await new Promise((resolve) => realSetTimeout(resolve, 2));
   }
   expect(condition()).toBe(true);
 };
@@ -273,7 +273,7 @@ describe("usePendingWrites", () => {
       second = result.current.queue.flush();
     });
     await waitFor(() => expect(puts).toHaveLength(1));
-    await new Promise<void>((resolve) => realSetImmediate(resolve));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(puts).toHaveLength(1);
 
     await act(async () => {
@@ -465,7 +465,7 @@ describe("PendingWritesContext: single owner", () => {
     );
 
     await waitFor(() => expect(puts).toHaveLength(1));
-    await new Promise<void>((resolve) => realSetImmediate(resolve));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(puts).toHaveLength(1);
 
     await act(async () => {

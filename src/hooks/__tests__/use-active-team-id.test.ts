@@ -33,7 +33,7 @@ const run = async (setup: Parameters<typeof respondWith>[0]) => {
   return result;
 };
 
-describe("useActiveTeamId", () => {
+describe("useActiveTeamPreference", () => {
   it("does not render a stored preference in the server snapshot", () => {
     localStorage.setItem(
       "active-team-preference",
@@ -52,7 +52,9 @@ describe("useActiveTeamId", () => {
       localStorage.removeItem("active-team-preference");
     }
   });
+});
 
+describe("useActiveTeamId", () => {
   it("without a preference, uses the first joined team", async () => {
     const result = await run({ joinedTeamIds: ["team-1", "team-2"] });
 
