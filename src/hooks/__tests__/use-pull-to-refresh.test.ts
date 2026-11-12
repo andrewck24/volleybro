@@ -3,8 +3,8 @@ import {
   usePullToRefresh,
 } from "@/hooks/use-pull-to-refresh";
 import { act, renderHook } from "@testing-library/react";
+import { deferred } from "@test/support/gates";
 
-// jsdom has no matchMedia; the installed-app display mode is the environment.
 const setStandalone = (standalone: boolean) => {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -113,7 +113,6 @@ describe("usePullToRefresh", () => {
         el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
       });
 
-      // No inline styles should be set on the consumer element
       expect(el).not.toHaveAttribute("style");
     });
   });
@@ -206,7 +205,6 @@ describe("usePullToRefresh", () => {
         el.dispatchEvent(makeTouchEvent("touchmove", 200));
       });
 
-      // Regardless of cancel/end path, the element must never receive any inline styles
       expect(el).not.toHaveStyle("transform: translateY(0)");
       expect(el).not.toHaveStyle("transition: transform 0.2s ease-out");
       expect(el).not.toHaveAttribute("style");
@@ -248,7 +246,6 @@ describe("usePullToRefresh", () => {
 
       expect(result.current.isRefreshing).toBe(true);
 
-      // onRefresh resolves at 50ms but minRefreshDisplay = 1000
       await act(async () => {
         await jest.advanceTimersByTimeAsync(50);
       });
@@ -259,7 +256,6 @@ describe("usePullToRefresh", () => {
       });
       expect(result.current.isRefreshing).toBe(true);
 
-      // Past 1000ms total — both settled
       await act(async () => {
         await jest.advanceTimersByTimeAsync(250);
       });
@@ -292,13 +288,11 @@ describe("usePullToRefresh", () => {
 
       expect(result.current.isRefreshing).toBe(true);
 
-      // minRefreshDisplay elapsed but onRefresh still running
       await act(async () => {
         await jest.advanceTimersByTimeAsync(300);
       });
       expect(result.current.isRefreshing).toBe(true);
 
-      // onRefresh resolves at 1500ms — no extra delay
       await act(async () => {
         await jest.advanceTimersByTimeAsync(1200);
       });
@@ -384,9 +378,8 @@ describe("usePullToRefresh", () => {
     });
 
     it("calls onError with RefreshTimeoutError after refreshTimeout ms", async () => {
-      const onRefresh = jest
-        .fn()
-        .mockImplementation(() => new Promise<void>(() => {}));
+      const { promise, release } = deferred();
+      const onRefresh = jest.fn(() => promise);
       const onError = jest.fn();
 
       const { result } = renderHook(() =>
@@ -414,6 +407,8 @@ describe("usePullToRefresh", () => {
       expect(onError).toHaveBeenCalledTimes(1);
       expect(onError.mock.calls[0][0]).toBeInstanceOf(RefreshTimeoutError);
       expect(result.current.refreshError).toBeInstanceOf(RefreshTimeoutError);
+      release();
+      await promise;
     });
 
     it("resets refreshError to null on the next touchstart", async () => {
@@ -440,7 +435,6 @@ describe("usePullToRefresh", () => {
 
       expect(result.current.refreshError).toBe(cause);
 
-      // New gesture clears refreshError
       act(() => {
         el.dispatchEvent(makeTouchEvent("touchstart", 0));
       });

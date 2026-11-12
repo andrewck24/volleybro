@@ -30,19 +30,6 @@ type FlushFailedPayload = Parameters<
 
 export type FlushResult = { ok: true } | { ok: false; error: unknown };
 
-/**
- * The pending-write queue is the single source of truth for what the
- * server has not confirmed. This hook owns enqueueing new writes for one
- * (gameId, setIndex) and flushing the queue — on demand (submit, reconnect)
- * and in the background once an entry's backoff comes due.
- *
- * A flush covers every set still pending for this game, not only the one
- * currently being recorded: the rally endpoint is scoped per set (`si`), so
- * a flush groups the queue by setIndex and sends one request per group.
- * Without this, an entry left over from a set the recorder has since moved
- * past would stay queued forever — counted by SyncIndicator but never
- * reachable by its retry.
- */
 export function usePendingWrites(gameId: string, setIndex: number) {
   const sessionUserId = useUser().user?.id;
   useEffect(() => {
@@ -65,8 +52,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     if (bySetIndex.size === 0) return { ok: true };
 
     const succeededIds: string[] = [];
-    // Per set group, not pooled by retryability: each group is its own
-    // request, and an entry has to record why its own request failed.
     const failures: { payload: FlushFailedPayload; error: unknown }[] = [];
 
     for (const [si, items] of bySetIndex) {
@@ -82,10 +67,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
           (current) => applyFlushedEntries(current, si, result.value.entries),
           { revalidate: false },
         );
-        // The response is the only place this fact exists at submission
-        // time -- the local cache is already optimistically written to
-        // match entries, so comparing it against itself would never catch a
-        // completeSet failure. Undefined means no set result was attempted.
         if (result.value.setCompletionConfirmed !== undefined) {
           dispatch(
             setCompletionActions.recorded({
@@ -120,9 +101,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
       : { ok: false, error: firstFailure.error };
   }, [dispatch, gameId, mutate, store, userId]);
 
-  // Only one flush in flight at a time; callers that ask for a flush while
-  // one is running get the same promise rather than a second overlapping
-  // request. Whatever they enqueued rides along on the next flush instead.
   const flush = useCallback((): Promise<FlushResult> => {
     if (!inFlight.current) {
       inFlight.current = runFlush().finally(() => {
@@ -141,19 +119,11 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     [dispatch, gameId, setIndex, userId],
   );
 
-  // The one retry gesture: reset this game's exhausted items' backoff and
-  // flush.
   const retry = useCallback((): Promise<FlushResult> => {
     dispatch(pendingWritesActions.retryRequested({ gameId, userId }));
     return flush();
   }, [dispatch, flush, gameId, userId]);
 
-  // Background retry: schedule the next flush for whenever the earliest
-  // still-pending item comes due, and re-flush as soon as connectivity
-  // returns so an entry queued while offline is written once, not lost.
-  // Scoped to the game, not the current set, for the same reason runFlush
-  // is: an item from a set the recorder has moved past must still get
-  // scheduled.
   const earliestNextAttempt = useAppSelector((state) => {
     const due = state.pendingWrites.pending
       .filter(
@@ -184,14 +154,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
 
 export type PendingWritesApi = ReturnType<typeof usePendingWrites>;
 
-/**
- * `usePendingWrites` owns an `inFlight` ref and a background-retry timer, so
- * it must be mounted exactly once per game -- `Game` (`src/components/game/
- * index.tsx`) is that single owner. Everything below it that needs `enqueue`,
- * `flush`, or `retry` reads them from this context instead of mounting its
- * own instance, which would each fire an independent flush for the same due
- * entry.
- */
 export const PendingWritesContext = createContext<PendingWritesApi | null>(
   null,
 );

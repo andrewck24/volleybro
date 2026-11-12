@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { delay, http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { useGame } from "@/hooks/use-data";
 import { usePendingWrites } from "@/hooks/use-pending-writes";
@@ -48,20 +48,24 @@ beforeEach(() => {
   store = makeStore();
 });
 
-// The flush replaces the set's entries with the server's answer, which cannot
-// include a rally recorded after that request went out.
 it("keeps a rally recorded while a flush was already in flight", async () => {
   const { promise: firstAnswer, release: settle } = deferred();
+  const { promise: laterAnswer } = deferred();
   const sent: string[][] = [];
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(serverGame())),
     http.put("/api/games/game-1/sets/entries", async ({ request }) => {
       sent.push(((await request.json()) as { id: string }[]).map((r) => r.id));
-      // Enqueuing schedules a background flush for the next macrotask, so a
-      // second request goes out mid-test. Only the first is answered:
-      // replaying its answer to the second would let a stale response decide
-      // what is on screen.
-      if (sent.length > 1) await delay("infinite");
+      if (sent.length > 1) {
+        await laterAnswer;
+        return HttpResponse.json({
+          entries: [
+            storedRally("s0", 0),
+            storedRally("q1", 1),
+            storedRally("q2", 2),
+          ],
+        });
+      }
       await firstAnswer;
       return HttpResponse.json({
         entries: [storedRally("s0", 0), storedRally("q1", 1)],

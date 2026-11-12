@@ -45,7 +45,6 @@ beforeEach(() => {
   store = makeStore();
 });
 
-// The toast store is module-level, so a toast would outlive its test.
 afterEach(() => {
   const { result } = renderHook(() => useToast());
   act(() => result.current.dismiss());
@@ -83,7 +82,6 @@ describe("useEditingGuard", () => {
     act(() => result.current.guardDismiss(event));
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
 
-    // The back control does nothing while writing either.
     act(() => result.current.leaveEditing());
     expect(store.getState().game.mode).toBe("editing");
     expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
