@@ -8,11 +8,9 @@ import { TYPES } from "@/infrastructure/di/types";
  * Hook handler for Better Auth `user.create.after` event.
  *
  * Flow:
- * 1. Connect to MongoDB because Better Auth calls this outside
- *    withErrorHandler's connection.
- * 2. Link pending email invitations via LinkPendingInvitationsUseCase, with
+ * 1. Link pending email invitations via LinkPendingInvitationsUseCase, with
  *    retry-once-on-transient-failure.
- * 3. All failures are logged but do NOT propagate — the hook must not
+ * 2. All failures are logged but do NOT propagate — the hook must not
  *    block the auth flow.
  */
 export async function handleUserCreated(user: {
