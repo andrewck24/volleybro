@@ -3,7 +3,6 @@ import {
   CommonReason,
   GameReason,
   PlayerReason,
-  ProfileReason,
 } from "@/entities/errors";
 
 export type ErrorMessage = { title: string; description: string };
@@ -18,7 +17,7 @@ type ClassKey =
 type AbsorbedReason = (typeof ABSORBED_REASONS)[number];
 // Derived, so renaming a reason is a compile error rather than a silent miss.
 type ReasonKey = Exclude<
-  AuthReason | CommonReason | GameReason | PlayerReason | ProfileReason,
+  AuthReason | CommonReason | GameReason | PlayerReason,
   AbsorbedReason
 >;
 
@@ -162,9 +161,5 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
   INVALID_EMAIL: {
     title: "email 格式不正確",
     description: "請確認拼字後再試一次",
-  },
-  PROFILE_NOT_FOUND: {
-    title: "找不到個人資料",
-    description: "請重新登入後再試",
   },
 };

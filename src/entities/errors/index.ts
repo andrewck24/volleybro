@@ -14,4 +14,3 @@ export { AuthReason } from "./reasons/auth";
 export { CommonReason } from "./reasons/common";
 export { GameReason } from "./reasons/game";
 export { PlayerReason } from "./reasons/player";
-export { ProfileReason } from "./reasons/profile";
