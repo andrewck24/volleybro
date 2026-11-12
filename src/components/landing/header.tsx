@@ -43,7 +43,6 @@ export const Header = () => {
           <CTAButton
             className={cn(
               "h-9 rounded-[10px] px-3 transition-[background-color,box-shadow,color] duration-300 md:px-3.5",
-              // inner radius = the pill's 16px - its 6px padding
               isScrolled ? BTN_PRIMARY : BTN_CARD,
             )}
           >

@@ -16,7 +16,6 @@ const TEAM_ID = "507f1f77bcf86cd799439011";
 
 let submittedBodies: Record<string, unknown>[];
 
-// jsdom does not implement scrollIntoView, which Radix Select calls on open.
 Element.prototype.scrollIntoView = jest.fn();
 
 beforeEach(() => {

@@ -23,8 +23,6 @@ import { answerSignedInUser } from "@test/support/msw/user";
 const entry = (id: string) =>
   ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
 
-// usePendingWrites mounts once in `Game`; this harness stands in for that
-// single owner so SyncIndicator can be rendered on its own.
 const PendingWritesTestHarness = ({
   children,
 }: {
@@ -50,7 +48,6 @@ const failToThreshold = (store: AppStore, ids: string[]) => {
   }
 };
 
-// A 4xx: waiting does not improve it, so nothing will send this entry.
 const failUnrecoverably = (store: AppStore, ids: string[]) =>
   store.dispatch(
     pendingWritesActions.flushFailed({
@@ -70,8 +67,6 @@ const enqueue = (
     pendingWritesActions.enqueued({ entry: entry(id), gameId, setIndex }),
   );
 
-// jsdom reports the device as online; this is the whole of what the browser
-// signal can be trusted to say, so the copy branch needs it flipped.
 const goOffline = () => {
   Object.defineProperty(navigator, "onLine", {
     configurable: true,
@@ -94,7 +89,6 @@ const renderIndicator = (onSurroundingClick?: () => void) =>
     </SwrIsolation>,
   );
 
-// The harness reads the game through the real useGame.
 const twoSetGame = { id: "game-1", sets: [{ entries: [] }, { entries: [] }] };
 
 beforeEach(() => {
@@ -115,13 +109,12 @@ afterEach(() => {
 const UNSENT_LABEL = "連線有問題，1 筆已保存，會持續嘗試送出";
 
 describe("SyncIndicator", () => {
-  it("renders no control at all when the queue is empty, but keeps the slot", () => {
+  it("keeps the header slot when the queue is empty", () => {
     renderIndicator();
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    // The middle column centres its children, so a slot that collapsed
-    // would drag the volleyball mark up and down as writes come and go.
-    expect(screen.getByTestId("sync-indicator-slot")).toBeInTheDocument();
+    const slot = screen.getByTestId("sync-indicator-slot");
+    expect(slot).toHaveClass("size-6", "shrink-0");
   });
 
   it("stops spinning, and says the rallies are safe, once the queue is waiting", async () => {
@@ -169,14 +162,12 @@ describe("SyncIndicator", () => {
     expect(
       await screen.findByText("1 筆已保存，恢復連線後自動送出"),
     ).toBeInTheDocument();
-    // It would fail every time, and the recorder already knows the network
-    // is off -- the only useful action is turning it back on.
     expect(
       screen.queryByRole("button", { name: "重試" }),
     ).not.toBeInTheDocument();
   });
 
-  it("names an entry that cannot be sent, without a retry control", async () => {
+  it("routes validation failures to the entry list", async () => {
     enqueue(store, "e1");
     failUnrecoverably(store, ["e1"]);
     const user = userEvent.setup();
@@ -188,8 +179,6 @@ describe("SyncIndicator", () => {
       }),
     );
 
-    // No action here: what a 4xx needs is to look at the rally itself, and
-    // the route to it is the entry list, not this popover.
     expect(
       await screen.findByText("請在紀錄列表中查看這幾筆"),
     ).toBeInTheDocument();
@@ -250,7 +239,7 @@ describe("SyncIndicator", () => {
     expect(onSurroundingClick).not.toHaveBeenCalled();
   });
 
-  it("acknowledges a recovery with the check mark, then clears itself", () => {
+  it("acknowledges recovery but not routine sends", () => {
     jest.useFakeTimers();
     try {
       enqueue(store, "e1");
@@ -264,14 +253,19 @@ describe("SyncIndicator", () => {
         store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
       });
 
-      // A retry that simply vanished would read as the app having dropped the
-      // request rather than completed it.
       expect(
         screen.getByRole("button", { name: "已同步" }),
       ).toBeInTheDocument();
 
       act(() => {
         jest.advanceTimersByTime(SYNCED_ACK_MS);
+      });
+
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+      act(() => enqueue(store, "e2"));
+      act(() => {
+        store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e2"] }));
       });
 
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
@@ -290,18 +284,13 @@ describe("SyncIndicator", () => {
         store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
       });
 
-      // Every rally goes through this path; a check mark here would sit on
-      // screen longer than the send it is acknowledging.
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
     } finally {
       jest.useRealTimers();
     }
   });
 
-  // Retry resets nothing the status reads, so without feedback of its own the
-  // button looks inert. The feedback stays on the button rather than in the
-  // status, which would flash on every background retry too.
-  it("shows the retry control as busy while its own request is in flight", async () => {
+  it("shows retry progress on the retry button itself", async () => {
     const { promise, release } = deferred();
     server.use(
       http.put("/api/games/game-1/sets/entries", async () => {
@@ -357,11 +346,7 @@ describe("SyncIndicator", () => {
     ]);
   });
 
-  // The reason this slice exists: an entry left over from a set the
-  // recorder has moved past must be part of both the count SyncIndicator
-  // shows and the set retry can actually clear -- never a number the
-  // recorder has no way to act on.
-  it("counts and clears entries from every pending set of this game, not just the current one", async () => {
+  it("counts and retries entries from every pending set of the game", async () => {
     const sent: { si: string | null; ids: string[] }[] = [];
     server.use(
       http.put("/api/games/game-1/sets/entries", async ({ request }) => {
@@ -380,7 +365,6 @@ describe("SyncIndicator", () => {
     const user = userEvent.setup();
     renderIndicator();
 
-    // The badge counts both sets' failures, not just the current set (0).
     await user.click(
       screen.getByRole("button", {
         name: "連線有問題，2 筆已保存，會持續嘗試送出",

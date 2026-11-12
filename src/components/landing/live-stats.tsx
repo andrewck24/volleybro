@@ -1,8 +1,4 @@
 "use client";
-// The app's `Points` rows (same order and props as
-// src/components/game/stats/teams-stats/points.tsx) with zh-TW labels: `Points`
-// hard-codes English and takes no label prop, and the app component stays
-// untouched.
 import {
   StatsItem,
   TotalStatsItem,
@@ -30,10 +26,10 @@ const statsAt = (n: number): ITeamsStats =>
   );
 
 export const LiveStats = () => {
-  const { filedRallies } = useRally();
+  const { recordedRallyCount } = useRally();
   const stats = useMemo(
-    () => statsAt(Math.max(0, filedRallies)),
-    [filedRallies],
+    () => statsAt(Math.max(0, recordedRallyCount)),
+    [recordedRallyCount],
   );
 
   return (

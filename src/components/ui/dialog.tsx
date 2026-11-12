@@ -46,12 +46,6 @@ const dialogContentVariants = cva(
 export interface DialogContentProps extends VariantProps<
   typeof dialogContentVariants
 > {
-  /**
-   * Size of the dialog content.
-   * When `lg`, the dialog will be full width and height.
-   * @type "default" | "lg"
-   * @defaultValue "default"
-   */
   size?: "default" | "lg";
 }
 
@@ -89,15 +83,7 @@ const DialogBody = ({
 );
 
 export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * When `true`, a close button will be rendered in the control group.
-   * @defaultValue true
-   */
   closeButton?: boolean;
-  /**
-   * When provided, an expand button is rendered in the control group and
-   * this handler is called on click.
-   */
   onExpand?: () => void;
   expandLabel?: string;
 }
@@ -121,7 +107,6 @@ const DialogHeader = ({
     <div
       className={cn(
         "flex min-w-0 flex-1 flex-col items-start gap-1",
-        // centres the 20px title line on the control row
         (onExpand || closeButton) &&
           "pt-[calc((var(--control-size)-1.25rem)/2)]",
       )}

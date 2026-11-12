@@ -1,6 +1,4 @@
 "use client";
-// One entry per slide: its description and the component it shows. Slides
-// load lazily, mounted only when active or adjacent, and read the rally clock.
 import type { Feature } from "@/components/landing/copy";
 import { EntryRows } from "@/components/landing/entry-rows";
 import dynamic from "next/dynamic";

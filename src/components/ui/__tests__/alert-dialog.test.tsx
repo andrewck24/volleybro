@@ -6,7 +6,7 @@ import {
   AlertDialogOverlay,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 describe("AlertDialog primitive convergence", () => {
   const renderOpen = (onOpenChange = jest.fn()) =>
@@ -42,11 +42,11 @@ describe("AlertDialog primitive convergence", () => {
     expect(content).not.toHaveClass("ring-1", "ring-foreground/10");
   });
 
-  it("renders no top-right close button", () => {
+  it("does not add a close button to the alert-dialog content", () => {
     renderOpen();
-    // Only the Radix content region; no auto close control like Dialog's.
+    const content = screen.getByRole("alertdialog");
     expect(
-      screen.queryByRole("button", { name: /close/i }),
+      within(content).queryByRole("button", { name: /close/i }),
     ).not.toBeInTheDocument();
   });
 

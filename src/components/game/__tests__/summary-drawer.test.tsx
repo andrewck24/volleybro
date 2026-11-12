@@ -10,7 +10,13 @@ import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   FIXTURE_RECORDER_ID,
@@ -52,7 +58,7 @@ const makeEntry = (
 // 3, player #7) is the latest.
 const allEntries = [makeEntry(1, "p1"), makeEntry(2, "p1"), makeEntry(3, "p2")];
 const indexed = (entries: EntryView[]): IndexedEntry[] =>
-  entries.map((entry, index) => ({ entry, index }));
+  entries.map((entry, originalIndex) => ({ entry, originalIndex }));
 
 // The Preview bar is only present while recording an uncommitted draft.
 const makePreview = (
@@ -74,7 +80,37 @@ const baseProps = {
 };
 
 describe("SummaryDrawerCard structure", () => {
-  it("idle peek renders only the single newest committed entry (no separate Preview bar)", async () => {
+  it("passes pixel snap points that vaul parses as integers", async () => {
+    render(<SummaryDrawerCard {...baseProps} state="idle" />);
+
+    const drawer = await screen.findByTestId("summary-drawer");
+    expect(drawer).toHaveAttribute("data-vaul-snap-points", "true");
+    expect(drawer.style.getPropertyValue("--snap-point-height")).toBe(
+      `${window.innerHeight - 80}px`,
+    );
+  });
+
+  it("uses viewport-height content for vaul snap calculations", async () => {
+    render(<SummaryDrawerCard {...baseProps} state="idle" />);
+
+    const drawer = await screen.findByTestId("summary-drawer");
+    expect(drawer).toHaveClass("h-dvh");
+    expect(screen.getByTestId("summary-drawer-content")).toHaveClass(
+      "h-[85dvh]",
+    );
+  });
+
+  it("limits visible drawer content to the expanded snap", async () => {
+    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
+
+    await screen.findByTestId("summary-drawer");
+    const content = screen.getByTestId("summary-drawer-content");
+    const scrollRegion = screen.getByTestId("summary-drawer-entries");
+    expect(scrollRegion).toHaveClass("min-h-0", "flex-1");
+    expect(content).toHaveClass("h-[85dvh]");
+  });
+
+  it("renders only the newest row in the collapsed peek", async () => {
     render(<SummaryDrawerCard {...baseProps} state="idle" />);
 
     const drawer = await screen.findByTestId("summary-drawer");
@@ -136,7 +172,7 @@ describe("SummaryDrawerCard handle / expansion", () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it("collapsed peek: tapping a row expands the drawer instead of inline-expanding", async () => {
+  it("expands the drawer when a collapsed row is tapped", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
     render(
@@ -225,17 +261,51 @@ describe("SummaryDrawerCard recorder and editor lines", () => {
 });
 
 describe("SummaryDrawerCard backdrop overlay", () => {
-  it("expanded: tapping the backdrop collapses the drawer", () => {
+  it("shows the app scrim while vaul modal mode is disabled", async () => {
+    const onToggle = jest.fn();
+    document.body.style.pointerEvents = "";
+    render(
+      <SummaryDrawerCard {...baseProps} state="expanded" onToggle={onToggle} />,
+    );
+
+    const overlay = screen.getByTestId("summary-drawer-overlay");
+    const drawer = screen.getByTestId("summary-drawer");
+    expect(overlay).toHaveClass("opacity-100");
+    expect(drawer).not.toHaveAttribute("aria-modal", "true");
+    await waitFor(() =>
+      expect(document.body).toHaveStyle({ pointerEvents: "auto" }),
+    );
+    fireEvent.click(overlay);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles Escape once when collapsing the drawer", async () => {
+    const user = userEvent.setup();
     const onToggle = jest.fn();
     render(
       <SummaryDrawerCard {...baseProps} state="expanded" onToggle={onToggle} />,
     );
 
-    // fireEvent (not userEvent): userEvent's pointer-events check flakes when a
-    // prior suite's radix modal leaves document.body with pointer-events:none,
-    // which this out-of-portal overlay would inherit.
-    fireEvent.click(screen.getByTestId("summary-drawer-overlay"));
+    await user.keyboard("{Escape}");
+
     expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps vaul modal mode constant while the drawer expands", async () => {
+    const { rerender } = render(
+      <SummaryDrawerCard {...baseProps} state="idle" />,
+    );
+    const drawer = await screen.findByTestId("summary-drawer");
+    const modalMode = drawer.getAttribute("aria-modal");
+
+    rerender(<SummaryDrawerCard {...baseProps} state="expanded" />);
+
+    const expandedDrawer = screen.getByTestId("summary-drawer");
+    if (modalMode === null) {
+      expect(expandedDrawer).not.toHaveAttribute("aria-modal");
+    } else {
+      expect(expandedDrawer).toHaveAttribute("aria-modal", modalMode);
+    }
   });
 });
 
@@ -427,7 +497,7 @@ describe("SummaryDrawer", () => {
     expect(rows[0]).toHaveTextContent("隊員小明 · ");
   });
 
-  it("toggles between the idle peek and the expanded sheet on its own: handle expands, Escape collapses", async () => {
+  it("collapses to the peek instead of unmounting the drawer", async () => {
     const user = userEvent.setup();
     renderDrawer(initializedStore(), <SummaryDrawer gameId="game-1" />);
 
@@ -441,6 +511,7 @@ describe("SummaryDrawer", () => {
 
     await user.keyboard("{Escape}");
     expect(drawer).toHaveAttribute("data-state", "idle");
+    expect(screen.getByTestId("summary-drawer")).toBe(drawer);
   });
 
   it("shows the in-progress draft as the Preview above the committed rows, and a tap on it submits when complete", async () => {
@@ -466,5 +537,39 @@ describe("SummaryDrawer", () => {
     });
     await user.click(screen.getByTestId("preview-trigger"));
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets preview state when the draft advances", async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn();
+    const { rerender } = render(
+      <SummaryDrawerCard
+        {...baseProps}
+        state="expanded"
+        preview={makePreview({ isComplete: true })}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(screen.queryByRole("img", { name: "送出" })).not.toBeInTheDocument();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <SummaryDrawerCard
+        {...baseProps}
+        state="expanded"
+        preview={makePreview({
+          entryIndex: 4,
+          entry: allEntries[0]!,
+          previousEntry: allEntries[2],
+          isComplete: true,
+        })}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "送出" })).toBeInTheDocument();
+    expect(screen.getByTestId("preview-trigger")).toHaveTextContent("4");
   });
 });

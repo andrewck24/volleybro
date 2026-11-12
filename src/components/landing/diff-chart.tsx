@@ -8,11 +8,8 @@ const VIEW_WIDTH = 1000;
 const VIEW_HEIGHT = 300;
 const MAX_DIFF = 8;
 const PADDING = 12;
-// the fewest pixels between points; past that many the oldest scroll off left
 const MIN_POINT_SPACING = 12;
-// the cardinal spline's tension: 0.7 keeps 30% of the Catmull-Rom tangent,
-// so vertices are visibly rounded but stay tight
-const TENSION = 0.7;
+const CARDINAL_TENSION = 0.7;
 
 type Point = [number, number];
 
@@ -23,7 +20,7 @@ const yOf = (diff: number) =>
 
 const splinePath = (points: Point[]) => {
   const count = points.length;
-  const handle = (1 - TENSION) / 6;
+  const handle = (1 - CARDINAL_TENSION) / 6;
   const at = (i: number) => points[Math.max(0, Math.min(count - 1, i))]!;
   let path = `M${points[0]![0]} ${points[0]![1]}`;
   for (let i = 0; i < count - 1; i++) {

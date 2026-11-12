@@ -1,5 +1,4 @@
 "use client";
-// The opponent zone's description fades out, then the next fades in, never both.
 import { DevBadge } from "@/components/landing/dev-badge";
 import { SLIDES } from "@/components/landing/stats-slides";
 import { Button } from "@/components/ui/button";

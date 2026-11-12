@@ -18,7 +18,6 @@ describe("SetTally", () => {
     render(<SetTally won={2} needed={3} side="home" />);
 
     const cells = screen.getAllByTestId("set-tally-cell");
-    // Cells render top to bottom; the bottom two must be filled first.
     expect(cells[0]).toHaveAttribute("data-filled", "false");
     expect(cells[1]).toHaveAttribute("data-filled", "true");
     expect(cells[2]).toHaveAttribute("data-filled", "true");

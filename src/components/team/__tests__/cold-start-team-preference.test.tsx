@@ -23,7 +23,6 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
 }));
 
-// The team tab knows its team from the URL, the nav bar only from useActiveTeamId.
 const ColdStart = () => {
   const { teamId, isLoading } = useActiveTeamId();
   return (
@@ -36,8 +35,6 @@ const ColdStart = () => {
   );
 };
 
-// Revalidates the preferred team the way a focus or a refetch would, and shows
-// the error that revalidation ends with.
 const RevalidateTeam = ({ teamId }: { teamId: string }) => {
   const { mutate } = useSWRConfig();
   const { error } = useTeam(teamId);
@@ -64,7 +61,7 @@ beforeEach(() => localStorage.clear());
 afterEach(() => jest.restoreAllMocks());
 
 describe("cold start with an active team preference", () => {
-  it("S1: requests the preferred team without waiting for the user and players, and shows nothing of it before it answers", async () => {
+  it("resolves the nav team from the device preference on cold start", async () => {
     seedActiveTeamPreference("user-1", "team-1");
     const gates = {
       user: deferred(),
@@ -95,6 +92,7 @@ describe("cold start with an active team preference", () => {
     gates.user.release();
     await waitFor(() => expect(activeTeam()).toHaveTextContent("team-1"));
     expect(isLoading()).toHaveTextContent("false");
+    expect(await screen.findByText("真實隊")).toBeVisible();
   });
 
   it("S2: the new Game dialog opens on the form, not a skeleton, once the preferred team and its players were preloaded", async () => {

@@ -16,7 +16,6 @@ import {
 import { FiMinus, FiPlus } from "react-icons/fi";
 import { RiRepeat2Line } from "react-icons/ri";
 
-// px-3 replaces `lg`'s px-8, which clipped the icon in a half-width cell. See ADR-0122.
 const ERROR_CELL_CLASS = "justify-between gap-1 px-3 py-0.5 leading-tight";
 
 export const OursMoves = () => {
@@ -34,10 +33,7 @@ export const OursMoves = () => {
   return (
     <Container
       data-move-grid="home"
-      className={
-        // See ADR-0122.
-        zone === 0 ? "auto-rows-[minmax(44px,1fr)]" : undefined
-      }
+      className={zone === 0 ? "auto-rows-[minmax(44px,1fr)]" : undefined}
     >
       {oursMoves.map((move) => {
         const Icon = move.win ? FiPlus : FiMinus;

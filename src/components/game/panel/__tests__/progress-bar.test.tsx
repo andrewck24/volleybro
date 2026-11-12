@@ -51,6 +51,30 @@ describe("EntryProgressBar", () => {
     expect(screen.getByText("我方得失分紀錄")).toBeInTheDocument();
   });
 
+  it("remounts the animated segment when the step changes", () => {
+    const { rerender } = render(
+      <EntryProgressBar
+        steps={steps}
+        activeStep={0}
+        reachableSteps={[0, 1]}
+        onStepChange={jest.fn()}
+      />,
+    );
+    const caption = screen.getByText("選擇球員");
+
+    rerender(
+      <EntryProgressBar
+        steps={steps}
+        activeStep={1}
+        reachableSteps={[0, 1]}
+        onStepChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("我方得失分紀錄")).not.toBe(caption);
+    expect(screen.getByText("我方得失分紀錄")).toHaveClass("animate-in");
+  });
+
   it("marks unreachable steps with aria-disabled while keeping them focusable", async () => {
     const onStepChange = jest.fn();
     render(
@@ -87,7 +111,7 @@ describe("EntryProgressBar", () => {
     expect(onStepChange).toHaveBeenCalledWith(1);
   });
 
-  it("switches the step on a recognized pointer swipe and suppresses the resulting tap", () => {
+  it("changes only to an adjacent reachable step after a swipe", () => {
     const onStepChange = jest.fn();
     render(
       <EntryProgressBar
@@ -107,9 +131,6 @@ describe("EntryProgressBar", () => {
     expect(onStepChange).toHaveBeenCalledTimes(1);
     expect(onStepChange).toHaveBeenCalledWith(1);
 
-    // a real swipe gesture also synthesizes a click on the element under the
-    // pointer; that click must be suppressed rather than firing a second
-    // (possibly conflicting) step change.
     fireEvent.click(screen.getByRole("button", { name: "我方得失分紀錄" }));
     expect(onStepChange).toHaveBeenCalledTimes(1);
   });

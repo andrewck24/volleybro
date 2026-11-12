@@ -67,8 +67,6 @@ const TeamForm = ({
   const { isDirty } = form.formState;
   useLeavePageWarning(isDirty);
 
-  // RHF does not re-initialize when defaultValues prop changes after mount.
-  // Only reset if the form is still in its empty initial state (no draft, no user input).
   useEffect(() => {
     if (!defaultValues || isDirty) return;
     const values = form.getValues();

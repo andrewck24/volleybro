@@ -30,6 +30,7 @@ const Row = ({
 
   return (
     <div
+      data-testid="landing-entry-row"
       data-is-animated={isAnimated || undefined}
       className="landing-entry-row"
       style={
@@ -49,10 +50,10 @@ const Row = ({
 };
 
 export const HeroEntries = () => {
-  const { setNo, isLive, filedRallies } = useRally();
+  const { setNo, isLive, recordedRallyCount } = useRally();
   const rallies = Array.from(
-    { length: Math.min(RENDERED, Math.max(0, filedRallies)) },
-    (_, i) => filedRallies - i,
+    { length: Math.min(RENDERED, Math.max(0, recordedRallyCount)) },
+    (_, i) => recordedRallyCount - i,
   );
   return (
     <div inert className="contents">

@@ -9,8 +9,6 @@ import { server } from "@test/support/msw/server";
 
 const GUIDE = "歡迎使用 VolleyBro !";
 
-// Renders once the hook has finished loading, so an absent guide is a
-// decision and not a response that has not arrived yet.
 const Settled = () => {
   const { isLoading } = useActiveTeamId();
   return isLoading ? null : <p>settled</p>;

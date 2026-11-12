@@ -26,15 +26,13 @@ beforeEach(() => {
 });
 
 describe("TeamForm", () => {
-  it("populates form fields from defaultValues when form is empty (async reset)", async () => {
+  it("resets late defaults only while the form is untouched", async () => {
     const { rerender } = render(
       <TeamForm draftKey="draft:team:abc" onSubmit={onSubmit} />,
     );
-    // Initially form is empty
     const nameInput = screen.getByPlaceholderText("日本國家男子排球隊");
     expect((nameInput as HTMLInputElement).value).toBe("");
 
-    // Server data arrives → should populate the form
     rerender(
       <TeamForm
         draftKey="draft:team:abc"
@@ -56,7 +54,6 @@ describe("TeamForm", () => {
       />,
     );
 
-    // Simulate server data arriving again — form already has values, should not reset
     rerender(
       <TeamForm
         draftKey="draft:team:def"
@@ -65,7 +62,6 @@ describe("TeamForm", () => {
       />,
     );
 
-    // Should keep original value (form already has non-empty data from initial render)
     const nameInput = screen.getByPlaceholderText("日本國家男子排球隊");
     expect((nameInput as HTMLInputElement).value).toBe("Old Name");
   });

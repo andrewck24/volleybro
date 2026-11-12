@@ -26,9 +26,6 @@ export const useSubmitEntryDraft = (
   } = useAppSelector((state) => state.game[mode]);
   const { game, mutate } = useGame(gameId);
 
-  // Advances the draft the instant the entry is enqueued, without waiting for
-  // the server: the queue's retry and the sync indicator are what make the
-  // recorder safe to keep going.
   const create = () => {
     const entry = {
       ...(draft as RallyView),
@@ -86,9 +83,6 @@ export const OppoMoves = () => {
     scoringMoves[draft.home.num ?? -1]?.outcome.includes(option.num),
   );
 
-  // Selecting an away move only stages it in the draft; submission is owned by
-  // the Preview's send affordance (`entry-ui` change), so there is no
-  // second-tap-to-submit here anymore.
   const onOppoClick = (move: ScoringMove) => {
     dispatch(gameActions.setEntryDraftAwayMove(move));
   };

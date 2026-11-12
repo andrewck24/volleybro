@@ -1,4 +1,3 @@
-// Not draggable or dismissible, so no grabber.
 export const AuthSheet = ({
   title,
   children,

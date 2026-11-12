@@ -25,12 +25,10 @@ describe("isLatestEntry", () => {
 });
 
 describe("composeEntryActions", () => {
-  // Scenario: Latest entry exposes edit and delete
-  it("composes edit + delete for the latest entry", () => {
+  it("maps the last-entry policy to available actions", () => {
     expect(composeEntryActions(true)).toEqual(["edit", "delete"]);
   });
 
-  // Scenario: Non-latest entry exposes rollback instead of delete
   it("composes edit + rollbackToHere for a non-latest entry, with no delete", () => {
     const actions = composeEntryActions(false);
     expect(actions).toEqual(["edit", "rollbackToHere"]);

@@ -1,18 +1,8 @@
 "use client";
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 
-// Minimum horizontal pointer travel (px) before a drag is recognized as a
-// swipe rather than a tap.
 const SWIPE_THRESHOLD_PX = 40;
 
-/**
- * Capture-on-intent horizontal swipe for stepping the entry flow. A pointer
- * drag only becomes a swipe once it crosses SWIPE_THRESHOLD_PX; once recognized
- * the step change fires immediately and the click the browser would otherwise
- * synthesize on pointerup is suppressed (via onClickCapture) so neither a
- * progress segment nor an underlying move button also fires its tap handler.
- * Shared by the progress bar track and the moves body so both surfaces swipe.
- */
 export const useStepSwipe = ({
   activeStep,
   reachableSteps,
@@ -47,8 +37,6 @@ export const useStepSwipe = ({
     dragRef.current = null;
   };
 
-  // Runs in the capture phase (parent -> child) so stopping propagation here
-  // cancels the click before it reaches the segment/button underneath.
   const onClickCapture = (e: React.MouseEvent) => {
     if (suppressClickRef.current) {
       suppressClickRef.current = false;

@@ -49,8 +49,6 @@ describe("getEntryProgress", () => {
   });
 
   it("collapses to a two-step submittable flow when OUR move is an unforced (opponent) error", () => {
-    // No player is picked for an opponent error; the home move itself is
-    // UNFORCED (num 9-14) and the single outcome auto-fills the away move.
     const draft: ReduxEntryDraft = {
       ...baseDraft,
       home: { ...baseDraft.home, type: MoveType.UNFORCED, num: 10 },
@@ -65,10 +63,7 @@ describe("getEntryProgress", () => {
     expect(progress.submittable).toBe(true);
   });
 
-  it("keeps our own losing serve on the full three-step flow (away auto-fills UNFORCED, must not collapse)", () => {
-    // num 1 = 發球失分: home.type SERVING, but its outcome[0]=9 auto-fills an
-    // UNFORCED away move. Keying the discriminator on away.type would wrongly
-    // collapse this; keying on home.type keeps it a normal three-step point.
+  it("keeps a losing home serve on the full three-step flow", () => {
     const draft: ReduxEntryDraft = {
       ...baseDraft,
       home: {
@@ -85,6 +80,19 @@ describe("getEntryProgress", () => {
     expect(progress.steps).toHaveLength(3);
     expect(progress.activeStep).toBe(2);
     expect(progress.submittable).toBe(true);
+  });
+
+  it("does not infer player selection from away-move completeness", () => {
+    const draft: ReduxEntryDraft = {
+      ...baseDraft,
+      away: { ...baseDraft.away, type: MoveType.BLOCKING, num: 3 },
+    };
+
+    const progress = getEntryProgress(draft);
+
+    expect(progress.activeStep).toBe(0);
+    expect(progress.reachableSteps).toEqual([0]);
+    expect(progress.submittable).toBe(false);
   });
 
   it("does not collapse a normal three-step point", () => {

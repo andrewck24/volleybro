@@ -8,11 +8,9 @@ import { Suspense, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { RiErrorWarningLine } from "react-icons/ri";
 
-// Deliberately inverted against the sheet's theme.
 const GOOGLE_BRAND_BUTTON =
   "h-auto min-h-(--control-size-lg) w-full bg-[#131314] px-4 py-2 text-base whitespace-normal text-[#e3e3e3] ring-[#8e918f] hover:bg-[#2b2b2d] dark:bg-white dark:text-[#1f1f1f] dark:ring-[#747775] dark:hover:bg-[#f2f2f2] focus-visible:ring-2 focus-visible:ring-primary-text dark:focus-visible:ring-primary-text [&>svg]:size-5";
 
-// Nothing from the URL is shown.
 const signInErrorMessage = (code: string) =>
   code === "access_denied"
     ? "已取消登入，要登入請再按一次下方按鈕。"

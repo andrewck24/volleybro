@@ -36,7 +36,6 @@ import { RiAlertLine } from "react-icons/ri";
 import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 
 const ATTEMPTING_TITLE = "正在記錄本局結果…";
-// Screen readers only: on screen the spinner and title already say this.
 const ATTEMPTING_DESCRIPTION = "正在儲存本局結果，請稍候。";
 const EXHAUSTED_TITLE = ERROR_MESSAGES.SERVER_ERROR.title;
 const EXHAUSTED_DESCRIPTION = "本局結果還沒存好，這一局的球都在，只差這一步。";
@@ -44,12 +43,6 @@ const LEAVE_TITLE = "本局結果還沒存好";
 const LEAVE_DESCRIPTION =
   "現在離開，這一局的結果仍然沒有送出。回到這場比賽就能再試一次。";
 
-/**
- * The entry itself already landed by the time this can render -- the only
- * thing missing is the set result, so this blocks the between-sets screen
- * until it lands. No escape route: a dismissable surface here would let the
- * recorder start the next set on top of a result that was never saved.
- */
 export const UnconfirmedSetDialog = ({
   gameId,
   setIndex,
@@ -62,8 +55,6 @@ export const UnconfirmedSetDialog = ({
     gameId,
     setIndex,
   );
-  // Blocking the dialog's own dismissals still leaves the back gesture, which
-  // on a phone is the way out of anything.
   const leave = useCallback(
     () => router.push(`/game/${gameId}`),
     [router, gameId],
@@ -72,8 +63,6 @@ export const UnconfirmedSetDialog = ({
     unconfirmed,
     leave,
   );
-  // The queue lives in memory, so a reload drops the unsent result outright.
-  // Only the browser's own prompt can cover that exit.
   useLeavePageWarning(unconfirmed);
   const title = attempting ? ATTEMPTING_TITLE : EXHAUSTED_TITLE;
   const description = attempting

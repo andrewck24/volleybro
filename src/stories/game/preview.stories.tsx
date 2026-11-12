@@ -55,7 +55,13 @@ const meta = {
   component: PreviewCard,
   parameters: { layout: "centered" },
   tags: ["autodocs"],
-  args: { players, previousEntry, onSubmit: fn(), onExpand: fn() },
+  args: {
+    players,
+    previousEntry,
+    isComplete: false,
+    onSubmit: fn(),
+    onExpand: fn(),
+  },
   decorators: [
     (Story) => (
       <div className="w-md">
@@ -73,6 +79,7 @@ export const Idle: Story = {
   args: {
     entry: previousEntry,
     isEditing: false,
+    isComplete: false,
   },
 };
 
@@ -82,6 +89,7 @@ export const Undecided: Story = {
   args: {
     entry: undecidedEntry,
     isEditing: true,
+    isComplete: false,
     isPulsing: true,
   },
 };

@@ -24,12 +24,6 @@ export const GamePanel = ({
   );
   const { steps, reachableSteps } = getEntryProgress(draft);
 
-  // Single source of truth: the highlighted step and the shown moves body both
-  // follow status.panel (home -> OursMoves, away -> OppoMoves) so they can never
-  // disagree. Step 0 (player) has no moves panel -- selection lives on the
-  // always-visible court -- so it is derived from the draft not yet having a
-  // player. The opponent-error flow is two steps [select -> outcome]: its
-  // outcome step is the away panel, so map panel "away" to the last step.
   const isOpponentError = steps.length === 2;
   const playerComplete = Boolean(draft.home.player?.id);
   const lastStep = steps.length - 1;
@@ -51,8 +45,6 @@ export const GamePanel = ({
   const swipe = useStepSwipe({ activeStep, reachableSteps, onStepChange });
 
   return (
-    // min-h-0 lets the moves body below scroll within the panel instead of
-    // overflowing past it onto the drawer peek.
     <Panel className="min-h-0 gap-0 overflow-hidden rounded-lg pb-2">
       {status.panel !== "substitutes" && (
         <EntryProgressBar

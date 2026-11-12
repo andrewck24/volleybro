@@ -34,13 +34,9 @@ describe("GamePanel entry progress bar", () => {
     expect(homeSegment).toHaveAttribute("aria-disabled", "true");
   });
 
-  it("collapses to a two-step submittable flow when an opponent error is selected", async () => {
+  it("handles opponent errors without selecting a player", async () => {
     setUpPanel();
 
-    // No player is picked for an opponent error: the player step shows the
-    // opponent-error moves (OursMoves, zone 0). scoringMoves[10] is an UNFORCED
-    // "攔網" error -> selecting it makes our move UNFORCED and auto-fills the
-    // single outcome, collapsing the flow to two steps [select -> confirm].
     const errorButton = await screen.findByRole("button", {
       name: `對方${scoringMoves[10]!.text}失誤`,
     });
@@ -54,7 +50,9 @@ describe("GamePanel entry progress bar", () => {
           btn.hasAttribute("aria-current") || btn.hasAttribute("aria-disabled"),
       );
     expect(segments).toHaveLength(2);
-    // The confirm (outcome) step is active; the entry is already submittable.
+    expect(
+      screen.getByRole("button", { name: "選擇球員或對方失誤" }),
+    ).not.toHaveAttribute("aria-current");
     expect(
       screen.getByRole("button", { name: "對方得失分紀錄" }),
     ).toHaveAttribute("aria-current", "step");
@@ -65,7 +63,7 @@ describe("GamePanel entry progress bar", () => {
 // of truth (status.panel), so switching steps -- forward AND back -- moves both
 // together and they can never desync.
 describe("GamePanel step highlight follows the shown moves panel", () => {
-  it("syncs the highlight and the body when switching home <-> away in both directions", async () => {
+  it("keeps the highlighted step and moves body in sync", async () => {
     const reduxStore = setUpPanel();
 
     act(() => {

@@ -1,4 +1,7 @@
-import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
+import {
+  OppoMoves,
+  useSubmitEntryDraft,
+} from "@/components/game/panel/moves/oppo";
 import { EntryType, MoveType, Side } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { usePendingWrites } from "@/hooks/use-pending-writes";
@@ -7,7 +10,14 @@ import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { useSWRConfig } from "swr";
@@ -15,6 +25,7 @@ import { useSWRConfig } from "swr";
 import { answerEntries } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
+import { deferred } from "@test/support/gates";
 
 const rally = {
   id: "e1",
@@ -36,8 +47,6 @@ const gameWith = (entries: unknown[]) => ({
   sets: [{ options: { serve: "home" }, entries }],
 });
 
-// Stands in for Game, the single mounted owner of usePendingWrites; also
-// exposes what the page would read, and the raw SWR cache entry behind it.
 const useHarness = () => {
   const pendingWrites = usePendingWrites("game-1", 0);
   const submit = useSubmitEntryDraft("game-1", pendingWrites);
@@ -83,7 +92,6 @@ describe("useSubmitEntryDraft update path", () => {
     expect(puts.length).toBeGreaterThan(0);
     expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().pendingWrites.pending).toHaveLength(1);
-    // The recorder keeps seeing their edit while it waits to be sent.
     expect(result.current.game!.sets[0]!.entries[0]).toMatchObject({
       id: "e1",
       home: { num: scoringMoves[3]!.num },
@@ -104,6 +112,78 @@ describe("useSubmitEntryDraft update path", () => {
       { si: "0", body: [expect.objectContaining({ id: "e1", seq: 0 })] },
     ]);
     expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+});
+
+describe("useSubmitEntryDraft create path", () => {
+  it("advances the draft when an entry is enqueued", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async () => {
+      await gate.promise;
+      return HttpResponse.json({ entries: [{ id: "new-entry" }] });
+    });
+    store = makeStore();
+    const game = gameWith([]);
+    server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
+    store.dispatch(
+      gameActions.initialize({ game: game as never, setIndex: 0 }),
+    );
+    store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+    store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    store.dispatch(
+      gameActions.setEntryDraftAwayMove(
+        scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+      ),
+    );
+    const { result } = renderHook(useHarness, { wrapper });
+    await waitFor(() => expect(result.current.game).toBeDefined());
+
+    await act(async () => {
+      await result.current.submit();
+    });
+    await waitFor(() => expect(puts).toHaveLength(1));
+
+    expect(store.getState().game.general.status.entryIndex).toBe(1);
+    expect(store.getState().pendingWrites.pending).toHaveLength(1);
+    expect(result.current.game?.sets[0]?.entries).toHaveLength(1);
+
+    gate.release();
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.pending).toHaveLength(0),
+    );
+  });
+
+  it("stages an away move without submitting it", async () => {
+    const homeMove = scoringMoves[3]!;
+    const awayMove = scoringMoves[homeMove.outcome[0]!]!;
+    store = makeStore();
+    const game = gameWith([]);
+    store.dispatch(
+      gameActions.initialize({ game: game as never, setIndex: 0 }),
+    );
+    store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+    store.dispatch(gameActions.setEntryDraftHomeMove(homeMove));
+    server.use(
+      http.put("/api/games/game-1/sets/entries", () =>
+        HttpResponse.json({ entries: [] }),
+      ),
+    );
+    render(
+      <Provider store={store}>
+        <OppoMoves />
+      </Provider>,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: new RegExp(awayMove.text),
+      }),
+    );
+
+    expect(store.getState().game.general.entryDraft.away.num).toBe(
+      awayMove.num,
+    );
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 });
@@ -168,9 +248,7 @@ describe("useSubmitEntryDraft action time", () => {
 });
 
 describe("useSubmitEntryDraft against a cache the server has cut back", () => {
-  it("writes the edited rally by its identity, leaving no gap in the cache", async () => {
-    // The queue still holds e1 (unsent) while the server's copy of the set is
-    // empty; a positional write would leave a hole at index 0.
+  it("merges an edit into raw cache by entry identity", async () => {
     answerEntries(() =>
       HttpResponse.json(
         { code: "VALIDATION", reason: "BAD_REQUEST" },

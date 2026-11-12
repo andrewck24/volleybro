@@ -1,11 +1,15 @@
 import { GamePreview } from "@/components/game/preview";
+import { SummaryDrawer } from "@/components/game/summary-drawer";
+import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { EntryType, MoveType } from "@/entities/game";
 import {
   PendingWritesContext,
   usePendingWrites,
+  usePendingWritesContext,
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
+import { PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -16,10 +20,8 @@ import { SWRConfig } from "swr";
 
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
+import { deferred } from "@test/support/gates";
 
-// GamePreview reads enqueue/flush/retry from context now that `usePendingWrites`
-// mounts once in `Game` -- this harness stands in for that single owner so
-// GamePreview can still be rendered on its own here.
 const PendingWritesTestHarness = ({
   gameId,
   setIndex,
@@ -37,7 +39,6 @@ const PendingWritesTestHarness = ({
   );
 };
 
-// The previous (already committed) entry: home player #4 scored, 1-0.
 const mockGame = {
   id: "game-1",
   info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
@@ -78,7 +79,6 @@ const emptyGame = {
 
 const SEND_LABEL = "送出";
 
-// The game is served from the SWR cache, as it is once the page has loaded it.
 const renderPreview = (
   store: ReturnType<typeof makeStore>,
   ui: React.ReactNode,
@@ -127,6 +127,12 @@ const setUpPreview = (
   return { store, onSubmit, onExpandDrawer };
 };
 
+const SubmittingPreview = ({ mode }: { mode: "general" | "editing" }) => {
+  const pendingWrites = usePendingWritesContext();
+  const submit = useSubmitEntryDraft("game-1", pendingWrites);
+  return <GamePreview gameId="game-1" mode={mode} onSubmit={submit} />;
+};
+
 beforeEach(() => answerSignedInUser());
 
 describe("GamePreview send affordance", () => {
@@ -165,26 +171,203 @@ describe("GamePreview submission", () => {
       store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
-    // Draft in progress shows the drafting player's number (#7).
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: SEND_LABEL })).toBeInTheDocument();
 
     await user.click(screen.getByTestId("preview-trigger"));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    // Demoted in place: the previous entry's player (#4) is shown instead of
-    // the (still-pending) draft's player (#7), and the send affordance drops.
     expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.queryByText("7")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: SEND_LABEL }),
     ).not.toBeInTheDocument();
   });
+
+  it("reads the game from SWR while pending writes overlay the Redux view", async () => {
+    const user = userEvent.setup();
+    const firstEntry = mockGame.sets[0]!.entries[0]!;
+    const secondEntry = {
+      ...firstEntry,
+      id: "e2",
+      seq: 1,
+      home: {
+        ...firstEntry.home,
+        score: 2,
+        player: { id: "p2", zone: 1 },
+      },
+    };
+    const fullGame = {
+      ...mockGame,
+      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
+    };
+    const store = initializedStore(fullGame);
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: fullGame as never,
+          entryIndex: 1,
+        }),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: firstEntry as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+    const onSubmit = jest.fn();
+    renderPreview(
+      store,
+      <GamePreview gameId="game-1" mode="editing" onSubmit={onSubmit} />,
+      emptyGame,
+    );
+
+    expect(screen.getByText("7")).toBeInTheDocument();
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("4")).toBeInTheDocument();
+    expect(screen.queryByText("7")).not.toBeInTheDocument();
+  });
+
+  it("advances create immediately but keeps edit in place until flush", async () => {
+    const user = userEvent.setup();
+    const createGate = deferred();
+    const editGate = deferred();
+    let requestCount = 0;
+    server.use(
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
+        const sent = (await request.json()) as { id: string }[];
+        requestCount++;
+        await (requestCount === 1 ? createGate.promise : editGate.promise);
+        return HttpResponse.json({ entries: sent });
+      }),
+    );
+
+    const createStore = initializedStore();
+    act(() => {
+      createStore.dispatch(
+        gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }),
+      );
+      createStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      createStore.dispatch(
+        gameActions.setEntryDraftAwayMove(
+          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+        ),
+      );
+    });
+    const view = renderPreview(
+      createStore,
+      <SubmittingPreview mode="general" />,
+    );
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    await waitFor(() => expect(requestCount).toBe(1));
+    expect(createStore.getState().game.general.status.entryIndex).toBe(2);
+    expect(createStore.getState().pendingWrites.pending).toHaveLength(1);
+    createGate.release();
+    await waitFor(() =>
+      expect(createStore.getState().pendingWrites.pending).toHaveLength(0),
+    );
+    view.unmount();
+
+    const editStore = makeStore();
+    act(() => {
+      editStore.dispatch(
+        gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
+      );
+      editStore.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: mockGame as never,
+          entryIndex: 0,
+        }),
+      );
+      editStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      editStore.dispatch(
+        gameActions.setEntryDraftAwayMove(
+          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+        ),
+      );
+    });
+    renderPreview(editStore, <SubmittingPreview mode="editing" />);
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    await waitFor(() => expect(requestCount).toBe(2));
+    expect(editStore.getState().game.mode).toBe("editing");
+    expect(editStore.getState().game.editing.status.entryIndex).toBe(0);
+    expect(editStore.getState().pendingWrites.pending).toHaveLength(1);
+    editGate.release();
+    await waitFor(() => expect(editStore.getState().game.mode).toBe("general"));
+  });
+
+  it("shares one in-progress draft between Preview and the Summary drawer", () => {
+    const store = initializedStore();
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+    });
+    renderPreview(
+      store,
+      <>
+        <GamePreview gameId="game-1" mode="general" />
+        <SummaryDrawer gameId="game-1" state="expanded" />
+      </>,
+    );
+
+    const previews = screen.getAllByTestId("preview-card");
+    expect(previews).toHaveLength(2);
+    previews.forEach((preview) => expect(preview).toHaveTextContent("7"));
+  });
+
+  it("resets preview freeze state when the entry identity changes", async () => {
+    const user = userEvent.setup();
+    const firstEntry = mockGame.sets[0]!.entries[0]!;
+    const secondEntry = {
+      ...firstEntry,
+      id: "e2",
+      seq: 1,
+      home: {
+        ...firstEntry.home,
+        score: 2,
+        player: { id: "p2", zone: 1 },
+      },
+    };
+    const game = {
+      ...mockGame,
+      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
+    };
+    const store = initializedStore(game);
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: game as never,
+          entryIndex: 0,
+        }),
+      );
+    });
+    renderPreview(store, <GamePreview gameId="game-1" mode="editing" />, game);
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(screen.getByText("4")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: SEND_LABEL }),
+    ).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: game as never,
+          entryIndex: 1,
+        }),
+      );
+    });
+
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: SEND_LABEL })).toBeInTheDocument();
+  });
 });
 
-// At entryIndex 0 with an empty draft there is no entry to preview (no draft
-// and no prior entry), so the hook reports "not in progress" and GamePreview
-// renders nothing instead of handing an undefined entry to <Entry>.
 describe("GamePreview empty-entries guard", () => {
   it("renders nothing when the entry would be undefined (entryIndex 0, no draft)", () => {
     renderPreview(
@@ -197,10 +380,6 @@ describe("GamePreview empty-entries guard", () => {
     expect(screen.queryByTestId("preview-trigger")).not.toBeInTheDocument();
   });
 
-  // End-to-end crash path: with no committed entries, freezing a complete draft
-  // on submit leaves `previousEntry` undefined. Freezing must fall back to the
-  // draft entry itself (previousEntry ?? entry) rather than feed undefined to
-  // <Entry> and white-screen the Game tree.
   it("does not throw when freezing the first entry (no previous entry)", async () => {
     const user = userEvent.setup();
     const store = initializedStore(emptyGame);
@@ -218,8 +397,6 @@ describe("GamePreview empty-entries guard", () => {
 
     await user.click(screen.getByTestId("preview-trigger"));
 
-    // Submission fired and the frozen card still renders the draft entry (#7)
-    // instead of crashing on an undefined previous entry.
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(
@@ -228,10 +405,6 @@ describe("GamePreview empty-entries guard", () => {
   });
 });
 
-// The update path doesn't advance optimistically, so unlike create it keeps
-// showing progress and failure on this card -- pure projections of the same
-// pending-write queue SyncIndicator reads, scoped to the edited entry's
-// identity (e1, from mockGame).
 describe("GamePreview editing write status", () => {
   const queuedEntry = { id: "e1", seq: 0, win: true, home: {}, away: {} };
 
@@ -268,9 +441,6 @@ describe("GamePreview editing write status", () => {
           setIndex: 0,
         }),
       );
-      // Schedule its next attempt seconds out (the real background-backoff
-      // shape) so this test's click doesn't race the background-retry
-      // effect's own near-immediate flush of a freshly-enqueued entry.
       store.dispatch(
         pendingWritesActions.flushFailed({
           ids: ["e1"],
@@ -286,6 +456,131 @@ describe("GamePreview editing write status", () => {
 
     await user.click(screen.getByTestId("preview-trigger"));
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("keeps edit progress on the edited entry until its write resolves", async () => {
+    const gate = deferred();
+    let sent: unknown;
+    server.use(
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
+        sent = await request.json();
+        await gate.promise;
+        return HttpResponse.json({ entries: [queuedEntry] });
+      }),
+    );
+    const store = makeStore();
+    act(() => {
+      store.dispatch(
+        gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
+      );
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: mockGame as never,
+          entryIndex: 0,
+        }),
+      );
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(
+        gameActions.setEntryDraftAwayMove(
+          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+        ),
+      );
+    });
+    const user = userEvent.setup();
+    renderPreview(store, <SubmittingPreview mode="editing" />);
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    await waitFor(() =>
+      expect(sent).toEqual([expect.objectContaining({ id: "e1" })]),
+    );
+    expect(screen.getByTestId("preview-card")).toHaveTextContent("4");
+    expect(screen.getByRole("status", { name: "送出中" })).toBeInTheDocument();
+    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.status.entryIndex).toBe(0);
+
+    gate.release();
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+  });
+
+  it("prevents a click retry from racing a scheduled background flush", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick"] });
+    const gate = deferred();
+    const sent: unknown[] = [];
+    server.use(
+      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
+        sent.push(await request.json());
+        await gate.promise;
+        return HttpResponse.json({
+          entries: [queuedEntry, { ...queuedEntry, id: "e2" }],
+        });
+      }),
+    );
+    const store = makeStore();
+    act(() => {
+      store.dispatch(
+        gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
+      );
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: mockGame as never,
+          entryIndex: 0,
+        }),
+      );
+      for (const entry of [queuedEntry, { ...queuedEntry, id: "e2" }]) {
+        store.dispatch(
+          pendingWritesActions.enqueued({
+            entry: entry as never,
+            gameId: "game-1",
+            setIndex: 0,
+          }),
+        );
+      }
+      store.dispatch(
+        pendingWritesActions.flushFailed({
+          ids: ["e1"],
+          retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
+        }),
+      );
+      store.dispatch(
+        pendingWritesActions.flushFailed({
+          ids: ["e2"],
+          retryable: true,
+          lastError: {
+            code: "TRANSIENT",
+            reason: "NETWORK_ERROR",
+            status: 503,
+          },
+        }),
+      );
+    });
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    try {
+      renderPreview(store, <GamePreview gameId="game-1" mode="editing" />);
+      await user.click(screen.getByRole("button", { name: "重試" }));
+      await waitFor(() => expect(sent).toHaveLength(1));
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(
+          PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
+        );
+      });
+      expect(sent).toHaveLength(1);
+
+      gate.release();
+      await waitFor(() =>
+        expect(store.getState().pendingWrites.pending).toHaveLength(0),
+      );
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(
+          PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[1]!,
+        );
+      });
+      expect(sent).toHaveLength(1);
+    } finally {
+      gate.release();
+      jest.useRealTimers();
+    }
   });
 
   it("shows a retry control once the write is refused, and retry resends the entry", async () => {
@@ -319,7 +614,6 @@ describe("GamePreview editing write status", () => {
     expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).toBeNull();
     await user.click(screen.getByRole("button", { name: "重試" }));
 
-    // The retry resends the entry and the queue clears once that flush succeeds.
     await waitFor(() =>
       expect(store.getState().pendingWrites.pending).toHaveLength(0),
     );
@@ -332,7 +626,6 @@ describe("GamePreview gesture split", () => {
     const user = userEvent.setup();
     const { onExpandDrawer, onSubmit } = setUpPreview();
 
-    // entryIndex 0 with no player/type selected yet: not editing.
     await user.click(screen.getByTestId("preview-trigger"));
 
     expect(onExpandDrawer).toHaveBeenCalledTimes(1);

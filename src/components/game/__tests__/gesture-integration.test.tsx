@@ -1,16 +1,25 @@
 import Game from "@/components/game";
+import { GamePanel } from "@/components/game/panel";
 import { EntryType, MoveType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
+import { pointerEvent } from "@test/support/dom/pointer-event";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),
@@ -223,6 +232,68 @@ describe("Game gesture split, wired through the real composition", () => {
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
+    );
+  });
+});
+
+describe("GamePanel moves body", () => {
+  const mountPanel = () => {
+    const store = makeStore();
+    render(
+      <Provider store={store}>
+        <GamePanel gameId="game-1" mode="general" />
+      </Provider>,
+    );
+    return store;
+  };
+
+  it("keeps the moves body scrollable inside the panel", () => {
+    mountPanel();
+
+    const body = screen.getByTestId("game-moves-step");
+    const viewport = screen.getByTestId("game-moves-viewport");
+    expect(body).toHaveClass("min-h-0", "overflow-y-auto");
+    expect(viewport).toHaveClass("min-h-0", "overflow-hidden");
+  });
+
+  it("uses React state for directional transitions across renders", async () => {
+    const store = mountPanel();
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    });
+
+    const body = screen.getByTestId("game-moves-step");
+    expect(body).toHaveClass("slide-in-from-right-full");
+    await userEvent.click(
+      screen.getByRole("button", { name: "我方得失分紀錄" }),
+    );
+    expect(screen.getByTestId("game-moves-step")).toHaveClass(
+      "slide-in-from-left-full",
+    );
+  });
+
+  it("captures the pointer gesture before child controls receive a click", () => {
+    const store = mountPanel();
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setPanel("away"));
+    });
+    const body = screen.getByTestId("game-moves-step");
+    const move = within(body).getAllByRole("button")[1]!;
+    const awayMoveBeforeSwipe =
+      store.getState().game.general.entryDraft.away.num;
+    expect(awayMoveBeforeSwipe).toBe(scoringMoves[3]!.outcome[0]);
+    expect(move).toHaveTextContent("我方攔網失誤");
+
+    fireEvent(move, pointerEvent("pointerdown", 100));
+    fireEvent(move, pointerEvent("pointermove", 40));
+    fireEvent(move, pointerEvent("pointerup", 40));
+    fireEvent.click(move);
+
+    expect(store.getState().game.general.entryDraft.away.num).toBe(
+      awayMoveBeforeSwipe,
     );
   });
 });

@@ -1,5 +1,5 @@
 "use client";
-import { INTERVAL, SET_RALLIES } from "@/components/landing/demo-data";
+import { RALLY_BEAT_MS, SET_RALLIES } from "@/components/landing/demo-data";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import {
   createContext,
@@ -19,15 +19,14 @@ type Rally = {
   rallies: number;
   setNo: number;
   isLive: boolean;
-  /** rallies already filed into the list: the newest is still in the air while live */
-  filedRallies: number;
+  recordedRallyCount: number;
 };
 
 const toRally = (rallies: number, setNo: number, isLive: boolean): Rally => ({
   rallies,
   setNo,
   isLive,
-  filedRallies: isLive ? rallies - 1 : rallies,
+  recordedRallyCount: isLive ? rallies - 1 : rallies,
 });
 
 const STATIC_RALLY = toRally(STATIC_RALLIES, -1, false);
@@ -35,19 +34,18 @@ const STATIC_RALLY = toRally(STATIC_RALLIES, -1, false);
 const RallyContext = createContext<Rally | null>(null);
 export const useRally = () => useContext(RallyContext)!;
 
-// Runs only while a `[data-rally]` consumer is on screen and the tab is
-// visible; reduced motion shows a fixed mid-set snapshot.
 export const RallyProvider = ({
   children,
-  seed = SEED_RALLIES,
+  initialRalliesPlayed = SEED_RALLIES,
   replayFrom = 1,
 }: {
   children: ReactNode;
-  /** rallies already played at load, so the Entry card is full on the first frame */
-  seed?: number;
+  initialRalliesPlayed?: number;
   replayFrom?: number;
 }) => {
-  const [state, setState] = useState(() => toRally(seed, 0, false));
+  const [state, setState] = useState(() =>
+    toRally(initialRalliesPlayed, 0, false),
+  );
   const [isActive, setIsActive] = useState(true);
   const isReducedMotion = useReducedMotion();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -93,7 +91,7 @@ export const RallyProvider = ({
         if (current.rallies + 1 >= SET_LENGTH) pauseTicks.current = PAUSE_TICKS;
       }
       setState(clock.current);
-    }, INTERVAL);
+    }, RALLY_BEAT_MS);
     return () => clearInterval(intervalId);
   }, [isReducedMotion, isActive, replayFrom]);
 

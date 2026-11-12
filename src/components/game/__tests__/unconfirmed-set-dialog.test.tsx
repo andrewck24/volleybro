@@ -52,7 +52,7 @@ describe("UnconfirmedSetDialog", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("shows the neutral attempting state while the initial write is in flight", () => {
+  it("keeps the status description accessible without duplicate visible text", () => {
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: lastRally as never,
@@ -63,7 +63,17 @@ describe("UnconfirmedSetDialog", () => {
 
     renderDialog(gameWithSet(true));
 
-    expect(screen.getAllByText("正在記錄本局結果…").length).toBeGreaterThan(0);
+    const titles = screen.getAllByText("正在記錄本局結果…");
+    expect(titles).toHaveLength(2);
+    expect(
+      titles.filter((title) => !title.classList.contains("sr-only")),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("dialog", { name: "正在記錄本局結果…" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("正在儲存本局結果，請稍候。")).toHaveClass(
+      "sr-only",
+    );
     expect(
       screen.queryByRole("button", { name: "重試" }),
     ).not.toBeInTheDocument();

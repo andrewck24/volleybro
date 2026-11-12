@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils";
 
-// The regulation court plan in metres (FIVB rules 1.1-1.4), every line 5 cm
-// and inside the court's area.
 const LINE_WIDTH = 0.05;
 const COURT_LENGTH = 18;
 const COURT_WIDTH = 9;
 const ATTACK_LINE_FROM_END_LINE = 6;
+const ATTACK_LINE_EXTENSION_M = 1.75;
 
 type Rect = [along: number, across: number, length: number, width: number];
 
@@ -23,7 +22,6 @@ const CENTRE_LINE: Rect = [
   LINE_WIDTH,
   COURT_WIDTH,
 ];
-// the rear edge of each attack line is 3 m from the centre line's axis
 const ATTACK_LINES: Rect[] = [
   [ATTACK_LINE_FROM_END_LINE, 0, LINE_WIDTH, COURT_WIDTH],
   [
@@ -40,10 +38,13 @@ const SERVICE_ZONE_MARKS: Rect[] = [0, COURT_WIDTH - LINE_WIDTH].flatMap(
   ],
 );
 const ATTACK_LINE_EXTENSIONS: Rect[] = ATTACK_LINES.flatMap(([along]) =>
-  [0, 1, 2, 3, 4].flatMap((dash): Rect[] => [
-    [along, -(0.2 + dash * 0.35) - 0.15, LINE_WIDTH, 0.15],
-    [along, COURT_WIDTH + 0.2 + dash * 0.35, LINE_WIDTH, 0.15],
-  ]),
+  [0, 1, 2, 3, 4].flatMap((dash): Rect[] => {
+    const step = ATTACK_LINE_EXTENSION_M / 5;
+    return [
+      [along, -(dash + 1) * step, LINE_WIDTH, 0.15],
+      [along, COURT_WIDTH + 0.2 + dash * step, LINE_WIDTH, 0.15],
+    ];
+  }),
 );
 
 const RECTS: Rect[] = [
