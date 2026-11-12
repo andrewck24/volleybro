@@ -12,13 +12,13 @@ import {
   toEntryView,
 } from "@test/support/fixtures/entries";
 import { answerEntries } from "@test/support/msw/entries";
+import { deferred } from "@test/support/gates";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
-import { SWRConfig } from "swr";
 
 const lineups = {
   home: {
@@ -63,6 +63,10 @@ const renderPanel = async (
   game: ReturnType<typeof gameWith>,
   editingEntryIndex?: number,
   benchPlayer = /選手二/,
+  options: {
+    cache?: Map<string, unknown>;
+    setup?: (store: ReturnType<typeof makeStore>) => void;
+  } = {},
 ) => {
   server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
   const store = makeStore();
@@ -78,8 +82,9 @@ const renderPanel = async (
       }),
     );
   }
+  options.setup?.(store);
   render(
-    <SwrIsolation>
+    <SwrIsolation cache={options.cache}>
       <Provider store={store}>
         <PendingWritesOwner>
           <Substitutes
@@ -150,49 +155,43 @@ describe("Substitutes.onSubmit", () => {
 });
 
 describe("Substitutes with a substitution still queued", () => {
-  it("validates against merged entries but writes to the cache", async () => {
-    const puts = answerEntries(() => new Promise<Response>(() => {}));
-    const game = gameWith([]);
-    server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
-    const cache = new Map();
-    const store = makeStore();
-    store.dispatch(
-      gameActions.initialize({ game: game as never, setIndex: 0 }),
-    );
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        gameId: "game-1",
-        setIndex: 0,
-        entry: {
-          type: EntryType.SUBSTITUTION,
-          id: "queued",
-          seq: 0,
-          at: new Date().toISOString(),
-          team: Side.HOME,
-          players: { in: "p2", out: "p1" },
-        },
-      }),
-    );
-    store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-    store.dispatch(gameActions.setEntryDraftSubstitution("p3"));
-    render(
-      <SWRConfig value={{ provider: () => cache, dedupingInterval: 0 }}>
-        <Provider store={store}>
-          <PendingWritesOwner>
-            <Substitutes gameId="game-1" mode="general" />
-          </PendingWritesOwner>
-        </Provider>
-      </SWRConfig>,
-    );
-    await screen.findByRole("button", { name: /選手三/ });
+  it("validates against queued entries without baking them into the cache", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async () => {
+      await gate.promise;
+      return HttpResponse.json({ entries: [] });
+    });
+    const cache = new Map<string, unknown>();
+    await renderPanel(gameWith([]), undefined, /選手三/, {
+      cache,
+      setup: (store) => {
+        store.dispatch(
+          pendingWritesActions.enqueued({
+            gameId: "game-1",
+            setIndex: 0,
+            entry: {
+              type: EntryType.SUBSTITUTION,
+              id: "queued",
+              seq: 0,
+              at: new Date().toISOString(),
+              team: Side.HOME,
+              players: { in: "p2", out: "p1" },
+            },
+          }),
+        );
+        store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+        store.dispatch(gameActions.setEntryDraftSubstitution("p3"));
+      },
+    });
 
     await userEvent.click(screen.getByRole("button", { name: /確認/ }));
 
     await waitFor(() => expect(puts).toHaveLength(1));
-    const cached = cache.get("/api/games/game-1")?.data as ReturnType<
-      typeof gameWith
-    >;
-    expect(cached.sets[0]!.entries).toEqual([]);
+    const cached = cache.get("/api/games/game-1") as {
+      data: ReturnType<typeof gameWith>;
+    };
+    expect(cached.data.sets[0]!.entries).toEqual([]);
+    await act(async () => gate.release());
   });
 });
 
