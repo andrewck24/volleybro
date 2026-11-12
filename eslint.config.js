@@ -348,7 +348,6 @@ const filesStillCarryingComments = [
   "test/support/fixtures/finished-set.ts",
   "test/support/fixtures/lineup-game.ts",
   "test/support/fixtures/lineup-writes.ts",
-  "test/support/gates.ts",
   "test/support/msw/entries.ts",
   "test/support/msw/team-handlers.ts",
   "test/support/msw/user.ts",

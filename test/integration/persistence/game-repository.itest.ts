@@ -159,15 +159,13 @@ describe("game reads and writes", () => {
           ),
         );
         await Promise.race([writeBarrier.ready, settledBeforeBothWrites]);
-        writeBarrier.release();
-        await Promise.all(writes);
       } finally {
         writeBarrier.release();
         await Promise.allSettled(writes);
         updateOneSpy.mockRestore();
         bulkWriteSpy.mockRestore();
-        releaseGates();
       }
+      await Promise.all(writes);
 
       const stored = await games().findById(gameId);
       expect(stored?.sets).toHaveLength(2);

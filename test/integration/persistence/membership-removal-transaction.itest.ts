@@ -338,8 +338,6 @@ describe("membership removal transactions", () => {
         userId: membership.ownerUserId,
       }),
     ];
-    let failedBeforeBothTransactions = false;
-    let failure: unknown;
     try {
       const settledBeforeBothTransactions = Promise.race(
         operations.map((operation) =>
@@ -358,15 +356,11 @@ describe("membership removal transactions", () => {
         transactionBarrier.ready,
         settledBeforeBothTransactions,
       ]);
-    } catch (error) {
-      failedBeforeBothTransactions = true;
-      failure = error;
     } finally {
       transactionBarrier.release();
-      releaseGates();
+      await Promise.allSettled(operations);
     }
     const results = await Promise.allSettled(operations);
-    if (failedBeforeBothTransactions) throw failure;
 
     expect(
       results.filter((result) => result.status === "fulfilled"),
