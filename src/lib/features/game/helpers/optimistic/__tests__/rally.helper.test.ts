@@ -5,9 +5,9 @@ import {
   assertRallyAt,
   deriveEntryPhase,
 } from "@/lib/features/game/helpers";
+import { mergePendingEntries } from "@/lib/features/game/pending-writes";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
-// What useSubmitEntryDraft runs per rally, collapsed onto one game.
 const record = (
   { setIndex, entryIndex }: { setIndex: number; entryIndex: number },
   draft: RallyView & EntryIdentity,
@@ -174,13 +174,13 @@ describe("rally.helper.ts", () => {
       win: true,
       home: {
         score: 1,
-        type: M.ATTACK, // Changed from SERVING to ATTACK
+        type: M.ATTACK,
         num: 1,
         player: { id: "player-1", zone: 1 },
       },
       away: {
         score: 0,
-        type: M.DEFENSE, // Changed from RECEPTION to DEFENSE
+        type: M.DEFENSE,
         num: 1,
         player: { id: "rival-1", zone: 1 },
       },
@@ -195,6 +195,67 @@ describe("rally.helper.ts", () => {
         type: EntryType.RALLY,
         ...newRally,
       });
+    });
+
+    it("uses the merged queue view rather than raw cache for edits", () => {
+      const rawGame = createMockGame();
+      const targetRally = {
+        ...newRally,
+        id: "entry-2",
+        seq: 2,
+        win: false,
+        home: { ...newRally.home, score: 23 },
+        away: { ...newRally.away, score: 23 },
+      };
+      const laterRally = {
+        ...targetRally,
+        id: "entry-3",
+        seq: 3,
+        win: true,
+        home: { ...targetRally.home, score: 25 },
+      };
+      rawGame.sets[0]!.entries.push(
+        { type: EntryType.RALLY, ...targetRally } as never,
+        { type: EntryType.RALLY, ...laterRally } as never,
+      );
+      const queuedRally = {
+        type: EntryType.RALLY as const,
+        ...newRally,
+        id: "queued-rally",
+        seq: 1,
+      };
+      const mergedGame = mergePendingEntries(
+        rawGame,
+        [
+          {
+            entry: { ...queuedRally, at: "2026-10-27T01:02:03.000Z" },
+            gameId: "game-1",
+            setIndex: 0,
+            attempts: 0,
+            nextAttemptAt: 0,
+          },
+        ],
+        "game-1",
+      )!;
+      const editedRally = {
+        ...targetRally,
+        win: true,
+        home: { ...targetRally.home, score: 24 },
+      };
+
+      const result = record(
+        { setIndex: 0, entryIndex: 2 },
+        editedRally,
+        mergedGame,
+      );
+
+      expect(result.phase).toEqual({
+        isSetInProgress: true,
+        isSetPoint: true,
+      });
+      expect(
+        record({ setIndex: 0, entryIndex: 2 }, editedRally, rawGame).phase,
+      ).toEqual({ isSetInProgress: false, isSetPoint: false });
     });
 
     it("should throw error when entry is not a rally", () => {
@@ -236,7 +297,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.isSetInProgress).toBe(true);
         expect(result.phase.isSetPoint).toBe(false);
-        expect(result.game.sets[0]!.win).toBeFalsy(); // 不應該設定勝負
+        expect(result.game.sets[0]!.win).toBeFalsy();
       });
 
       it("should mark the set as completed when home team reaches winning score with 2-point lead", () => {
@@ -255,7 +316,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.game.sets[0]!.win).toBe(true); // 主隊贏了這局
+        expect(result.game.sets[0]!.win).toBe(true);
       });
 
       it("should mark the set as completed when away team reaches winning score with 2-point lead", () => {
@@ -274,7 +335,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.game.sets[0]!.win).toBe(false); // 客隊贏了這局
+        expect(result.game.sets[0]!.win).toBe(false);
       });
 
       it("should detect a set point correctly", () => {
@@ -299,9 +360,9 @@ describe("rally.helper.ts", () => {
       it("should use different winning score for deciding set", () => {
         const mockGame = createMockGame();
         mockGame.sets[0]!.win = true;
-        mockGame.sets.push({ ...mockGame.sets[0]!, win: false }); // 1-1
-        mockGame.sets.push({ ...mockGame.sets[0]!, win: true }); // 2-1
-        mockGame.sets.push({ ...mockGame.sets[0]!, win: false }); // 2-2
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
         mockGame.sets.push({
           ...mockGame.sets[0]!,
           entries: [],
@@ -321,7 +382,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.game.sets[4]!.win).toBe(true); // 主隊贏了決勝局
+        expect(result.game.sets[4]!.win).toBe(true);
       });
     });
 
@@ -350,7 +411,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[2]!.win).toBe(true);
-        expect(result.game.win).toBe(true); // 主隊贏了比賽
+        expect(result.game.win).toBe(true);
       });
 
       it("should mark the game as completed when a team wins majority of sets (2-3)", () => {
@@ -379,7 +440,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[4]!.win).toBe(false);
-        expect(result.game.win).toBe(false); // 客隊贏了比賽
+        expect(result.game.win).toBe(false);
       });
 
       it("should not mark the game as completed when no team has won majority of sets yet (2-1)", () => {
@@ -406,7 +467,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(true);
-        expect(result.game.win).toBeNull(); // 比賽還沒結束
+        expect(result.game.win).toBeNull();
       });
     });
 
@@ -424,7 +485,7 @@ describe("rally.helper.ts", () => {
           type: EntryType.RALLY,
           ...winningRally,
         };
-        mockGame.sets[0]!.win = true; // 已經標記為主隊勝
+        mockGame.sets[0]!.win = true;
 
         const updatedRally = {
           ...winningRally,

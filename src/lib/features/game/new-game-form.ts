@@ -1,12 +1,12 @@
 import type { Lineup } from "@/entities/team";
 import type {
+  GameFormValues,
   LineupListPlayer,
-  TMatchInfoForm,
 } from "@/lib/features/game/types";
 
 export const newGameFormDefaults = (
   homeTeamName: string | undefined,
-): TMatchInfoForm => ({
+): GameFormValues => ({
   name: "",
   number: 1,
   phase: "0",
@@ -18,13 +18,38 @@ export const newGameFormDefaults = (
   time: { date: new Date(), start: "", end: "" },
 });
 
+type NewGameInfo = Omit<
+  GameFormValues,
+  "teams" | "phase" | "division" | "category" | "scoring"
+> & {
+  phase: number;
+  division: number;
+  category: number;
+  scoring: Omit<GameFormValues["scoring"], "setCount"> & {
+    setCount: number;
+  };
+};
+
+export type NewGameBody = {
+  info: NewGameInfo;
+  teams: {
+    home: {
+      id: string;
+      name: string;
+      players: Omit<LineupListPlayer, "list">[];
+      lineup?: Lineup;
+    };
+    away: { name: string };
+  };
+};
+
 export const newGameBody = ({
   info,
   teamId,
   players,
   lineup,
 }: {
-  info: TMatchInfoForm;
+  info: GameFormValues;
   teamId: string;
   players: LineupListPlayer[];
   lineup?: Lineup;
@@ -48,5 +73,5 @@ export const newGameBody = ({
       },
       away: { name: info.teams.away.name },
     },
-  };
+  } satisfies NewGameBody;
 };

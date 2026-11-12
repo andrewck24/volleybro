@@ -1,16 +1,26 @@
 import { MoveType } from "@/entities/game";
 
+type ScoringMoveIndex =
+  0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
+
+type ScoringMoveOutcome = readonly [ScoringMoveIndex, ...ScoringMoveIndex[]] &
+  ReadonlyArray<number>;
+
 export type ScoringMove = {
   num: number;
   win: boolean;
   type: MoveType;
   text: string;
-  outcome: number[];
+  outcome: ScoringMoveOutcome;
+};
+
+type ScoringMoveDefinition = Omit<ScoringMove, "outcome"> & {
+  outcome: [ScoringMoveIndex, ...ScoringMoveIndex[]];
 };
 
 export { MoveType };
 
-export const scoringMoves: ScoringMove[] = [
+const scoringMoveDefinitions: ScoringMoveDefinition[] = [
   {
     num: 0,
     win: true,
@@ -118,13 +128,14 @@ export const scoringMoves: ScoringMove[] = [
   },
 ];
 
+export const scoringMoves: ScoringMove[] = scoringMoveDefinitions;
+
 export const frontMoves: ScoringMove[] = scoringMoves.slice(2, 9);
 
 export const backMoves: ScoringMove[] = scoringMoves
   .slice(0, 2)
   .concat(scoringMoves.slice(4, 9));
 
-// Rotation (num 12) goes last so it sits bottom-right in the two-column panel.
 export const errorMoves: ScoringMove[] = [
   ...scoringMoves.slice(9, 12),
   ...scoringMoves.slice(13),

@@ -15,8 +15,6 @@ describe("getTeamsStats", () => {
     away: { score: away, type: MoveType.DEFENSE, num: 1 },
   });
 
-  // A game whose team.stats arrays were never seeded, matching the state
-  // create-set now leaves behind.
   const mockGame = {
     sets: [
       {

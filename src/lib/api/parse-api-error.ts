@@ -24,9 +24,7 @@ export async function parseApiError(res: Response): Promise<ApiError> {
         status,
       };
     }
-  } catch {
-    // Response body is not JSON — fall through to default
-  }
+  } catch {}
 
   return {
     code: "UNEXPECTED",

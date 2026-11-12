@@ -8,15 +8,8 @@ import type {
 } from "@/lib/features/game/types";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { makeStore } from "@/lib/redux/store";
-import { act, render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { useSelector } from "react-redux";
-
-// Every other test here hands `makeStore` a fake store and calls
-// `restorePendingWrites` itself, leaving the two joints that decide whether any
-// of it runs in the real app untested. jsdom has a real localStorage.
-//
-// `provider.tsx` holds its store in a module-level singleton, so it can only be
-// mounted cold once per file -- which is what a cold start is.
 
 const entry = (id: string): PendingEntry["entry"] => ({
   type: EntryType.RALLY,
@@ -48,25 +41,18 @@ const Queue = () => {
   return <span data-testid="queued">{ids}</span>;
 };
 
-const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
-
 afterEach(() => localStorage.clear());
 
 describe("persistence wiring", () => {
   it("reaches localStorage when makeStore is called the way the app calls it", async () => {
-    // No storage argument: whatever the default is, this is what ships.
     const store = makeStore();
     expect(storedIds()).toBeNull();
 
-    // No await: the first save runs immediately, so the rally is on disk
-    // before this line -- which is the property the whole Change rests on.
     store.dispatch(enqueue("e1"));
     expect(storedIds()).toEqual(["e1"]);
 
     store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
-    // This one does await: a save behind an open one collapses to the newest.
-    await settled();
-    expect(storedIds()).toEqual([]);
+    await waitFor(() => expect(storedIds()).toEqual([]));
   });
 
   it("restores a previous run's queue when the provider mounts", async () => {
@@ -79,10 +65,57 @@ describe("persistence wiring", () => {
         <Queue />
       </ReduxProvider>,
     );
-    await act(async () => {
-      await Promise.resolve();
+    await waitFor(() =>
+      expect(screen.getByTestId("queued")).toHaveTextContent("e1"),
+    );
+  });
+
+  it("renders on a cold server start without reading browser storage", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    let reads = 0;
+    let markup = "";
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: () => {
+        reads += 1;
+        throw new ReferenceError("localStorage is not defined");
+      },
     });
 
-    expect(screen.getByTestId("queued")).toHaveTextContent("e1");
+    try {
+      await jest.isolateModulesAsync(async () => {
+        const React = await import("react");
+        const { useSelector: useIsolatedSelector } =
+          await import("react-redux");
+        const { renderToString } = await import("react-dom/server");
+        const { ReduxProvider: ColdReduxProvider } =
+          await import("@/lib/redux/provider");
+        const ColdQueue = () => {
+          const ids = useIsolatedSelector(
+            (state: { pendingWrites: PendingWritesState }) =>
+              state.pendingWrites.pending
+                .map((pending) => pending.entry.id)
+                .join(","),
+          );
+          return React.createElement("span", { "data-testid": "queued" }, ids);
+        };
+        markup = renderToString(
+          React.createElement(
+            ColdReduxProvider,
+            null,
+            React.createElement(ColdQueue),
+          ),
+        );
+      });
+
+      expect(reads).toBe(0);
+      expect(markup).toContain('data-testid="queued"');
+    } finally {
+      if (original) {
+        Object.defineProperty(window, "localStorage", original);
+      } else {
+        delete (window as unknown as { localStorage?: Storage }).localStorage;
+      }
+    }
   });
 });

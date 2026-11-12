@@ -43,6 +43,37 @@ describe("active team preference storage", () => {
     expect(storage.load()).not.toBe(first);
   });
 
+  it("does not touch localStorage at module import on the server", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    let reads = 0;
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: () => {
+        reads += 1;
+        throw new ReferenceError("localStorage is not defined");
+      },
+    });
+
+    try {
+      let imported: { load: () => unknown } | undefined;
+      await jest.isolateModulesAsync(async () => {
+        const storageModule =
+          await import("@/lib/features/team/active-team-preference-storage");
+        imported = storageModule.localStorageActiveTeamPreference;
+      });
+
+      expect(reads).toBe(0);
+      expect(imported!.load()).toBeNull();
+      expect(reads).toBeGreaterThan(0);
+    } finally {
+      if (original) {
+        Object.defineProperty(window, "localStorage", original);
+      } else {
+        delete (window as unknown as { localStorage?: Storage }).localStorage;
+      }
+    }
+  });
+
   it("notifies subscribers on save and clear, but not when a save changes nothing", () => {
     const backing = memoryStorage();
     const storage = createActiveTeamPreferenceStorage(() => backing);
@@ -82,6 +113,15 @@ describe("active team preference storage", () => {
     expect(() => storage.save(preference)).not.toThrow();
     expect(() => storage.clear()).not.toThrow();
     expect(storage.load()).toBeNull();
+  });
+
+  it("preserves subscriber errors when storage fails", () => {
+    const storage = createActiveTeamPreferenceStorage(throwingStorage);
+    storage.subscribe(() => {
+      throw new Error("subscriber failed");
+    });
+
+    expect(() => storage.clear()).toThrow("subscriber failed");
   });
 
   it("behaves as an empty store when the storage cannot be reached at all", () => {

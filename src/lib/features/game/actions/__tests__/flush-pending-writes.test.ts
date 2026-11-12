@@ -29,7 +29,6 @@ const unavailable = () =>
 
 describe("flushPendingWrites", () => {
   beforeEach(() => {
-    // With process.nextTick faked, fetch never settles under MSW.
     jest.useFakeTimers({ doNotFake: ["nextTick"] });
   });
 

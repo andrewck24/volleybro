@@ -65,7 +65,6 @@ export type TeamView = z.infer<typeof TeamResponseSchema>;
 export type LineupView = z.infer<typeof LineupResponseSchema>;
 export type LineupList = "starting" | "liberos" | "substitutes";
 
-// For Forms
 export const LiberoReplaceFormSchema = z.object({
   mode: z.enum(["0", "1", "2"]),
   position: z.enum([Position.NONE, Position.MB, Position.OP, Position.OH]),
@@ -73,7 +72,6 @@ export const LiberoReplaceFormSchema = z.object({
 
 export type LiberoReplaceFormValues = z.infer<typeof LiberoReplaceFormSchema>;
 
-// For Redux
 export enum LineupOptionMode {
   NONE = "",
   PLAYERINFO = "playerInfo",

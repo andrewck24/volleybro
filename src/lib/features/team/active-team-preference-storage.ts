@@ -37,8 +37,6 @@ export const createActiveTeamPreferenceStorage = (
     }
   };
 
-  // useSyncExternalStore compares `load` results by reference, so parsing on
-  // every call would re-render forever.
   let cachedRaw: string | null = null;
   let cachedPreference: ActiveTeamPreference | null = null;
 
@@ -75,7 +73,5 @@ export const createActiveTeamPreferenceStorage = (
   };
 };
 
-// Resolved on each call so importing this module on the server never touches
-// `localStorage`; a getter that throws there is handled as an empty store.
 export const localStorageActiveTeamPreference =
   createActiveTeamPreferenceStorage(() => localStorage);

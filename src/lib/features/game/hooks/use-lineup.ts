@@ -20,8 +20,8 @@ export const useLineup = (
 
   const lineup =
     entryIndex === entries.length
-      ? getGeneralModeLineup(game, setIndex)
-      : getEditingModeLineup(game, setIndex, entryIndex);
+      ? getGeneralModeLineup(game, set)
+      : getEditingModeLineup(game, set, entryIndex);
 
   const switchTargetIndex = lineup.starting.findIndex(
     (player, index) =>
@@ -39,9 +39,10 @@ export const useLineup = (
   return lineup;
 };
 
-const getGeneralModeLineup = (game: GameView, setIndex: number) => {
-  // called only after useLineup confirms the set exists
-  const set = game.sets[setIndex]!;
+const getGeneralModeLineup = (
+  game: GameView,
+  set: GameView["sets"][number],
+) => {
   const { starting, liberos } = structuredClone(set.lineups.home);
   const { players } = game.teams.home;
   const lineup = {
@@ -87,43 +88,38 @@ const getGeneralModeLineup = (game: GameView, setIndex: number) => {
 
 const getEditingModeLineup = (
   game: GameView,
-  setIndex: number,
+  set: GameView["sets"][number],
   entryIndex: number,
 ) => {
   const { players } = game.teams.home;
-  // called only after useLineup confirms the set exists
-  const set = game.sets[setIndex]!;
 
   const { rotation: usedRotation } = deriveSetStats(
     set.entries.slice(0, entryIndex),
     { options: set.options },
   ).home;
   const rotation = usedRotation % 6;
-  // Substitution marks are entry seqs, not positions.
   const seq = seqAt(set.entries, entryIndex);
 
   const { starting, liberos } = structuredClone(set.lineups.home);
 
   const mapPlayer = (player: LineupView["starting"][number]) => {
-    // Whether this player has been substituted in the game
-    const hasSub = (player?.sub?.entryIndex?.in ?? Infinity) < seq;
-    // Current game state shows this player is a substitute
-    const isSub =
+    const hasEnteredByEditPoint =
+      (player?.sub?.entryIndex?.in ?? Infinity) < seq;
+    const isCurrentSubstitute =
       player?.sub?.entryIndex?.in !== undefined &&
       player?.sub?.entryIndex?.out === undefined;
-    // At the editing point, this player was a substitute
-    const wasSub =
+    const wasSubstituteAtEditPoint =
       (player?.sub?.entryIndex?.in ?? Infinity) < seq &&
       (player?.sub?.entryIndex?.out ?? Infinity) >= seq;
-    // When a player (LineupPlayer) is substituted, their id and sub.id are swapped
-    // So when isSub and wasSub are the same, it means no need to swap id and sub.id
-    const toSwap = isSub === wasSub;
+    const toSwap = isCurrentSubstitute === wasSubstituteAtEditPoint;
 
     const mainPlayer = players.find(
       (p) => p.id === (toSwap ? player.id : player?.sub?.id),
     );
     const subPlayer = players.find(
-      (p) => p.id === (hasSub && (toSwap ? player?.sub?.id : player.id)),
+      (p) =>
+        p.id ===
+        (hasEnteredByEditPoint && (toSwap ? player?.sub?.id : player.id)),
     );
 
     return {

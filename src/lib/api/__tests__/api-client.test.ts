@@ -92,8 +92,6 @@ describe("apiClient", () => {
 
   describe("on timeout", () => {
     it("aborts via AbortSignal.timeout and rejects with a TRANSIENT ApiClientError", async () => {
-      // jsdom's DOMException is not the class Node's fetch throws on abort, so
-      // the timeout is simulated by rejecting fetch with jsdom's own instance.
       jest
         .spyOn(global, "fetch")
         .mockRejectedValue(
