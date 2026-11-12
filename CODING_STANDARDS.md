@@ -19,7 +19,7 @@ New code carries no comments, doc comments included. A comment is a claim nothin
 - **Work left undone** becomes a Linear issue, linked from the pull request body. Source carries no TODO, FIXME, HACK or XXX marker.
 - **A lint rule that does not fit** is answered by removing the reason: a Testing Library query instead of node access, a generic instead of `any`, a stable dependency instead of an empty array. Only when the rule cannot apply to a file without weakening what it proves, turn the rule off for that file in `eslint.config.js`, in a list whose name says why.
 
-ESLint enforces it: every comment fails the lint, so inline configuration (`eslint-disable` and the like) and `@ts-*` directives cannot be written either.
+In JavaScript and TypeScript files ESLint enforces it: every comment fails the lint, so inline configuration (`eslint-disable` and the like) and `@ts-*` directives cannot be written either. In other files (CSS, MDX, Astro) review enforces it.
 
 ### Existing comments
 
