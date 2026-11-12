@@ -117,11 +117,15 @@ describe("validateLineupPlayers", () => {
     ).toThrow(ValidationError);
   });
 
-  // The reason picks the message the user reads; no field is ever marked here.
   it("reports a stale lineup rather than a correctable field", () => {
     expect(() =>
       validateLineupPlayers(lineup({ starting: [{ id: "ghost" }] }), roster),
-    ).toThrow(expect.objectContaining({ reason: GameReason.STALE_LINEUP }));
+    ).toThrow(
+      expect.objectContaining({
+        reason: GameReason.STALE_LINEUP,
+        details: undefined,
+      }),
+    );
   });
 
   it("validates nested sub ids", () => {
@@ -296,8 +300,6 @@ describe("set derivation", () => {
   });
 
   describe("deriveSetStats", () => {
-    // The legal counterpart of the two broken sequences below: the counts a
-    // skipped rally must not disturb. See ADR-0025.
     const legal = () =>
       deriveSetStats([rally(false, 0, 1, "p1"), rally(true, 1, 1, "p2")], set);
 
@@ -322,7 +324,6 @@ describe("set derivation", () => {
     });
 
     it("rotates only when the home team wins a rally it did not serve", () => {
-      // home serves first, wins (no rotation), loses serve, wins it back (rotation)
       const stats = deriveSetStats(
         [rally(true, 1, 0), rally(false, 1, 1), rally(true, 2, 1)],
         set,

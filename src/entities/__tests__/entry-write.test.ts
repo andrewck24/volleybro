@@ -54,7 +54,7 @@ describe("upsertEntries", () => {
       [sub(2, "z", "x")],
     );
     expect(result).toMatchObject({
-      invalid: { id: "sub-2", score: { home: 3, away: 2 } },
+      invalid: { substitutionId: "sub-2", scoreBefore: { home: 3, away: 2 } },
     });
   });
 
@@ -64,7 +64,7 @@ describe("upsertEntries", () => {
       [sub(1, "z", "x")],
     );
     expect(result).toMatchObject({
-      invalid: { id: "sub-1", score: { home: 0, away: 0 } },
+      invalid: { substitutionId: "sub-1", scoreBefore: { home: 0, away: 0 } },
     });
   });
 
@@ -74,7 +74,7 @@ describe("upsertEntries", () => {
       [sub(1, "a", "y")],
     );
     expect(result).toMatchObject({
-      invalid: { id: "sub-2", score: { home: 0, away: 0 } },
+      invalid: { substitutionId: "sub-2", scoreBefore: { home: 0, away: 0 } },
     });
   });
 
@@ -97,7 +97,7 @@ describe("upsertEntries", () => {
 });
 
 describe("planEntryUpserts", () => {
-  it("creates an unknown id, stamping the recorder", () => {
+  it("creates an unknown id, stamping the recorder and the client's action time", () => {
     const result = planEntryUpserts(
       emptySet,
       [{ entry: rally(1, 1, 0), at }],
@@ -187,7 +187,7 @@ describe("planEntryUpserts", () => {
       "p1",
     );
     expect(result).toMatchObject({
-      invalid: { id: "sub-1", score: { home: 0, away: 0 } },
+      invalid: { substitutionId: "sub-1", scoreBefore: { home: 0, away: 0 } },
     });
   });
 

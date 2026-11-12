@@ -1,15 +1,3 @@
-/**
- * Player Entity - one row on a team's roster, in one of three shapes.
- *
- * - UnlinkedPlayer: on the roster only, no account and no role.
- * - InvitedPlayer: invited, holding the role the invitation offered, reachable
- *   by exactly one of userId (registered) or email (not yet registered).
- * - TeamMember: joined with an account; only members hold team permissions.
- *
- * Membership, the role hierarchy and who may manage whom are decided here,
- * without any I/O.
- */
-
 import {
   AuthReason,
   CommonReason,
@@ -66,17 +54,11 @@ type DistributiveOmit<T, K extends keyof never> = T extends unknown
   ? Omit<T, K>
   : never;
 
-/** A player to store: one of the three shapes, before the database assigns ids. */
 export type NewPlayer = DistributiveOmit<
   Player,
   "id" | "createdAt" | "updatedAt"
 > & { inviteeEmail?: string };
 
-/**
- * Every field a player document can carry. Writes patch single fields, so a
- * patch cannot be checked against the three shapes; reads go through
- * `narrowPlayer`, which can.
- */
 export type PlayerFields = PlayerBase & {
   status: PlayerStatus;
   userId?: string;
@@ -85,11 +67,6 @@ export type PlayerFields = PlayerBase & {
   role?: PlayerRole;
 };
 
-/**
- * Narrow a stored document to one of the three shapes. The combinations are
- * expressed by the types, but a document read from the database has never
- * passed through them, so this is where they are checked.
- */
 export function narrowPlayer(fields: PlayerFields): Player {
   const { status, userId, email, role } = fields;
 
@@ -167,14 +144,6 @@ export type ManageRefusal =
   | PlayerReason.TARGET_IS_OWNER
   | PlayerReason.TARGET_IS_SELF;
 
-/**
- * Why `actor` may not change `target`'s role or delete them, or null when the
- * two stand in a relation that allows it. Admins may manage their peers; the
- * owner is nobody's target and ownership leaves only by transfer; nobody
- * targets their own player, because leaving the team is that path.
- *
- * The refusal is returned rather than thrown so each caller phrases it.
- */
 export function refuseToManagePlayer(
   actor: Player | null,
   target: Player,

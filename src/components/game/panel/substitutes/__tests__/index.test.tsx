@@ -2,6 +2,7 @@ import { Substitutes } from "@/components/game/panel/substitutes";
 import { Toaster } from "@/components/ui/toaster";
 import { EntryType, MoveType, Side, upsertEntries } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
@@ -11,12 +12,14 @@ import {
   toEntryView,
 } from "@test/support/fixtures/entries";
 import { answerEntries } from "@test/support/msw/entries";
+import { deferred } from "@test/support/gates";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
+import type { Cache } from "swr";
 
 const lineups = {
   home: {
@@ -61,6 +64,10 @@ const renderPanel = async (
   game: ReturnType<typeof gameWith>,
   editingEntryIndex?: number,
   benchPlayer = /選手二/,
+  options: {
+    cache?: Cache;
+    setup?: (store: ReturnType<typeof makeStore>) => void;
+  } = {},
 ) => {
   server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
   const store = makeStore();
@@ -76,8 +83,9 @@ const renderPanel = async (
       }),
     );
   }
+  options.setup?.(store);
   render(
-    <SwrIsolation>
+    <SwrIsolation cache={options.cache}>
       <Provider store={store}>
         <PendingWritesOwner>
           <Substitutes
@@ -144,6 +152,53 @@ describe("Substitutes.onSubmit", () => {
 
     expect(await screen.findByText("換人與目前陣容不符")).toBeInTheDocument();
     expect(puts).toHaveLength(0);
+  });
+});
+
+describe("Substitutes with a substitution still queued", () => {
+  it("validates against queued entries without baking them into the cache", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async () => {
+      await gate.promise;
+      return HttpResponse.json({ entries: [] });
+    });
+    const cache = new Map();
+    let pending!: () => unknown[];
+    await renderPanel(gameWith([]), undefined, /選手三/, {
+      cache,
+      setup: (store) => {
+        pending = () => store.getState().pendingWrites.pending;
+        store.dispatch(
+          pendingWritesActions.enqueued({
+            gameId: "game-1",
+            setIndex: 0,
+            entry: {
+              type: EntryType.SUBSTITUTION,
+              id: "queued",
+              seq: 0,
+              at: new Date().toISOString(),
+              team: Side.HOME,
+              players: { in: "p2", out: "p1" },
+            },
+          }),
+        );
+        store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+        store.dispatch(gameActions.setEntryDraftSubstitution("p3"));
+      },
+    });
+
+    try {
+      await userEvent.click(screen.getByRole("button", { name: /確認/ }));
+
+      await waitFor(() => expect(puts).toHaveLength(1));
+      const cached = cache.get("/api/games/game-1") as {
+        data: ReturnType<typeof gameWith>;
+      };
+      expect(cached.data.sets[0]!.entries).toEqual([]);
+    } finally {
+      gate.release();
+    }
+    await waitFor(() => expect(pending()).toEqual([]));
   });
 });
 
