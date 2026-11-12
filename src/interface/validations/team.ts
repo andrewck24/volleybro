@@ -50,7 +50,6 @@ export const LineupSchema = z
 
 export const UpdateLineupsSchema = z.array(LineupSchema);
 
-/** POST /api/teams */
 export const CreateTeamSchema = z
   .object({
     name: z.string().min(1),

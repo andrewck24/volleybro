@@ -32,7 +32,6 @@ const StaffSchema = z
   })
   .strict();
 
-/** Home is a resolvable Team, away is a typed-in name. See ADR-0031. */
 const HomeTeamSchema = z
   .object({
     id: objectId.optional(),
@@ -82,7 +81,6 @@ const MatchInfoSchema = z
   })
   .strict();
 
-/** POST /api/games */
 export const CreateGameSchema = z
   .object({
     info: MatchInfoSchema,
@@ -108,7 +106,6 @@ const SetOptionsSchema = z
   })
   .strict();
 
-/** POST /api/games/{gameId}/sets */
 export const CreateSetSchema = z
   .object({
     lineup: LineupSchema,
@@ -116,7 +113,6 @@ export const CreateSetSchema = z
   })
   .strict() satisfies z.ZodType<ICreateSetInput["data"]>;
 
-/** PUT /api/games/{gameId}/sets */
 export const UpdateSetSchema = z
   .object({
     lineup: LineupSchema.optional(),
@@ -143,7 +139,6 @@ const RallyDetailSchema = z
   })
   .strict();
 
-/** When the client performed the action, as `toISOString()` writes it. */
 const actionTime = z.iso.datetime().transform((value) => new Date(value));
 
 const RallyEntrySchema = z
@@ -174,7 +169,6 @@ const SubstitutionEntrySchema = z
   })
   .strict();
 
-/** PUT /api/games/{gameId}/sets/entries */
 export const RecordEntriesSchema = z.array(
   z.discriminatedUnion("type", [RallyEntrySchema, SubstitutionEntrySchema]),
 ) satisfies z.ZodType<IRecordEntriesInput["data"]>;

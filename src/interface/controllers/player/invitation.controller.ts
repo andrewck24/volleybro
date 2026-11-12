@@ -13,10 +13,6 @@ import type {
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
-/**
- * Invitation Controller - 被邀請者操作
- * 透過 DI container 獲取 use cases 並執行業務邏輯
- */
 export const acceptInvitationController = async (
   input: IAcceptInvitationInput,
 ): Promise<void> => {

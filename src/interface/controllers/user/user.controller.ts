@@ -12,10 +12,6 @@ import type { User } from "@/entities/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
-/**
- * Search user by email.
- * Route layer validates and passes search criteria.
- */
 export const searchUserController = async (
   input: ISearchUserInput,
 ): Promise<Result<ISearchUserOutput>> => {
@@ -23,10 +19,6 @@ export const searchUserController = async (
   return useCase.execute(input);
 };
 
-/**
- * Get user by ID.
- * Route layer resolves current user identity and passes it in.
- */
 export const getUserByIdController = async (
   input: IGetUserByIdInput,
 ): Promise<Result<User>> => {
