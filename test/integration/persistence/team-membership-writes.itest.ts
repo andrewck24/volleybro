@@ -4,6 +4,7 @@ import type { ICreateInvitationUseCase } from "@/applications/usecases/player/cr
 import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
+import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
 import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories/player.repository.mongo";
 import { PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
@@ -139,6 +140,34 @@ describe("player writes leave the roster readable", () => {
     });
   });
 
+  it("changes a role only when the stored role still matches", async () => {
+    const member = await players().create({
+      name: "Role Change",
+      status: PlayerStatus.JOINED,
+      teamId,
+      userId: oid(),
+      role: PlayerRole.MEMBER,
+    });
+
+    expect(
+      await players().updateRoleIf(
+        member.id,
+        PlayerRole.MEMBER,
+        PlayerRole.ADMIN,
+      ),
+    ).toMatchObject({ role: PlayerRole.ADMIN });
+    expect(
+      await players().updateRoleIf(
+        member.id,
+        PlayerRole.MEMBER,
+        PlayerRole.MEMBER,
+      ),
+    ).toBeNull();
+    expect(await players().findById(member.id)).toMatchObject({
+      role: PlayerRole.ADMIN,
+    });
+  });
+
   it("clears role and email when a member leaves the team", async () => {
     const memberUserId = oid();
     const member = await players().create({
@@ -248,6 +277,50 @@ describe("invitations reach the account behind the address", () => {
 
     expect(invited).toMatchObject({ status: PlayerStatus.INVITED, userId });
     expect(invited).not.toHaveProperty("email");
+  });
+
+  it("links pending invitations idempotently in one batch", async () => {
+    const otherTeam = await container
+      .get<ITeamRepository>(TYPES.TeamRepository)
+      .create({ name: "Other Roster", lineups: [] } as Parameters<
+        ITeamRepository["create"]
+      >[0]);
+    const userId = oid();
+    const invitations = await Promise.all([
+      players().create({
+        name: "First Invite",
+        status: PlayerStatus.INVITED,
+        teamId,
+        email: "alice@example.com",
+        role: PlayerRole.MEMBER,
+      }),
+      players().create({
+        name: "Second Invite",
+        status: PlayerStatus.INVITED,
+        teamId: otherTeam.id,
+        email: "alice@example.com",
+        role: PlayerRole.ADMIN,
+      }),
+    ]);
+    const linkPendingInvitations = new LinkPendingInvitationsUseCase(players());
+
+    expect(
+      await linkPendingInvitations.execute({
+        email: " Alice@Example.COM ",
+        userId,
+      }),
+    ).toBe(2);
+    for (const invitation of invitations) {
+      const linked = await players().findById(invitation.id);
+      expect(linked).toMatchObject({ status: PlayerStatus.INVITED, userId });
+      expect(linked).not.toHaveProperty("email");
+    }
+    expect(
+      await linkPendingInvitations.execute({
+        email: " Alice@Example.COM ",
+        userId,
+      }),
+    ).toBe(0);
   });
 
   it("links an address that differs only in case", async () => {

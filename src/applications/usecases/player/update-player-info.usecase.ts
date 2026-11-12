@@ -29,7 +29,6 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
     updates,
     userId,
   }: IUpdatePlayerInfoInput): Promise<Player> {
-    // 1. 取得球員，確認存在
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new NotFoundError(
@@ -38,10 +37,8 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
       );
     }
 
-    // 2. 驗證權限 - 必須是該隊伍的 ADMIN
     await this.authService.verifyIsTeamAdmin(player.teamId!, userId);
 
-    // 3. 準備更新資料（只允許更新 name, number, position）
     const updateData: Partial<Player> = {};
     if (updates.name !== undefined) {
       updateData.name = updates.name;
@@ -53,7 +50,6 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
       updateData.position = updates.position;
     }
 
-    // 4. 更新球員資訊
     const updatedPlayer = await this.playerRepository.update(
       playerId,
       updateData,

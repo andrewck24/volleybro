@@ -87,6 +87,24 @@ const runAfter = (compete: () => Promise<unknown>): ITransactionRunner => ({
   },
 });
 
+const runTogether = (participants: number): ITransactionRunner => {
+  let arrived = 0;
+  let release!: () => void;
+  const ready = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return {
+    async run<T>(operation: () => Promise<T>): Promise<T> {
+      return transactionRunner().run(async () => {
+        arrived += 1;
+        if (arrived === participants) release();
+        await ready;
+        return operation();
+      });
+    },
+  };
+};
+
 const leaveTeamWith = (runner: ITransactionRunner) =>
   new LeaveTeamUseCase(playerRepository(), teamRepository(), runner);
 const removePlayerWith = (runner: ITransactionRunner) =>
@@ -311,6 +329,36 @@ describe("membership removal transactions", () => {
     await expectOwner(membership.teamId, membership.ownerPlayerId);
     await expectPlayerOutOfLineup(membership.teamId);
     expect(await PlayerModel.findById(membership.playerId)).toBeNull();
+  });
+
+  it("conflicts ownership transfer with concurrent removal", async () => {
+    const membership = await createAdminMembership();
+    const runner = runTogether(2);
+    const results = await Promise.allSettled([
+      transferOwnershipWith(runner).execute({
+        teamId: membership.teamId,
+        newOwnerId: membership.playerId,
+        userId: membership.ownerUserId,
+      }),
+      removePlayerWith(runner).execute({
+        playerId: membership.playerId,
+        userId: membership.ownerUserId,
+      }),
+    ]);
+
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const target = await PlayerModel.findById(membership.playerId).lean();
+    if (target) {
+      expect(target.status).toBe(PlayerStatus.JOINED);
+      expect(target.role).toBe(PlayerRole.ADMIN);
+      await expectOwner(membership.teamId, membership.playerId);
+      await expectPlayerInLineup(membership.teamId, membership.playerId);
+    } else {
+      await expectOwner(membership.teamId, membership.ownerPlayerId);
+      await expectPlayerOutOfLineup(membership.teamId);
+    }
   });
 
   it("retries transfer after one transient team write conflict", async () => {

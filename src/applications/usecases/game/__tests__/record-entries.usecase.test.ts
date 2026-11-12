@@ -73,8 +73,6 @@ describe("RecordEntriesUseCase", () => {
     const operator = createPlayer({ id: "player-9" });
     mockAuthzService.verifyTeamRole.mockResolvedValue(operator);
     const entries = [createRecordedRally(newRally)];
-    // A mid-set score with the set already undecided: deriveSetCompletion
-    // sees no phase change to report.
     const game = createGame();
     game.sets[0]!.win = null;
     mockGameRepository.findById.mockResolvedValue(game);
@@ -111,6 +109,23 @@ describe("RecordEntriesUseCase", () => {
     ).rejects.toMatchObject({ reason: GameReason.SET_NOT_FOUND });
   });
 
+  it("authorizes team membership before revealing set existence", async () => {
+    const denied = new Error("not a team member");
+    mockGameRepository.findById.mockResolvedValue({
+      ...createGame(),
+      sets: [],
+    });
+    mockAuthzService.verifyTeamRole.mockRejectedValue(denied);
+
+    await expect(
+      useCase().execute({
+        params: { gameId: "game-1", setIndex: 0 },
+        data: [newRally],
+      }),
+    ).rejects.toBe(denied);
+    expect(mockGameRepository.upsertEntries).not.toHaveBeenCalled();
+  });
+
   it("reports the set result as confirmed once completeSet succeeds", async () => {
     const entries = [createRecordedRally(decidingRally)];
     const game = createGame();
@@ -126,6 +141,24 @@ describe("RecordEntriesUseCase", () => {
 
     expect(mockGameRepository.completeSet).toHaveBeenCalled();
     expect(result).toEqual({ entries, setCompletionConfirmed: true });
+  });
+
+  it("writes the derived set and match result only when changed", async () => {
+    const entries = [createRecordedRally(decidingRally)];
+    const game = createGame();
+    mockAuthzService.verifyTeamRole.mockResolvedValue(
+      createPlayer({ id: "player-9" }),
+    );
+    mockGameRepository.findById.mockResolvedValue(game);
+    mockGameRepository.upsertEntries.mockResolvedValue(entries);
+
+    const result = await useCase().execute({
+      params: { gameId: "game-1", setIndex: 0 },
+      data: [decidingRally],
+    });
+
+    expect(mockGameRepository.completeSet).not.toHaveBeenCalled();
+    expect(result).toEqual({ entries });
   });
 
   it("still returns the persisted entries when completeSet fails, marked unconfirmed", async () => {

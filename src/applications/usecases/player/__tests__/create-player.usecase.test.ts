@@ -35,8 +35,7 @@ describe("CreatePlayerUseCase", () => {
     );
   });
 
-  /** No account holds the address, and nobody on the team was invited to it. */
-  const unregistered = () => {
+  const noMatchingAccountOrInvitation = () => {
     mockUserRepository.findByEmail.mockResolvedValue(null);
     mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
   };
@@ -64,7 +63,7 @@ describe("CreatePlayerUseCase", () => {
 
     it("creates an invitee holding only a lowercased, trimmed email", async () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      unregistered();
+      noMatchingAccountOrInvitation();
       mockPlayerRepository.create.mockImplementation(async (player) =>
         createInvitedPlayer({ teamId, ...player } as never),
       );
@@ -144,7 +143,7 @@ describe("CreatePlayerUseCase", () => {
 
     it("defaults an invitee's role to MEMBER", async () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      unregistered();
+      noMatchingAccountOrInvitation();
       mockPlayerRepository.create.mockResolvedValue(createInvitedPlayer());
 
       await useCase.execute({

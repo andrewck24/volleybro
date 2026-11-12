@@ -18,11 +18,6 @@ export interface IAcceptInvitationUseCase {
   execute(input: IAcceptInvitationInput): Promise<Player>;
 }
 
-/**
- * AcceptInvitationUseCase Implementation
- * User accepts invitation: status INVITED → JOINED, sets userId, clears email
- * Returns the invitation it read, so callers reach the team without a second read
- */
 @injectable()
 export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
   constructor(

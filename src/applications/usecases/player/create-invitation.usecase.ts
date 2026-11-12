@@ -19,9 +19,6 @@ export interface ICreateInvitationUseCase {
   execute(input: ICreateInvitationInput): Promise<Player>;
 }
 
-/**
- * CreateInvitationUseCase - Invite a NONE player: status NONE → INVITED
- */
 @injectable()
 export class CreateInvitationUseCase implements ICreateInvitationUseCase {
   constructor(
@@ -52,8 +49,6 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
         "Player has no team",
       );
 
-    // Whether this player is already invited or already a member is part of the
-    // team's roster, so it is answered only to someone who may manage it.
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     if (player.status === PlayerStatus.INVITED) {

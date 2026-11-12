@@ -25,13 +25,6 @@ const alreadyOnRoster = () =>
     "This email already belongs to a player on this team",
   );
 
-/**
- * Decide what an invitation to `email` should store, and refuse the addresses
- * that would put the same person on the roster twice.
- *
- * Callers must have verified the caller is a team admin first: every lookup and
- * every error below answers a question about this team's roster.
- */
 export const resolveInviteeLink = async (
   { players, users }: InviteeRepositories,
   teamId: string,

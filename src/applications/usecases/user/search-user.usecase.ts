@@ -15,7 +15,6 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface ISearchUserInput {
   email: string;
-  // The lookup exists for inviting to this team, so only its admins may run it.
   teamId: string;
   userId: string;
 }

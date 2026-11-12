@@ -17,10 +17,6 @@ export interface IRejectInvitationUseCase {
   execute(input: IRejectInvitationInput): Promise<void>;
 }
 
-/**
- * RejectInvitationUseCase Implementation
- * User rejects invitation: status INVITED → NONE, clears userId, email and role
- */
 @injectable()
 export class RejectInvitationUseCase implements IRejectInvitationUseCase {
   constructor(
