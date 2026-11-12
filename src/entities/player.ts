@@ -70,7 +70,7 @@ type DistributiveOmit<T, K extends keyof never> = T extends unknown
 export type NewPlayer = DistributiveOmit<
   Player,
   "id" | "createdAt" | "updatedAt"
->;
+> & { inviteeEmail?: string };
 
 /**
  * Every field a player document can carry. Writes patch single fields, so a
@@ -81,6 +81,7 @@ export type PlayerFields = PlayerBase & {
   status: PlayerStatus;
   userId?: string;
   email?: string;
+  inviteeEmail?: string;
   role?: PlayerRole;
 };
 

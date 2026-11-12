@@ -1,5 +1,10 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { NotFoundError, CommonReason } from "@/entities/errors";
+import {
+  ConflictError,
+  NotFoundError,
+  CommonReason,
+  PlayerReason,
+} from "@/entities/errors";
 import {
   NewPlayer,
   Player,
@@ -7,6 +12,7 @@ import {
   PlayerRole,
   PlayerStatus,
 } from "@/entities/player";
+import type { NormalizedEmail } from "@/entities/user";
 import {
   PlayerModel,
   type PlayerDocument,
@@ -16,7 +22,52 @@ import {
   type RawPlayer,
   toPlayerUpdateOps,
 } from "@/infrastructure/db/repositories/player.mapping.mongo";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
+import {
+  DUPLICATE_KEY_CODE,
+  translateRepositoryError,
+} from "@/infrastructure/db/repositories/error-translation.mongo";
+
+const alreadyInvited = () =>
+  new ConflictError(
+    PlayerReason.ALREADY_INVITED,
+    "This person has already been invited to this team",
+  );
+
+const alreadyOnRoster = () =>
+  new ConflictError(
+    PlayerReason.ALREADY_ON_ROSTER,
+    "This account already belongs to a player on this team",
+  );
+
+const isSeatHeldByInvitation = async (seat: object | undefined) =>
+  seat !== undefined &&
+  (await PlayerModel.exists({ ...seat, status: PlayerStatus.INVITED }).catch(
+    (lookupError) => {
+      throw translateRepositoryError(lookupError);
+    },
+  )) !== null;
+
+const translatePlayerWriteError = async (error: unknown) => {
+  const { code, keyPattern, keyValue } = (error ?? {}) as {
+    code?: unknown;
+    keyPattern?: object;
+    keyValue?: object;
+  };
+  if (code !== DUPLICATE_KEY_CODE) return translateRepositoryError(error);
+
+  const collidedKeys = Object.keys(keyPattern ?? keyValue ?? {});
+  const isInviteeCollision =
+    collidedKeys.includes("email") || collidedKeys.includes("inviteeEmail");
+  const isSeatCollision = collidedKeys.includes("userId");
+
+  if (
+    isInviteeCollision ||
+    (isSeatCollision && (await isSeatHeldByInvitation(keyValue)))
+  )
+    return alreadyInvited();
+  if (isSeatCollision) return alreadyOnRoster();
+  return translateRepositoryError(error);
+};
 
 const fromDocument = (doc: PlayerDocument): Player =>
   toPlayer(doc.toObject() as RawPlayer);
@@ -49,12 +100,30 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
+  async findByUserIdOrInvitedEmail(
+    userId: string,
+    email: NormalizedEmail,
+  ): Promise<Player[]> {
+    try {
+      const docs = await PlayerModel.find({
+        $or: [{ userId }, { email, status: PlayerStatus.INVITED }],
+      }).exec();
+      return docs.map((doc) => fromDocument(doc));
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
   async findInvitedByTeamIdAndEmail(
     teamId: string,
-    email: string,
+    email: NormalizedEmail,
   ): Promise<Player | null> {
     try {
-      const doc = await PlayerModel.findOne({ teamId, email }).exec();
+      const doc = await PlayerModel.findOne({
+        teamId,
+        status: PlayerStatus.INVITED,
+        $or: [{ email }, { inviteeEmail: email }],
+      }).exec();
       return doc ? fromDocument(doc) : null;
     } catch (error) {
       throw translateRepositoryError(error);
@@ -66,7 +135,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
       const newPlayer = await PlayerModel.create(player);
       return fromDocument(newPlayer);
     } catch (error) {
-      throw translateRepositoryError(error);
+      throw await translatePlayerWriteError(error);
     }
   }
 
@@ -85,7 +154,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
       }
       return fromDocument(updated);
     } catch (error) {
-      throw translateRepositoryError(error);
+      throw await translatePlayerWriteError(error);
     }
   }
 
@@ -127,19 +196,18 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async linkUserToInvitations(email: string, userId: string): Promise<number> {
+  async linkUserToInvitations(
+    email: NormalizedEmail,
+    userId: string,
+  ): Promise<number> {
     try {
-      // The address arrives in whatever case the identity provider holds it,
-      // and an invitation stored before this release kept the case it was typed
-      // in. The same collation the user lookup uses lets the two meet, without
-      // a $regex, whose `.` would reach a different address.
       const result = await PlayerModel.updateMany(
         { email, status: PlayerStatus.INVITED },
         {
           $set: { userId, status: PlayerStatus.INVITED },
           $unset: { email: "" },
         },
-      ).collation({ locale: "en", strength: 2 });
+      );
       return result.modifiedCount;
     } catch (error) {
       throw translateRepositoryError(error);

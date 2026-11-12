@@ -1,10 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import {
-  asRosterConflict,
-  resolveInviteeLink,
-} from "@/applications/usecases/player/invitee-link";
+import { resolveInviteeLink } from "@/applications/usecases/player/invitee-link";
 import { UnexpectedError, CommonReason } from "@/entities/errors";
 import type { Player, Position } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
@@ -52,23 +49,19 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
         )
       : null;
 
-    const player = await this.playerRepository
-      .create(
-        link
-          ? {
-              name,
-              status: PlayerStatus.INVITED,
-              number,
-              position,
-              teamId,
-              role: data.role ?? PlayerRole.MEMBER,
-              ...link,
-            }
-          : { name, status: PlayerStatus.NONE, number, position, teamId },
-      )
-      .catch((error: unknown) => {
-        throw asRosterConflict(error);
-      });
+    const player = await this.playerRepository.create(
+      link
+        ? {
+            name,
+            status: PlayerStatus.INVITED,
+            number,
+            position,
+            teamId,
+            role: data.role ?? PlayerRole.MEMBER,
+            ...link,
+          }
+        : { name, status: PlayerStatus.NONE, number, position, teamId },
+    );
 
     if (!player) {
       throw new UnexpectedError(

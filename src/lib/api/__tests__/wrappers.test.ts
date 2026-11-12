@@ -276,18 +276,20 @@ describe("withErrorHandler structured logging", () => {
 // --- Task 2.3: withAuth ---
 
 describe("withAuth", () => {
-  it("passes userId to handler when session is valid", async () => {
-    mockGetSession.mockResolvedValue({ user: { id: "user123" } });
+  it("passes the session's userId and email to the handler", async () => {
+    mockGetSession.mockResolvedValue({
+      user: { id: "user123", email: "alice@example.com" },
+    });
 
-    let capturedUserId: string | undefined;
-    const handler = withAuth(async (_req, { userId }) => {
-      capturedUserId = userId;
+    let captured: { userId: string; email: string } | undefined;
+    const handler = withAuth(async (_req, ctx) => {
+      captured = ctx;
       return { status: 200, json: async () => ({ ok: true }) } as never;
     });
 
     await handler(makeRequest() as never);
 
-    expect(capturedUserId).toBe("user123");
+    expect(captured).toEqual({ userId: "user123", email: "alice@example.com" });
   });
 
   it("returns 401 with structured body when session is absent", async () => {
