@@ -231,9 +231,6 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
               {detail}
             </p>
           )}
-          {/* Offline it can only fail; online it is the only recourse, since
-              no `online` event fires for a device that never left the
-              network. */}
           {status === "unsent" && online && (
             <button
               type="button"

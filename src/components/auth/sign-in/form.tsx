@@ -41,7 +41,6 @@ const SignInForm = () => {
         errorCallbackURL: "/auth/sign-in",
       });
     } catch {
-      // sign-in errors are surfaced via URL error params after redirect
     } finally {
       setIsSubmitting(false);
     }

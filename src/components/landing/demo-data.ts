@@ -52,7 +52,6 @@ const OPENING: RallySpec[] = [
   rallySpec("p3", 11, 5, true),
 ];
 
-/** Rally 13 — the one the walkthrough records live and the stats count (+1 ATTACK). */
 export const SENT_RALLY: RallySpec = rallySpec("p3", 4, 7, true);
 
 const TAIL = "LLLWLLWLLLWWWLWWLWLLWWLWWLWLWWLWW";

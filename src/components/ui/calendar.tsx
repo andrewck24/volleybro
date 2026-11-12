@@ -13,8 +13,6 @@ import {
   type DayPickerProps,
 } from "@daypicker/react";
 
-// The root's `p-3` on both sides. Cells shrink below --control-size only when
-// 7 cells, this padding and a 1rem gutter exceed the viewport (under ~348px).
 const PADDING = "var(--spacing) * 6";
 const CELL_SIZE = `min(var(--control-size), (100vw - ${PADDING} - 1rem) / 7)`;
 

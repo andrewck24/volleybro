@@ -39,7 +39,6 @@ const rotateLineup: CaseReducer<ReduxLineupState> = (state) => {
   if (!lineup) return;
   state.status.edited = true;
   const newStarting = lineup.starting.slice(1);
-  // a lineup being rotated always has a full starting six
   newStarting.push(lineup.starting[0]!);
   lineup.starting = newStarting;
 };
