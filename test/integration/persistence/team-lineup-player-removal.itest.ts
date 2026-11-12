@@ -121,7 +121,7 @@ describe("creating a team with lineups", () => {
     expect(lineup!.starting.map((player) => player.id)).toEqual(ids);
   });
 
-  it("stores team lineups without ids and reads a legacy lineup id", async () => {
+  it("stores team lineups without ids and drops a legacy lineup id on read", async () => {
     const ids = Array.from({ length: 6 }, oid);
     const expectedLineup = lineupFor(ids);
     const team = await repo().create({

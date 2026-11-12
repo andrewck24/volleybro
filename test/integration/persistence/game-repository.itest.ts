@@ -98,7 +98,7 @@ describe("game reads and writes", () => {
     expect(written.teams.home.name).toBe("Home");
   });
 
-  it("stores game snapshot and set lineups without ids and reads legacy lineup ids", async () => {
+  it("stores game snapshot and set lineups without ids and drops legacy lineup ids on read", async () => {
     const playerIds = Array.from({ length: 6 }, oid);
     const expectedLineup = lineupFor(playerIds);
     const game = await games().create({

@@ -4,7 +4,6 @@ import {
   toTeam,
   type RawTeam,
 } from "@/infrastructure/db/repositories/team.mapping.mongo";
-import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { Types } from "mongoose";
 
 const playerHexId = "64b000000000000000000001";
@@ -68,31 +67,6 @@ describe("team document mapping", () => {
       sub: { id: subHexId, entryIndex: {} },
     });
     expect(lineup!.starting[1]!.id).toBeNull();
-  });
-
-  it("maps a stored lineup id out of teams and does not generate ids for new lineups", () => {
-    const stored = {
-      _id: new Types.ObjectId(),
-      name: "Team",
-      lineups: [
-        {
-          _id: new Types.ObjectId(),
-          options,
-          starting: [],
-          liberos: [],
-          substitutes: [],
-        },
-      ],
-    } as unknown as RawTeam;
-
-    const [lineup] = toTeam(stored).lineups;
-    const created = new TeamModel({
-      name: "Team",
-      lineups: [{ options, starting: [], liberos: [], substitutes: [] }],
-    }).toObject();
-
-    expect(lineup).not.toHaveProperty("_id");
-    expect(created.lineups[0]).not.toHaveProperty("_id");
   });
 
   it("reads a team stored without lineups as an empty list", () => {
