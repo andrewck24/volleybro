@@ -39,18 +39,10 @@ export const hasFailedWrite = (
     (p) => p.entry.id === entryId && !mayBeAttemptedAgain(p.lastError),
   );
 
-export const canFlushForRecorder = (
-  entry: PendingEntry,
-  recorderId: string,
-): boolean => entry.userId === undefined || entry.userId === recorderId;
-
 export const isQueuedBy = (
-  entry: PendingEntry,
+  item: Pick<PendingEntry, "userId">,
   userId: string | undefined,
-): boolean =>
-  userId === undefined
-    ? entry.userId === undefined
-    : canFlushForRecorder(entry, userId);
+): boolean => item.userId === undefined || item.userId === userId;
 
 export const isPendingWrite = (
   state: PendingWritesState,

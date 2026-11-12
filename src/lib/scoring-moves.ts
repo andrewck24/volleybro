@@ -1,26 +1,16 @@
 import { MoveType } from "@/entities/game";
 
-type ScoringMoveIndex =
-  0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
-
-type ScoringMoveOutcome = readonly [ScoringMoveIndex, ...ScoringMoveIndex[]] &
-  ReadonlyArray<number>;
-
 export type ScoringMove = {
   num: number;
   win: boolean;
   type: MoveType;
   text: string;
-  outcome: ScoringMoveOutcome;
-};
-
-type ScoringMoveDefinition = Omit<ScoringMove, "outcome"> & {
-  outcome: [ScoringMoveIndex, ...ScoringMoveIndex[]];
+  outcome: number[];
 };
 
 export { MoveType };
 
-const scoringMoveDefinitions: ScoringMoveDefinition[] = [
+export const scoringMoves: ScoringMove[] = [
   {
     num: 0,
     win: true,
@@ -127,8 +117,6 @@ const scoringMoveDefinitions: ScoringMoveDefinition[] = [
     outcome: [8],
   },
 ];
-
-export const scoringMoves: ScoringMove[] = scoringMoveDefinitions;
 
 export const frontMoves: ScoringMove[] = scoringMoves.slice(2, 9);
 

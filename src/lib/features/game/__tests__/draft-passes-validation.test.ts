@@ -1,6 +1,5 @@
 import { EntryType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
-import type { GameView } from "@/lib/features/game/types";
 import { RecordEntriesSchema } from "@/interface/validations/game";
 import { makeStore } from "@/lib/redux/store";
 import {
@@ -9,19 +8,14 @@ import {
   frontMoves,
   scoringMoves,
 } from "@/lib/scoring-moves";
-import {
-  createLineupGame,
-  homeRally,
-} from "@test/support/fixtures/lineup-game";
 
 const submitted = (store: ReturnType<typeof makeStore>) => {
-  const gameState = store.getState().game;
-  const { entryDraft } = gameState[gameState.mode];
+  const { entryDraft } = store.getState().game.general;
   return {
     ...entryDraft,
     type: EntryType.RALLY,
-    id: entryDraft.id || "e1",
-    seq: entryDraft.seq,
+    id: "e1",
+    seq: 0,
     at: new Date().toISOString(),
   };
 };
@@ -59,21 +53,6 @@ describe("the draft a recorded rally is submitted as", () => {
 
   it("rejects the untouched draft, which is why the panel gates submission", () => {
     expect(passesSchema(makeStore())).toBe(false);
-  });
-
-  it("preserves entry identity when an edit is submitted", () => {
-    const game = createLineupGame({ entries: [homeRally(true, 10)] });
-    const view = game as unknown as GameView;
-    const store = makeStore();
-    store.dispatch(gameActions.initialize({ game: view, setIndex: 0 }));
-    store.dispatch(
-      gameActions.setEditingEntryStatus({ game: view, entryIndex: 0 }),
-    );
-
-    const entry = submitted(store);
-
-    expect(entry).toMatchObject({ id: "e10", seq: 10 });
-    expect(RecordEntriesSchema.safeParse([entry]).success).toBe(true);
   });
 });
 

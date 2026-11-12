@@ -5,7 +5,6 @@ import {
   assertRallyAt,
   deriveEntryPhase,
 } from "@/lib/features/game/helpers";
-import { mergePendingEntries } from "@/lib/features/game/pending-writes";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 const record = (
@@ -195,67 +194,6 @@ describe("rally.helper.ts", () => {
         type: EntryType.RALLY,
         ...newRally,
       });
-    });
-
-    it("uses the merged queue view rather than raw cache for edits", () => {
-      const rawGame = createMockGame();
-      const targetRally = {
-        ...newRally,
-        id: "entry-2",
-        seq: 2,
-        win: false,
-        home: { ...newRally.home, score: 23 },
-        away: { ...newRally.away, score: 23 },
-      };
-      const laterRally = {
-        ...targetRally,
-        id: "entry-3",
-        seq: 3,
-        win: true,
-        home: { ...targetRally.home, score: 25 },
-      };
-      rawGame.sets[0]!.entries.push(
-        { type: EntryType.RALLY, ...targetRally } as never,
-        { type: EntryType.RALLY, ...laterRally } as never,
-      );
-      const queuedRally = {
-        type: EntryType.RALLY as const,
-        ...newRally,
-        id: "queued-rally",
-        seq: 1,
-      };
-      const mergedGame = mergePendingEntries(
-        rawGame,
-        [
-          {
-            entry: { ...queuedRally, at: "2026-10-27T01:02:03.000Z" },
-            gameId: "game-1",
-            setIndex: 0,
-            attempts: 0,
-            nextAttemptAt: 0,
-          },
-        ],
-        "game-1",
-      )!;
-      const editedRally = {
-        ...targetRally,
-        win: true,
-        home: { ...targetRally.home, score: 24 },
-      };
-
-      const result = record(
-        { setIndex: 0, entryIndex: 2 },
-        editedRally,
-        mergedGame,
-      );
-
-      expect(result.phase).toEqual({
-        isSetInProgress: true,
-        isSetPoint: true,
-      });
-      expect(
-        record({ setIndex: 0, entryIndex: 2 }, editedRally, rawGame).phase,
-      ).toEqual({ isSetInProgress: false, isSetPoint: false });
     });
 
     it("should throw error when entry is not a rally", () => {

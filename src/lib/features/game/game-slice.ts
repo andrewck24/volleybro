@@ -134,7 +134,7 @@ const setEntryDraftHomeMove: CaseReducer<
   const { mode } = state;
   const { win, type, num, outcome } = action.payload;
   const { home, away } = state[mode].status.scores;
-  const [outcomeNum] = outcome;
+  const [outcomeNum = 0] = outcome;
 
   state[mode].status.panel = "away";
   state[mode].entryDraft.win = win;

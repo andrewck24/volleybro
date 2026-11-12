@@ -1,12 +1,12 @@
 import type { Lineup } from "@/entities/team";
 import type {
-  GameFormValues,
   LineupListPlayer,
+  TMatchInfoForm,
 } from "@/lib/features/game/types";
 
 export const newGameFormDefaults = (
   homeTeamName: string | undefined,
-): GameFormValues => ({
+): TMatchInfoForm => ({
   name: "",
   number: 1,
   phase: "0",
@@ -19,18 +19,18 @@ export const newGameFormDefaults = (
 });
 
 type NewGameInfo = Omit<
-  GameFormValues,
+  TMatchInfoForm,
   "teams" | "phase" | "division" | "category" | "scoring"
 > & {
   phase: number;
   division: number;
   category: number;
-  scoring: Omit<GameFormValues["scoring"], "setCount"> & {
+  scoring: Omit<TMatchInfoForm["scoring"], "setCount"> & {
     setCount: number;
   };
 };
 
-export type NewGameBody = {
+type NewGameBody = {
   info: NewGameInfo;
   teams: {
     home: {
@@ -49,7 +49,7 @@ export const newGameBody = ({
   players,
   lineup,
 }: {
-  info: GameFormValues;
+  info: TMatchInfoForm;
   teamId: string;
   players: LineupListPlayer[];
   lineup?: Lineup;

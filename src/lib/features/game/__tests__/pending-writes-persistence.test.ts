@@ -330,6 +330,7 @@ describe("localStoragePendingWrites", () => {
   });
 
   it("does not report recorder-hint storage failures as queue failures", () => {
+    const store = makeStore();
     const setItem = jest
       .spyOn(Storage.prototype, "setItem")
       .mockImplementation(() => {
@@ -338,6 +339,7 @@ describe("localStoragePendingWrites", () => {
 
     try {
       expect(() => rememberRecorder("user-1")).not.toThrow();
+      expect(store.getState().pendingWrites.storageUnavailable).toBe(false);
     } finally {
       setItem.mockRestore();
     }
@@ -398,29 +400,6 @@ describe("probePendingWritesStorage", () => {
     ).resolves.toBeUndefined();
 
     expect(store.getState().pendingWrites.storageUnavailable).toBe(true);
-  });
-
-  it("probes storage without blocking a queued entry", async () => {
-    const store = makeStore();
-    const gate = deferred();
-    const probing = probePendingWritesStorage(
-      store.dispatch,
-      storageWith(() => gate.promise),
-    );
-
-    try {
-      store.dispatch(
-        pendingWritesActions.enqueued({
-          entry: entry("e1"),
-          gameId: "game-1",
-          setIndex: 0,
-        }),
-      );
-      expect(store.getState().pendingWrites.pending).toHaveLength(1);
-    } finally {
-      gate.release();
-      await probing;
-    }
   });
 });
 

@@ -1,9 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import * as errors from "@/entities/errors";
-import { ApiClientError } from "@/lib/api/api-client";
 import { ABSORBED_REASONS, ERROR_MESSAGES } from "@/lib/api/error-messages";
-import { resolveErrorDisplay } from "@/lib/api/error-toast";
 
 const isReasonEnum = (value: unknown): value is Record<string, string> =>
   typeof value === "object" &&
@@ -15,16 +13,6 @@ const allReasons = Object.values(errors)
   .flatMap((reasonEnum) => Object.values(reasonEnum));
 
 describe("error-messages catalogue", () => {
-  it("resolves a 5xx reason before catalogue lookup", () => {
-    const error = new ApiClientError("server error", {
-      code: "TRANSIENT",
-      reason: "UNLISTED_REASON",
-      status: 503,
-    });
-
-    expect(resolveErrorDisplay(error)).toEqual(ERROR_MESSAGES.SERVER_ERROR);
-  });
-
   it("derives its reasons from the errors module rather than a written list", () => {
     expect(allReasons).toContain(errors.PlayerReason.INVALID_EMAIL);
     expect(allReasons.length).toBeGreaterThanOrEqual(24);

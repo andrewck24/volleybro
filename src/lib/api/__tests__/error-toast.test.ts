@@ -73,7 +73,7 @@ describe("resolveErrorDisplay", () => {
     expect(resolveErrorDisplay(error).title).toBe("登入逾期");
   });
 
-  it("routes normalized network errors to the network message", () => {
+  it("resolves client-invented TIMEOUT/NETWORK_ERROR reasons to NETWORK_TIMEOUT before the 5xx branch", () => {
     const timeout = makeApiClientError(503, "TRANSIENT", "timeout", "TIMEOUT");
     const network = makeApiClientError(
       503,

@@ -292,8 +292,7 @@ export const MatchInfoFormSchema = z.object({
     .optional(),
 });
 
-export type GameFormValues = z.infer<typeof MatchInfoFormSchema>;
-export type TMatchInfoForm = GameFormValues;
+export type TMatchInfoForm = z.infer<typeof MatchInfoFormSchema>;
 
 export const SetOptionsFormSchema = z.object({
   serve: z.enum(["home", "away"]),
@@ -374,20 +373,16 @@ export type PendingSubstitution = Extract<
   { team: unknown }
 >;
 
-type PendingEntryBase = {
+export type PendingEntry = {
   entry: PendingEntryContent;
   gameId: string;
   setIndex: number;
   userId?: string;
   attempts: number;
+  nextAttemptAt: number | null;
+  lastError?: WriteError;
   firstFailedAt?: number;
 };
-
-export type PendingEntryRetryState =
-  | { nextAttemptAt: number; lastError?: WriteError | undefined }
-  | { nextAttemptAt: null; lastError?: WriteError | undefined };
-
-export type PendingEntry = PendingEntryBase & PendingEntryRetryState;
 
 export type PersistedPendingEntry = Pick<
   PendingEntry,
@@ -420,8 +415,6 @@ export const PersistedQueueSchema = z.object({
       userId: z.string().optional(),
       lastError: z
         .object({
-          // A string rather than the union, which lives in the error model.
-          // Nothing branches on it -- only `status` decides anything.
           code: z.custom<AppErrorCode>((value) => typeof value === "string"),
           reason: z.string(),
           status: z.number(),
