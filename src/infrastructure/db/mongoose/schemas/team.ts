@@ -92,12 +92,15 @@ const substitutePlayerSchema = new Schema(
   { _id: false },
 );
 
-export const lineupSchema = new Schema<LineupDocument>({
-  options: { type: lineupOptionsSchema },
-  starting: [{ type: startingPlayerSchema }],
-  liberos: [{ type: liberoPlayerSchema }],
-  substitutes: [{ type: substitutePlayerSchema }],
-});
+export const lineupSchema = new Schema<LineupDocument>(
+  {
+    options: { type: lineupOptionsSchema },
+    starting: [{ type: startingPlayerSchema }],
+    liberos: [{ type: liberoPlayerSchema }],
+    substitutes: [{ type: substitutePlayerSchema }],
+  },
+  { _id: false },
+);
 
 export interface TeamDocument extends Document {
   name: string;

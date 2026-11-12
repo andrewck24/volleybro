@@ -98,6 +98,37 @@ describe("game reads and writes", () => {
     expect(written.teams.home.name).toBe("Home");
   });
 
+  it("stores game snapshot and set lineups without ids", async () => {
+    const lineup = lineupFor(Array.from({ length: 6 }, oid));
+    const game = await games().create({
+      win: false,
+      teamId: oid(),
+      info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
+      teams: {
+        home: {
+          id: oid(),
+          name: "Home",
+          players: [],
+          staffs: [],
+          lineup,
+        },
+        away: { id: oid(), name: "Away", players: [], staffs: [] },
+      },
+      sets: [],
+    });
+    await games().addSet({ gameId: game.id, setIndex: 0 }, startedSet(lineup));
+
+    const stored = await GameModel.collection.findOne({
+      _id: new mongoose.Types.ObjectId(game.id),
+    });
+    const storedSet = stored?.sets?.[0];
+    expect(stored?.teams?.home?.lineup).not.toHaveProperty("_id");
+    expect(storedSet?.startingLineups?.home).not.toHaveProperty("_id");
+    expect(storedSet?.startingLineups?.away).not.toHaveProperty("_id");
+    expect(storedSet?.lineups?.home).not.toHaveProperty("_id");
+    expect(storedSet?.lineups?.away).not.toHaveProperty("_id");
+  });
+
   describe("adding a set", () => {
     const rawGame = (id: string) =>
       mongoose.connection
