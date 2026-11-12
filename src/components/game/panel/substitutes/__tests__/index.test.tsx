@@ -198,6 +198,24 @@ describe("Substitutes with a substitution still queued", () => {
       gate.release();
     }
     await waitFor(() => expect(pending()).toEqual([]));
+    const submitted = puts
+      .flatMap(
+        ({ body }) =>
+          body as {
+            type: EntryType;
+            id: string;
+            players: { in: string; out: string };
+          }[],
+      )
+      .find(({ players }) => players.in === "p3" && players.out === "p2");
+    expect(submitted).toEqual(
+      expect.objectContaining({
+        type: EntryType.SUBSTITUTION,
+        id: expect.any(String),
+        players: { in: "p3", out: "p2" },
+      }),
+    );
+    expect(submitted?.id).not.toBe("queued");
   });
 });
 

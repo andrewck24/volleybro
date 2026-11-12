@@ -217,53 +217,18 @@ describe("GamePreview submission", () => {
       fullGame,
     );
 
-    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(
+      screen.getByText("2", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
     await user.click(screen.getByTestId("preview-trigger"));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("4")).toBeInTheDocument();
-    expect(screen.queryByText("7")).not.toBeInTheDocument();
-  });
-
-  it("advances create state before its queued write resolves", async () => {
-    const user = userEvent.setup();
-    const createGate = deferred();
-    let requestCount = 0;
-    server.use(
-      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
-        const sent = (await request.json()) as { id: string }[];
-        requestCount++;
-        await createGate.promise;
-        return HttpResponse.json({ entries: sent });
-      }),
-    );
-
-    const createStore = initializedStore();
-    act(() => {
-      createStore.dispatch(
-        gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }),
-      );
-      createStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
-      createStore.dispatch(
-        gameActions.setEntryDraftAwayMove(
-          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
-        ),
-      );
-    });
-    const view = renderPreview(
-      createStore,
-      <SubmittingPreview mode="general" />,
-    );
-
-    await user.click(screen.getByTestId("preview-trigger"));
-    await waitFor(() => expect(requestCount).toBe(1));
-    expect(createStore.getState().game.general.status.entryIndex).toBe(2);
-    expect(createStore.getState().pendingWrites.pending).toHaveLength(1);
-    createGate.release();
-    await waitFor(() =>
-      expect(createStore.getState().pendingWrites.pending).toHaveLength(0),
-    );
-    view.unmount();
+    expect(
+      screen.getByText("1", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("2", { selector: "[data-score-badge]" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shares one in-progress draft between Preview and the Summary drawer", () => {

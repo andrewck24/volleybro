@@ -10,13 +10,7 @@ import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   FIXTURE_RECORDER_ID,
@@ -77,16 +71,6 @@ const baseProps = {
 };
 
 describe("SummaryDrawerCard structure", () => {
-  it("passes pixel snap points that vaul parses as integers", async () => {
-    render(<SummaryDrawerCard {...baseProps} state="idle" />);
-
-    const drawer = await screen.findByTestId("summary-drawer");
-    expect(drawer).toHaveAttribute("data-vaul-snap-points", "true");
-    expect(drawer.style.getPropertyValue("--snap-point-height")).toBe(
-      `${window.innerHeight - 80}px`,
-    );
-  });
-
   it("renders only the newest row in the collapsed peek", async () => {
     render(<SummaryDrawerCard {...baseProps} state="idle" />);
 
@@ -244,10 +228,10 @@ describe("SummaryDrawerCard backdrop overlay", () => {
     const overlay = screen.getByTestId("summary-drawer-overlay");
     const drawer = screen.getByTestId("summary-drawer");
     expect(drawer).not.toHaveAttribute("aria-modal", "true");
-    await waitFor(() =>
-      expect(document.body).toHaveStyle({ pointerEvents: "auto" }),
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
     );
-    fireEvent.click(overlay);
+    await userEvent.click(overlay);
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });

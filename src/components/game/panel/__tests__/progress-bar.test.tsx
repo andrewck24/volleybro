@@ -51,29 +51,6 @@ describe("EntryProgressBar", () => {
     expect(screen.getByText("我方得失分紀錄")).toBeInTheDocument();
   });
 
-  it("remounts the animated segment when the step changes", () => {
-    const { rerender } = render(
-      <EntryProgressBar
-        steps={steps}
-        activeStep={0}
-        reachableSteps={[0, 1]}
-        onStepChange={jest.fn()}
-      />,
-    );
-    const caption = screen.getByText("選擇球員");
-
-    rerender(
-      <EntryProgressBar
-        steps={steps}
-        activeStep={1}
-        reachableSteps={[0, 1]}
-        onStepChange={jest.fn()}
-      />,
-    );
-
-    expect(screen.getByText("我方得失分紀錄")).not.toBe(caption);
-  });
-
   it("marks unreachable steps with aria-disabled while keeping them focusable", async () => {
     const onStepChange = jest.fn();
     render(

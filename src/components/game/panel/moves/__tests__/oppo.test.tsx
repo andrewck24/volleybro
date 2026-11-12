@@ -9,6 +9,7 @@ import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
+import { answerEntries } from "@test/support/msw/entries";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import {
   act,
@@ -22,7 +23,6 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { useSWRConfig } from "swr";
 
-import { answerEntries } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
 import { deferred } from "@test/support/gates";
@@ -157,6 +157,8 @@ describe("useSubmitEntryDraft create path", () => {
   it("stages an away move without submitting it", async () => {
     const homeMove = scoringMoves[3]!;
     const awayMove = scoringMoves[homeMove.outcome[0]!]!;
+    const alternateAwayMove = scoringMoves[homeMove.outcome[1]!]!;
+    const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     store = makeStore();
     const game = gameWith([]);
     store.dispatch(
@@ -164,11 +166,6 @@ describe("useSubmitEntryDraft create path", () => {
     );
     store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
     store.dispatch(gameActions.setEntryDraftHomeMove(homeMove));
-    server.use(
-      http.put("/api/games/game-1/sets/entries", () =>
-        HttpResponse.json({ entries: [] }),
-      ),
-    );
     render(
       <Provider store={store}>
         <OppoMoves />
@@ -177,14 +174,18 @@ describe("useSubmitEntryDraft create path", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: new RegExp(awayMove.text),
+        name: new RegExp(alternateAwayMove.text),
       }),
     );
 
     expect(store.getState().game.general.entryDraft.away.num).toBe(
+      alternateAwayMove.num,
+    );
+    expect(store.getState().game.general.entryDraft.away.num).not.toBe(
       awayMove.num,
     );
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
+    expect(puts).toHaveLength(0);
   });
 });
 

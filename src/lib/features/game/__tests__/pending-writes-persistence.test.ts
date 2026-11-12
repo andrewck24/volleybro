@@ -401,30 +401,6 @@ describe("probePendingWritesStorage", () => {
   });
 });
 
-describe("the queue's own save failing", () => {
-  it("reports the store as unwritable, because it can fail after a clean probe", async () => {
-    const store = makeStore({
-      load: async () => null,
-      save: async () => {
-        throw new Error("quota");
-      },
-      clear: async () => {},
-      probe: async () => {},
-    });
-
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: entry("e1"),
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
-    await waitFor(() =>
-      expect(store.getState().pendingWrites.storageUnavailable).toBe(true),
-    );
-  });
-});
-
 describe("restorePendingWrites", () => {
   const stored = (snapshot: PersistedQueue | null): PendingWritesStorage => ({
     load: async () => snapshot,

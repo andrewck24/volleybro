@@ -144,17 +144,21 @@ describe("CreatePlayerUseCase", () => {
     it("defaults an invitee's role to MEMBER", async () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       noMatchingAccountOrInvitation();
-      mockPlayerRepository.create.mockResolvedValue(createInvitedPlayer());
+      mockPlayerRepository.create.mockImplementation(async (player) =>
+        createInvitedPlayer({
+          teamId,
+          ...player,
+          role: "role" in player ? player.role : undefined,
+        } as never),
+      );
 
-      await useCase.execute({
+      const result = await useCase.execute({
         teamId,
         data: { name: "Test Player", email: "test@example.com" },
         userId,
       });
 
-      expect(mockPlayerRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ role: PlayerRole.MEMBER }),
-      );
+      expect(result).toMatchObject({ role: PlayerRole.MEMBER });
     });
 
     it("should reject if user is not admin", async () => {

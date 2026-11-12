@@ -182,14 +182,7 @@ describe("CreateInvitationUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       noMatchingAccountOrInvitation();
-      mockPlayerRepository.update.mockResolvedValue(
-        createInvitedPlayer({
-          id: playerId,
-          teamId,
-          email,
-          role: PlayerRole.ADMIN,
-        }),
-      );
+      mockPlayerRepository.update.mockImplementation(applyPatchToNonePlayer);
 
       const result = await useCase.execute({
         playerId,
