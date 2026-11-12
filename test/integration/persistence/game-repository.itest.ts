@@ -98,6 +98,57 @@ describe("game reads and writes", () => {
     expect(written.teams.home.name).toBe("Home");
   });
 
+  it("stores game snapshot and set lineups without ids and reads legacy lineup ids", async () => {
+    const playerIds = Array.from({ length: 6 }, oid);
+    const expectedLineup = lineupFor(playerIds);
+    const game = await games().create({
+      win: false,
+      teamId: oid(),
+      info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
+      teams: {
+        home: {
+          id: oid(),
+          name: "Home",
+          players: [],
+          staffs: [],
+          lineup: expectedLineup,
+        },
+        away: { id: oid(), name: "Away", players: [], staffs: [] },
+      },
+      sets: [],
+    });
+    await games().addSet(
+      { gameId: game.id, setIndex: 0 },
+      startedSet(expectedLineup),
+    );
+
+    const gameIdObject = new mongoose.Types.ObjectId(game.id);
+    const stored = await GameModel.collection.findOne({ _id: gameIdObject });
+    const storedSet = stored?.sets?.[0];
+    expect(stored?.teams?.home?.lineup).not.toHaveProperty("_id");
+    expect(storedSet?.startingLineups?.home).not.toHaveProperty("_id");
+    expect(storedSet?.startingLineups?.away).not.toHaveProperty("_id");
+    expect(storedSet?.lineups?.home).not.toHaveProperty("_id");
+    expect(storedSet?.lineups?.away).not.toHaveProperty("_id");
+
+    const legacyId = new mongoose.Types.ObjectId();
+    await GameModel.collection.updateOne(
+      { _id: gameIdObject },
+      {
+        $set: {
+          "teams.home.lineup._id": legacyId,
+          "sets.0.lineups.home._id": legacyId,
+        },
+      },
+    );
+
+    const read = (await games().findById(game.id))!;
+    expect(read.teams.home.lineup).toMatchObject(expectedLineup);
+    expect(read.teams.home.lineup).not.toHaveProperty("_id");
+    expect(read.sets[0]!.lineups.home).toMatchObject(expectedLineup);
+    expect(read.sets[0]!.lineups.home).not.toHaveProperty("_id");
+  });
+
   describe("adding a set", () => {
     const rawGame = (id: string) =>
       mongoose.connection

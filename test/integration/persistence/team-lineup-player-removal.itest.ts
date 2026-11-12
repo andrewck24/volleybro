@@ -120,4 +120,27 @@ describe("creating a team with lineups", () => {
     const [lineup] = (await repo().findById(team.id))!.lineups;
     expect(lineup!.starting.map((player) => player.id)).toEqual(ids);
   });
+
+  it("stores team lineups without ids and reads a legacy lineup id", async () => {
+    const ids = Array.from({ length: 6 }, oid);
+    const expectedLineup = lineupFor(ids);
+    const team = await repo().create({
+      name: "Lineup Id Team",
+      lineups: [expectedLineup],
+    });
+    const teamId = new Types.ObjectId(team.id);
+
+    const stored = await TeamModel.collection.findOne({ _id: teamId });
+    expect(stored?.lineups?.[0]).not.toHaveProperty("_id");
+
+    const legacyId = new Types.ObjectId();
+    await TeamModel.collection.updateOne(
+      { _id: teamId },
+      { $set: { "lineups.0._id": legacyId } },
+    );
+
+    const read = (await repo().findById(team.id))!.lineups[0]!;
+    expect(read).toMatchObject(expectedLineup);
+    expect(read).not.toHaveProperty("_id");
+  });
 });
