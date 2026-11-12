@@ -25,8 +25,6 @@ source: serwist-turbopack
 updated: 2026-07-18
 code:
   - src/lib/api/parse-api-error.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
   - src/app/api/teams/[teamId]/route.ts
   - src/applications/usecases/player/transfer-ownership.usecase.ts
   - scripts/assert-sw.mjs
@@ -50,7 +48,6 @@ code:
   - src/lib/auth-hook.ts
   - src/applications/usecases/player/leave-team.usecase.ts
   - eslint.config.mjs
-  - src/app/api/profiles/route.ts
   - src/app/sw.ts
   - src/applications/usecases/player/cancel-invitation.usecase.ts
   - .changeset/serwist-turbopack.md
@@ -64,7 +61,6 @@ code:
   - src/applications/usecases/game/update-set.usecase.ts
   - src/infrastructure/db/repositories/team.repository.mongo.ts
   - src/proxy.ts
-  - src/interface/controllers/user/profile.controller.ts
   - src/applications/usecases/game/update-rally.usecase.ts
   - src/app/serwist-provider.tsx
   - src/applications/usecases/player/create-invitation.usecase.ts
@@ -135,8 +131,6 @@ source: serwist-turbopack
 updated: 2026-07-18
 code:
   - src/lib/api/parse-api-error.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
   - src/app/api/teams/[teamId]/route.ts
   - src/applications/usecases/player/transfer-ownership.usecase.ts
   - scripts/assert-sw.mjs
@@ -160,7 +154,6 @@ code:
   - src/lib/auth-hook.ts
   - src/applications/usecases/player/leave-team.usecase.ts
   - eslint.config.mjs
-  - src/app/api/profiles/route.ts
   - src/app/sw.ts
   - src/applications/usecases/player/cancel-invitation.usecase.ts
   - .changeset/serwist-turbopack.md
@@ -174,7 +167,6 @@ code:
   - src/applications/usecases/game/update-set.usecase.ts
   - src/infrastructure/db/repositories/team.repository.mongo.ts
   - src/proxy.ts
-  - src/interface/controllers/user/profile.controller.ts
   - src/applications/usecases/game/update-rally.usecase.ts
   - src/app/serwist-provider.tsx
   - src/applications/usecases/player/create-invitation.usecase.ts
@@ -245,8 +237,6 @@ source: serwist-turbopack
 updated: 2026-07-18
 code:
   - src/lib/api/parse-api-error.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
   - src/app/api/teams/[teamId]/route.ts
   - src/applications/usecases/player/transfer-ownership.usecase.ts
   - scripts/assert-sw.mjs
@@ -270,7 +260,6 @@ code:
   - src/lib/auth-hook.ts
   - src/applications/usecases/player/leave-team.usecase.ts
   - eslint.config.mjs
-  - src/app/api/profiles/route.ts
   - src/app/sw.ts
   - src/applications/usecases/player/cancel-invitation.usecase.ts
   - .changeset/serwist-turbopack.md
@@ -284,7 +273,6 @@ code:
   - src/applications/usecases/game/update-set.usecase.ts
   - src/infrastructure/db/repositories/team.repository.mongo.ts
   - src/proxy.ts
-  - src/interface/controllers/user/profile.controller.ts
   - src/applications/usecases/game/update-rally.usecase.ts
   - src/app/serwist-provider.tsx
   - src/applications/usecases/player/create-invitation.usecase.ts
@@ -355,8 +343,6 @@ source: serwist-turbopack
 updated: 2026-07-18
 code:
   - src/lib/api/parse-api-error.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
   - src/app/api/teams/[teamId]/route.ts
   - src/applications/usecases/player/transfer-ownership.usecase.ts
   - scripts/assert-sw.mjs
@@ -380,7 +366,6 @@ code:
   - src/lib/auth-hook.ts
   - src/applications/usecases/player/leave-team.usecase.ts
   - eslint.config.mjs
-  - src/app/api/profiles/route.ts
   - src/app/sw.ts
   - src/applications/usecases/player/cancel-invitation.usecase.ts
   - .changeset/serwist-turbopack.md
@@ -394,7 +379,6 @@ code:
   - src/applications/usecases/game/update-set.usecase.ts
   - src/infrastructure/db/repositories/team.repository.mongo.ts
   - src/proxy.ts
-  - src/interface/controllers/user/profile.controller.ts
   - src/applications/usecases/game/update-rally.usecase.ts
   - src/app/serwist-provider.tsx
   - src/applications/usecases/player/create-invitation.usecase.ts

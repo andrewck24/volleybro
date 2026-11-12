@@ -17,7 +17,6 @@ import {
   type UnlinkedPlayer,
 } from "@/entities/player";
 import { createRecordedRally } from "./entries";
-import type { Profile } from "@/entities/profile";
 import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
 
@@ -86,16 +85,6 @@ export function createUser(overrides?: Partial<User>): User {
     name: "Test User",
     email: "test@example.com",
     emailVerified: true,
-    createdAt: new Date("2025-01-01"),
-    updatedAt: new Date("2025-01-01"),
-    ...overrides,
-  };
-}
-
-export function createProfile(overrides?: Partial<Profile>): Profile {
-  return {
-    id: "profile-1",
-    userId: "user-1",
     createdAt: new Date("2025-01-01"),
     updatedAt: new Date("2025-01-01"),
     ...overrides,

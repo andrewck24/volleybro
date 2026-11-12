@@ -1,4 +1,5 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { normalizeEmail } from "@/entities/user";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -23,7 +24,7 @@ export class LinkPendingInvitationsUseCase implements ILinkPendingInvitationsUse
     userId,
   }: ILinkPendingInvitationsInput): Promise<number> {
     const count = await this.playerRepository.linkUserToInvitations(
-      email,
+      normalizeEmail(email),
       userId,
     );
     return count;

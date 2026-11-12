@@ -96,7 +96,7 @@
 
   <!-- ① Entities (focal core) -->
   <text class="ink" x="254" y="236" font-size="16" font-weight="600" text-anchor="middle">Domain entities</text>
-  <text class="mono muted" x="254" y="258" font-size="9" text-anchor="middle">User · Team · Player · Profile · Game</text>
+  <text class="mono muted" x="254" y="258" font-size="9" text-anchor="middle">User · Team · Player · Game</text>
 
   <!-- Legend strip -->
   <line class="rule" x1="40" y1="464" x2="960" y2="464" stroke-width="0.8"/>

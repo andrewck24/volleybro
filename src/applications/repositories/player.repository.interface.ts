@@ -1,4 +1,5 @@
 import { NewPlayer, Player, PlayerFields, PlayerRole } from "@/entities/player";
+import type { NormalizedEmail } from "@/entities/user";
 
 /**
  * IPlayerRepository Interface
@@ -21,12 +22,14 @@ export interface IPlayerRepository {
    */
   findByUserId(userId: string): Promise<Player[]>;
 
-  /**
-   * Find invited players for a team (email exists, userId doesn't)
-   */
+  findByUserIdOrInvitedEmail(
+    userId: string,
+    email: NormalizedEmail,
+  ): Promise<Player[]>;
+
   findInvitedByTeamIdAndEmail(
     teamId: string,
-    email: string,
+    email: NormalizedEmail,
   ): Promise<Player | null>;
 
   /**
@@ -68,5 +71,8 @@ export interface IPlayerRepository {
    * Uses updateMany: sets userId, clears email, idempotent.
    * Returns the number of players modified.
    */
-  linkUserToInvitations(email: string, userId: string): Promise<number>;
+  linkUserToInvitations(
+    email: NormalizedEmail,
+    userId: string,
+  ): Promise<number>;
 }

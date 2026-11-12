@@ -3,7 +3,6 @@ export const TYPES = {
   UserRepository: Symbol.for("UserRepository"),
   TeamRepository: Symbol.for("TeamRepository"),
   GameRepository: Symbol.for("GameRepository"),
-  ProfileRepository: Symbol.for("ProfileRepository"),
   PlayerRepository: Symbol.for("PlayerRepository"),
 
   // services
@@ -19,9 +18,6 @@ export const TYPES = {
   UpdateTeamLineupsUseCase: Symbol.for("UpdateTeamLineupsUseCase"),
 
   // user auth usecases
-  GetProfileUseCase: Symbol.for("GetProfileUseCase"),
-  CreateProfileUseCase: Symbol.for("CreateProfileUseCase"),
-  UpdateProfileUseCase: Symbol.for("UpdateProfileUseCase"),
   LinkPendingInvitationsUseCase: Symbol.for("LinkPendingInvitationsUseCase"),
   SearchUserUseCase: Symbol.for("SearchUserUseCase"),
   GetUserByIdUseCase: Symbol.for("GetUserByIdUseCase"),

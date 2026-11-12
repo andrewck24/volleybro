@@ -15,7 +15,7 @@ import { auth } from "@/lib/auth";
 type RouteHandler = (req: NextRequest) => Promise<NextResponse>;
 type AuthedRouteHandler = (
   req: NextRequest,
-  ctx: { userId: string },
+  ctx: { userId: string; email: string },
 ) => Promise<NextResponse>;
 
 /**
@@ -143,6 +143,6 @@ export function withAuth(handler: AuthedRouteHandler): RouteHandler {
       );
     }
 
-    return handler(req, { userId: session.user.id });
+    return handler(req, { userId: session.user.id, email: session.user.email });
   });
 }

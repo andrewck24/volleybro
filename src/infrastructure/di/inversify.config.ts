@@ -4,7 +4,6 @@ import "reflect-metadata";
 
 import { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
@@ -13,7 +12,6 @@ import { IAuthorizationService } from "@/applications/services/auth/authorizatio
 import {
   GameRepositoryImpl,
   PlayerRepositoryImpl,
-  ProfileRepositoryImpl,
   TeamRepositoryImpl,
   UserRepositoryImpl,
 } from "@/infrastructure/db/repositories";
@@ -47,11 +45,6 @@ import { UpdateTeamUseCase } from "@/applications/usecases/team/update-team.usec
 import { UpdateTeamLineupsUseCase } from "@/applications/usecases/team/update-team-lineups.usecase";
 import { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
 import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
-import {
-  CreateProfileUseCase,
-  GetProfileUseCase,
-  UpdateProfileUseCase,
-} from "@/applications/usecases/user/profile.usecase";
 import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usecase";
 
 const container = new Container();
@@ -60,9 +53,6 @@ const container = new Container();
 container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepositoryImpl);
 container.bind<ITeamRepository>(TYPES.TeamRepository).to(TeamRepositoryImpl);
 container.bind<IGameRepository>(TYPES.GameRepository).to(GameRepositoryImpl);
-container
-  .bind<IProfileRepository>(TYPES.ProfileRepository)
-  .to(ProfileRepositoryImpl);
 container
   .bind<IPlayerRepository>(TYPES.PlayerRepository)
   .to(PlayerRepositoryImpl);
@@ -92,15 +82,6 @@ container
   .to(UpdateTeamLineupsUseCase);
 
 // user auth usecases
-container
-  .bind<GetProfileUseCase>(TYPES.GetProfileUseCase)
-  .to(GetProfileUseCase);
-container
-  .bind<CreateProfileUseCase>(TYPES.CreateProfileUseCase)
-  .to(CreateProfileUseCase);
-container
-  .bind<UpdateProfileUseCase>(TYPES.UpdateProfileUseCase)
-  .to(UpdateProfileUseCase);
 container
   .bind<LinkPendingInvitationsUseCase>(TYPES.LinkPendingInvitationsUseCase)
   .to(LinkPendingInvitationsUseCase);

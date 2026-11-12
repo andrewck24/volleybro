@@ -1,5 +1,4 @@
 import type { ILinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
-import type { CreateProfileUseCase } from "@/applications/usecases/user/profile.usecase";
 import { TransientError } from "@/entities/errors";
 import { container } from "@/infrastructure/di/inversify.config";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
@@ -9,30 +8,20 @@ import { TYPES } from "@/infrastructure/di/types";
  * Hook handler for Better Auth `user.create.after` event.
  *
  * Flow:
- * 1. Create Profile via CreateProfileUseCase (throws on failure)
- * 2. Link pending email invitations via LinkPendingInvitationsUseCase, with
- *    retry-once-on-transient-failure. This runs even when step 1 fails: linking
- *    does not need the profile, and a missing profile is recreated on the next
- *    profile read, while nothing else would ever link the invitations.
- * 3. All failures are logged but do NOT propagate — the hook must not
+ * 1. Link pending email invitations via LinkPendingInvitationsUseCase, with
+ *    retry-once-on-transient-failure.
+ * 2. All failures are logged but do NOT propagate — the hook must not
  *    block the auth flow.
  */
 export async function handleUserCreated(user: {
   id: string;
   email: string;
 }): Promise<void> {
-  const createProfileUseCase = container.get<CreateProfileUseCase>(
-    TYPES.CreateProfileUseCase,
-  );
-
   try {
-    // Better Auth calls this from its own route, outside withErrorHandler's connect.
     await connectToMongoDB();
-    await createProfileUseCase.execute({ userId: user.id });
-    console.log(`[Auth Hook] Profile created for user ${user.id}`);
   } catch (error) {
     console.error(
-      `[Auth Hook] Failed to create profile for user ${user.id}:`,
+      `[Auth Hook] Failed to connect to MongoDB for user ${user.id}:`,
       error,
     );
   }

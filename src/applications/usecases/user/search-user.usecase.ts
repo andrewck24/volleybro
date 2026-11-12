@@ -2,13 +2,12 @@ import type { IUserRepository } from "@/applications/repositories/user.repositor
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import type { Result } from "@/applications/types/result";
 import {
-  ConflictError,
-  PlayerReason,
   NotFoundError,
   ValidationError,
   CommonReason,
-  ProfileReason,
+  PlayerReason,
 } from "@/entities/errors";
+import { normalizeEmail } from "@/entities/user";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -41,30 +40,24 @@ export class SearchUserUseCase implements ISearchUserUseCase {
   ) {}
 
   async execute({
-    email,
+    email: rawEmail,
     teamId,
     userId,
   }: ISearchUserInput): Promise<Result<ISearchUserOutput>> {
     await this.authService.verifyIsTeamAdmin(teamId, userId);
 
+    const email = normalizeEmail(rawEmail ?? "");
     if (!email || !EMAIL_REGEX.test(email)) {
       return {
         ok: false,
         error: new ValidationError(
-          ProfileReason.INVALID_EMAIL,
+          PlayerReason.INVALID_EMAIL,
           "Invalid email format",
         ),
       };
     }
 
-    const matches = await this.userRepository.findAllByEmailInsensitive(email);
-    if (matches.length > 1) {
-      throw new ConflictError(
-        PlayerReason.AMBIGUOUS_EMAIL,
-        "This email matches more than one account",
-      );
-    }
-    const user = matches[0];
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       return {

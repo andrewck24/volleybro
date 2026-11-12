@@ -148,7 +148,7 @@ Crossing a boundary inward uses **dependency inversion**: the Use Cases layer de
 
 ```txt
 src/
-├── entities/         # Domain layer — User, Team, Player, Profile, Game
+├── entities/         # Domain layer — User, Team, Player, Game
 ├── applications/     # Application layer
 │   ├── usecases/     #   Business use cases (CreateGame, RecordEntries, …)
 │   ├── repositories/ #   Abstract data-access interfaces

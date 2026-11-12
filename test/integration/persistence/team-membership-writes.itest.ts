@@ -2,11 +2,12 @@ import type { IPlayerRepository } from "@/applications/repositories/player.repos
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
-import type { IGetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
+import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories/player.repository.mongo";
 import { PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -160,10 +161,6 @@ describe("player writes leave the roster readable", () => {
   });
 });
 
-/**
- * Whether an address reaches an account is decided by the database's collation,
- * which no repository double can stand in for.
- */
 describe("invitations reach the account behind the address", () => {
   let teamId: string;
   const ownerUserId = "0".repeat(24);
@@ -189,6 +186,39 @@ describe("invitations reach the account behind the address", () => {
         role: PlayerRole.MEMBER,
         userId: ownerUserId,
       });
+
+  const raceBothPreWriteChecks = () => {
+    const spies = [
+      jest
+        .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
+        .mockResolvedValue(null),
+      jest
+        .spyOn(PlayerRepositoryImpl.prototype, "findByTeamIdAndUserId")
+        .mockResolvedValue(null),
+    ];
+    return () => spies.forEach((spy) => spy.mockRestore());
+  };
+
+  const raceInvitationPreWriteCheck = () => {
+    const spy = jest
+      .spyOn(PlayerRepositoryImpl.prototype, "findInvitedByTeamIdAndEmail")
+      .mockResolvedValue(null);
+    return () => spy.mockRestore();
+  };
+
+  const buildInviteeIndexAfterUserIdIndexLikeExistingDatabases = async () => {
+    const inviteeIndex = "teamId_1_inviteeEmail_1";
+    await PlayerModel.init();
+    const spec = (await PlayerModel.collection.indexes()).find(
+      (index) => index.name === inviteeIndex,
+    )!;
+    await PlayerModel.collection.dropIndex(inviteeIndex);
+    await PlayerModel.collection.createIndex(spec.key, {
+      name: inviteeIndex,
+      unique: true,
+      partialFilterExpression: spec.partialFilterExpression,
+    });
+  };
 
   beforeEach(async () => {
     useFakeAuth();
@@ -221,10 +251,10 @@ describe("invitations reach the account behind the address", () => {
   });
 
   it("links an address that differs only in case", async () => {
-    const userId = await register("Bob@Example.com");
+    const userId = await register("bob@example.com");
     const seat = await seatFor("Bob");
 
-    expect(await invite(seat, " bob@example.com ")).toMatchObject({ userId });
+    expect(await invite(seat, " Bob@Example.COM ")).toMatchObject({ userId });
   });
 
   it("does not let a dot in the address reach another account", async () => {
@@ -235,16 +265,6 @@ describe("invitations reach the account behind the address", () => {
 
     expect(invited).toMatchObject({ email: "a.b@x.com" });
     expect(invited).not.toHaveProperty("userId");
-  });
-
-  it("refuses to guess between two accounts differing only in case", async () => {
-    await register("Twin@example.com");
-    await register("twin@example.com");
-    const seat = await seatFor("Twin");
-
-    await expect(invite(seat, "twin@example.com")).rejects.toMatchObject({
-      reason: PlayerReason.AMBIGUOUS_EMAIL,
-    });
   });
 
   it("refuses an account that already holds a seat on this team", async () => {
@@ -269,8 +289,67 @@ describe("invitations reach the account behind the address", () => {
     const second = await seatFor("Dave again");
 
     await expect(invite(second, "dave@example.com")).rejects.toMatchObject({
-      reason: PlayerReason.ALREADY_ON_ROSTER,
+      reason: PlayerReason.ALREADY_INVITED,
     });
+  });
+
+  it("refuses the second of two invitations that both passed the pre-write check", async () => {
+    const byEmail = await seatFor("Frank");
+    const byAccount = await seatFor("Frank again");
+    await invite(byEmail, "frank@example.com");
+    await register("frank@example.com");
+    const restorePreWriteCheck = raceInvitationPreWriteCheck();
+
+    try {
+      await expect(
+        invite(byAccount, "frank@example.com"),
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
+    } finally {
+      restorePreWriteCheck();
+    }
+
+    const frank = (await roster(teamId)).filter(
+      (p) => p.status === PlayerStatus.INVITED,
+    );
+    expect(frank).toHaveLength(1);
+    expect(frank[0]).toMatchObject({ email: "frank@example.com" });
+  });
+
+  it("refuses the second of two email invitations to one address that both passed the pre-write check", async () => {
+    const first = await seatFor("Gina");
+    const second = await seatFor("Gina again");
+    await invite(first, "gina@example.com");
+    const restorePreWriteCheck = raceInvitationPreWriteCheck();
+
+    try {
+      await expect(invite(second, "gina@example.com")).rejects.toMatchObject({
+        reason: PlayerReason.ALREADY_INVITED,
+      });
+    } finally {
+      restorePreWriteCheck();
+    }
+
+    const invited = (await roster(teamId)).filter(
+      (p) => p.status === PlayerStatus.INVITED,
+    );
+    expect(invited).toHaveLength(1);
+  });
+
+  it("refuses the second of two account invitations as already invited, whichever index fires first", async () => {
+    const first = await seatFor("Hana");
+    const second = await seatFor("Hana again");
+    await register("hana@example.com");
+    await invite(first, "hana@example.com");
+    await buildInviteeIndexAfterUserIdIndexLikeExistingDatabases();
+    const restorePreWriteChecks = raceBothPreWriteChecks();
+
+    try {
+      await expect(invite(second, "hana@example.com")).rejects.toMatchObject({
+        reason: PlayerReason.ALREADY_INVITED,
+      });
+    } finally {
+      restorePreWriteChecks();
+    }
   });
 
   it("creates a linked invitee straight from create-player", async () => {
@@ -313,11 +392,6 @@ describe("signing up reaches the invitations waiting for that address", () => {
       });
   };
 
-  const invitationsOf = (userId: string) =>
-    container
-      .get<IGetUserPlayersUseCase>(TYPES.GetUserPlayersUseCase)
-      .execute({ userId });
-
   beforeEach(async () => {
     useFakeAuth();
     const team = await container
@@ -344,13 +418,12 @@ describe("signing up reaches the invitations waiting for that address", () => {
 
     await handleUserCreated({ id: userId, email: "Bob@Example.com" });
 
-    const mine = await invitationsOf(userId);
+    const mine = await players().findByUserId(userId);
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({
       name: "Bob",
       status: PlayerStatus.INVITED,
       role: PlayerRole.MEMBER,
-      teamName: "Signup Team",
     });
     expect(mine[0]).not.toHaveProperty("email");
   });
@@ -361,7 +434,7 @@ describe("signing up reaches the invitations waiting for that address", () => {
 
     await handleUserCreated({ id: userId, email: "bobby@example.com" });
 
-    expect(await invitationsOf(userId)).toEqual([]);
+    expect(await players().findByUserId(userId)).toEqual([]);
     expect((await roster(teamId)).find((p) => p.name === "Bob")).toMatchObject({
       email: "bob@example.com",
     });

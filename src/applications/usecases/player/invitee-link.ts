@@ -1,15 +1,23 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import { ConflictError, CommonReason, PlayerReason } from "@/entities/errors";
+import { ConflictError, PlayerReason } from "@/entities/errors";
+import { PlayerStatus } from "@/entities/player";
+import { normalizeEmail } from "@/entities/user";
 
-/** The one way an invitation reaches its recipient: an account, or an address. */
-export type InviteeLink =
-  { userId: string; email?: never } | { email: string; userId?: never };
+export type InviteeLink = { inviteeEmail: string } & (
+  { userId: string; email?: never } | { email: string; userId?: never }
+);
 
 export interface InviteeRepositories {
   players: IPlayerRepository;
   users: IUserRepository;
 }
+
+const alreadyInvited = () =>
+  new ConflictError(
+    PlayerReason.ALREADY_INVITED,
+    "This person has already been invited to this team",
+  );
 
 const alreadyOnRoster = () =>
   new ConflictError(
@@ -29,36 +37,16 @@ export const resolveInviteeLink = async (
   teamId: string,
   email: string,
 ): Promise<InviteeLink> => {
-  const address = email.trim();
-  const matches = await users.findAllByEmailInsensitive(address);
+  const address = normalizeEmail(email);
+  const user = await users.findByEmail(address);
+  if (await players.findInvitedByTeamIdAndEmail(teamId, address))
+    throw alreadyInvited();
 
-  if (matches.length > 1) {
-    throw new ConflictError(
-      PlayerReason.AMBIGUOUS_EMAIL,
-      "This email matches more than one account",
-    );
-  }
-
-  const user = matches[0];
   if (user) {
-    if (await players.findByTeamIdAndUserId(teamId, user.id))
-      throw alreadyOnRoster();
-    return { userId: user.id };
+    const seat = await players.findByTeamIdAndUserId(teamId, user.id);
+    if (seat?.status === PlayerStatus.INVITED) throw alreadyInvited();
+    if (seat) throw alreadyOnRoster();
+    return { userId: user.id, inviteeEmail: address };
   }
-
-  const unregistered = address.toLowerCase();
-  if (await players.findInvitedByTeamIdAndEmail(teamId, unregistered))
-    throw alreadyOnRoster();
-  return { email: unregistered };
+  return { email: address, inviteeEmail: address };
 };
-
-/**
- * The partial unique indexes on (teamId, userId) and (teamId, email) close the
- * race the checks above cannot. To the caller it is the same conflict, not the
- * generic duplicate-resource one.
- */
-export const asRosterConflict = (error: unknown): unknown =>
-  error instanceof ConflictError &&
-  error.reason === CommonReason.DUPLICATE_RESOURCE
-    ? alreadyOnRoster()
-    : error;
