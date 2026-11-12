@@ -28,11 +28,6 @@ import type { Player } from "@/entities/player";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
-/**
- * Player Controller - Player 資源 CRUD
- * 透過 DI container 獲取 use cases 並執行業務邏輯
- */
-
 export const getPlayerController = async (
   input: IGetPlayerInput,
 ): Promise<Player> => {

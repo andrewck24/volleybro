@@ -14,11 +14,6 @@ import type { Player } from "@/entities/player";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
-/**
- * Membership Controller - 隊籍管理（管理者操作）
- * 透過 DI container 獲取 use cases 並執行業務邏輯
- */
-
 export const createInvitationController = async (
   input: ICreateInvitationInput,
 ): Promise<Player> => {

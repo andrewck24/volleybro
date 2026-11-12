@@ -11,7 +11,6 @@ export const nullableObjectId = z
   .nullable()
   .refine((v) => v === null || isObjectId(v), { message });
 
-// The recorder sends "" for the side it attributed nobody to.
 export const rallyPlayerId = z
   .string()
   .refine((v) => v === "" || isObjectId(v), { message })
