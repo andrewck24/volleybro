@@ -54,13 +54,10 @@ const makeEntry = (
   );
 };
 
-// Three committed entries, chronologically increasing score; entries[2] (score
-// 3, player #7) is the latest.
 const allEntries = [makeEntry(1, "p1"), makeEntry(2, "p1"), makeEntry(3, "p2")];
 const indexed = (entries: EntryView[]): IndexedEntry[] =>
   entries.map((entry, originalIndex) => ({ entry, originalIndex }));
 
-// The Preview bar is only present while recording an uncommitted draft.
 const makePreview = (
   overrides: Partial<SummaryDrawerPreview> = {},
 ): SummaryDrawerPreview => ({
@@ -96,8 +93,6 @@ describe("SummaryDrawerCard structure", () => {
     const drawer = await screen.findByTestId("summary-drawer");
     expect(drawer).toHaveAttribute("data-state", "idle");
     expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
-    // Collapsed peek shows ONLY the top row (natural whitespace below it), not
-    // the whole clipped list. The newest entry is player #7 (allEntries[2]).
     const rows = screen.getAllByTestId("summary-drawer-row");
     expect(rows).toHaveLength(1);
     expect(rows[0]).toHaveTextContent("7");
@@ -116,11 +111,9 @@ describe("SummaryDrawerCard structure", () => {
       <SummaryDrawerCard {...baseProps} state="idle" preview={makePreview()} />,
     );
 
-    // Collapsed + recording: the peek is just the pulsing draft, no committed rows.
     expect(await screen.findByTestId("preview-card")).toBeInTheDocument();
     expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
 
-    // Expanded: the draft Preview sits above every committed entry.
     rerender(
       <SummaryDrawerCard
         {...baseProps}
@@ -181,7 +174,6 @@ describe("SummaryDrawerCard handle / expansion", () => {
   });
 });
 
-// Local clock times, so the expected text holds in any timezone.
 describe("SummaryDrawerCard recorder and editor lines", () => {
   const recorderNames = new Map([
     ["rec-1", "記錄員甲"],
@@ -260,9 +252,6 @@ describe("SummaryDrawerCard backdrop overlay", () => {
   });
 });
 
-// `entry-ui` change's gesture split, exercised through the draft Preview bar
-// (present only while recording). PreviewCard's own tap-handling is covered
-// in preview.test.tsx.
 describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
   it("tapping the Preview bar while editing and complete calls onSubmit, not onToggle", async () => {
     const user = userEvent.setup();
@@ -303,9 +292,6 @@ describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
   });
 });
 
-// S08: a rally whose write exhausted its attempts is marked on its row,
-// matched by identity, with a way to retry it -- consuming hasFailedWrite
-// rather than storing status of its own.
 describe("SummaryDrawerCard failed-write marking", () => {
   it("marks only the row whose id is in failedEntryIds and wires its retry", async () => {
     const user = userEvent.setup();
@@ -373,9 +359,6 @@ const initializedStore = () => {
   return store;
 };
 
-// The Summary drawer's edit action must both flip Redux to "editing" AND
-// signal the Game shell to open the Options dialog (onEditRequest). Without the
-// second call, edit is a visible no-op.
 describe("SummaryDrawer", () => {
   it("marks the failed row from the pending-write queue and forwards a retry tap", async () => {
     const user = userEvent.setup();
@@ -389,7 +372,6 @@ describe("SummaryDrawer", () => {
           setIndex: 0,
         }),
       );
-      // A 4xx: nothing will send this entry, which is what the row's marker is for.
       store.dispatch(
         pendingWritesActions.flushFailed({
           ids: [allEntries[1]!.id],
@@ -426,7 +408,6 @@ describe("SummaryDrawer", () => {
       />,
     );
 
-    // Expanded renders every committed row; the newest row is first.
     const editButtons = await screen.findAllByTestId("entry-action-edit");
     fireEvent.click(editButtons[0]!);
 

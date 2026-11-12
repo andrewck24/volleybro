@@ -4,20 +4,9 @@ import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { parseAnnotatedDiff } from "@/lib/annotated-diff";
 
 interface AnnotatedDiffProps {
-  /**
-   * Code using Shiki diff notation (`// [!code ++]` / `// [!code --]` on a line)
-   * plus ordinary language comments for any per-line notes.
-   */
   code: string;
-  /** Code language metadata (default "tsx"). */
   lang?: string;
-  /**
-   * Read `code` as a unified diff (leading `+`/`-`/space column) instead of
-   * Shiki notation. Inferred when omitted, so this only needs setting to force
-   * a mode.
-   */
   unified?: boolean;
-  /** HTML produced by the build-time Shiki renderer for static Astro output. */
   highlightedHtml?: string;
 }
 

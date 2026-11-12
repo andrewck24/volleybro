@@ -69,10 +69,6 @@ export const moveLabel = (num: number, win: boolean) =>
     ? "對方失誤"
     : `${MOVE_TEXT[num]}${win ? "得分" : "失分"}`;
 
-// Actions are app objects: the app Button's own variants (rounded-md, shadow,
-// no outline), passed as classes over CTAButton's built-in outline look. Kept
-// here, not in a "use client" module, so server components import strings.
-/** Button `default` variant: teal fill, ivory label (5.81:1). */
 export const BTN_PRIMARY =
   "bg-primary font-semibold text-primary-foreground shadow-md ring-transparent hover:bg-primary/90 dark:ring-transparent";
 export const BTN_CARD =

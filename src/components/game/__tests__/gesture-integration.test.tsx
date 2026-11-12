@@ -117,7 +117,6 @@ const setUpGame = () => {
   const puts: { home: { player: { id: string } } }[] = [];
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(game)),
-    // The server appends what it is sent and answers with the set's entries.
     http.put("/api/games/game-1/sets/entries", async ({ request }) => {
       const sent = (await request.json()) as typeof puts;
       puts.push(...sent);

@@ -15,8 +15,6 @@ mongoose.set("transactionAsyncLocalStorage", true);
 
 beforeAll(async () => {
   const name = `itest-${randomUUID()}`;
-  // appName keeps a failpoint off other files' connections; set one only
-  // through withFailPoint, since the setting itself is server-wide.
   await mongoose.connect(process.env.INTEGRATION_MONGODB_URI!, {
     dbName: name,
     appName: name,

@@ -52,7 +52,6 @@ export const JOB = {
   compatibilityStep: release["recovery-evidence"].steps.find(
     (step) => step.id === "compatibility",
   ).name,
-  // GitHub reports an unnamed job by its id.
   finalize: release["finalize-release"].name ?? "finalize-release",
 };
 export const producerStep = (sha) => fill(markerName("Producer workflow"), sha);

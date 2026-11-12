@@ -16,9 +16,6 @@ function isHeading(block: ChangeBlock): boolean {
   );
 }
 
-// EmDash admin saves drop a heading's id. Existing links use GitHub-style
-// slugs, so every heading advances one slugger in document order, keeping
-// duplicate suffixes identical to the ids that were dropped. An explicit id wins.
 export function withHeadingAnchors(blocks: ChangeBlock[]): ChangeBlock[] {
   const slugger = new GithubSlugger();
   const assign = (list: ChangeBlock[]): ChangeBlock[] =>

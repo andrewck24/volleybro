@@ -1,4 +1,3 @@
-/** @jest-environment jest-fixed-jsdom */
 import { http, HttpResponse } from "msw";
 import { server } from "../../../test/support/msw/server";
 import { render, screen } from "@testing-library/react";

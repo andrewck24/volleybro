@@ -1,9 +1,5 @@
 import type { Node, Root } from "fumadocs-core/page-tree";
 
-/**
- * A folder with an index page but no child pages represents only that page.
- * Render it as a page so the sidebar doesn't show an empty expand control.
- */
 export function flattenIndexOnlyFolders(tree: Root): Root {
   const flatten = (nodes: Node[]): Node[] =>
     nodes.flatMap((node): Node[] => {

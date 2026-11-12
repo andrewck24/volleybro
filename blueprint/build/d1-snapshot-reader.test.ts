@@ -1,4 +1,3 @@
-/** @jest-environment node */
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/support/msw/server";
 import { createD1SnapshotReader } from "./d1-snapshot-reader.mjs";

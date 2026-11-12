@@ -1,20 +1,8 @@
-/**
- * Jest configuration with three projects:
- * - backend: node environment, no database, for entities/applications/infrastructure/interface/API-route unit tests
- * - frontend: jsdom environment for components and lib
- * - integration: node environment against a real in-memory MongoDB replica set
- */
-
 import { AsyncLocalStorage } from "node:async_hooks";
 import { pathToFileURL } from "node:url";
 import type { Config } from "jest";
 import nextJest from "next/jest.js";
 
-// Next's server modules (pulled in by the integration project's real route
-// imports) capture globalThis.AsyncLocalStorage at import time and otherwise use
-// a stub that throws on use. They load in the real Node context, so expose it on
-// the real global here (covers in-band runs) and forward it into forked Jest
-// workers via NODE_OPTIONS (covers the default parallel runner).
 (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
   AsyncLocalStorage;
 const preload = pathToFileURL(
@@ -27,14 +15,11 @@ if (!process.env.NODE_OPTIONS?.includes(preload)) {
 
 const createJestConfig = nextJest({ dir: "./" });
 
-// Server-only code under src/lib, which the frontend project's src/lib
-// pattern would otherwise run in jsdom.
 const serverOnlyLibTests = [
   "<rootDir>/src/lib/api/__tests__/wrappers.test",
   "<rootDir>/src/lib/__tests__/auth-hook.test",
 ];
 
-// next/jest resolves transform/moduleNameMapper; inject into each project for TS support
 export default async function jestConfig() {
   const nextResolved = await createJestConfig({})();
 
@@ -44,8 +29,6 @@ export default async function jestConfig() {
       ...nextResolved.moduleNameMapper,
       "^@/(.*)$": "<rootDir>/src/$1",
       "^@test/(.*)$": "<rootDir>/test/$1",
-      // The migration scripts run under ts-node/esm, which requires the `.js`
-      // specifier the TypeScript source does not have on disk.
       "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
@@ -53,15 +36,12 @@ export default async function jestConfig() {
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
-    // verify:all runs the integration tests beside the app build, which
-    // rewrites .next/ while Jest's module map is reading it.
     modulePathIgnorePatterns: ["<rootDir>/.next/"],
     collectCoverageFrom: [
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",
       "!src/types/**/*",
     ],
-    // The v8 provider reports every file a test loads, test code included.
     coveragePathIgnorePatterns: ["/node_modules/", "<rootDir>/test/"],
   };
 
@@ -85,7 +65,6 @@ export default async function jestConfig() {
   const frontendProject: Config = {
     ...sharedConfig,
     displayName: "frontend",
-    // jsdom hides Node's fetch, Request and Response, which MSW intercepts.
     testEnvironment: "jest-fixed-jsdom",
     setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
     testPathIgnorePatterns: [

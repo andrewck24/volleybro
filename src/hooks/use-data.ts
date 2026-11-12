@@ -66,8 +66,6 @@ export const useUserPlayers = (userId: string | undefined) => {
   return { players: data ?? [], error, isLoading, isValidating, mutate };
 };
 
-// Only a refusal says the user is not a member; a network failure or timeout
-// says nothing, so it must not discard the preference.
 const isTeamRefusal = (error: ApiClientError | undefined) =>
   error?.code === "AUTHORIZATION" || error?.code === "NOT_FOUND";
 
@@ -80,12 +78,10 @@ const useTeamRequest = (
   return useSWR<TeamView, ApiClientError>(key, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
-    // An explicit `undefined` would override the global error handler and drop the toast for `useTeam`.
     ...(onError && { onError }),
   });
 };
 
-// Its refusal is an expected answer, so it must not reach the global error toast.
 const usePreferredTeam = (teamId: string | undefined) => {
   const swrConfig = useSWRConfig();
   const { data, error } = useTeamRequest(teamId ?? "", (err, key) => {
@@ -108,7 +104,6 @@ const usePersistActiveTeam = (preferenceAction: PreferenceAction) => {
   }, [preferenceAction, save, clear]);
 };
 
-// Loads the players list the new Game dialog needs, so it opens without a skeleton.
 const usePreloadTeamPlayers = (teamId: string | undefined) => {
   const { cache, mutate } = useSWRConfig();
   const key = teamId ? `/api/teams/${teamId}/players` : null;
@@ -119,7 +114,6 @@ const usePreloadTeamPlayers = (teamId: string | undefined) => {
   }, [key, cache, mutate]);
 };
 
-/** The verified preference, else the full resolution. See ADR-0098 and ADR-0099. */
 export const useActiveTeamId = () => {
   const {
     user,
@@ -158,7 +152,6 @@ export const useActiveTeamId = () => {
     decidePreferenceAction({
       ...preferenceState,
       teamId,
-      // SWR keeps the last data after a refusal; storing that team would be refused again, forever.
       loadedTeamId: team && !isTeamRefusal(teamError) ? teamId : undefined,
     }),
   );

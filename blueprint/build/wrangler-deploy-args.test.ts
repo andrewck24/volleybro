@@ -1,4 +1,3 @@
-/** @jest-environment node */
 import { wranglerDeployArgs } from "./wrangler-deploy-args.mjs";
 
 const envSha = "a".repeat(40);

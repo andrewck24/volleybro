@@ -59,9 +59,6 @@ describe("GamePanel entry progress bar", () => {
   });
 });
 
-// Item 5: the highlighted segment and the shown moves body are a single source
-// of truth (status.panel), so switching steps -- forward AND back -- moves both
-// together and they can never desync.
 describe("GamePanel step highlight follows the shown moves panel", () => {
   it("keeps the highlighted step and moves body in sync", async () => {
     const reduxStore = setUpPanel();
@@ -70,17 +67,14 @@ describe("GamePanel step highlight follows the shown moves panel", () => {
       reduxStore.dispatch(
         gameActions.setEntryDraftPlayer({ id: "player-1", zone: 1 }),
       );
-      // A recorded home move advances the panel to away.
       reduxStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
-    // Away is active + OppoMoves is shown (OursMoves' "替補" is absent).
     expect(
       screen.getByRole("button", { name: "對方得失分紀錄" }),
     ).toHaveAttribute("aria-current", "step");
     expect(screen.queryByText("替補")).not.toBeInTheDocument();
 
-    // Go back to home: highlight AND body switch together.
     await userEvent.click(
       screen.getByRole("button", { name: "我方得失分紀錄" }),
     );
@@ -92,7 +86,6 @@ describe("GamePanel step highlight follows the shown moves panel", () => {
     ).not.toHaveAttribute("aria-current");
     expect(screen.getByText("替補")).toBeInTheDocument();
 
-    // Forward to away again: both switch back.
     await userEvent.click(
       screen.getByRole("button", { name: "對方得失分紀錄" }),
     );

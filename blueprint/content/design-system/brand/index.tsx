@@ -2,7 +2,7 @@ import { LogoSymbol, LogoType } from "@/components/brand";
 
 type Ground = {
   label: string;
-  scope: string; // theme scope class from tokens.css
+  scope: string;
   bgClass: string;
   variant: "adaptive" | "brand";
 };

@@ -1,4 +1,3 @@
-/** @jest-environment node */
 import { changeArtifactKey, serveChangeArtifact } from "./change-artifact";
 
 const rendererId = "a".repeat(64);

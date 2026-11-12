@@ -88,6 +88,28 @@ describe("game reads and writes", () => {
     }
   });
 
+  it("rejects completion of a missing set without padding the stored sets array", async () => {
+    const { gameId, playerIds } = await seedGame();
+    await games().addSet(
+      { gameId, setIndex: 0 },
+      startedSet(lineupFor(playerIds)),
+    );
+    const id = new mongoose.Types.ObjectId(gameId);
+    const before = await GameModel.collection.findOne({ _id: id });
+
+    await expect(
+      games().completeSet({ gameId, setIndex: 1 }, true),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      reason: GameReason.SET_NOT_FOUND,
+    });
+
+    const after = await GameModel.collection.findOne({ _id: id });
+    expect(after?.sets).toEqual(before?.sets);
+    expect(after?.sets).toHaveLength(1);
+    expect(after?.sets).not.toContain(null);
+  });
+
   it("leaves the fields a set write does not touch as they were", async () => {
     const { gameId, teamId, playerIds } = await seedGame();
     const set = startedSet(lineupFor(playerIds));

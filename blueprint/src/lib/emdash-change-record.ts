@@ -7,8 +7,6 @@ import {
   interactiveFlowchartBlockFieldsShape,
 } from "./interactive-flowchart-data.ts";
 
-// Core Portable Text blocks are owned by EmDash, whose editor adds keys such as
-// listId and listStart. They stay loose: only the fields our renderer reads are checked.
 const portableSpanSchema = z.looseObject({
   _type: z.literal("span"),
   marks: z.array(z.string().min(1)).optional(),
@@ -91,7 +89,6 @@ export type PortableTextFrameBlock = z.infer<
   typeof portableTextFrameBlockSchema
 >;
 
-// Stored content may still carry _version; it is accepted and never read.
 const typedBlock = <S extends z.ZodRawShape>(shape: S) =>
   z.strictObject({
     ...shape,

@@ -41,16 +41,10 @@ function gameProviders(game: Game, options: Options) {
     isLoaded = !!useGame(game.id).game;
     return null;
   };
-  /** Resolves once the served game is in the store's data layer, so "shows nothing" can be told from "not loaded yet". */
   const gameLoaded = () => waitFor(() => expect(isLoaded).toBe(true));
   return { store, wrapper, GameProbe, gameLoaded };
 }
 
-/**
- * Renders `ui` on a real store initialised for `game`'s first set, with the game
- * served over MSW. With `editingEntryIndex` the store is editing that entry;
- * `selectedPlayerId` taps that player on court.
- */
 export function renderGame(ui: ReactNode, game: Game, options: Options = {}) {
   const { store, wrapper, GameProbe, gameLoaded } = gameProviders(
     game,
@@ -69,10 +63,6 @@ export function renderGame(ui: ReactNode, game: Game, options: Options = {}) {
   };
 }
 
-/**
- * Renders `useHook` on the same store and served game as `renderGame`.
- * `useHook` receives the store so it can read the status and draft the app would.
- */
 export function renderGameHook<T>(
   game: Game,
   useHook: (store: AppStore) => T,

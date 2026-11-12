@@ -35,8 +35,6 @@ const findPart = (section: HTMLElement, className: string) =>
 const setSnap = (isOn: boolean) =>
   document.documentElement.classList.toggle("landing-snap", isOn);
 
-// The switch sentinels are the rails shifted up half a header, so a step flips
-// mid-way between two rest positions, where the finger dot taps.
 export const useStepObserver = (
   sectionRef: RefObject<HTMLElement | null>,
   onStep: (step: number) => void,
@@ -66,12 +64,8 @@ export const useStepObserver = (
 };
 
 const ENTER_ANIMATIONS_SETTLE_MS = 900;
-// the moves panel slides in on each step; re-measure once it lands
 const SLIDE_SELECTOR = "[data-moves-step]";
 
-// The dot's path is a CSS scroll-driven animation; its tap targets are measured
-// live, taps 2 and 3 in the hidden mirror panels so the visible store is never
-// touched. A missing target hides the dot rather than send it to 0,0.
 export const useFingerDot = (
   sectionRef: RefObject<HTMLElement | null>,
   locate: ((tap: number, frame: HTMLElement) => Element | null) | undefined,
@@ -97,7 +91,6 @@ export const useFingerDot = (
       const locateTap = latestLocate.current;
       if (!locateTap) return;
       const stageBox = stage.getBoundingClientRect();
-      // off-tray points sit on the field beside the tray, covering nothing
       const tray = frame.firstElementChild!.getBoundingClientRect();
       const field = frame.parentElement!.getBoundingClientRect();
       const beside = ([x, y]: [number, number]): [number, number] => [
@@ -114,14 +107,11 @@ export const useFingerDot = (
           placed = "";
           return;
         }
-        // a quarter in from the right edge: on the target, clear of its label
         taps.push([
           targetBox.left + targetBox.width * 0.75,
           targetBox.top + targetBox.height / 2,
         ]);
       }
-      // The second tapped button leaves with its panel, so the start steps off
-      // the tray rather than onto another button.
       const start: [number, number] =
         field.bottom - tray.bottom >= 24
           ? [tray.left + tray.width / 2, (tray.bottom + field.bottom) / 2]
@@ -140,8 +130,6 @@ export const useFingerDot = (
         stage.style.setProperty(`--finger-dot-${name}-y`, y!);
       });
       section.dataset.hasFingerDot = "";
-      // a running scroll-driven animation keeps the var() values it started
-      // with: restart it so the new targets reach the compositor
       for (const part of dotParts) {
         part.style.animationName = "none";
         void part.offsetWidth;
@@ -197,21 +185,15 @@ export const useFingerDot = (
 const WHEEL_THRESHOLD = 30;
 const GESTURE_GAP_MS = 150;
 const SCROLL_TIMEOUT_MS = 1000;
-// Chromium and Safari send ±100-120 per mouse notch
 const NOTCH_OPENING_DELTA = 50;
 const NOTCH_REPEAT_DELTA = 80;
 const NOTCH_REPEAT_GAP_MS = 250;
 const NAVIGATION_KEYS = ["PageDown", "PageUp", "End", "Home", " ", "Tab"];
 
-// A mouse notch arrives in line/page units (Firefox) or as one large vertical
-// delta; a trackpad opens with small deltas, often with deltaX.
 const isWheelNotch = (event: WheelEvent) =>
   event.deltaMode !== 0 ||
   (event.deltaX === 0 && Math.abs(event.deltaY) >= NOTCH_OPENING_DELTA);
 
-// Snap is on <html> only while the section is pinned, so leaving past the
-// first or last step is never pulled back. Keyboard scrolls compute their
-// destination up front, so snap is dropped for those keys.
 export const useWheelStep = (sectionRef: RefObject<HTMLElement | null>) => {
   const isStaticLayout = useIsStaticLayout();
   const isReducedMotion = useReducedMotion();
@@ -239,7 +221,6 @@ export const useWheelStep = (sectionRef: RefObject<HTMLElement | null>) => {
         event.key === "Home" ||
         event.shiftKey
       );
-      // inside the steps, PageDown / PageUp still land on a step position
       const isLeaving =
         event.key === "End" ||
         event.key === "Home" ||
@@ -275,7 +256,6 @@ export const useWheelStep = (sectionRef: RefObject<HTMLElement | null>) => {
     };
     const measure = () => ({
       track: stage.offsetHeight,
-      // step i rests with the section top tucked under the header
       base:
         section.getBoundingClientRect().top +
         window.scrollY -
@@ -297,8 +277,6 @@ export const useWheelStep = (sectionRef: RefObject<HTMLElement | null>) => {
       const { track, base } = (measured ??= measure());
       const direction = event.deltaY > 0 ? 1 : -1;
       const step = Number(section.dataset.step);
-      // off the step position (entering, or after touch/keyboard): settle on
-      // the current step in the wheel's direction before moving on
       const offset = window.scrollY - (base + step * track);
       const next =
         direction > 0
@@ -308,15 +286,11 @@ export const useWheelStep = (sectionRef: RefObject<HTMLElement | null>) => {
           : offset > 2
             ? step
             : step - 1;
-      // first/last step: let the gesture through so the page scrolls out,
-      // with snap off first so the notch is not pulled back onto the step
       if (next < 0 || next >= STEP_COUNT) {
         setSnap(false);
         return;
       }
       event.preventDefault();
-      // a trackpad's inertial tail is many small deltas; a mouse notch is one
-      // big delta, so a settled big notch may start the next step without a pause
       const isNewNotch =
         !isBusy &&
         Math.abs(event.deltaY) >= NOTCH_REPEAT_DELTA &&
@@ -346,10 +320,7 @@ export const useWheelStep = (sectionRef: RefObject<HTMLElement | null>) => {
   }, [sectionRef, isStaticLayout, isOnScreen, isReducedMotion]);
 };
 
-// half the step chip's 6rem height: the 3rem its dashed extension sits at in
-// steps.module.css
 const STEP_CHIP_CENTER_PX = 48;
-// below lg the captions sit above the field, so the line takes the court's own place on it
 const FIELD_ATTACK_LINE_RATIO = 0.3;
 
 export const useAttackLine = (sectionRef: RefObject<HTMLElement | null>) => {

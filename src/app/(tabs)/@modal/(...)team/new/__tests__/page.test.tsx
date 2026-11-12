@@ -80,7 +80,6 @@ describe("NewTeamModalPage", () => {
     );
     expect(postBody).toEqual({ name: "My Team", nickname: "" });
 
-    // No GET handler is registered: a refetch would fail the test.
     rerender(<Tree showTeam />);
     expect(screen.getByText("My Team")).toBeInTheDocument();
   });

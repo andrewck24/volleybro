@@ -1,14 +1,9 @@
 #!/usr/bin/env node
-// Claude Code PreToolUse(Bash) hook. GitHub auto-merge notifies no agent, and a
-// merge without --match-head-commit can land an unreviewed revision.
 import { fileURLToPath } from "node:url";
 
 const DENY =
   "gh pr merge needs --match-head-commit <reviewed-head> and no --auto. Run `pnpm pr:wait <number> --head <reviewed-head>` first, then merge as WORKFLOW.md section 5 (Merge, reconcile and clean up) says.";
 
-// shortcut: splits on ; & | and newlines without parsing quotes, so a quoted
-// mention of the command also trips it, and `gh api .../merge` is not covered;
-// upgrade to a shell parser if either bites.
 export function checkPrMerge(command) {
   for (const part of command.split(/[;&|\n]+/)) {
     if (!/\bgh\s+pr\s+merge\b/.test(part)) continue;

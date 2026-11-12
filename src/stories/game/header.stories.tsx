@@ -115,13 +115,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 375px viewport: the design's arithmetic for the header's three equal
-// columns plus SyncIndicator in the middle column, in flow.
 export const Width375: Story = {
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };
 
-// 320px: the narrowest supported width -- must not overflow either.
 export const Width320: Story = {
   parameters: {
     viewport: {
@@ -177,8 +174,6 @@ export const Unsent: Story = {
   ],
 };
 
-// Lost: a 4xx, which waiting does not improve. The only state that still
-// wears the warning tone, and the only one carrying a count in that colour.
 export const Failed: Story = {
   decorators: [
     (Story) => {
@@ -195,8 +190,6 @@ export const Failed: Story = {
   ],
 };
 
-// The one state that does not come from the queue at all: this device
-// cannot keep what is unsent, so it shows even with nothing pending.
 export const StorageUnavailable: Story = {
   decorators: [
     (Story) => {

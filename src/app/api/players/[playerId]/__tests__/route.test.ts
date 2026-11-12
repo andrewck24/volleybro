@@ -52,7 +52,6 @@ describe("PATCH /api/players/[playerId]", () => {
     consoleSpy.mockRestore();
   });
 
-  // The exact body InfoSection's handleSubmit sends (src/components/team/players/edit-form.tsx):
   it("returns 200 for the payload the player-edit form actually sends", async () => {
     const updated = {
       id: VALID_OBJECT_ID,

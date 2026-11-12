@@ -202,7 +202,6 @@ export async function finalize() {
   let remote = await lookupRemoteTag();
   if (!remote) {
     if (!local) await command("git", ["tag", tag, state.sha]);
-    // A lost race still succeeds when the re-lookup finds the tag.
     let pushError;
     await command("git", ["push", "origin", `refs/tags/${tag}`]).catch(
       (error) => {
@@ -225,7 +224,6 @@ export async function finalize() {
       await shaAt(state.sha, "CHANGELOG.md"),
       version,
     );
-    // Keep the fallback: a version released without changesets has no entry.
     const forwardOnly = forwardOnlyNotice(facts).trim();
     const text = [notes, forwardOnly].filter(Boolean).join("\n\n");
     await command("gh", [
@@ -242,7 +240,6 @@ export async function finalize() {
   }
 }
 
-// Standalone twin of release-pr-body.js's parser: this controller runs without node_modules.
 function changelogEntry(changelog, version) {
   const lines = changelog.split("\n");
   const start = lines.findIndex((line) => line.startsWith(`## [${version}]`));

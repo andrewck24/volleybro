@@ -89,7 +89,6 @@ test("persisted contract changes without a compatibility suite promote as forwar
   );
   await updateApi(f, { alias: "dpl_cand" });
   const callsBefore = JSON.parse(await readFile(f.statePath, "utf8")).calls;
-  // A per-release variable claiming compatibility cannot unlock rollback.
   const denied = run(f, "rollback-if-compatible", {
     RELEASE_STATE_FILE: accepted,
     RELEASE_ROLLBACK_COMPATIBILITY: "compatible",

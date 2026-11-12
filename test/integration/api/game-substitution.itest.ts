@@ -101,7 +101,6 @@ describe("PUT /api/games/:id/sets/entries with substitutions", () => {
   });
 
   it("stores rallies and substitutions of one request by seq and swaps the lineup", async () => {
-    // Sent out of order: the lineup must follow seq, not arrival.
     const res = await send([
       substitution("sub-2", 3, bench[1]!, seeded.playerIds[1]!),
       rally(2),
@@ -174,7 +173,6 @@ describe("PUT /api/games/:id/sets/entries with substitutions", () => {
     });
 
     it("recomputes the lineup and keeps the recorder and time", async () => {
-      // sub-2 swaps out whoever sub-1 brought on, so sub-1 changes first.
       const res = await send([
         {
           ...substitution("sub-2", 2, bench[1]!, seeded.playerIds[2]!),

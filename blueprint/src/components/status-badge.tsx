@@ -1,7 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 
-// Feature delivery status, mapped onto existing Badge variants (no new variants):
-// Shipped → default (primary), In Progress → secondary, Planned → outline.
 const STATUS = {
   shipped: { label: "Shipped", variant: "default" },
   "in-progress": { label: "In Progress", variant: "secondary" },

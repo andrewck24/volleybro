@@ -1,5 +1,3 @@
-/** @jest-environment node */
-
 jest.mock(
   "astro:middleware",
   () => ({ defineMiddleware: (handler: unknown) => handler }),

@@ -44,7 +44,6 @@ async function requestBlueprintBuild(
       alreadyExists: result.alreadyExists,
     });
   } catch {
-    // Never log the URL or the thrown error: HTTP errors can include request URLs.
     context.log.error("Blueprint build hook request failed", { collection });
   }
 }

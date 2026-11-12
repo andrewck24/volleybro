@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 
-// Decision cards and test plan cards share one shape: a collapsed summary
-// line a reader scans, and details that open in place.
 export function CardList({ children }: { children: ReactNode }) {
   return (
     <Accordion type="multiple" className="not-prose my-4 gap-2">

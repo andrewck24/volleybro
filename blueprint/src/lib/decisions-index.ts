@@ -8,8 +8,6 @@ import {
   decisionsForFrom,
 } from "@/lib/decision-lookup";
 
-// Vite includes these records in the server bundle. Runtime filesystem reads
-// are unavailable in the Cloudflare Worker.
 const decisions = Object.values(
   import.meta.glob("../../content/decisions/*.json", {
     eager: true,

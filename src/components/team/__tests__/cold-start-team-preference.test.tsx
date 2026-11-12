@@ -1,8 +1,10 @@
 import { ActionButton } from "@/components/layout/nav/action-button";
 import { TeamSwitcher } from "@/components/team/team-switcher";
+import { Toaster } from "@/components/ui/toaster";
+import { SWRProvider } from "@/components/layout/swr-provider";
 import { useActiveTeamId, useTeam } from "@/hooks/use-data";
 import { useSWRConfig } from "swr";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { http, HttpResponse } from "msw";
@@ -124,6 +126,41 @@ describe("cold start with an active team preference", () => {
       ),
     );
     expect(activeTeam()).toHaveTextContent("team-2");
+  });
+
+  it("does not show a global error toast when the preferred team refuses membership", async () => {
+    seedActiveTeamPreference("user-1", "team-gone");
+    answerTeamRequests({ teams: [createTeam({ id: "team-2", name: "乙隊" })] });
+    server.use(
+      http.get("/api/teams/team-gone", () =>
+        HttpResponse.json(
+          { code: "AUTHORIZATION", reason: "NOT_A_MEMBER" },
+          { status: 403 },
+        ),
+      ),
+    );
+
+    render(
+      <SwrIsolation>
+        <SWRProvider>
+          <ColdStart />
+          <Toaster />
+        </SWRProvider>
+      </SwrIsolation>,
+    );
+
+    expect(await screen.findByText("乙隊")).toBeVisible();
+    await waitFor(() =>
+      expect(storedActiveTeamPreference()).toEqual(
+        storedPreferenceOf("user-1", "team-2"),
+      ),
+    );
+    const notifications = screen.getByRole("region", {
+      name: /Notifications/,
+    });
+    expect(
+      within(notifications).queryByText("發生未預期的錯誤"),
+    ).not.toBeInTheDocument();
   });
 
   it("S4: a preference written for another user is discarded and the answering user's team is stored", async () => {

@@ -13,7 +13,6 @@ describe("RiskTable", () => {
   it("renders rows sorted by severity (critical first)", () => {
     render(<RiskTable risks={risks} />);
     const rows = screen.getAllByRole("row");
-    // rows[0] is header, rows[1] should be critical
     expect(rows[1]).toHaveTextContent("High risk");
     expect(rows[2]).toHaveTextContent("Medium risk");
     expect(rows[3]).toHaveTextContent("Info risk");

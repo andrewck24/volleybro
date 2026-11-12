@@ -98,30 +98,17 @@ const copyFor = (
   }
 };
 
-/**
- * SyncIndicator projects the pending-write queue for one game, plus whether
- * this device can keep what is unsent. It stores no status of its own. It sits
- * in the header's middle column, in normal flow, below the volleyball mark.
- */
 export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const [open, setOpen] = useState(false);
   const { retry } = usePendingWritesContext();
   const online = useIsOnline();
 
-  // Select the raw slice, not a filtered copy: `.filter` inside a selector
-  // returns a new array reference on every action, tripping the store's
-  // selector-identity warning even for actions this component doesn't care
-  // about. `state.pendingWrites` itself is reference-stable unless this
-  // slice's own reducer ran.
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
   const pending = pendingWrites.pending.filter((p) => p.gameId === gameId);
   const status = deriveSyncStatus(pendingWrites, gameId);
   const pendingCount = pending.length;
 
   const { icon, warning, showsCount } = STATUS_STYLE[status];
-  // The queue is by far the largest thing this app puts in localStorage, and it
-  // is not scoped per game while sending is -- so a full store is usually unsent
-  // rallies from a game nobody has reopened. Only say so when there are some.
   const othersPending = pendingWrites.pending.some((p) => p.gameId !== gameId);
   const { title, detail } = copyFor(
     status,
@@ -129,11 +116,8 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
     online,
     othersPending,
   );
-  // No "open it to see more" step for a screen reader, so carry the sentence.
   const label = detail ? `${title}，${detail}` : title;
 
-  // Only a recovery: every rally passes through syncing, and a check mark
-  // there would outlast the send it acknowledges.
   const [acknowledging, setAcknowledging] = useState(false);
   const previousStatus = useRef(status);
   useEffect(() => {
@@ -147,9 +131,6 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
     return () => clearTimeout(timer);
   }, [status]);
 
-  // Retry changes no queue state, so the button needs its own pending mark.
-  // Local, not global: a shared in-flight signal would flash the spinner on
-  // every background retry too.
   const [retrying, setRetrying] = useState(false);
   const handleRetry = () => {
     setRetrying(true);
@@ -159,8 +140,6 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
     });
   };
 
-  // The slot keeps its size so the volleyball mark above it never shifts.
-  // `open` keeps the trigger mounted so a popover cannot outlive its anchor.
   if (status === "synced" && !acknowledging && !open) {
     return (
       <div
@@ -179,8 +158,6 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
           aria-label={label}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            // The touch-target pseudo-element takes no layout space, so the popover
-            // still anchors to the visible box.
             "touch-target flex size-6 items-center justify-center rounded-md text-muted-foreground",
             warning && "text-warning ring-1 ring-warning/30",
           )}
@@ -207,9 +184,6 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
       >
         <div className="flex flex-col gap-1.5 px-3 py-2.5 text-sm">
           <div className="flex items-center gap-2">
-            {/* `contents` keeps this span out of layout -- it exists only so
-                the warning color (explicit here, not inherited from the
-                trigger button) is a queryable, testable element. */}
             <span
               data-testid="sync-popover-icon"
               className={cn("contents", warning && "text-warning")}
@@ -225,9 +199,7 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
               {detail}
             </p>
           )}
-          {/* Offline it can only fail; online it is the only recourse, since
-              no `online` event fires for a device that never left the
-              network. */}
+
           {status === "unsent" && online && (
             <button
               type="button"

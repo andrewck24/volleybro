@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// Any change to root configuration runs every lane, because those files feed
-// all of them.
 import { execFileSync, spawn } from "node:child_process";
 import { createWriteStream, mkdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -26,19 +24,11 @@ export const LANE_COMMANDS = {
 };
 
 export const LANE_NAMES = Object.keys(LANE_COMMANDS);
-// The component tests wait on real timers with Jest's five-second timeout, and
-// Blueprint Jest workers can segfault while competing with build lanes. Run
-// both suites after the parallel lanes; CI gives them their own runners.
 const SOLO_LANES = ["blueprint", "app-test"];
 
-// Each lane's full output lands here, so a filtered terminal view never loses
-// a failure message. Cleared per run so no log outlives the run it describes.
 const LOG_DIR = ".verify-logs";
 const JEST_LANES = new Set(["app-test", "integration", "blueprint"]);
 
-// Node 24.15's V8 intermittently crashes a Jest worker, failing whichever
-// suite it ran: not a test failure, so the lane reruns once. Recheck after a
-// Node upgrade.
 export function isWorkerSegfault(laneName, output) {
   return (
     JEST_LANES.has(laneName) &&
@@ -66,7 +56,6 @@ const EVERY_LANE_PATTERNS = [
   /^tailwind\.config\./,
 ];
 
-// The scripts the app build runs; every other script is workflow tooling.
 const APP_SCRIPTS = new Set([
   "scripts/assert-sw.js",
   "scripts/generate-icons.js",
@@ -223,7 +212,6 @@ function prefixLines(laneName, stream) {
 
 function runCommand(command, laneName, children, sink) {
   return new Promise((resolve, reject) => {
-    // Through a shell: on Windows pnpm is a .cmd shim, which spawn cannot run.
     const child = spawn(command, {
       shell: true,
       stdio: ["ignore", "pipe", "pipe"],

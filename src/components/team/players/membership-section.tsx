@@ -254,7 +254,6 @@ export function MembershipSection({
 
 type FoundUser = { id: string; name: string; image?: string };
 
-// --- NONE: invite section with user search ---
 function InviteSection({
   player,
   teamId,
@@ -382,7 +381,6 @@ function InviteSection({
   );
 }
 
-// --- INVITED: cancel invitation ---
 function InvitedSection({
   player,
   onSuccess,
@@ -443,7 +441,6 @@ function InvitedSection({
   );
 }
 
-// --- JOINED: role management only ---
 function JoinedSection({
   player,
   isOwnerPlayer,

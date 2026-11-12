@@ -57,9 +57,6 @@ export const seedGame = async ({
     name: `Player ${i + 1}`,
     number: i + 1,
   }));
-  // Stands in for a squad member stored through the unvalidated create-game
-  // body: no product path writes a null roster id, but the readers must not
-  // throw on one.
   if (includeNullIdPlayer) {
     players.push({
       id: null as unknown as string,

@@ -85,8 +85,6 @@ const flatten = (nodes: React.ReactNode): React.ReactNode[] =>
       : [node],
   );
 
-// Without loadingText the label stays, so the spinner takes the first icon's
-// place and the width holds. loadingText replaces everything, spinner first.
 const loadingContent = (children: React.ReactNode, loadingText?: string) => {
   const spinner = <RiLoader4Line key="spinner" className="animate-spin" />;
   const parts = flatten(children);

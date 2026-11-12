@@ -1,51 +1,10 @@
 #!/usr/bin/env node
-/*
- * Moves team ownership from a Player role to a Team attribute.
- *
- * Until now a team's owner was the one JOINED player with `role: "OWNER"`,
- * guarded by the unique partial index `teamId_1_owner_unique`. Ownership is now
- * `team.ownerPlayerId`, and the owner is an ordinary ADMIN player, so a
- * transfer becomes a single atomic write on the team document.
- *
- * Steps, in order:
- *
- *   a. audit    every team has exactly one JOINED OWNER player; any team that
- *               does not is listed and the script exits non-zero without writing
- *   b. backfill team.ownerPlayerId = that player's _id (skipped when equal)
- *   c. demote   that player's role OWNER -> ADMIN
- *   d. index    drop `teamId_1_owner_unique` on players if present
- *   e. verify   every team's ownerPlayerId is a JOINED ADMIN of the same team
- *               and no OWNER role remains
- *
- * The app that reads `role: "OWNER"` and the app that reads `ownerPlayerId`
- * cannot both be right about the same database, so each environment accepts a
- * brief window where the running app does not match its data: migrate, then
- * deploy straight away. Until the deploy lands, the old app sees no owner (no
- * transfer, and the owner could leave).
- *
- * SPENT. Kept as a record of what was done, not as something to run.
- *
- *   - development (the `test` database), 2026-10-28 — 6 teams backfilled and
- *     demoted, index dropped; rerun after the merge found nothing to do
- *   - production, 2026-10-28 — applied before release 0.19.0 promoted; rerun
- *     after the promotion found nothing to do (7 teams)
- *
- * Every environment is accounted for, so this lives under docs/ rather than
- * scripts/. It remains idempotent and would report nothing to do, but a script
- * that is finished should not sit where the runnable ones are.
- *
- * It was run, per environment, as dry-run, --apply, deploy, then --apply again:
- *
- *   node docs/migrations/migrate-team-owner.js            # show the plan
- *   node docs/migrations/migrate-team-owner.js --apply    # write
- */
 import { readFileSync } from "node:fs";
 import { MongoClient } from "mongodb";
 
 const APPLY = process.argv.includes("--apply");
 const OWNER_INDEX = "teamId_1_owner_unique";
 
-/** Reads MONGODB_URI from the environment, falling back to .env.local. */
 function resolveUri() {
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
   const line = readFileSync(".env.local", "utf8")
@@ -82,7 +41,6 @@ for (const p of owners) {
   ownersByTeam.set(key, [...(ownersByTeam.get(key) ?? []), p]);
 }
 
-// (a) audit
 const broken = [];
 const plan = [];
 for (const team of teamDocs) {
@@ -91,7 +49,7 @@ for (const team of teamDocs) {
   if (found.length === 1 && joined.length === 1) {
     plan.push({ team, owner: joined[0] });
   } else if (found.length === 0 && team.ownerPlayerId) {
-    plan.push({ team, owner: null }); // already migrated
+    plan.push({ team, owner: null });
   } else {
     broken.push(
       `${team._id} "${team.name}": ${found.length} OWNER player(s), ${joined.length} JOINED`,
@@ -123,26 +81,20 @@ if (!APPLY) {
   await finish(0);
 }
 
-// (b) backfill
 for (const { team, owner } of backfill) {
   await teams.updateOne(
     { _id: team._id },
     { $set: { ownerPlayerId: owner._id } },
   );
 }
-// (c) demote
 for (const { owner } of demote) {
-  // Only while still OWNER: if the old app moved ownership after the audit, the
-  // verify step fails instead of this write masking it.
   await players.updateOne(
     { _id: owner._id, role: "OWNER" },
     { $set: { role: "ADMIN" } },
   );
 }
-// (d) index
 if (hasIndex) await players.dropIndex(OWNER_INDEX);
 
-// (e) verify
 const failures = [];
 for (const team of await teams.find({}).toArray()) {
   const owner = team.ownerPlayerId

@@ -13,8 +13,6 @@ function decisionFiles() {
     .sort();
 }
 
-// The tree is the subject: a record that only this suite's fixtures exercise
-// would say nothing about the 45 records a Feature page actually renders.
 describe("the decision record tree", () => {
   it("holds records", () => {
     expect(existsSync(DECISIONS)).toBe(true);

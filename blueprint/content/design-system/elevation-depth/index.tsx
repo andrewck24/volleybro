@@ -1,4 +1,3 @@
-// A nested page→floating→card stack pinned to one theme via scope class.
 function LayerStack({
   scope,
   label,
@@ -24,7 +23,6 @@ function LayerStack({
   );
 }
 
-// One overlay surface over a dimmed scrim, with or without a ring.
 function OverlayDemo({ ring, caption }: { ring: boolean; caption: string }) {
   return (
     <div className="flex flex-col gap-1.5">

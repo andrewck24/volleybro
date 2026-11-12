@@ -167,15 +167,15 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
 export function TeamInfoSkeleton() {
   return (
     <Card>
-      <Skeleton className="my-1 h-7 w-28" /> {/* CardTitle */}
+      <Skeleton className="my-1 h-7 w-28" />
       <ItemGroup className="gap-1">
         {Array.from({ length: 2 }, (_, i) => (
           <Item key={i} className="py-2 hover:bg-transparent">
-            <Skeleton className="my-1 size-6" /> {/* icon: text-xl leading */}
+            <Skeleton className="my-1 size-6" />
             <ItemContent>
               <Skeleton className="my-1 h-6 w-12" />
             </ItemContent>
-            <Skeleton className="my-1 h-6 w-16" /> {/* value */}
+            <Skeleton className="my-1 h-6 w-16" />
           </Item>
         ))}
       </ItemGroup>

@@ -172,7 +172,6 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
                     type="email"
                     placeholder="user@example.com"
                     {...field}
-                    // An emptied field is no invitation, not an invalid email.
                     onChange={(e) =>
                       field.onChange(e.target.value || undefined)
                     }
@@ -182,8 +181,7 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
               </FormItem>
             )}
           />
-          {/* A role only means something as part of an invitation, and the
-              field unregisters with it so a cleared email clears the role. */}
+
           {email && (
             <FormField
               control={form.control}

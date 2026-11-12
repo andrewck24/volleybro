@@ -1,4 +1,3 @@
-/** @jest-environment node */
 import { triggerCloudflareDeployHook } from "./cloudflare-deploy-hook";
 
 const validDeployHookUrl =

@@ -17,16 +17,8 @@ const PADDING = "var(--spacing) * 6";
 const CELL_SIZE = `min(var(--control-size), (100vw - ${PADDING} - 1rem) / 7)`;
 
 export type CalendarProps = DayPickerProps & {
-  /**
-   * In the year view, the number of years to display at once.
-   * @default 12
-   */
   yearRange?: number;
 
-  /**
-   * Wether to show the year switcher in the caption.
-   * @default true
-   */
   showYearSwitcher?: boolean;
 
   monthsClassName?: string;
@@ -54,12 +46,6 @@ export type CalendarProps = DayPickerProps & {
 
 type NavView = "days" | "years";
 
-/**
- * A custom calendar component built on top of DayPicker (@daypicker/react).
- * @param props The props for the calendar.
- * @default yearRange 12
- * @returns
- */
 const Calendar = ({
   className,
   showOutsideDays = true,

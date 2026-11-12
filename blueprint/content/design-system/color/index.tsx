@@ -1,9 +1,5 @@
 import { SwatchGrid, type TokenInfo } from "../_shared";
 
-// Token groups only name the CSS custom property and its role — the rendered
-// color and the displayed values come straight from the token blocks in
-// blueprint/src/app/globals.css, a copy of the app's.
-
 const surface: TokenInfo[] = [
   { name: "--background" },
   { name: "--popover" },

@@ -20,11 +20,6 @@ export interface IPlayerRepository {
 
   create(player: NewPlayer): Promise<Player>;
 
-  /**
-   * Update player. A patch touches single fields, so it is typed against the
-   * document's fields rather than the three player shapes; the caller is
-   * responsible for leaving the document in one of them.
-   */
   update(id: string, updates: Partial<PlayerFields>): Promise<Player>;
 
   updateRoleIf(

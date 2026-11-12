@@ -84,8 +84,7 @@ export const StatsCarousel = () => {
             </div>
           ))}
         </div>
-        {/* 32px so it straddles the card's edge without covering the figures (20px into the margin the phone
-            gutter can hold); `touch-target` keeps the tap area at the control size. */}
+
         {STEP_BUTTONS.map(({ label, step, Icon, edge }) => (
           <Button
             key={label}

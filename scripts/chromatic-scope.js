@@ -40,10 +40,8 @@ const SAFE_PATHS = [
   /^\.(?:agents|claude|codex|impeccable|diagram-design)\//,
   /^(?:AGENTS|CLAUDE|WORKFLOW|CONTRIBUTING|CODING_STANDARDS|CONTEXT|PRODUCT|DESIGN|GLOSSARY|CHANGELOG|README(?:\.[^/]+)?)\.md$/,
   /^\.changeset\//,
-  // The classifier and its workflow must still run when they change.
   /^scripts\/(?!chromatic-scope\.js$)/,
   /^\.github\/(?!workflows\/chromatic\.yml$)/,
-  // Storybook loads src/**/*.stories and never imports tests or test/.
   /^test\//,
   /^src\/(?:.*\/__tests__\/|.*\.test\.[jt]sx?$)/,
   /^(?:jest\.config\.ts|knip\.json|\.nvmrc|components\.json|commitlint\.title\.config\.js|\.markdownlint\.jsonc|vercel\.json|\.gitignore|\.worktreeinclude|\.env\.example|skills-lock\.json|LICENSE)$/,
@@ -229,8 +227,6 @@ function protectedGraph(lock) {
   return { importer: rootProtectedImporter(importer), packages };
 }
 
-// The name ends at the first "@" after a scope; peer suffixes and git or
-// tarball references can carry more "@" after it.
 function packageName(locator) {
   const at = locator.indexOf("@", 1);
   if (at <= 0) throw new Error(`unrecognised package locator: ${locator}`);
@@ -249,8 +245,6 @@ function packagesByName(packages) {
   return byName;
 }
 
-// Names of packages that changed version while the root dependencies and the
-// set of package names stayed put; null when the change is anything wider.
 function transitiveOnlyChanges(baseGraph, headGraph) {
   if (stable(baseGraph.importer) !== stable(headGraph.importer)) return null;
   const base = packagesByName(baseGraph.packages);
@@ -263,7 +257,6 @@ function transitiveOnlyChanges(baseGraph, headGraph) {
   return changed.length ? changed.sort() : null;
 }
 
-// Build tooling shapes Storybook output without showing up as bundled modules.
 const TOOLCHAIN_PATTERNS = [
   /^react$/,
   /^react-dom$/,
@@ -284,8 +277,6 @@ const TOOLCHAIN_PATTERNS = [
 
 const MAX_STATS_DEPTH = 8;
 
-// Reads the stats as data only; any unexpected shape throws, and assess()
-// treats that as "run the build".
 function bundledPackages(statsPath) {
   const stats = JSON.parse(readFileSync(statsPath, "utf8"));
   const names = new Set();
@@ -309,8 +300,6 @@ function bundledPackages(statsPath) {
   return names;
 }
 
-// Known metadata that cannot change what Storybook bundles. Any other field,
-// including unknown ones, is compared so the check stays fail-closed.
 const IGNORED_MANIFEST_FIELDS = [
   "name",
   "version",
@@ -345,8 +334,6 @@ function parseManifest(content) {
   return stable(filtered);
 }
 
-// The first lockfile document pins the package manager itself. The pin is not
-// bundled; the graph beside it moves with the pin, so it is compared apart.
 function lockEnvironment({ firstDocument, resolutionEnvironment }) {
   const { packages, snapshots, ...document } = firstDocument;
   return {
@@ -391,8 +378,6 @@ function isChromaticAction(uses) {
   return uses.toLowerCase().startsWith("chromaui/action@");
 }
 
-// Reduces every non-Chromatic step's `uses` to its action name, so two
-// workflows that differ only in pins, comments or formatting compare equal.
 function withoutActionPins(workflow) {
   const document = parse(workflow, { uniqueKeys: true });
   for (const job of Object.values(document?.jobs ?? {})) {
@@ -405,7 +390,6 @@ function withoutActionPins(workflow) {
   return stable(document);
 }
 
-// An unparseable workflow throws, and assess() treats that as "run the build".
 function isActionPinOnly(base, head, cwd) {
   const workflowAt = (sha) =>
     withoutActionPins(runGit(["show", `${sha}:${CHROMATIC_WORKFLOW}`], cwd));
@@ -424,12 +408,10 @@ function runGit(args, cwd) {
 function assess({ base: target, head, stats, force = false }) {
   const cwd = process.cwd();
   if (force) return { skip: false, reason: "forced by --force" };
-  // A missing SHA reads as "undefined", which the pattern rejects.
   if (!/^[0-9a-f]{7,40}$/i.test(target) || !/^[0-9a-f]{7,40}$/i.test(head)) {
     return { skip: false, reason: "base/head SHA is missing or malformed" };
   }
   try {
-    // Commits that landed on the target after the branch point are not PR changes.
     const base = runGit(["merge-base", target, head], cwd).trim();
     const paths = parseNameStatus(
       runGit(["diff", "--name-status", "-z", base, head], cwd),

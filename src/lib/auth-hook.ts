@@ -4,15 +4,6 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import { TYPES } from "@/infrastructure/di/types";
 
-/**
- * Hook handler for Better Auth `user.create.after` event.
- *
- * Flow:
- * 1. Link pending email invitations via LinkPendingInvitationsUseCase, with
- *    retry-once-on-transient-failure.
- * 2. All failures are logged but do NOT propagate — the hook must not
- *    block the auth flow.
- */
 export async function handleUserCreated(user: {
   id: string;
   email: string;

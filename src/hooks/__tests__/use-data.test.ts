@@ -1,9 +1,16 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, screen, waitFor } from "@testing-library/react";
+import { createElement } from "react";
 import { http, HttpResponse } from "msw";
+import { Toaster } from "@/components/ui/toaster";
+import { SWRProvider } from "@/components/layout/swr-provider";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 
 import { server } from "@test/support/msw/server";
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
+}));
 
 const cases = [
   {
@@ -55,7 +62,6 @@ describe.each(cases)("$name", (hook) => {
     const paths = recordRequests();
 
     const rendered = hook.run(id);
-    // Give a request, if one were made, time to reach the handler.
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(paths).toEqual([]);
@@ -98,4 +104,24 @@ it("isolates SWR cache state between renders", async () => {
   );
 
   await waitFor(() => expect(secondResult.current.team).toEqual(response));
+});
+
+it("shows the global error toast when a regular team request fails", async () => {
+  server.use(
+    http.get("/api/teams/toast-error", () =>
+      HttpResponse.json({ code: "UNEXPECTED" }, { status: 500 }),
+    ),
+  );
+
+  renderHook(() => useTeam("toast-error"), {
+    wrapper: ({ children }) =>
+      createElement(
+        SWRProvider,
+        null,
+        createElement(SwrIsolation, null, children),
+        createElement(Toaster),
+      ),
+  });
+
+  expect(await screen.findByRole("status")).toBeVisible();
 });
