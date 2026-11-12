@@ -212,7 +212,6 @@ describe("PATCH /api/teams/[teamId]", () => {
     });
   });
 
-  // The exact body TeamForm's onSubmit sends (src/components/team/form.tsx):
   it("returns 200 for the payload the edit-team form actually sends", async () => {
     const updated = { id: VALID_OBJECT_ID, name: "RyuJin", nickname: "RYUJIN" };
     mockUpdateTeamController.mockResolvedValue(updated);

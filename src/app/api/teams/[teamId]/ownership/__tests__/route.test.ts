@@ -52,7 +52,6 @@ describe("POST /api/teams/[teamId]/ownership", () => {
     consoleSpy.mockRestore();
   });
 
-  // The exact body handleTransferOwnership sends (src/components/team/players/membership-section.tsx):
   it("returns 200 for the payload the transfer-ownership control actually sends", async () => {
     const updated = {
       id: VALID_OBJECT_ID,

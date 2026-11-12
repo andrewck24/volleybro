@@ -1,46 +1,9 @@
 #!/usr/bin/env node
-/*
- * Brings pre-Better-Auth account records onto the current schema.
- *
- * Better Auth 1.7's Mongo adapter creates a unique index over
- * (issuer, accountId) on the accounts collection, and it creates it lazily on
- * the first write rather than at install time. Records written by the previous
- * auth library carry `provider`/`providerAccountId` and neither of the indexed
- * fields, so every one of them presents the same key — (null, null) — and the
- * index can never build. The failure surfaces on the write that triggered the
- * build, and Better Auth reports it as `unable_to_link_account`, which is the
- * symptom rather than the cause: nobody can sign in, including users whose own
- * records are perfectly valid.
- *
- * A legacy record is converted rather than deleted, so the users behind those
- * records keep their sign-in. Only one is deleted: the case where the same user
- * already has a current record for the same Google identity, which is a
- * duplicate of something that already exists.
- *
- * Tokens are not carried across. They live under different names, every one of
- * them has long expired, and signing in issues new ones.
- *
- * SPENT. Kept as a record of what was done, not as something to run.
- *
- *   - development (the `test` database), 2026-08-30 — 7 converted, 1 removed
- *   - production — nothing to do: the project is pre-production and that
- *     database holds no records
- *
- * Every environment is accounted for, so this lives under docs/ rather than
- * scripts/. It remains idempotent and would report nothing to do, but a script
- * that is finished should not sit where the runnable ones are.
- *
- * It was run as:
- *
- *   node docs/migrations/migrate-legacy-accounts.js            # show the plan
- *   node docs/migrations/migrate-legacy-accounts.js --apply    # write
- */
 import { readFileSync } from "node:fs";
 import { MongoClient } from "mongodb";
 
 const APPLY = process.argv.includes("--apply");
 
-/** Reads MONGODB_URI from the environment, falling back to .env.local. */
 function resolveUri() {
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
   const line = readFileSync(".env.local", "utf8")
@@ -72,7 +35,6 @@ const remove = [];
 
 for (const doc of legacy) {
   if (!doc.provider || !doc.providerAccountId) {
-    // Neither shape: not safe to guess at, and not safe to delete either.
     console.error(
       `SKIP ${doc._id}: has neither accountId nor provider/providerAccountId`,
     );
@@ -132,8 +94,6 @@ if (remove.length > 0) {
   await accounts.deleteMany({ _id: { $in: remove.map((doc) => doc._id) } });
 }
 
-// The point of the exercise: no two records may present the same key, or the
-// index Better Auth builds on its next write fails exactly as before.
 const keys = await accounts
   .find({}, { projection: { issuer: 1, accountId: 1 } })
   .toArray();

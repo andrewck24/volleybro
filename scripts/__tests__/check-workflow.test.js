@@ -111,6 +111,18 @@ test("reports a missing canonical contract", async () => {
   );
 });
 
+test("reports a required file whose path is a dangling symlink", async () => {
+  const root = await makeRepository();
+  const workflowPath = path.join(root, "WORKFLOW.md");
+  await rm(workflowPath);
+  await symlink("missing-workflow.md", workflowPath);
+
+  assert.match(
+    (await checkWorkflow(root)).join("\n"),
+    /WORKFLOW\.md \[required-file\]: file is missing/,
+  );
+});
+
 test("reports a delivery adapter other than the required one", async () => {
   const workflow = validWorkflow.replace(
     "adapter: repository-workflow",

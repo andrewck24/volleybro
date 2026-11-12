@@ -57,11 +57,8 @@ describe("set and match completion", () => {
   };
 
   it("writes each set's win and decides the match once a side has a majority", async () => {
-    // Set 0 (25 points): home wins.
     await playSet(0, 25, 20);
-    // Set 1 (25 points): away wins, so neither side yet has a majority of 3.
     await playSet(1, 20, 25);
-    // Set 2 is the deciding set, played to decidingSetPoints (15): home wins it.
     await playSet(2, 15, 10);
 
     const game = await repo().findById(seeded.gameId);

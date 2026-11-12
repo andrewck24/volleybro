@@ -27,10 +27,8 @@ test("@smoke test team read-only page", async ({ page }) => {
   const teamId = required("SMOKE_TEAM_ID");
 
   await page.goto(`/team/${teamId}`);
-  // Production builds strip data-testid, so find the team name by its role.
   const teamName = page.getByRole("heading", { level: 1 });
   await expect(teamName).toBeVisible();
-  // Empty or still loading means the team did not resolve (wrong DB or ID).
   await expect(teamName).not.toHaveText(/^(Loading\.\.\.)?$/);
   await expect(
     page

@@ -1,19 +1,4 @@
 #!/usr/bin/env node
-/*
- * Regenerates every raster icon under public/ from the brand mark geometry
- * in public/brand/logo-symbol.svg (Requirement: Raster icons derive from
- * the mark). The mark's viewBox and two arm paths are parsed out of that
- * SVG at run time — nothing about the glyph is hardcoded here, so a future
- * mark change only needs a re-run of this script.
- *
- * Standard icons compose the mark at 60% of the canvas height, centered, on
- * a full-bleed #10687E (brand teal) background. Maskable icons use 45% so
- * the whole mark stays inside the 80% maskable safe zone (Requirement:
- * Maskable splash icon reads as a bare V). favicon.ico is built from the
- * same 60% composition at 32x32 and 16x16.
- *
- * Run: node scripts/generate-icons.mjs
- */
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -24,8 +9,6 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SYMBOL_SVG = path.join(ROOT, "public/brand/logo-symbol.svg");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const BACKGROUND = "#10687E";
-
-// --- Parse the mark geometry out of the source SVG -------------------------
 
 function extractArm(svg, groupId) {
   const groupMatch = svg.match(
@@ -45,8 +28,6 @@ function extractArm(svg, groupId) {
   return { d: d[1], fill: fill[1] };
 }
 
-// The stencil arms are simple straight-line polygons (M/L/Z only), so their
-// bounding box is just the min/max of their M/L coordinate pairs.
 function bboxOfPaths(paths) {
   const xs = [];
   const ys = [];
@@ -74,8 +55,6 @@ const leftArm = extractArm(symbolSvg, "left-arm");
 const rightArm = extractArm(symbolSvg, "right-arm");
 const bbox = bboxOfPaths([leftArm.d, rightArm.d]);
 
-// --- Compose an SVG for a given canvas size and mark-height fraction -------
-
 function composeSvg(canvas, heightFraction) {
   const scale = (canvas * heightFraction) / bbox.height;
   const tx = canvas / 2 - scale * (bbox.minX + bbox.width / 2);
@@ -96,8 +75,6 @@ async function renderPng(canvas, heightFraction, outFile) {
   console.log(`generate-icons: wrote ${outFile} (${canvas}x${canvas})`);
   return buffer;
 }
-
-// --- Output list -------------------------------------------------------
 
 const STANDARD_FRACTION = 0.6;
 const MASKABLE_FRACTION = 0.45;
@@ -137,8 +114,6 @@ async function main() {
   const icoBuffer = await pngToIco([favicon32, favicon16]);
   writeFileSync(path.join(PUBLIC_DIR, "favicon.ico"), icoBuffer);
   console.log("generate-icons: wrote favicon.ico (32x32 + 16x16)");
-  // pngToIco takes buffers directly; the intermediate PNGs on disk are
-  // scratch files only, remove them.
   const fs = await import("node:fs/promises");
   await fs.unlink(path.join(PUBLIC_DIR, "__favicon-32.png"));
   await fs.unlink(path.join(PUBLIC_DIR, "__favicon-16.png"));

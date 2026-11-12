@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-/*
- * Launch blueprint from any checkout: lists every git worktree that
- * contains blueprint/, prompts when there is more than one, installs
- * dependencies on first run, then forwards the args to `pnpm <args>`
- * (default: dev) inside the chosen blueprint/.
- *
- * Usage: pnpm blueprint [dev|build|start|...]
- */
 import { execSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -52,7 +44,6 @@ if (candidates.length > 1) {
   }
 }
 
-// Both pnpm calls go through a shell: on Windows pnpm is a .cmd shim, which spawn cannot run.
 if (!existsSync(join(target, "node_modules"))) {
   console.log(`Installing dependencies in ${target} ...`);
   const install = spawnSync("pnpm install", {

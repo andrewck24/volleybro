@@ -43,10 +43,6 @@ export const TabContainer = ({
 }: TabContainerProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  // pendingTab: set synchronously inside startViewTransition callback so the DOM
-  // updates within the transition frame (URL update is async and arrives too late).
-  // Cleared only after both the animation ends and pathname confirms the new tab,
-  // preventing a brief activeTab revert if either condition lags.
   const [pendingTab, setPendingTab] = useState<Tab | null>(null);
   const activeTab = pendingTab ?? resolveTabFromPath(pathname);
   const { teamId } = useActiveTeamId();
@@ -56,12 +52,8 @@ export const TabContainer = ({
     notifications: "/notifications",
     user: "/user",
   });
-  // scrollPositions: keyed by pathname so parent/child routes store independently.
-  // prevPathRef: previous pathname, used in the sub-path branch of useEffect([pathname]).
   const scrollPositions = useRef<Record<string, number>>({});
   const prevPathRef = useRef<string>(pathname);
-  // transitionTargetTabRef: the tab we're transitioning to; null when no transition is in flight.
-  // currentPathTabRef: latest pathname-derived tab, readable inside transition.finished closure.
   const transitionTargetTabRef = useRef<Tab | null>(null);
   const currentPathTabRef = useRef<Tab | null>(null);
   const pendingScrollRestoreRef = useRef<{ path: string; y: number } | null>(
@@ -70,8 +62,6 @@ export const TabContainer = ({
 
   const clearPendingTab = (targetTab: Tab) => {
     transitionTargetTabRef.current = null;
-    // rAF defers the state update past the transition paint frame, avoiding a flash
-    // where pendingTab clears before the new pseudo-element snapshot is composited.
     requestAnimationFrame(() => {
       setPendingTab((prev) => (prev === targetTab ? null : prev));
     });
@@ -97,12 +87,10 @@ export const TabContainer = ({
       pendingScrollRestoreRef.current = null;
     }
 
-    // pathname arrived at target after transition already finished
     if (transitionTargetTabRef.current === tab) clearPendingTab(tab);
 
     if (prev === pathname) return;
     prevPathRef.current = pathname;
-    // Tab switches are handled synchronously in switchTab; skip here.
     if (resolveTabFromPath(prev) !== tab) return;
     scrollPositions.current[prev] = window.scrollY;
     window.scrollTo({
@@ -113,7 +101,6 @@ export const TabContainer = ({
 
   const switchTab: TabSwitchProps["onTabSwitch"] = useCallback(
     (newTab) => {
-      // Tap active tab: reset tab to root and scroll to top.
       if (newTab === activeTab) {
         const root = getTabRoot(newTab, teamId);
         for (const key of Object.keys(scrollPositions.current)) {

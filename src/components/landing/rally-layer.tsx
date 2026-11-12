@@ -118,7 +118,6 @@ export const RallyLayer = () => {
           } as CSSProperties
         }
       >
-        {/* a card surface, so the rows' own teal and coral figures never sit on the court */}
         <div className="rounded-xl bg-card p-1.5 text-card-foreground shadow-lg">
           <EntryRows />
         </div>

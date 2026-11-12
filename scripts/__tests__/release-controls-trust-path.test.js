@@ -60,7 +60,6 @@ async function repository(t) {
   return cwd;
 }
 
-// A version merge: the first parent is the trusted main, the merged tree holds the candidate's code.
 async function versionMerge(t, trustedNames) {
   const cwd = await repository(t);
   const trusted = await commitFiles(
@@ -110,7 +109,6 @@ async function assertExtractedMarker(runnerTemp, marker) {
     );
 }
 
-// Dirty the workspace so copying files instead of reading the commit fails the assertion.
 async function dirtyWorkspace(cwd) {
   const files = await controllerFiles("workspace");
   for (const [name, content] of Object.entries(files))
@@ -164,7 +162,6 @@ test("the uploaded artifact runs from the bare directories the jobs download it 
     EVENT_NAME: "push",
   });
   assert.equal(result.status, 0, result.stderr);
-  // The controller's main-module guard compares real paths, and macOS's temp directory is a symlink.
   const bare = await realpath(
     await mkdtemp(path.join(os.tmpdir(), "release-trust-bare-")),
   );
@@ -210,7 +207,6 @@ test("the staged state artifact cannot overlay the controller it is read by", ()
         step.with.name === name,
     ).with.path;
   const stateDirectory = downloadPath("production-release-state");
-  // The candidate job ran third-party code beside this artifact, so its files may be named after controller files.
   const controllerDirectory = downloadPath("trusted-release-controller");
   const controllerPaths = upload.with.path
     .trim()

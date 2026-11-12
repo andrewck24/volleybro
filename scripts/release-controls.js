@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// Release runs this from a bare temp directory, so every controller module imports only node: builtins and siblings.
 import { pathToFileURL } from "node:url";
 import {
   authorize,

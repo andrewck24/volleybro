@@ -6,9 +6,6 @@ function nodeUrl(node: Node) {
   return undefined;
 }
 
-// A Change is one page, but its directory makes it a folder whose only page
-// is its index; it lists as that page, so the sidebar shows no chevron.
-// ADR-0078 sets the order.
 export function createChangesTree(sourceTree: Root, hrefs: string[]): Root {
   const rank = (node: Node) => {
     const index = hrefs.indexOf(nodeUrl(node) ?? "");
@@ -27,8 +24,6 @@ export function createChangesTree(sourceTree: Root, hrefs: string[]): Root {
   };
 }
 
-// The breadcrumb and the previous/next links read this tree, so a Change
-// page reads Changes > <change>.
 export function createChangesBreadcrumbTree(changesTree: Root): Root {
   return {
     $id: "blueprint-changes-breadcrumb-content",

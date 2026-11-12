@@ -154,6 +154,8 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 **Why the split?** CSS assertions in Jest are brittle — a class rename breaks the test with no actual visual difference. Chromatic catches real regressions by comparing rendered pixels. Adding play functions to stories would duplicate the behavioral coverage that Jest + RTL already provides.
 
+`.storybook/main.ts` imports `next/dist/server/node-environment-baseline.js` before Next's server modules because those modules capture `AsyncLocalStorage` when they load, and Storybook does not install it as Next's CLI does. `.storybook/preview.tsx` uses the same Saira and Noto Sans TC options as `app/layout.tsx` and attaches their font variables to `document.documentElement`, where the `:root`-declared `--font-sans` can resolve them.
+
 ---
 
 ## Test Support Code
@@ -172,6 +174,8 @@ Shared test code lives under `test/support/`, outside `src/`, so production tool
 | (root)      | `gates.ts` holds MSW responses; `git-fixture.js` initialises repositories and commits files for script tests; `release-controls-fixture.js` builds the release CLI's repository and stubs | `deferred`, `commitFiles`, `fixture` |
 
 `test/setup/` wires Jest and no test imports it. `test/integration/support/` needs the database driver, so only integration tests import it.
+
+The root Jest `moduleNameMapper` resolves relative `.js` specifiers to TypeScript sources for migration scripts loaded by `ts-node/esm`. Each integration file connection sets both its database name and MongoDB `appName`; set server-wide failpoints only through `test/integration/support/failpoint.ts`'s `withFailPoint`.
 
 A helper starts inside the test file that needs it. When a second test file needs the same one, move it into `test/support/` and delete both copies; never copy it. Look in `test/support/` before writing any helper.
 
@@ -227,6 +231,8 @@ New components in `ui/` and `custom/` must include a Storybook story before the 
 CI runs every check on every pull request and is the authority (ADR-0092). The local gates are defined in `WORKFLOW.md`'s Repository profile; `pnpm verify:all --dry-run` prints which lanes a diff runs. The integration tests download a `mongodb-memory-server` binary on first run.
 
 Each run replaces `.verify-logs/` with every lane's full output (`<lane>.log`, gitignored); read it rather than rerunning a failed gate. A Jest lane whose worker crashes with `SIGSEGV` reruns once on its own, and the summary says so.
+
+`jest.config.ts` excludes `.next/` from Jest's module map because `pnpm verify:all` may build the app while integration tests run, rewriting that directory as workers scan it. The verifier runs the app and Blueprint Jest lanes after parallel lanes because component tests use real timers and Blueprint workers can compete with build lanes; CI gives those suites separate runners.
 
 ---
 

@@ -5,14 +5,12 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { handleUserCreated } from "@/lib/auth-hook";
 
-// The container loads the session provider, which opens its own database client on import.
 jest.mock("@/lib/auth", () => ({ auth: { api: {} } }));
 
 describe("handleUserCreated (auth hook)", () => {
   const playerRepository = createMockPlayerRepository();
 
   beforeAll(() => {
-    // The real use cases run; only the database-backed repositories are replaced.
     container.rebind(TYPES.PlayerRepository).toConstantValue(playerRepository);
   });
 

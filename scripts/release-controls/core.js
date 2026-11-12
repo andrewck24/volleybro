@@ -32,9 +32,6 @@ const PERSISTED_CONTRACT_PATTERNS = [
   /^src\/interface\//,
   /^(?:pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)$/,
 ];
-// Any other app source ships with the deployment and may read or write stored
-// data (server code, the service worker, client storage), so it defaults to
-// contract risk instead of stopping the release as unclassified.
 const APP_SOURCE_PATTERN = /^src\//;
 const KNOWN_UNRELATED_PATTERNS = [
   /^\.changeset\//,
@@ -59,7 +56,6 @@ const KNOWN_UNRELATED_PATTERNS = [
   /^knip\.json$/,
   /^\.(?:worktreeinclude|markdownlint[^/]*|diagram-design)$/,
 ];
-// Top-level keys that cannot affect persisted production data, per JSON manifest.
 const UNRELATED_MANIFEST_KEYS = {
   "package.json": ["version", "devDependencies", "scripts", "packageManager"],
   "vercel.json": ["git"],
@@ -142,7 +138,6 @@ export async function github(path) {
 }
 
 export async function shaAt(ref, path) {
-  // Keep the final newline so the content equals the checked-out file.
   return command("git", ["show", `${ref}:${path}`], { trim: false });
 }
 

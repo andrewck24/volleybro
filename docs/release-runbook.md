@@ -22,6 +22,8 @@ If a normal release run failed, the version PR was merged by someone else, or a 
 
 The smoke test uses a Google test account's real session, exported as Playwright `storageState` (the Better Auth session cookie only) and kept as the `SMOKE_STORAGE_STATE` secret of the `production-smoke` environment. A scheduled keepalive extends it every 3 days; GitHub's failure notification for that workflow means the session is no longer valid. A release run that reports a smoke infrastructure failure has either a failed session check or no smoke report at all (runner or install failure); the Production smoke job log tells which, and only the first needs a re-login.
 
+The smoke suite requires `PRODUCTION_ALIAS`, `AUTH_GOOGLE_ID`, `SMOKE_STORAGE_STATE`, `SMOKE_USER_EMAIL`, `SMOKE_TEAM_ID` and `PLAYWRIGHT_JSON_OUTPUT_NAME`; a missing value fails the test that needs it.
+
 Re-login and refresh:
 
 1. Sign in to the formal production site as the test account in a clean browser profile, using the real Google flow.
@@ -41,6 +43,8 @@ The session secret is a bearer credential for the test account only: a read-only
 ## Test project deployment
 
 Real-device acceptance of an auth-gated page runs on the test project. Confirm the deployment project is the unprotected `volleybro-test`, not the formal `volleybro` project. Use the globally installed Vercel CLI when available; fall back to `pnpm dlx vercel` only when it is absent. Confirm authentication before deploying; `--prod` selects the test project's Production target, not the formal site's project.
+
+Set `DISALLOW_INDEXING=true` on the test project to send `X-Robots-Tag: noindex, nofollow`; a `robots.txt` disallow would prevent crawlers from reading the noindex header.
 
 ```sh
 git status --short && {

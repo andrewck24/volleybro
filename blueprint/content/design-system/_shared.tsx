@@ -1,17 +1,9 @@
 "use client";
 
-// Shared building blocks for the design-system reference pages.
-//
-// The blueprint's globals.css inlines a copy of the app's tokens, so every
-// swatch renders straight from var(--token) — no hard-coded values. Each chip
-// shows both themes at once by scoping its halves with the `.light` / `.dark`
-// classes that tokens.css defines, and the displayed color strings are read
-// from the computed style at runtime so they can never drift from the source.
-
 import { useEffect, useRef, useState } from "react";
 
 export type TokenInfo = {
-  name: string; // CSS custom property, e.g. "--background"
+  name: `--${string}`;
   usage?: string;
 };
 
@@ -25,7 +17,6 @@ function useResolved(ref: React.RefObject<HTMLElement | null>) {
   return value;
 }
 
-// A single token rendered as a split light/dark chip with resolved values.
 export function Swatch({ token }: { token: TokenInfo }) {
   const lightRef = useRef<HTMLDivElement>(null);
   const darkRef = useRef<HTMLDivElement>(null);
@@ -59,7 +50,6 @@ export function Swatch({ token }: { token: TokenInfo }) {
   );
 }
 
-// A responsive grid of swatches for one token group.
 export function SwatchGrid({ tokens }: { tokens: TokenInfo[] }) {
   return (
     <div className="my-4 grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">

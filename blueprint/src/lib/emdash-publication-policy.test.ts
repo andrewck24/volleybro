@@ -1,5 +1,3 @@
-/** @jest-environment node */
-
 jest.mock(
   "emdash",
   () => ({
@@ -35,7 +33,6 @@ describe("canonical content publish policy", () => {
   });
 
   it("publishes a valid Change without any Linear call", async () => {
-    // The empty context has no settings or http client, so any Linear lookup would throw.
     await expect(
       beforePublish(
         {
@@ -57,6 +54,34 @@ describe("canonical content publish policy", () => {
         {},
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it("logs a failed build hook without exposing its secret URL or thrown error", async () => {
+    const secretUrl =
+      "https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/00000000-0000-4000-8000-000000000001";
+    const thrownDetails = "upstream response included private request data";
+    const logs: unknown[][] = [];
+    await plugin.hooks["content:afterPublish"](
+      { collection: "blueprint_changes" },
+      {
+        settings: { get: async () => secretUrl },
+        http: {
+          fetch: async () => {
+            throw new Error(`${secretUrl} ${thrownDetails}`);
+          },
+        },
+        log: {
+          error: (...args: unknown[]) => logs.push(args),
+          info: (...args: unknown[]) => logs.push(args),
+          warn: (...args: unknown[]) => logs.push(args),
+        },
+      },
+    );
+
+    const output = JSON.stringify(logs);
+    expect(output).toContain("Blueprint build hook request failed");
+    expect(output).not.toContain(secretUrl);
+    expect(output).not.toContain(thrownDetails);
   });
 
   it.each([

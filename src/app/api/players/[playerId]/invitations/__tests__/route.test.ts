@@ -53,7 +53,6 @@ describe("PATCH /api/players/[playerId]/invitations", () => {
     consoleSpy.mockRestore();
   });
 
-  // The exact body handleInvitation sends (src/components/user/invitations/index.tsx):
   it("returns 200 for the payload the invitation-response control actually sends", async () => {
     mockAcceptInvitation.mockResolvedValue(undefined);
     const req = routeRequest(

@@ -70,6 +70,8 @@ When existing data has to be reconciled, the migration is a script under `script
 - it **verifies afterwards** that the constraint can now hold, since a migration that leaves one collision behind has fixed nothing;
 - it is **idempotent**, and its header records which environments it has been applied to. It lives under `scripts/migrations/` while that list is incomplete, because until then it is something to run; once every environment is accounted for it moves to `docs/migrations/`, where it is a record of what was done rather than an invitation to do it again.
 
+`docs/migrations/migrate-legacy-accounts.js` is a completed record: development (`test`) ran on 2026-08-30 with 7 records converted and 1 duplicate removed, using a dry-run followed by `--apply`; production was pre-production and held no records. `docs/migrations/migrate-team-owner.js` is also complete: development (`test`) ran on 2026-10-28 with 6 teams migrated, and production ran that day before release 0.19.0 with 7 teams; each environment used dry-run, `--apply`, deploy, then `--apply` again, which found nothing to do. The script audits each team, backfills `team.ownerPlayerId`, demotes its owner to ADMIN, drops `teamId_1_owner_unique` and verifies the result; deploy immediately because old and new app versions expect incompatible ownership schemas.
+
 ---
 
 ## TypeScript Dual Toolchain
@@ -98,6 +100,8 @@ Test mocks can silently diverge from the real API they represent. When a mocked 
 **Example:** When upgrading MongoDB/Mongoose, review `test/setup/backend.ts` and any inline repository mocks to verify all mocked methods still exist on the real driver.
 
 **Rule:** A mock of a removed API passes silently while production code fails. Always verify mock surfaces explicitly after any dependency upgrade that touches a mocked boundary.
+
+`scripts/verify.js` retries a Jest lane once when Node 24.15's V8 intermittently terminates a worker with `SIGSEGV`; reassess the retry after a Node upgrade and remove it when the crash no longer reproduces. `scripts/__tests__/verify.test.js` covers the retry behavior.
 
 ---
 

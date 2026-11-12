@@ -76,7 +76,6 @@ function unavailable(status: number, message: string): Response {
   });
 }
 
-/** Preview identity must come from EmDash's verified request context. */
 export async function serveChangeArtifact({
   request,
   slug,

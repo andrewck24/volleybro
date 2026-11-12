@@ -284,7 +284,6 @@ test("runs when a visual file is renamed or deleted", async (t) => {
       { "src/old.tsx": "component\n", "docs/a.md": "a\n" },
       "base",
     );
-    // The new path is safe, so only the old path can make this run.
     if (change === "rename") git(cwd, "mv", "src/old.tsx", "docs/old.tsx");
     else git(cwd, "rm", "src/old.tsx");
     git(cwd, "add", "--all");
@@ -403,7 +402,6 @@ test("chromatic workflow skips only non-Chromatic action pin bumps", async (t) =
     const result = await classify(pair.cwd, compareArgs(pair.base, pair.head));
     assert.equal(result.output, `skip=${isSkipped}\n`, head);
   }
-  // A Chromatic step keeps its pin whatever the action's letter case.
   const upperCase = await commitPair(
     t,
     {
@@ -531,7 +529,6 @@ test("runs for lockfile changes only the graph check can see", async (t) => {
   }
 });
 
-// A transitive package renamed so the toolchain patterns can be probed.
 const transitiveAs = (name, color) =>
   lockfile({ color })
     .replace(`  color-lib@${color}:`, `  "${name}@${color}":`)
@@ -548,8 +545,6 @@ async function transitivePair(t, firstLock, secondLock, stats) {
   return { pair, args: ["--stats", file] };
 }
 
-// app-lib -> color-lib@appColor and app-lib -> extra-lib, where extra-lib
-// optionally pins its own color-lib, so one name can carry two versions.
 function extraLock(appColor = "1.0.0", extraColor) {
   const lock = lockfile({ color: appColor })
     .replace(

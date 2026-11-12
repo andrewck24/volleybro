@@ -54,7 +54,6 @@ test("stage runs the Vercel CLI outside the candidate checkout and deploys that 
   assert.equal(result.status, 0, result.stderr);
   const { calls, pnpmCwd } = JSON.parse(await readFile(f.statePath, "utf8"));
   const checkout = await realpath(f.repo);
-  // pnpm reads .npmrc from its working directory, so a candidate must not choose where the CLI comes from.
   assert.ok(path.relative(checkout, pnpmCwd).startsWith(".."), pnpmCwd);
   const deploy = calls.find((args) => args[0] === "dlx");
   assert.equal(deploy[deploy.indexOf("--cwd") + 1], checkout);
@@ -451,7 +450,6 @@ const workflowDir = new URL("../../.github/workflows/", import.meta.url);
 const loadWorkflow = async (name) =>
   parseYaml(await readFile(new URL(name, workflowDir), "utf8"));
 
-// Evaluates the `needs`-only subset of GitHub expressions used by job `if` conditions.
 function evalIf(expression, needs) {
   const needsContext = Object.fromEntries(
     Object.entries(needs).map(([id, { result, outputs = {} }]) => [
@@ -492,7 +490,6 @@ test("production release routes each smoke outcome to exactly one path", async (
   assert.deepEqual(runs(classify("infrastructure")), ["production-acceptance"]);
   assert.deepEqual(runs(classify("pass", "false")), ["production-acceptance"]);
   assert.deepEqual(runs(classify("pass", "true")), ["accept-production-smoke"]);
-  // A failed classification is undeterminable: human gate, never auto-accept or rollback.
   assert.deepEqual(
     runs({
       ...classify("pass", "true"),
@@ -500,7 +497,6 @@ test("production release routes each smoke outcome to exactly one path", async (
     }),
     ["production-acceptance"],
   );
-  // Classification still runs after a promote when the smoke job failed or was skipped.
   const classifies = (promote, smoke) =>
     evalIf(jobs["classify-production-smoke"].if, {
       candidate: { result: "success" },
@@ -510,7 +506,6 @@ test("production release routes each smoke outcome to exactly one path", async (
   for (const smoke of ["success", "failure", "skipped"])
     assert.equal(classifies("success", smoke), true);
   assert.equal(classifies("failure", "skipped"), false);
-  // A failed human gate still rolls back; a passed one does not (a skipped one is the pass row above).
   const gate = (result) => ({
     ...classify("pass", "false"),
     "production-acceptance": { result },
@@ -521,8 +516,6 @@ test("production release routes each smoke outcome to exactly one path", async (
 });
 
 test("every job downstream of the hotfix-only job opts out of the implicit success() check", async () => {
-  // GitHub's implicit success() skips a job whenever any ancestor was
-  // skipped, and authorize-hotfix is skipped on every normal release.
   const { jobs } = await loadWorkflow("production-release.yml");
   const needsOf = (id) => [jobs[id].needs ?? []].flat();
   const downstream = (id) =>
@@ -647,8 +640,6 @@ const checkouts = (job) =>
 const downloads = (job) =>
   stepsOf(job).filter((s) => s.uses?.startsWith("actions/download-artifact"));
 
-// A trusted controller job may read candidate git history but never candidate
-// code, and takes its Node runtime from trusted main.
 const assertCandidateHistoryOnly = (job) => {
   assert.equal(job["cache-mode"], "none");
   assert.doesNotMatch(JSON.stringify(job), /pnpm/);
@@ -678,7 +669,6 @@ test("recovery-receipt runs no candidate code and reads only the trusted control
   const { jobs } = await loadWorkflow("production-release.yml");
   const job = jobs["recovery-receipt"];
   assertCandidateHistoryOnly(job);
-  // The report is downloaded only when the trusted source-qa job says it is required.
   const reportDownload = downloads(job).find(
     (s) => s.with.name === "release-compatibility-report",
   );
@@ -736,7 +726,6 @@ test("recovery-evidence holds no GitHub token, runs no controller and uploads on
   assert.equal(job.permissions.actions, undefined);
   for (const step of checkouts(job))
     assert.equal(step.with["persist-credentials"], false);
-  // Whether the suite runs is decided upstream by the trusted source-qa job.
   const evidence = (required, result = "success") => ({
     candidate: { result: "success" },
     "source-qa": { result, outputs: { compatibility_required: required } },
@@ -797,11 +786,8 @@ test("only the hotfix authorization job references VERCEL_TOKEN before staging, 
   const runs = (...args) => evalIf(jobs.candidate.if, candidate(...args));
   assert.equal(runs("normal", "skipped", "true"), true);
   assert.equal(runs("normal", "skipped", "false"), false);
-  // The hotfix output takes precedence over the authorize output.
   assert.equal(runs("hotfix", "success", "false", "true"), true);
   assert.equal(runs("hotfix", "success", "", "false"), false);
-  // A retry carries no release output of its own and still runs.
   assert.equal(runs("normal-retry", "skipped", ""), true);
-  // A failed hotfix authorization stops the candidate.
   assert.equal(runs("hotfix", "failure", ""), false);
 });

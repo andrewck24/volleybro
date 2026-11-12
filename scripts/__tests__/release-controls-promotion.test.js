@@ -605,7 +605,6 @@ test("owner recovery accepts only the original nonexpired proven artifact", asyn
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /does not belong to the original run/);
 
-  // An original run the owner dispatched (normal-retry) is recoverable too.
   const pushState = JSON.parse(await readFile(f.statePath, "utf8"));
   await republish(
     JSON.stringify({
@@ -724,7 +723,6 @@ test("owner recovery verifies a forward-only release but rollback-if-compatible 
     ORIGINAL_RELEASE_RUN_ID: "9",
     RELEASE_RECOVERY_STATE_FILE: recovery,
   };
-  // The refusal must come from rollback-if-compatible, not from recover-verify.
   const verified = run(f, "recover-verify", recoveryEnv);
   assert.equal(verified.status, 0, verified.stderr);
   const result = run(f, "rollback-if-compatible", {
@@ -766,7 +764,6 @@ test("promotion and publication require accepted receipts, not only a healthy al
 async function expireRecoveryReceipt(file, mutate = () => {}) {
   const state = JSON.parse(await readFile(file, "utf8"));
   const week = 7 * 24 * 60 * 60 * 1000;
-  // One clock read: two reads can drift 1 ms and break the exact TTL span.
   const now = Date.now();
   state.recoveryEvidence.issuedAt = new Date(now - 2 * week).toISOString();
   state.recoveryEvidence.expiresAt = new Date(now - week).toISOString();

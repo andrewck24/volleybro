@@ -34,7 +34,6 @@ const newGameBody = (teamId: string, playerIds: string[]) => ({
       })),
       lineup: lineupFor(playerIds),
     },
-    // The opponent field has no default and no required marker.
     away: { name: "" },
   },
 });

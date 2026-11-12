@@ -35,11 +35,6 @@ export const homeRally = (win: boolean, seq: number) =>
     away: { score: 0, type: MoveType.RECEPTION, num: 1 },
   });
 
-/**
- * A one-set game whose home roster is p1-p6 (numbers 1-6), libero l1 (10) and
- * substitutes s1 (11) and s2 (12). `starting` overrides the stored slot at a
- * given index; `numberless` lists roster players that have no shirt number; the default slots are p1..p6 at MB, OH, OP, S, MB, OH.
- */
 export const createLineupGame = ({
   starting = {},
   liberos = [{ id: "l1", position: Position.L }],
@@ -75,7 +70,6 @@ export const createLineupGame = ({
       ...base.teams,
       home: {
         ...base.teams.home,
-        // The served player view may omit a number that the entity type requires.
         players: roster.map((player) =>
           numberless.includes(player.id)
             ? { ...player, number: undefined }

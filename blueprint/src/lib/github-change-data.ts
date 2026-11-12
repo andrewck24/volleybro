@@ -122,9 +122,7 @@ export function scenarioCount(blocks: unknown): number {
         try {
           const items = JSON.parse(String(record.items ?? "")) as unknown;
           if (Array.isArray(items)) count += items.length;
-        } catch {
-          // Malformed card metadata contributes no scenarios.
-        }
+        } catch {}
       } else if (
         record._type === "disclosure" &&
         Array.isArray(record.blocks)
@@ -168,9 +166,7 @@ async function readCacheRows(db: D1DatabaseLike, keys: string[], now: number) {
           row.cache_key,
           pullRequestSummarySchema.parse(JSON.parse(row.payload)),
         );
-      } catch {
-        // Invalid cache rows are ignored and refreshed from GitHub.
-      }
+      } catch {}
     }
   }
   return rows;
@@ -209,7 +205,6 @@ async function getJson<T>(
   const headers = new Headers({
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
-    // GitHub rejects requests without one with 403, and Workers fetch sends none.
     "User-Agent": "volleybro-blueprint",
   });
   if (env.GITHUB_TOKEN)
@@ -325,9 +320,7 @@ export async function readPullRequestSummaries(
           cached.set(id, pointer);
         }
       }
-    } catch {
-      // A cache outage must not prevent a fresh, verified GitHub response.
-    }
+    } catch {}
   const missing = ids.filter((id) => !cached.has(id));
   if (missing.length === 0)
     return ids.map((id) => cached.get(id)!).filter(Boolean);
@@ -375,16 +368,12 @@ export async function readPullRequestSummaries(
           expiresAt: now + 5 * 60 * 1000,
         });
       }
-    } catch {
-      // Other verified PR results remain usable if one files request fails.
-    }
+    } catch {}
   });
 
   try {
     if (db) await writeCacheRows(db, writes);
-  } catch {
-    // Serve verified GitHub responses even when cache writes fail.
-  }
+  } catch {}
 
   return ids
     .map((id) => cached.get(id))

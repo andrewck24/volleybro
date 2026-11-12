@@ -60,7 +60,6 @@ describe("POST /api/games/[gameId]/sets", () => {
     consoleSpy.mockRestore();
   });
 
-  // Coverage that moved here with the guard, see `request-schema-boundary` D3.
   it.each([
     ["null", null],
     ["undefined", undefined],

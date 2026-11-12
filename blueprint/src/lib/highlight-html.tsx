@@ -17,8 +17,6 @@ export async function renderHighlightedLinesHtml(
   const markup = await highlight(lines.map(({ text }) => text).join("\n"), {
     lang: language,
     themes: { light: "github-light", dark: "github-dark" },
-    // Emit only --shiki-light/--shiki-dark variables so the theme CSS picks the colors;
-    // an inline light default would pin dark mode to a white block.
     defaultColor: false,
     transformers: [
       {

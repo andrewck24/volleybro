@@ -62,7 +62,6 @@ describe("POST /api/players/[playerId]/memberships", () => {
     consoleSpy.mockRestore();
   });
 
-  // The exact body InviteSection's handleInvite sends (src/components/team/players/membership-section.tsx):
   it("returns 201 for the payload the invite form actually sends", async () => {
     const invited = {
       id: VALID_OBJECT_ID,
@@ -123,7 +122,6 @@ describe("PATCH /api/players/[playerId]/memberships", () => {
     consoleSpy.mockRestore();
   });
 
-  // The exact body JoinedSection's handleUpdateRole sends (src/components/team/players/membership-section.tsx):
   it("returns 200 for the payload the role-change control actually sends", async () => {
     const updated = {
       id: VALID_OBJECT_ID,

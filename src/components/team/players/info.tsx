@@ -111,7 +111,7 @@ export function PlayerInfoSkeleton() {
         <Skeleton className="h-16 w-16 shrink-0 rounded-full" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <Skeleton className="my-1 h-6 w-32" />
-          <Skeleton className="h-6 w-13" /> {/* badge */}
+          <Skeleton className="h-6 w-13" />
         </div>
       </CardHeader>
       <ItemGroup>
@@ -128,7 +128,7 @@ export function PlayerInfoSkeleton() {
           </Item>
         ))}
       </ItemGroup>
-      <Skeleton className="h-(--control-size-lg) w-full" /> {/* edit button */}
+      <Skeleton className="h-(--control-size-lg) w-full" />
     </Card>
   );
 }

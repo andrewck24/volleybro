@@ -110,7 +110,6 @@ export async function promote() {
 
 function smokeOutcome(results) {
   if (!Array.isArray(results)) return "regression";
-  // No report at all means the run never produced results (install/runner failure), not a release defect.
   if (!results.length) return "infrastructure";
   const found = (project, title) =>
     results.filter((r) => r.project === project && r.title === title);
@@ -149,7 +148,6 @@ async function authEnvChanged(state) {
   );
   if (!Number.isFinite(created))
     fail("Baseline deployment has no creation time");
-  // Metadata only: never request decrypted values.
   const { envs, pagination } = await vercel(
     `/v10/projects/${required("VERCEL_PROJECT_ID")}/env`,
   );
@@ -245,7 +243,6 @@ function productionQAReceipt(state, approval) {
 export async function recordSmokeAcceptance() {
   const state = await loadState();
   validateConfiguredPlatform(state);
-  // Classify already judged the smoke; promotion re-checks that verdict and does not judge again.
   const before = {
     deploymentId: required("SMOKE_BEFORE_DEPLOYMENT_ID"),
     sha: required("SMOKE_BEFORE_SHA"),
@@ -281,7 +278,6 @@ export async function recordSmokeAcceptance() {
 export async function recordProductionQA() {
   const state = await loadState();
   validateConfiguredPlatform(state);
-  // Finalize and production QA never move production, so receipt expiry must not block them.
   await verifyRecoveryEvidence(state, state.releaseRunId, {
     ignoreExpiry: true,
   });

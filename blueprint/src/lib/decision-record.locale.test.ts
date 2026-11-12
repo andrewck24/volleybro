@@ -1,5 +1,3 @@
-// The Blueprint bundle drops zod's default locale; clearing it here reproduces
-// that, so this fails if decision-record.ts stops configuring one itself.
 jest.mock("zod", () => {
   const actual = jest.requireActual("zod");
   actual.z.config({ localeError: undefined });

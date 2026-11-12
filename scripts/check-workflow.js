@@ -137,9 +137,7 @@ async function validateSkillAdapters(root, agentsContent) {
     locked = Object.keys(
       JSON.parse(await readFile(lockPath, "utf8")).skills ?? {},
     );
-  } catch {
-    // validateSharedSkills reports a missing or invalid lock.
-  }
+  } catch {}
   const skillsDirectory = path.join(root, ".agents", "skills");
   const installed = (await exists(skillsDirectory))
     ? (await readdir(skillsDirectory, { withFileTypes: true }))
@@ -155,7 +153,6 @@ async function validateSkillAdapters(root, agentsContent) {
     );
   }
   const tablePath = path.join(root, SKILL_ADAPTERS);
-  // A missing map is reported once, as a required file.
   if (!(await exists(tablePath))) return diagnostics;
   const table = await readFile(tablePath, "utf8");
   const rows = new Map();
@@ -198,7 +195,6 @@ async function validateSkillAdapters(root, agentsContent) {
 }
 
 async function exists(filePath) {
-  // stat, not access: on Windows access succeeds on a dangling symlink.
   try {
     await stat(filePath);
     return true;
@@ -535,7 +531,6 @@ export async function checkDecisionRecordLength(root) {
 const DECISIONS_DIR = "blueprint/content/decisions";
 const AMEND_TRAILER = "Decision-Amend";
 
-// Rule and `Decision-Amend` exemption: docs/agents/domain.md.
 export async function checkDecisionImmutability(root) {
   const base = await resolveScopeBase(root);
 
@@ -601,9 +596,7 @@ export async function checkDecisionImmutability(root) {
       delete before.supersededBy;
       delete after.supersededBy;
       isUnchanged = isDeepStrictEqual(before, after);
-    } catch {
-      // A record that does not parse cannot be shown unchanged.
-    }
+    } catch {}
     if (!isUnchanged) {
       diagnostics.push(
         `${relativePath} [decision-immutable]: an adopted decision may change only supersededBy; record a new decision and supersede this one (${approval})`,

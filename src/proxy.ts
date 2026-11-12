@@ -13,9 +13,6 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function proxy(request: NextRequest) {
   const { nextUrl } = request;
 
-  // API authentication gate (Edge Runtime optimistic check).
-  // /api/auth/* is excluded — auth routes must be reachable without a session.
-  // The withAuth wrapper performs definitive session validation in Node runtime.
   if (
     nextUrl.pathname.startsWith("/api") &&
     !nextUrl.pathname.startsWith(apiAuthPrefix)
@@ -38,8 +35,6 @@ export async function proxy(request: NextRequest) {
     headers: await headers(),
   });
 
-  // Page-level auth (non-API routes reach here, plus /api/auth/* which
-  // is excluded from the API gate above)
   const isSignedIn = !!session;
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);

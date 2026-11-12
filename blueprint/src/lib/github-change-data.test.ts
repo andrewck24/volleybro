@@ -212,6 +212,44 @@ describe("GitHub derived Change status and metrics", () => {
     ).resolves.toEqual([]);
   });
 
+  it("keeps verified pull requests when another pull request file listing fails", async () => {
+    server.use(
+      http.get(
+        "https://api.github.com/repos/andrewck24/volleybro/pulls/552",
+        () => HttpResponse.json({ ...openPullRequest, changed_files: 1 }),
+      ),
+      http.get(
+        "https://api.github.com/repos/andrewck24/volleybro/pulls/553",
+        () =>
+          HttpResponse.json({
+            ...openPullRequest,
+            number: 553,
+            changed_files: 1,
+          }),
+      ),
+      http.get(
+        "https://api.github.com/repos/andrewck24/volleybro/pulls/552/files*",
+        () => HttpResponse.json([{ filename: "src/example.ts" }]),
+      ),
+      http.get(
+        "https://api.github.com/repos/andrewck24/volleybro/pulls/553/files*",
+        () => new HttpResponse(null, { status: 502 }),
+      ),
+    );
+
+    const summaries = await readPullRequestSummaries(
+      [
+        "https://github.com/andrewck24/volleybro/pull/552",
+        "https://github.com/andrewck24/volleybro/pull/553",
+      ],
+      { env: {} },
+    );
+
+    expect(summaries).toEqual([
+      expect.objectContaining({ number: 552, filesChanged: 1, srcFiles: 1 }),
+    ]);
+  });
+
   it("identifies itself with a User-Agent, which GitHub requires of every API request", async () => {
     server.use(
       http.get(

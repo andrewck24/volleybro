@@ -35,7 +35,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </Provider>
 );
 
-/** Serves the game with these rally seqs and returns how many times it was requested. */
 const serveGame = (seqs: number[]) => {
   let requests = 0;
   server.use(

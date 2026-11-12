@@ -6,8 +6,6 @@ import { DecisionCard } from "@/components/decision-card";
 import { Accordion } from "@/components/ui/accordion";
 import type { DecisionRecord } from "@/lib/decision-record";
 
-// The browser jumps to #adr-<id> before hydration opens the accordion and
-// shifts the page, so the jump lands short; repeat it once rendered.
 function useScrollToDecisionAnchor() {
   useEffect(() => {
     const id = window.location.hash.slice(1);

@@ -283,9 +283,7 @@ test("source QA reuses successful PR CI on equal full trees, not equal commit SH
   const deployedTree = f.git(["rev-parse", `${f.deployed}^{tree}`]);
   const mergeTree = f.git(["rev-parse", `${f.merge}^{tree}`]);
   for (const [marker, producer] of [
-    // claims another tree for the commit it tested
     [sourceTreeStep(mergeTree, f.deployed), f.deployed],
-    // truthfully tested a commit whose tree is not the release tree
     [sourceTreeStep(deployedTree, f.deployed), f.deployed],
   ]) {
     const current = JSON.parse(await readFile(f.statePath, "utf8"));
@@ -673,7 +671,6 @@ test("several merged PRs for one push fail instead of guessing", async (t) => {
 test("a version PR that did not land as a merge commit fails before release on push and retry", async (t) => {
   const f = await fixture(t);
   const merged = { ...JSON.parse(await readFile(f.statePath, "utf8")).pr };
-  // squash or rebase: main gains the single-parent PR commit itself
   await updateApi(f, { pr: { ...merged, merge_commit_sha: f.head } });
   for (const [action, env] of [
     ["authorize", { GITHUB_SHA: f.head }],
@@ -696,7 +693,6 @@ test("a version PR that did not land as a merge commit fails before release on p
 test("a version PR whose reported head is not the merge's second parent fails on push and retry", async (t) => {
   const f = await fixture(t);
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
-  // GitHub reports a head, checked green, that the merge did not integrate
   const other = f.git(["rev-parse", `${f.merge}^1`]);
   await updateApi(f, {
     pr: { ...current.pr, head: { ...current.pr.head, sha: other } },

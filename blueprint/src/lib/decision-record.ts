@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// The Blueprint bundle drops zod's default-locale side effect, which leaves
-// every issue reading "Invalid input" instead of the rule it broke.
 z.config(z.locales.en());
 
 const nonEmptyText = z.string().min(1);

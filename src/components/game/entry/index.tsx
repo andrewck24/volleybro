@@ -124,8 +124,6 @@ const EntryRowActions = ({
 
 const DELETED_PLAYER = "已刪除的球員";
 
-// The clock reads the viewer's timezone, which the server cannot know, so the
-// time renders only after hydration.
 const RecordLine = ({
   playerId,
   at,
@@ -167,16 +165,10 @@ export const EntryRow = ({
   onEdit?: () => void;
   onDelete?: () => void;
   onRollbackToHere?: () => void;
-  // optional controlled state; falls back to local when uncontrolled
   expanded?: boolean;
   onToggleExpand?: () => void;
-  // hasFailedWrite: matched to the queue by entry id. Not a toast -- it
-  // persists until the entry leaves the queue, which a retry achieves only
-  // once whatever the server rejected has changed.
   failed?: boolean;
   onRetry?: () => void;
-  // playerId -> name. Absent while the roster loads, so no line shows a
-  // deleted player that is merely not loaded yet.
   recorderNames?: ReadonlyMap<string, string>;
   className?: string;
 }) => {
@@ -184,8 +176,6 @@ export const EntryRow = ({
   const expanded = expandedProp ?? localExpanded;
   const toggleExpand = onToggleExpand ?? (() => setLocalExpanded((v) => !v));
 
-  // shortcut: only edit is wired, delete/rollback stay hidden; show them once
-  // the sync-recording change adds their reducers.
   const actions = composeEntryActions(isLatest).filter((a) => a === "edit");
 
   return (

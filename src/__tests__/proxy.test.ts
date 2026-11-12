@@ -1,4 +1,3 @@
-// Mock next/server before importing proxy
 jest.mock("next/server", () => ({
   NextResponse: {
     next: jest.fn(() => ({ status: 200, json: async () => ({}) })),
@@ -14,19 +13,16 @@ jest.mock("next/server", () => ({
   },
 }));
 
-// Mock better-auth/cookies so tests control session token presence
 jest.mock("better-auth/cookies", () => ({
   getSessionCookie: jest.fn(),
 }));
 
 import { proxy } from "@/proxy";
 
-// Mock next/headers
 jest.mock("next/headers", () => ({
   headers: jest.fn().mockResolvedValue(new Headers()),
 }));
 
-// Mock Better Auth — proxy uses getSession for page-level auth
 jest.mock("@/lib/auth", () => ({
   auth: {
     api: {

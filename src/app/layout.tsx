@@ -69,8 +69,6 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // First paint only, before StatusBarColor mounts: the light and dark
-  // --background values from globals.css.
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f2f2f6" },
     { media: "(prefers-color-scheme: dark)", color: "#020a17" },
@@ -99,7 +97,7 @@ export default async function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        {/* apple touch icons, learn more: https://developer.apple.com/design/human-interface-guidelines/app-icons */}
+
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link
           rel="apple-touch-icon"

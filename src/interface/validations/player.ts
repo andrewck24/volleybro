@@ -34,7 +34,7 @@ export const CreatePlayerSchema = z
     number: z.number().int().min(0).max(99).optional(),
     position: PositionSchema.optional(),
     role: MemberAdminRoleSchema.optional(),
-    email: z.email("Invalid email format").optional(), // Has email = invitation, no email = unlinked player
+    email: z.email("Invalid email format").optional(),
   })
   .strict()
   .refine((data) => data.email !== undefined || data.role === undefined, {

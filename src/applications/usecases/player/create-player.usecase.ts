@@ -14,7 +14,6 @@ export interface ICreatePlayerInput {
     name: string;
     number?: number;
     position?: Position;
-    /** Only meaningful with an email: the role the invitation offers. */
     role?: PlayerRole.MEMBER | PlayerRole.ADMIN;
     email?: string;
   };

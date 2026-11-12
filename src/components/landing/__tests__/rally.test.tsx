@@ -21,7 +21,6 @@ let intersectBox: (isIntersecting: boolean) => void;
 beforeEach(() => {
   jest.useFakeTimers();
   const { observers, intersect } = mockIntersectionObserver();
-  // the provider's one observer watches the probe: the test says when it is on screen
   intersectBox = (isIntersecting) =>
     intersect(observers[0]!, observers[0]!.targets[0]!, isIntersecting);
 });
@@ -124,7 +123,7 @@ describe("RallyProvider clock", () => {
 
     beats(1);
     expect(read()).toBe(`${LEN}|0|live`);
-    beats(1); // the pause
+    beats(1);
     expect(read()).toBe(`${LEN}|0|live`);
     beats(1);
     expect(read()).toBe("12|1|live");

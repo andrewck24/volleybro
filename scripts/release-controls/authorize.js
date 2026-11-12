@@ -204,8 +204,6 @@ async function validateMergedVersionPr(pullRequest, sha) {
     checkRuns,
     statuses,
   });
-  // Stage maps the reviewed PR head through the merge's second parent, and
-  // only a merge commit keeps the PR head as an ancestor for a retry.
   const [, parent, ...rest] = (
     await command("git", ["rev-list", "--parents", "-n", "1", sha])
   ).split(" ");
@@ -222,7 +220,6 @@ async function validateMergedVersionPr(pullRequest, sha) {
 }
 
 async function mergedPullsForPush(sha) {
-  // GitHub can index a fresh merge a moment after the push event.
   for (let attempt = 1; ; attempt++) {
     const pulls = (await github(`commits/${sha}/pulls`)).filter(
       (pr) => pr.merged_at && pr.merge_commit_sha === sha,
@@ -247,8 +244,6 @@ export async function authorize() {
   if (pulls.length > 1)
     fail("More than one merged pull request matches this push; stop");
   const [pr] = pulls;
-  // Only a PR from another branch is certainly not the version PR; any PR from
-  // the version branch must pass full validation.
   if (
     pr.head.ref !== "changeset-release/main" ||
     pr.head.repo?.full_name !== pr.base.repo?.full_name

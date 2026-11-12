@@ -49,8 +49,6 @@ async function reviewedSourceMapping(sha, authorization) {
   return { reviewedSha: reviewed, releaseSha: sha, tree: releaseTree };
 }
 
-// The Vercel CLI bundles and runs a root vercel.{ts,mts,js,mjs,cjs} and loads
-// root .env files before it authenticates, with the deploy token in its environment.
 const CLI_LOADED_FILE = /^(vercel\.(ts|mts|js|mjs|cjs)|\.env.*)$/;
 
 async function assertNoCliLoadedFiles(root) {
@@ -119,7 +117,6 @@ export async function stage() {
         `releaseBaseline=${baseline.deploymentId}`,
       ],
       {
-        // pnpm reads .npmrc from its working directory, and the checkout holds the candidate's.
         cwd: path.dirname(fileURLToPath(import.meta.url)),
         env: {
           ...process.env,
@@ -256,8 +253,6 @@ export async function recordSourceQA() {
   await writeState(required("RELEASE_STATE_FILE"), state);
 }
 
-// Run on pull requests, so a path the release classifier cannot place fails the
-// PR that adds it instead of stopping a later release before promotion.
 export async function checkPathClassification() {
   const headSha = await command("git", ["rev-parse", "HEAD"]);
   const base = await command("git", [

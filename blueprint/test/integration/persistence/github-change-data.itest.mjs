@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
 import { readPullRequestSummaries } from "../../../src/lib/github-change-data.ts";
 
 const migration = await readFile(
@@ -138,4 +140,164 @@ test("D1 SQL retains merged metrics permanently under the merge SHA", async (t) 
   });
   assert.deepEqual(cached, first);
   assert.equal(requestCount(), 2);
+});
+
+test("refreshes malformed cached pull request summaries from GitHub", async (t) => {
+  const database = new SQLiteD1();
+  t.after(() => database.close());
+  database.database
+    .prepare(
+      "INSERT INTO blueprint_github_pull_request_cache (cache_key, payload, expires_at) VALUES (?, ?, ?)",
+    )
+    .run("pr:552", JSON.stringify({ number: "552" }), null);
+  database.database
+    .prepare(
+      "INSERT INTO blueprint_github_pull_request_cache (cache_key, payload, expires_at) VALUES (?, ?, ?)",
+    )
+    .run(
+      "pr:553",
+      JSON.stringify({
+        number: 553,
+        state: "open",
+        mergedAt: null,
+        mergeCommitSha: null,
+        commits: 2,
+        filesChanged: 4,
+        additions: 8,
+        deletions: 1,
+        srcFiles: 2,
+      }),
+      null,
+    );
+  const github = setupServer(
+    http.get(
+      "https://api.github.com/repos/andrewck24/volleybro/pulls/552",
+      () =>
+        HttpResponse.json({
+          number: 552,
+          state: "open",
+          merged_at: null,
+          merge_commit_sha: null,
+          commits: 3,
+          changed_files: 1,
+          additions: 20,
+          deletions: 5,
+        }),
+    ),
+    http.get(
+      "https://api.github.com/repos/andrewck24/volleybro/pulls/553",
+      () => new HttpResponse(null, { status: 502 }),
+    ),
+    http.get(
+      "https://api.github.com/repos/andrewck24/volleybro/pulls/552/files*",
+      () => HttpResponse.json([{ filename: "src/example.ts" }]),
+    ),
+  );
+  github.listen({ onUnhandledRequest: "error" });
+  t.after(() => github.close());
+
+  const summaries = await readPullRequestSummaries(
+    [pullRequestUrl, pullRequestUrl.replace("/552", "/553")],
+    { env: { BLUEPRINT_DB: database }, now: 1_000 },
+  );
+  const cached = database.database
+    .prepare(
+      "SELECT payload FROM blueprint_github_pull_request_cache WHERE cache_key = ?",
+    )
+    .get("pr:552");
+
+  assert.equal(summaries[0]?.number, 552);
+  assert.equal(summaries[0]?.srcFiles, 1);
+  assert.ok(
+    summaries.some(
+      ({ number, filesChanged, srcFiles }) =>
+        number === 553 && filesChanged === 4 && srcFiles === 2,
+    ),
+  );
+  assert.equal(JSON.parse(cached.payload).number, 552);
+  assert.equal(JSON.parse(cached.payload).srcFiles, 1);
+});
+
+test("returns verified GitHub summaries when reading the cache fails", async (t) => {
+  const database = new SQLiteD1();
+  t.after(() => database.close());
+  database.database.exec("DROP TABLE blueprint_github_pull_request_cache");
+  const github = setupServer(
+    http.get(
+      "https://api.github.com/repos/andrewck24/volleybro/pulls/552",
+      () =>
+        HttpResponse.json({
+          number: 552,
+          state: "open",
+          merged_at: null,
+          merge_commit_sha: null,
+          commits: 3,
+          changed_files: 1,
+          additions: 20,
+          deletions: 5,
+        }),
+    ),
+    http.get(
+      "https://api.github.com/repos/andrewck24/volleybro/pulls/552/files*",
+      () => HttpResponse.json([{ filename: "src/example.ts" }]),
+    ),
+  );
+  github.listen({ onUnhandledRequest: "error" });
+  t.after(() => github.close());
+
+  const summaries = await readPullRequestSummaries([pullRequestUrl], {
+    env: { BLUEPRINT_DB: database },
+    now: 1_000,
+  });
+
+  assert.equal(summaries[0]?.number, 552);
+  assert.equal(summaries[0]?.srcFiles, 1);
+});
+
+test("serves verified GitHub data even when writing the cache fails", async (t) => {
+  const database = new SQLiteD1();
+  t.after(() => database.close());
+  database.database.exec(`
+    CREATE TRIGGER reject_cache_write
+    BEFORE INSERT ON blueprint_github_pull_request_cache
+    BEGIN
+      SELECT RAISE(ABORT, 'cache writes unavailable');
+    END;
+  `);
+  const github = setupServer(
+    http.get(
+      "https://api.github.com/repos/andrewck24/volleybro/pulls/552",
+      () =>
+        HttpResponse.json({
+          number: 552,
+          state: "open",
+          merged_at: null,
+          merge_commit_sha: null,
+          commits: 3,
+          changed_files: 1,
+          additions: 20,
+          deletions: 5,
+        }),
+    ),
+    http.get(
+      "https://api.github.com/repos/andrewck24/volleybro/pulls/552/files*",
+      () => HttpResponse.json([{ filename: "src/example.ts" }]),
+    ),
+  );
+  github.listen({ onUnhandledRequest: "error" });
+  t.after(() => github.close());
+
+  const summaries = await readPullRequestSummaries([pullRequestUrl], {
+    env: { BLUEPRINT_DB: database },
+    now: 1_000,
+  });
+  const cachedCount = database.database
+    .prepare(
+      "SELECT COUNT(*) AS count FROM blueprint_github_pull_request_cache",
+    )
+    .get().count;
+
+  assert.equal(summaries[0]?.number, 552);
+  assert.equal(summaries[0]?.srcFiles, 1);
+  assert.equal(cachedCount, 0);
 });

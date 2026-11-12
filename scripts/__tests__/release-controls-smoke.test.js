@@ -63,7 +63,6 @@ async function prepareSmokeRun(f, { alias = "dpl_cand", env = {} } = {}) {
   };
 }
 
-// The verdict classify hands to the accept job.
 const ACCEPT_ENV = (f) => ({
   SMOKE_OUTCOME: "pass",
   SMOKE_AUTH: "unchanged",

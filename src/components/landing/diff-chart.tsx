@@ -33,8 +33,6 @@ const splinePath = (points: Point[]) => {
   return path;
 };
 
-// Two clip paths split the colours at the baseline, so they stay exact along
-// the curve.
 export const DiffChart = ({ className }: { className?: string }) => {
   const { rallies } = useRally();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -59,7 +57,6 @@ export const DiffChart = ({ className }: { className?: string }) => {
       points = diffs.map((diff, i) => [i * spacing, yOf(diff)]);
     } else {
       const spacing = VIEW_WIDTH / (capacity - 1);
-      // one extra point sits off-canvas on the left
       points = diffs
         .slice(count - capacity - 1)
         .map((diff, j) => [(j - 1) * spacing, yOf(diff)]);

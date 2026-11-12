@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// `gh pr checks --watch --required` can return before the aggregate Verify
-// check exists, so this polls the named checks and GitHub's merge state.
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -23,11 +21,6 @@ function runId(check) {
   return Number(check.link?.match(RUN_ID)?.[1] ?? 0);
 }
 
-// A cancelled or rerun workflow leaves the old run's checks beside the new
-// run's, and its aggregate Verify reports FAILURE; a dispatched run of the same
-// workflow can share the head. Only the newest pull_request run of a workflow
-// counts, so a required check that run has not created yet is still pending.
-// A check outside Actions has no run to compare, so any failed entry counts.
 function currentEntry(checks, name) {
   const entries = checks.filter((c) => c.name === name);
   const fromRuns = entries.filter((c) => runId(c) > 0);
@@ -83,8 +76,6 @@ export function assessReadiness({ checks, pr, head }) {
   return { status: "ready" };
 }
 
-// `gh pr checks` exits non-zero while checks are pending or failing but still
-// prints the JSON, and prints nothing before the first check is reported.
 export function parseGhOutput(stdout) {
   return stdout.trim() === "" ? [] : JSON.parse(stdout);
 }
@@ -153,7 +144,6 @@ async function main() {
       ]);
       result = assessReadiness({ checks, pr, head });
     } catch (error) {
-      // A transient gh or network error is retried until the deadline.
       result = { status: "wait", reason: `gh failed: ${error.message}` };
     }
     if (result.status === "ready" || result.status === "merged") {

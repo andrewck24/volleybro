@@ -40,7 +40,6 @@ function parseDeployHookUrl(value: string): URL {
   return url;
 }
 
-/** Trigger a Workers Build using the URL-shaped secret created by Cloudflare. */
 export async function triggerCloudflareDeployHook(
   deployHookUrl: string,
   http: Pick<HttpAccess, "fetch">,

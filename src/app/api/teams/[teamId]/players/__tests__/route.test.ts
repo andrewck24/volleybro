@@ -91,7 +91,6 @@ describe("POST /api/teams/[teamId]/players", () => {
     consoleSpy.mockRestore();
   });
 
-  // The exact body CreateForm's handleSubmit sends (src/components/team/players/create-form.tsx):
   it("returns 201 for the payload the create-player form actually sends", async () => {
     const created = {
       id: "player-1",

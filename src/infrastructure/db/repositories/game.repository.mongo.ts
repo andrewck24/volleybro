@@ -82,11 +82,6 @@ export class GameRepositoryImpl implements IGameRepository {
     }
   }
 
-  /**
-   * A positional write touches one entry, so the guard has to keep the write
-   * off a path that does not exist yet — an out-of-range index would otherwise
-   * pad the array with nulls instead of failing.
-   */
   private async writeToSet(
     { gameId, setIndex }: EntryRef,
     guardPath: string,
@@ -110,7 +105,6 @@ export class GameRepositoryImpl implements IGameRepository {
           mapEntryRead(e),
         ) as unknown as Entry[];
       }
-      // The guard failed as a whole; one lookup says which half of it did.
       const game = await this.model.exists({ _id: gameId }).exec();
       throw game
         ? new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found")
@@ -226,9 +220,6 @@ export class GameRepositoryImpl implements IGameRepository {
     const guard = { _id: ref.gameId, [path]: { $exists: true } };
 
     try {
-      // A write that matches nothing lost a race to another write on the set;
-      // planning again against a fresh read re-classifies it (a lost create
-      // becomes an edit) and re-validates the lineups instead of dropping it.
       await this.retryOnConflict(async () => {
         const current = await this.findSet(ref);
         const ver = current.ver ?? 0;
@@ -253,8 +244,6 @@ export class GameRepositoryImpl implements IGameRepository {
         );
         const lineupSet = lineupWrites(path, planned.set.lineups);
 
-        // Each op is conditioned on the ver the previous op left; lineups go
-        // only on the last op, so they never lead the entries.
         const last = plan.length - 1;
         const ops = plan.map((step, i): AnyBulkWriteOperation<GameDocument> => {
           const filter = { ...guard, ...atVer(path, ver + i) };
@@ -282,8 +271,6 @@ export class GameRepositoryImpl implements IGameRepository {
                 updateOne: {
                   filter: { ...filter, [`${path}.entries.id`]: step.id },
                   update: {
-                    // Mongoose drops a discriminator's field when an update names
-                    // it through an array filter, so the slot is written whole.
                     $set: {
                       [`${path}.entries.$[e]`]: step.edited,
                       ...(i === last && lineupSet),
@@ -444,7 +431,6 @@ export class GameRepositoryImpl implements IGameRepository {
       return {
         data,
         hasMore,
-        // length checked > 0, so the last element is present
         lastId: data.length > 0 ? data[data.length - 1]!.id : (lastId ?? ""),
       };
     } catch (error) {

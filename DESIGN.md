@@ -187,6 +187,8 @@ HIG-informed principles guide usability and accessibility. VolleyBro's token rol
 
 Teal `primary` is the interface brand color: primary actions, the brand ground and launch splash. Coral `court` is the mark and court color, distinct from danger. The V mark comes from the Saira Stencil One lowercase v: its right arm stays coral; neutral parts use currentColor on light/dark grounds and ivory on teal. The logo-symbol is the V and the logo-type is the VolleyBro wordmark. Geometry and assets live in `src/components/brand/` and `public/brand/`.
 
+The Blueprint logo components mirror the frozen mark geometry from `src/components/brand/`; update their copies only when that geometry changes. Generate raster icons from `public/brand/logo-symbol.svg` with `node scripts/generate-icons.js`: standard icons use a 60% mark, maskable icons use 45% to fit the 80% safe zone, all on primary teal, and `favicon.ico` combines 32px and 16px versions.
+
 ### Semantic roles
 
 | Token family                   | Role                                                                                                                       |
