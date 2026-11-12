@@ -14,9 +14,6 @@ import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 import { fn } from "storybook/test";
 
-// SyncIndicator reads enqueue/flush/retry from context now that
-// usePendingWrites mounts once in Game -- this decorator stands in for
-// that single owner so the story can render GameHeader on its own.
 const PendingWritesDecorator = ({
   children,
 }: {
@@ -39,8 +36,6 @@ const lineup = {
   substitutes: [],
 };
 
-// Two sets already decided (home won set 1, away won set 2) and the third
-// set in progress at 6:3 -- matches the design's 375px layout mockup.
 const game: GameView = {
   id: gameId,
   win: null,

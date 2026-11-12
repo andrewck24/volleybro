@@ -45,15 +45,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Latest entry, at rest: not expanded yet.
 export const Collapsed: Story = {
   args: { isLatest: true },
 };
 
-// Tap inline-expands the row in place to show the entry detail + actions,
-// without leaving the list (`entry-ui` change, scenario "Tap inline-expands
-// the row in place"). Runs a real click via Storybook's play function to
-// reach the expanded state.
 export const TapExpandedLatest: Story = {
   args: { isLatest: true },
   play: async ({ canvasElement }) => {

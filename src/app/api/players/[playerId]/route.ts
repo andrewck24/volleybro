@@ -7,12 +7,6 @@ import {
 } from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * GET /api/players/{playerId} - Get Single Player
- * PATCH /api/players/{playerId} - Update Player Info
- * DELETE /api/players/{playerId} - Remove Player
- */
-
 export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },

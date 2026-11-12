@@ -74,7 +74,6 @@ describe("PATCH /api/players/[playerId]/invitations", () => {
     });
   });
 
-  // The exact body handleLeaveTeam sends (src/components/team/info/index.tsx):
   it("returns 200 for the payload the leave-team control actually sends", async () => {
     mockLeaveTeam.mockResolvedValue(undefined);
     const req = routeRequest(

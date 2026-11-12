@@ -4,15 +4,9 @@ export type DeviceConfig = {
   height: number;
 };
 
-// The apple-splash route serves images as `immutable`, so a design change at
-// the same URL is never re-fetched by CDN / service worker / browser. Bump this
-// whenever the splash rendering changes to move the URL and bust those caches.
-// (iOS home-screen installs still cache the splash at install time — those need
-// a remove-and-re-add; this only fixes the HTTP-cache layers.)
 export const SPLASH_VERSION = "2";
 
 export const devices: DeviceConfig[] = [
-  // iPhone (existing 9)
   {
     media:
       "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)",
@@ -67,7 +61,6 @@ export const devices: DeviceConfig[] = [
     width: 1290,
     height: 2796,
   },
-  // iPhone 17 generation (new 3)
   {
     media:
       "(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
@@ -86,7 +79,6 @@ export const devices: DeviceConfig[] = [
     width: 1260,
     height: 2736,
   },
-  // iPad portrait (new 3)
   {
     media:
       "(device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)",

@@ -17,8 +17,6 @@ const GAME_ID = "665f1c2b9d3e4a0012345678";
 type RouteResponse = { status: number; json: () => Promise<unknown> };
 
 let GET: (req: never, props: never) => Promise<RouteResponse>;
-// Imported after resetModules, so it is the class the route's error handler
-// checks against.
 let NotFoundError: typeof import("@/entities/errors").NotFoundError;
 
 const get = (gameId: string) =>
@@ -60,7 +58,7 @@ describe("GET /api/games/[gameId]", () => {
     });
   });
 
-  it("returns 404 when the controller finds no game", async () => {
+  it("recognizes a NotFoundError instance imported after resetModules", async () => {
     const consoleSpy = silenceConsoleError();
     mockFindGameController.mockRejectedValue(
       new NotFoundError("GAME_NOT_FOUND", "Game not found"),

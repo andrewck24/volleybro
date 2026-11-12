@@ -28,7 +28,6 @@ export async function GET(
 
   const svgSize = Math.round(0.25 * Math.min(w, h));
 
-  // TYPE_VIEWBOX is a fixed 4-part "minX minY width height" constant
   const [, , typeVbWidth, typeVbHeight] = TYPE_VIEWBOX.split(" ").map(
     Number,
   ) as [number, number, number, number];

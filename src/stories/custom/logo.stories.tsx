@@ -11,7 +11,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// One snapshot for the sizes the app uses.
 export const Sizes: Story = {
   render: (args) => (
     <div className="flex items-end gap-6">

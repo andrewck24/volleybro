@@ -9,7 +9,6 @@ import EditTeamModalPage from "../page";
 const mockTeamId = "507f1f77bcf86cd799439011";
 const mockBack = jest.fn();
 
-// use(props.params) suspends in jsdom — return the params synchronously instead.
 jest.mock("react", () => ({
   ...jest.requireActual<typeof import("react")>("react"),
   use: () => ({ teamId: mockTeamId }),
@@ -64,7 +63,7 @@ describe("EditTeamModalPage", () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it("sends the edited team, refetches it and closes on success", async () => {
+  it("renders the edit route with synchronous params in jsdom", async () => {
     let patchBody: unknown;
     let teamFetches = 0;
     server.use(

@@ -82,26 +82,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Idle: the drawer anchored above the Preview shows only the handle and the
-// latest entry (`entry-ui` change, scenario "Idle drawer shows handle and
-// latest entry").
 export const Idle: Story = {
   args: {
     state: "idle",
   },
 };
 
-// Expanded: the latest entry rises with the top edge and becomes the first
-// row of the full list, in place (`entry-ui` change, scenario "Expanding
-// promotes the latest entry to the first row").
 export const Expanded: Story = {
   args: {
     state: "expanded",
   },
 };
 
-// Audit: an empty entry list must not crash the drawer -- only the handle
-// renders.
 export const EmptyIdle: Story = {
   args: {
     entries: [],

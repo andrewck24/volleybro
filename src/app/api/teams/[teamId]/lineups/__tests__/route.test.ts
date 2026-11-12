@@ -147,9 +147,6 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
     );
   });
 
-  // The exact shape Lineup's handleSave sends (src/components/team/lineup/index.tsx):
-  // JSON.stringify(lineups) where lineups: LineupView[] comes straight from
-  // redux state, whose fields are exactly options/starting/liberos/substitutes.
   it("returns 200 for the payload the lineup editor actually sends", async () => {
     const realLineup = {
       options: { liberoReplaceMode: 1, liberoReplacePosition: Position.OH },

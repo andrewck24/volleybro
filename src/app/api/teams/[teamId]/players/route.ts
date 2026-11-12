@@ -7,11 +7,6 @@ import {
 } from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * POST /api/teams/{teamId}/players - Create Invitation or Pure Player
- * GET /api/teams/{teamId}/players - List all players in team
- */
-
 export const POST = (
   _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
