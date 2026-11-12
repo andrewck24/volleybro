@@ -51,8 +51,6 @@ export const Substitutes = ({
       seq: isEditing ? draft.seq : entryIndex,
       at: new Date().toISOString(),
     };
-    // Checked against what the recorder sees, applied to what the cache holds:
-    // the queue merges its own entries over the cache on every read.
     const checked = applySubstitution(game!, setIndex, entry);
     if ("invalid" in checked) {
       const { substitutionId, scoreBefore } = checked.invalid;

@@ -2,6 +2,7 @@ import { Substitutes } from "@/components/game/panel/substitutes";
 import { Toaster } from "@/components/ui/toaster";
 import { EntryType, MoveType, Side, upsertEntries } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
@@ -17,6 +18,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
+import { SWRConfig } from "swr";
 
 const lineups = {
   home: {
@@ -144,6 +146,53 @@ describe("Substitutes.onSubmit", () => {
 
     expect(await screen.findByText("換人與目前陣容不符")).toBeInTheDocument();
     expect(puts).toHaveLength(0);
+  });
+});
+
+describe("Substitutes with a substitution still queued", () => {
+  it("validates against merged entries but writes to the cache", async () => {
+    const puts = answerEntries(() => new Promise<Response>(() => {}));
+    const game = gameWith([]);
+    server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
+    const cache = new Map();
+    const store = makeStore();
+    store.dispatch(
+      gameActions.initialize({ game: game as never, setIndex: 0 }),
+    );
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        gameId: "game-1",
+        setIndex: 0,
+        entry: {
+          type: EntryType.SUBSTITUTION,
+          id: "queued",
+          seq: 0,
+          at: new Date().toISOString(),
+          team: Side.HOME,
+          players: { in: "p2", out: "p1" },
+        },
+      }),
+    );
+    store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+    store.dispatch(gameActions.setEntryDraftSubstitution("p3"));
+    render(
+      <SWRConfig value={{ provider: () => cache, dedupingInterval: 0 }}>
+        <Provider store={store}>
+          <PendingWritesOwner>
+            <Substitutes gameId="game-1" mode="general" />
+          </PendingWritesOwner>
+        </Provider>
+      </SWRConfig>,
+    );
+    await screen.findByRole("button", { name: /選手三/ });
+
+    await userEvent.click(screen.getByRole("button", { name: /確認/ }));
+
+    await waitFor(() => expect(puts).toHaveLength(1));
+    const cached = cache.get("/api/games/game-1")?.data as ReturnType<
+      typeof gameWith
+    >;
+    expect(cached.sets[0]!.entries).toEqual([]);
   });
 });
 
