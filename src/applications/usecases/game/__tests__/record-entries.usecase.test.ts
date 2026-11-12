@@ -73,8 +73,6 @@ describe("RecordEntriesUseCase", () => {
     const operator = createPlayer({ id: "player-9" });
     mockAuthzService.verifyTeamRole.mockResolvedValue(operator);
     const entries = [createRecordedRally(newRally)];
-    // A mid-set score with the set already undecided: deriveSetCompletion
-    // sees no phase change to report.
     const game = createGame();
     game.sets[0]!.win = null;
     mockGameRepository.findById.mockResolvedValue(game);
@@ -109,6 +107,23 @@ describe("RecordEntriesUseCase", () => {
         data: [newRally],
       }),
     ).rejects.toMatchObject({ reason: GameReason.SET_NOT_FOUND });
+  });
+
+  it("authorizes team membership before revealing set existence", async () => {
+    const denied = new Error("not a team member");
+    mockGameRepository.findById.mockResolvedValue({
+      ...createGame(),
+      sets: [],
+    });
+    mockAuthzService.verifyTeamRole.mockRejectedValue(denied);
+
+    await expect(
+      useCase().execute({
+        params: { gameId: "game-1", setIndex: 0 },
+        data: [newRally],
+      }),
+    ).rejects.toBe(denied);
+    expect(mockGameRepository.upsertEntries).not.toHaveBeenCalled();
   });
 
   it("reports the set result as confirmed once completeSet succeeds", async () => {

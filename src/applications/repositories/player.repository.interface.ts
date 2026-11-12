@@ -1,25 +1,11 @@
 import { NewPlayer, Player, PlayerFields, PlayerRole } from "@/entities/player";
 import type { NormalizedEmail } from "@/entities/user";
 
-/**
- * IPlayerRepository Interface
- * Abstract interface for Player data access operations
- * Implements Repository Pattern for Clean Architecture
- */
 export interface IPlayerRepository {
-  /**
-   * Find player by ID
-   */
   findById(id: string): Promise<Player | null>;
 
-  /**
-   * Find all players in a team
-   */
   findByTeamId(teamId: string): Promise<Player[]>;
 
-  /**
-   * Find all teams/players a user belongs to
-   */
   findByUserId(userId: string): Promise<Player[]>;
 
   findByUserIdOrInvitedEmail(
@@ -32,9 +18,6 @@ export interface IPlayerRepository {
     email: NormalizedEmail,
   ): Promise<Player | null>;
 
-  /**
-   * Create new player
-   */
   create(player: NewPlayer): Promise<Player>;
 
   /**
@@ -44,33 +27,16 @@ export interface IPlayerRepository {
    */
   update(id: string, updates: Partial<PlayerFields>): Promise<Player>;
 
-  /**
-   * Change a player's role only while it still equals `from`. Returns null
-   * when the player is gone or holds another role, so a caller that read the
-   * role earlier can tell its read went stale.
-   */
   updateRoleIf(
     id: string,
     from: PlayerRole,
     to: PlayerRole,
   ): Promise<Player | null>;
 
-  /**
-   * Delete player by ID
-   */
   delete(id: string): Promise<boolean>;
 
-  /**
-   * Find a player by team ID and user ID
-   * Used for verifying user's role in a specific team
-   */
   findByTeamIdAndUserId(teamId: string, userId: string): Promise<Player | null>;
 
-  /**
-   * Batch-link pending INVITED players (by email) to a registered userId.
-   * Uses updateMany: sets userId, clears email, idempotent.
-   * Returns the number of players modified.
-   */
   linkUserToInvitations(
     email: NormalizedEmail,
     userId: string,

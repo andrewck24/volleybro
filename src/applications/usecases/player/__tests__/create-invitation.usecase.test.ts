@@ -51,8 +51,7 @@ describe("CreateInvitationUseCase", () => {
       patch: Partial<PlayerFields>,
     ) => narrowPlayer({ ...nonePlayer, ...patch } as PlayerFields);
 
-    /** No account holds the address, and nobody on the team was invited to it. */
-    const unregistered = () => {
+    const noMatchingAccountOrInvitation = () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
     };
@@ -60,7 +59,7 @@ describe("CreateInvitationUseCase", () => {
     it("stores the lowercased email when no account holds it", async () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      unregistered();
+      noMatchingAccountOrInvitation();
       mockPlayerRepository.update.mockImplementation(applyPatchToNonePlayer);
 
       const result = await useCase.execute({
@@ -182,7 +181,7 @@ describe("CreateInvitationUseCase", () => {
     it("should invite with ADMIN role", async () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      unregistered();
+      noMatchingAccountOrInvitation();
       mockPlayerRepository.update.mockResolvedValue(
         createInvitedPlayer({
           id: playerId,
@@ -261,7 +260,7 @@ describe("CreateInvitationUseCase", () => {
     it("propagates when the player disappears during update", async () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      unregistered();
+      noMatchingAccountOrInvitation();
       mockPlayerRepository.update.mockRejectedValue(
         new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player not found"),
       );

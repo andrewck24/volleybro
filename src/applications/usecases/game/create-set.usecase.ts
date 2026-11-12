@@ -55,7 +55,6 @@ export class CreateSetUseCase implements ICreateSetUseCase {
     validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
 
     const startingLineups = { home: data.lineup };
-    // No entries, so nothing can be refused and the lineups are always derived.
     const { lineups } = upsertEntries({ startingLineups, entries: [] }, [])
       .set as { lineups: SetLineups };
     return this.gameRepository.addSet(

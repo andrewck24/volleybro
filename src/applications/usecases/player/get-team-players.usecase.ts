@@ -13,10 +13,6 @@ export interface IGetTeamPlayersUseCase {
   execute(input: IGetTeamPlayersInput): Promise<Player[]>;
 }
 
-/**
- * GetTeamPlayersUseCase Implementation
- * Get all players in a team (members, invitees, pure players)
- */
 @injectable()
 export class GetTeamPlayersUseCase implements IGetTeamPlayersUseCase {
   constructor(

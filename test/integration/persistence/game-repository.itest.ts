@@ -5,6 +5,8 @@ import {
   createRecordedRally,
   createRecordedSubstitution,
 } from "@test/support/fixtures/entries";
+import { barrier, releaseGates } from "@test/support/gates";
+import { Game as GameModel } from "@/infrastructure/db/mongoose/schemas/game";
 import mongoose from "mongoose";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
@@ -23,6 +25,8 @@ const startedSet = (lineup: Lineup) => {
 };
 
 const games = () => container.get<IGameRepository>(TYPES.GameRepository);
+
+afterEach(() => releaseGates());
 
 describe("game reads and writes", () => {
   it("finds no game for an id nobody holds", async () => {
@@ -100,6 +104,75 @@ describe("game reads and writes", () => {
         .collection("games")
         .findOne({ _id: new mongoose.Types.ObjectId(id) });
 
+    it("appends a set without overwriting concurrent entries", async () => {
+      const { gameId, playerIds } = await seedGame();
+      const at = new Date("2026-03-01T10:00:00.000Z");
+      await games().addSet(
+        { gameId, setIndex: 0 },
+        startedSet(lineupFor(playerIds)),
+      );
+
+      const writeBarrier = barrier(2);
+      const updateOne = GameModel.updateOne.bind(GameModel);
+      const bulkWrite = GameModel.bulkWrite.bind(GameModel);
+      const updateOneSpy = jest
+        .spyOn(GameModel, "updateOne")
+        .mockImplementation(
+          (...args) =>
+            writeBarrier
+              .wait()
+              .then(() => updateOne(...args)) as unknown as ReturnType<
+              typeof GameModel.updateOne
+            >,
+        );
+      const bulkWriteSpy = jest
+        .spyOn(GameModel, "bulkWrite")
+        .mockImplementation(
+          (...args) =>
+            writeBarrier
+              .wait()
+              .then(() => bulkWrite(...args)) as unknown as ReturnType<
+              typeof GameModel.bulkWrite
+            >,
+        );
+      const writes = [
+        games().addSet(
+          { gameId, setIndex: 1 },
+          startedSet(lineupFor(playerIds)),
+        ),
+        games().upsertEntries(
+          { gameId, setIndex: 0 },
+          [{ entry: createRecordedRally({ id: "rally-1", seq: 0 }), at }],
+          oid(),
+        ),
+      ];
+      try {
+        const settledBeforeBothWrites = Promise.race(
+          writes.map((write) =>
+            write.then(() =>
+              Promise.reject(
+                new Error("A write finished before the barrier opened"),
+              ),
+            ),
+          ),
+        );
+        await Promise.race([writeBarrier.ready, settledBeforeBothWrites]);
+      } finally {
+        writeBarrier.release();
+        await Promise.allSettled(writes);
+        updateOneSpy.mockRestore();
+        bulkWriteSpy.mockRestore();
+      }
+      await Promise.all(writes);
+
+      const stored = await games().findById(gameId);
+      expect(stored?.sets).toHaveLength(2);
+      expect(stored?.sets[0]?.entries.map((entry) => entry.id)).toEqual([
+        "rally-1",
+      ]);
+      expect(stored?.sets[1]?.entries).toEqual([]);
+    });
+
     it.each([
       ["a game that does not exist", NotFoundError, "missing", 0],
       ["a gap before the last set", ValidationError, "empty", 1],
@@ -138,5 +211,60 @@ describe("game reads and writes", () => {
 
       expect((await rawGame(gameId))!.teams.home).not.toHaveProperty("lineup");
     });
+  });
+
+  it("recomputes the stored lineup from substitutions and rejects an invalid starting lineup", async () => {
+    const { gameId, playerIds } = await seedGame({ playerCount: 8 });
+    const outgoing = playerIds[0]!;
+    const incoming = playerIds[6]!;
+    const startingLineup = {
+      ...lineupFor(playerIds),
+      substitutes: [{ id: incoming, position: Position.OH }],
+    };
+    const at = new Date("2026-03-01T10:00:00.000Z");
+    await games().addSet({ gameId, setIndex: 0 }, startedSet(startingLineup));
+    await games().upsertEntries(
+      { gameId, setIndex: 0 },
+      [
+        {
+          entry: createRecordedSubstitution({
+            id: "sub-1",
+            players: { in: incoming, out: outgoing },
+          }),
+          at,
+        },
+      ],
+      oid(),
+    );
+
+    const updated = await games().updateSet(
+      { gameId, setIndex: 0 },
+      {
+        options: {
+          serve: "away",
+          time: { start: "10:00", end: "" },
+        },
+        lineup: startingLineup,
+      },
+    );
+    const invalidLineup = {
+      ...startingLineup,
+      starting: startingLineup.starting.filter(
+        (player) => player.id !== outgoing,
+      ),
+    };
+    await expect(
+      games().updateSet(
+        { gameId, setIndex: 0 },
+        { options: updated.sets[0]!.options, lineup: invalidLineup },
+      ),
+    ).rejects.toMatchObject({ reason: GameReason.INVALID_SUBSTITUTION });
+
+    const stored = await games().findById(gameId);
+    const starting = stored?.sets[0]?.lineups.home.starting.map(
+      (player) => player.id,
+    );
+    expect(starting).toContain(incoming);
+    expect(starting).not.toContain(outgoing);
   });
 });

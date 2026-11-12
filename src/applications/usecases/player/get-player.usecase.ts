@@ -14,10 +14,6 @@ export interface IGetPlayerUseCase {
   execute(input: IGetPlayerInput): Promise<Player | null>;
 }
 
-/**
- * GetPlayerUseCase Implementation
- * Get single player by ID
- */
 @injectable()
 export class GetPlayerUseCase implements IGetPlayerUseCase {
   constructor(

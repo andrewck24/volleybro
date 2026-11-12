@@ -17,6 +17,7 @@ import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
+import { barrier, releaseGates } from "@test/support/gates";
 import { withFailPoint } from "../support/failpoint";
 import { oid } from "../support/seed";
 
@@ -112,6 +113,8 @@ const withWriteFailure = (
     { failCommands: ["findAndModify"], ...failure },
     run,
   );
+
+afterEach(() => releaseGates());
 
 const expectPlayerInLineup = async (teamId: string, playerId: string) => {
   const team = await TeamModel.findById(teamId).lean();
@@ -311,6 +314,65 @@ describe("membership removal transactions", () => {
     await expectOwner(membership.teamId, membership.ownerPlayerId);
     await expectPlayerOutOfLineup(membership.teamId);
     expect(await PlayerModel.findById(membership.playerId)).toBeNull();
+  });
+
+  it("conflicts ownership transfer with concurrent removal", async () => {
+    const membership = await createAdminMembership();
+    const transactionBarrier = barrier(2);
+    const runner: ITransactionRunner = {
+      async run<T>(operation: () => Promise<T>): Promise<T> {
+        return transactionRunner().run(async () => {
+          await transactionBarrier.wait();
+          return operation();
+        });
+      },
+    };
+    const operations = [
+      transferOwnershipWith(runner).execute({
+        teamId: membership.teamId,
+        newOwnerId: membership.playerId,
+        userId: membership.ownerUserId,
+      }),
+      removePlayerWith(runner).execute({
+        playerId: membership.playerId,
+        userId: membership.ownerUserId,
+      }),
+    ];
+    try {
+      const settledBeforeBothTransactions = Promise.race(
+        operations.map((operation) =>
+          operation.then(() =>
+            Promise.reject(
+              new Error(
+                "An operation finished before both transactions started",
+              ),
+            ),
+          ),
+        ),
+      );
+      await Promise.race([
+        transactionBarrier.ready,
+        settledBeforeBothTransactions,
+      ]);
+    } finally {
+      transactionBarrier.release();
+      await Promise.allSettled(operations);
+    }
+    const results = await Promise.allSettled(operations);
+
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const target = await PlayerModel.findById(membership.playerId).lean();
+    if (target) {
+      expect(target.status).toBe(PlayerStatus.JOINED);
+      expect(target.role).toBe(PlayerRole.ADMIN);
+      await expectOwner(membership.teamId, membership.playerId);
+      await expectPlayerInLineup(membership.teamId, membership.playerId);
+    } else {
+      await expectOwner(membership.teamId, membership.ownerPlayerId);
+      await expectPlayerOutOfLineup(membership.teamId);
+    }
   });
 
   it("retries transfer after one transient team write conflict", async () => {

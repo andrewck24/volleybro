@@ -109,7 +109,6 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
         );
       }
 
-      // Write the team first so a concurrent removal conflicts before this read.
       const persistedNewOwner =
         await this.playerRepository.findById(newOwnerId);
       if (!persistedNewOwner || !isTeamMember(persistedNewOwner)) {

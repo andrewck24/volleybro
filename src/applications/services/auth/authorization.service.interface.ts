@@ -7,8 +7,5 @@ export interface IAuthorizationService {
     role: PlayerRole,
   ): Promise<TeamMember>;
 
-  /**
-   * Verify user is admin or owner of the team
-   */
   verifyIsTeamAdmin(teamId: string, userId: string): Promise<void>;
 }

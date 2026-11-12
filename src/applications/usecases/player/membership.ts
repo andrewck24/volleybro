@@ -21,11 +21,6 @@ const DETAILS: Record<ManageRefusal, string> = {
 export const getManageRefusalDetail = (refusal: ManageRefusal): string =>
   DETAILS[refusal];
 
-/**
- * Authorize the caller against the player they are about to change or delete.
- * The caller is their own player on the target's team, so this answers both
- * "does the caller belong to this team" and "may they manage this target".
- */
 export const authorizeManagePlayer = async (
   players: IPlayerRepository,
   teams: ITeamRepository,

@@ -43,6 +43,13 @@ const game = (overrides: {
 });
 
 describe("deriveSetCompletion", () => {
+  it("returns null for a set absent at read time", () => {
+    const entries = [rally(1, 0)];
+    const g = game({ sets: [] });
+
+    expect(deriveSetCompletion(g, 0, entries)).toBeNull();
+  });
+
   it("returns null when the set is still in progress and win is already null", () => {
     const entries = [rally(1, 0)];
     const g = game({ sets: [set(null, entries)] });
