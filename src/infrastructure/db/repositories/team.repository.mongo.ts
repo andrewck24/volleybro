@@ -97,9 +97,6 @@ export class TeamRepositoryImpl implements ITeamRepository {
   ): Promise<boolean> {
     try {
       const objectId = new Types.ObjectId(playerId);
-      // A starting slot is a court position, so it empties in place; liberos
-      // and substitutes are plain lists. One update cannot $set and $pull the
-      // same array, hence separate operations in one ordered bulk write.
       const result = await TeamModel.bulkWrite([
         {
           updateOne: {
@@ -132,7 +129,6 @@ export class TeamRepositoryImpl implements ITeamRepository {
           },
         },
         {
-          // Pipeline, since the bound is another field: the editor's libero-count cap.
           updateOne: {
             filter: { _id: teamId, ownerPlayerId: { $ne: objectId } },
             update: [

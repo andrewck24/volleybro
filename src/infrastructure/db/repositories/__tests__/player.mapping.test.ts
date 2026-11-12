@@ -38,6 +38,16 @@ describe("toPlayer", () => {
 
     expect(player).not.toHaveProperty("userId");
   });
+
+  it("rejects an old player document without status rather than defaulting it", () => {
+    expect(() =>
+      toPlayer({
+        _id: new Types.ObjectId(),
+        teamId: new Types.ObjectId(),
+        name: "Old document",
+      } as unknown as RawPlayer),
+    ).toThrow(expect.objectContaining({ httpStatus: 400 }));
+  });
 });
 
 describe("toPlayerUpdateOps", () => {

@@ -63,7 +63,6 @@ export function toTeam(obj: RawTeam): Team {
     ownerPlayerId: obj.ownerPlayerId?.toString(),
     lineups:
       obj.lineups?.map((lineup) => ({
-        // `lineupSchema` is the one sub-schema without `{ _id: false }`.
         options: lineup.options,
         starting: lineup.starting.map(mapLineupPlayer),
         liberos: lineup.liberos.map(mapLineupPlayer),

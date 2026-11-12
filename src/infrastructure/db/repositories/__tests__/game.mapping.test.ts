@@ -46,6 +46,31 @@ describe("game document mapping", () => {
     expect(snapshot).not.toHaveProperty("playerId");
   });
 
+  it("does not expose a Mongoose subdocument id in the client lineup", () => {
+    const stored = {
+      _id: new Types.ObjectId(),
+      teamId: new Types.ObjectId(teamHexId),
+      teams: {
+        home: {
+          name: "Home",
+          players: [],
+          staffs: [],
+          lineup: {
+            _id: new Types.ObjectId(),
+            options: {},
+            starting: [],
+            liberos: [],
+            substitutes: [],
+          },
+        },
+        away: { name: "Away", players: [], staffs: [] },
+      },
+      sets: [],
+    } as unknown as RawGame;
+
+    expect(toGame(stored).teams.home.lineup).not.toHaveProperty("_id");
+  });
+
   it("toGameDoc stores client ids as playerId and drops the entity id", () => {
     const domainGame = {
       id: "ignored",
