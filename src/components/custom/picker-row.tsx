@@ -1,6 +1,5 @@
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 
-/** A tappable list row in a player or position picker. */
 export const PickerRow = ({
   code,
   label,
@@ -9,11 +8,9 @@ export const PickerRow = ({
   disabled,
   onClick,
 }: {
-  /** Jersey number or position code, e.g. "7" or "OH". */
   code?: React.ReactNode;
   label: React.ReactNode;
   icon?: React.ReactNode;
-  /** Set only for rows that show a current selection. */
   pressed?: boolean;
   disabled?: boolean;
   onClick: () => void;

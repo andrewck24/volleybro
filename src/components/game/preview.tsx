@@ -20,13 +20,25 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { RiSendPlaneLine } from "react-icons/ri";
 
-// Draft row: pulses while incomplete, shows a send affordance when complete,
-// and freezes/flashes on submit until the parent remounts it via key.
-//
-// `writing`/`failed`/`onRetry` only apply to the editing path (an existing
-// rally being replaced, not optimistic) -- only it ever sets them. Create
-// never does -- it advances immediately and its own progress belongs to
-// SyncIndicator, not this card.
+export type PreviewCardProps = {
+  hasPreview: true;
+  entry?: EntryView;
+  previousEntry?: EntryView;
+  players: GamePlayerView[];
+  isEditing?: boolean;
+  isComplete?: boolean;
+  isPulsing?: boolean;
+};
+
+type PreviewCardComponentProps = Omit<PreviewCardProps, "hasPreview"> & {
+  writing?: boolean;
+  failed?: boolean;
+  onRetry?: () => void;
+  onSubmit?: () => void;
+  onExpand?: () => void;
+  className?: string;
+};
+
 export const PreviewCard = ({
   entry,
   previousEntry,
@@ -40,20 +52,7 @@ export const PreviewCard = ({
   onSubmit,
   onExpand,
   className,
-}: {
-  entry?: EntryView;
-  previousEntry?: EntryView;
-  players: GamePlayerView[];
-  isEditing?: boolean;
-  isPulsing?: boolean;
-  isComplete?: boolean;
-  writing?: boolean;
-  failed?: boolean;
-  onRetry?: () => void;
-  onSubmit?: () => void;
-  onExpand?: () => void;
-  className?: string;
-}) => {
+}: PreviewCardComponentProps) => {
   const [frozen, setFrozen] = useState(false);
   const [flashing, setFlashing] = useState(false);
 
@@ -64,7 +63,6 @@ export const PreviewCard = ({
   }, [flashing]);
 
   const handleClick = () => {
-    // In flight or already failed: only the explicit retry control acts.
     if (writing || failed) return;
     if (isEditing && isComplete && !frozen) {
       setFrozen(true);
@@ -124,8 +122,6 @@ export const PreviewCard = ({
   );
 };
 
-// Single source of truth for the in-progress draft, shared by the Preview and
-// the Summary drawer so they never diverge.
 export const useEntryDraftPreview = (
   gameId: string,
   mode: ReduxGameState["mode"],
@@ -137,7 +133,6 @@ export const useEntryDraftPreview = (
     status: { isSetInProgress, entryIndex },
   } = useAppSelector((state) => state.game[mode]);
 
-  // a rolled-back optimistic mutate can transiently leave game undefined
   if (!game || !isSetInProgress) return { hasPreview: false as const };
 
   const { players } = game.teams.home;
@@ -175,11 +170,9 @@ export const useEntryDraftPreview = (
 
   const entry = isEditing || entryIndex === 0 ? draftEntry : previousEntry;
 
-  // first entry, before any input: nothing to preview
   if (!entry) return { hasPreview: false as const };
 
   const { submittable } = getEntryProgress(draft);
-  // === true so a valid num === 0 is not read as incomplete
   const isComplete = submittable === true;
 
   return {
@@ -214,16 +207,11 @@ export const GamePreview = ({
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
     preview;
 
-  // The update path doesn't advance optimistically, so unlike create it
-  // keeps showing this card until the write resolves -- these are pure
-  // projections of the same queue SyncIndicator reads, scoped to this draft's
-  // identity.
   const writing = mode === "editing" && isPendingWrite(pendingWrites, draftId);
   const failed = mode === "editing" && hasFailedWrite(pendingWrites, draftId);
 
   return (
     <PreviewCard
-      // remount per entry to reset the card's freeze/flash state
       key={entryIndex}
       entry={entry}
       previousEntry={previousEntry}

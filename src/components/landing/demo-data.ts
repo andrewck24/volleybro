@@ -1,5 +1,3 @@
-// The one demo set (25:21) behind the hero, stats and walkthrough. It imports
-// nothing from the app, so the hero side loads it without the recording code.
 export const DEMO_GAME_ID = "demo-game";
 
 export const HOME_TEAM = { id: "demo-home", name: "海豚隊" };
@@ -20,31 +18,25 @@ export const AWAY_PLAYERS = [
   { id: "a2", name: "對手二號", number: 4 },
 ];
 
-// home/away are indexes into lib/scoring-moves `scoringMoves` (away is one of
-// the home move's `outcome`); `win` mirrors that home move's `win`, stated here
-// so this module stays import-free.
 export type RallySpec = {
   player: string;
-  home: number;
-  away: number;
-  win: boolean;
+  homeMoveIndex: number;
+  awayMoveIndex: number;
+  homeWon: boolean;
 };
 
 const rallySpec = (
   player: string,
-  home: number,
-  away: number,
-  win: boolean,
+  homeMoveIndex: number,
+  awayMoveIndex: number,
+  homeWon: boolean,
 ) => ({
   player,
-  home,
-  away,
-  win,
+  homeMoveIndex,
+  awayMoveIndex,
+  homeWon,
 });
 
-// Rallies 1-12: the state the walkthrough opens on (7:5). Two of the losses are
-// the opponent's attack points (home 7→away 4, home 3→away 4), so the ATTACK
-// bar is 2:2 and the sent rally visibly moves it to 3:2.
 const OPENING: RallySpec[] = [
   rallySpec("p3", 4, 3, true),
   rallySpec("p2", 5, 11, false),
@@ -60,7 +52,6 @@ const OPENING: RallySpec[] = [
   rallySpec("p3", 11, 5, true),
 ];
 
-/** Rally 13 — the one the walkthrough records live and the stats count (+1 ATTACK). */
 export const SENT_RALLY: RallySpec = rallySpec("p3", 4, 7, true);
 
 const TAIL = "LLLWLLWLLLWWWLWWLWLLWWLWWLWLWWLWW";
@@ -92,14 +83,13 @@ export const SET_RALLIES: RallySpec[] = [
 
 export const SEED_COUNT = OPENING.length;
 
-/** One rally beat in ms; also set as --rally-beat. */
-export const INTERVAL = 2200;
+export const RALLY_BEAT_MS = 2200;
 
 export const FOLDED_RALLIES = (() => {
   let home = 0;
   let away = 0;
   return SET_RALLIES.map((rally) => {
-    if (rally.win) home++;
+    if (rally.homeWon) home++;
     else away++;
     return { ...rally, homeScore: home, awayScore: away };
   });

@@ -21,11 +21,6 @@ type StorageDispatch = (
   action: ReturnType<typeof pendingWritesActions.storageUnavailable>,
 ) => void;
 
-/**
- * Mirrors the queue to storage on every change to its contents. No debounce:
- * recording a rally and having it on disk must not be separated by a window in
- * which the app can die.
- */
 export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   const listener = createListenerMiddleware<StateWithPendingWrites>();
 

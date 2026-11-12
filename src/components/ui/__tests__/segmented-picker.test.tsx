@@ -30,12 +30,11 @@ describe("SegmentedPicker", () => {
     expect(onValueChange).toHaveBeenCalledWith("2");
   });
 
-  it("moves to and selects the next item on ArrowRight", async () => {
+  it("selects the focused item while its navigation key remains down", async () => {
     const { onValueChange, user } = setup();
     await user.tab();
     await user.keyboard("{ArrowRight>}");
     expect(screen.getByRole("radio", { name: "3" })).toHaveFocus();
-    // Radix selects the focused item on the next animation frame, while the key is still down.
     await waitFor(() => expect(onValueChange).toHaveBeenCalledWith("2"));
     await user.keyboard("{/ArrowRight}");
   });

@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 
-/** Floating retry affordance overlaid on an entry whose write exhausted its attempts. */
 export const FailedWriteRetry = ({
   onRetry,
   testId,
@@ -8,7 +7,6 @@ export const FailedWriteRetry = ({
 }: {
   onRetry?: () => void;
   testId?: string;
-  /** Lets clicks on the empty overlay area reach the row underneath. */
   passThroughPointerEvents?: boolean;
 }) => (
   <span

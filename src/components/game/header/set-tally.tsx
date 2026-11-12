@@ -12,12 +12,6 @@ const sideRingClass: Record<Side, string> = {
   away: "ring-away/50",
 };
 
-/**
- * One cell per set needed to win, sized from the match's own set count
- * (five-set matches: three cells; three-set matches: two). Cells are
- * hollow until won and fill from the bottom, since the bottom cell is the
- * one closest to being reached first.
- */
 export const SetTally = ({
   won,
   needed,

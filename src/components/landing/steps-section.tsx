@@ -21,7 +21,6 @@ const Numeral = ({ index }: { index: number }) => (
   </span>
 );
 
-/** The pinned walkthrough. It owns no demo state: `onStep` alone touches the components. */
 export const StepsSection = ({
   intro,
   onStep,
@@ -40,8 +39,13 @@ export const StepsSection = ({
   useAttackLine(sectionRef);
 
   return (
-    <div ref={sectionRef} data-step="0" className={styles.section}>
-      <div className={styles.stage}>
+    <div
+      ref={sectionRef}
+      data-step="0"
+      data-testid="steps-section"
+      className={styles.section}
+    >
+      <div data-testid="steps-stage" className={styles.stage}>
         <div className={styles.introColumn}>
           {intro}
           <div aria-hidden className={styles.captions}>
@@ -70,10 +74,13 @@ export const StepsSection = ({
             </li>
           ))}
         </ol>
-        {/* inert drops pointer, focus and the a11y tree; the sr-only list
-            above carries the content for screen readers */}
+
         <div className={styles.field}>
-          <div inert className={cn(styles.frame, "text-foreground")}>
+          <div
+            data-testid="steps-frame"
+            inert
+            className={cn(styles.frame, "text-foreground")}
+          >
             {children}
           </div>
         </div>

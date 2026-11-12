@@ -8,7 +8,6 @@ import { useEffect, useRef, type RefObject } from "react";
 
 const STEP_COUNT = STEPS.length;
 
-// landscape phones get a static block: no pin, no snap, no dot
 const useIsStaticLayout = () => useMediaQuery("(max-height: 500px)");
 
 export const useIsFingerDotEnabled = () => {

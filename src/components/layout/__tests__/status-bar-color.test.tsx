@@ -64,7 +64,7 @@ describe("StatusBarColor", () => {
     expect(document.body).toHaveStyle("background-color: var(--old-body)");
   });
 
-  it("puts its own theme-color first in <head>, leaving the framework's metas alone", () => {
+  it("keeps a separate theme-color meta across route changes", () => {
     const { rerender, unmount } = render(
       <StatusBarColor color="rgb(10, 20, 30)" />,
     );
@@ -87,17 +87,23 @@ describe("StatusBarColor", () => {
     ]);
   });
 
-  it("rewrites the theme-color when the theme class on <html> changes", async () => {
+  it("reads the resolved html theme color rather than an in-flight body color", async () => {
     const computedStyleSpy = jest.spyOn(window, "getComputedStyle");
     render(<StatusBarColor color="var(--color-card)" />);
 
-    computedStyleSpy.mockReturnValue({
-      backgroundColor: "rgb(29, 35, 45)",
-    } as CSSStyleDeclaration);
+    const htmlColor = "rgb(29, 35, 45)";
+    const bodyColor = "rgb(79, 85, 95)";
+    computedStyleSpy.mockImplementation(
+      (element) =>
+        ({
+          backgroundColor:
+            element === document.documentElement ? htmlColor : bodyColor,
+        }) as CSSStyleDeclaration,
+    );
     await act(async () => {
       document.documentElement.classList.add("dark");
     });
 
-    expect(headThemeColors()[0]).toEqual(["", "rgb(29, 35, 45)"]);
+    expect(headThemeColors()[0]).toEqual(["", htmlColor]);
   });
 });

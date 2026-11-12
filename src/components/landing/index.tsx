@@ -1,8 +1,6 @@
-// One RallyProvider wraps hero → stats; the walkthrough between them is a
-// server-passed child, so it never re-renders on a beat.
 import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
-import { INTERVAL, SEED_COUNT } from "@/components/landing/demo-data";
+import { RALLY_BEAT_MS, SEED_COUNT } from "@/components/landing/demo-data";
 import { RallyProvider } from "@/components/landing/rally";
 import {
   BTN_PRIMARY,
@@ -106,7 +104,6 @@ const Hero = () => (
   </section>
 );
 
-/** The intro is server-rendered here but placed inside the walkthrough's sticky stage. */
 const WalkthroughSection = () => (
   <section id="record" className="pt-16 md:pt-24">
     <LazyRecordDemo
@@ -172,8 +169,7 @@ const SupportingFeatures = () => (
             >
               <Icon className="size-6 lg:size-8" />
             </span>
-            {/* CJK ideographs rise 0.17em above the cap line text-box trims to
-                (measured); the margin lands their ink on the tile's top edge */}
+
             <div className="flex flex-col gap-2">
               <h3 className="mt-[0.17em] text-lg font-bold [text-box:trim-both_cap_alphabetic] md:text-2xl">
                 {feature.title}
@@ -198,8 +194,6 @@ const SupportingFeatures = () => (
 const Closing = () => (
   <section
     className={cn(
-      // lg: the attack-line extensions reach 1.95 m (10.7vw at 5.5vw a metre)
-      // past the side lines, so the padding is 13vw to end them in here
       "flex justify-center overflow-x-clip py-24 md:py-32 lg:justify-start lg:py-[13vw]",
       GUTTER,
     )}
@@ -286,10 +280,10 @@ const Footer = () => (
 export const Landing = () => (
   <main
     className="landing min-h-full w-full select-text"
-    style={{ "--rally-beat": `${INTERVAL}ms` } as CSSProperties}
+    style={{ "--rally-beat": `${RALLY_BEAT_MS}ms` } as CSSProperties}
   >
     <Header />
-    <RallyProvider seed={SEED_COUNT} replayFrom={SEED_COUNT}>
+    <RallyProvider initialRalliesPlayed={SEED_COUNT} replayFrom={SEED_COUNT}>
       <Hero />
       <WalkthroughSection />
       <Stats />

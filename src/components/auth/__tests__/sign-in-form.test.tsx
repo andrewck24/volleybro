@@ -4,8 +4,6 @@ import { deferred } from "@test/support/gates";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-// The Google sign-in redirects the whole window to the OAuth provider, which
-// jsdom cannot follow, so the auth client is replaced.
 jest.mock("@/lib/auth-client", () => ({
   authClient: {
     signIn: {
@@ -88,7 +86,7 @@ describe("SignInForm OAuth errors", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("已取消登入");
   });
 
-  it("falls back to a fixed message and never echoes the URL", () => {
+  it("does not render raw OAuth error query parameters", () => {
     mockSearch =
       "error=unable_to_get_user_info&error_description=%3Cb%3Einjected%3C%2Fb%3E";
     render(<SignInForm />);
@@ -96,5 +94,6 @@ describe("SignInForm OAuth errors", () => {
     expect(alert).toHaveTextContent("登入失敗");
     expect(alert).not.toHaveTextContent("injected");
     expect(alert).not.toHaveTextContent("unable_to_get_user_info");
+    expect(document.body).not.toHaveTextContent("error_description");
   });
 });

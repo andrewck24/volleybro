@@ -55,7 +55,12 @@ const meta = {
   component: PreviewCard,
   parameters: { layout: "centered" },
   tags: ["autodocs"],
-  args: { players, previousEntry, onSubmit: fn(), onExpand: fn() },
+  args: {
+    players,
+    previousEntry,
+    onSubmit: fn(),
+    onExpand: fn(),
+  },
   decorators: [
     (Story) => (
       <div className="w-md">

@@ -97,7 +97,6 @@ const renderPanel = async (
       </Provider>
     </SwrIsolation>,
   );
-  // The candidate list is built from the loaded game.
   await screen.findByRole("button", { name: benchPlayer });
 };
 
@@ -156,7 +155,7 @@ describe("Substitutes.onSubmit", () => {
 });
 
 describe("Substitutes with a substitution still queued", () => {
-  it("validates against queued entries without baking them into the cache", async () => {
+  it("validates against merged entries but writes to the cache", async () => {
     const gate = deferred();
     const puts = answerEntries(async () => {
       await gate.promise;
@@ -208,7 +207,6 @@ describe("Substitutes while editing a substitution", () => {
       createRecordedSubstitution({ id, seq, team: Side.HOME, players }),
     );
   const recorded = sub("sub-1", 5, { in: "p2", out: "p1" });
-  // The substitute went on at seq 5 and came off for the starter at seq 7.
   const swappedBack = [
     recorded,
     toEntryView(
@@ -259,7 +257,6 @@ describe("Substitutes while editing a substitution", () => {
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     await renderPanel(gameWith(swappedBack), 0);
 
-    // Putting p3 on instead of p2 leaves p2 off court when seq 7 takes them off.
     await userEvent.click(screen.getByRole("button", { name: /選手三/ }));
     await userEvent.click(screen.getByRole("button", { name: /確認/ }));
 

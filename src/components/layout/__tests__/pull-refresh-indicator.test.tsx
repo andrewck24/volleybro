@@ -2,7 +2,6 @@ import { PullRefreshIndicator } from "@/components/layout/pull-refresh-indicator
 import type { PullToRefreshState } from "@/hooks/use-pull-to-refresh";
 import { render, screen } from "@testing-library/react";
 
-// jsdom doesn't ship TransitionEvent; provide a minimal polyfill
 if (typeof TransitionEvent === "undefined") {
   class TransitionEventPolyfill extends Event {
     propertyName: string;
@@ -15,8 +14,6 @@ if (typeof TransitionEvent === "undefined") {
     TransitionEventPolyfill;
 }
 
-// The icon is aria-hidden and an svg has no role, so the stub carries the test id
-// that finds it; the classes asserted on it come from the component.
 jest.mock("react-icons/md", () => ({
   MdOutlineSportsVolleyball: (props: React.SVGProps<SVGSVGElement>) => (
     <svg data-testid="volleyball-icon" {...props} />

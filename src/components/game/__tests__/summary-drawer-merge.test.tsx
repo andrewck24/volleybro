@@ -49,8 +49,6 @@ const permanentFailure = {
   status: 400,
 };
 
-// Mocks neither SWR nor Redux, against the Component row of
-// docs/testing-strategy.md: the seam under test is the join between them.
 it("marks a queued rally the server rejected, on a row only the merge provides", async () => {
   const store: AppStore = makeStore();
   store.dispatch(

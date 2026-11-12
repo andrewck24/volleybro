@@ -1,8 +1,4 @@
 "use client";
-// The real recording components (GameCourt / GamePanel / GamePreview) on a
-// landing-only Redux store and a private SWR cache seeded with the demo game,
-// with a stub pending-writes queue: nothing fetches and the app's queue is
-// never touched.
 import { GameCourt } from "@/components/game/court";
 import { GamePanel } from "@/components/game/panel";
 import { GamePreview } from "@/components/game/preview";
@@ -51,8 +47,6 @@ const makeDemoStore = () => {
 
 type DemoController = { step: (tapCount: number) => void };
 
-// Headless: re-renders only on the slices it reads; the frame and sections are
-// siblings, so a step change reaches them through the store, not through here.
 const Driver = ({
   controllerRef,
 }: {
@@ -76,8 +70,6 @@ const Driver = ({
     const reset = () => {
       void mutate(demoGame, { revalidate: false });
       dispatch(gameActions.initialize({ game: demoGame, setIndex: 0 }));
-      // initialize leaves the draft alone, and a stale player would make the
-      // replayed setEntryDraftPlayer toggle it off
       dispatch(gameActions.resetEntryDraft());
     };
     const step = (tapCount: number) => {
@@ -100,9 +92,17 @@ const playTo = (
   if (tapCount >= 1)
     dispatch(gameActions.setEntryDraftPlayer({ id: SENT_RALLY.player, zone }));
   if (tapCount >= 2)
-    dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[SENT_RALLY.home]!));
+    dispatch(
+      gameActions.setEntryDraftHomeMove(
+        scoringMoves[SENT_RALLY.homeMoveIndex]!,
+      ),
+    );
   if (tapCount >= 3)
-    dispatch(gameActions.setEntryDraftAwayMove(scoringMoves[SENT_RALLY.away]!));
+    dispatch(
+      gameActions.setEntryDraftAwayMove(
+        scoringMoves[SENT_RALLY.awayMoveIndex]!,
+      ),
+    );
 };
 
 const MirrorDriver = ({ step }: { step: number }) => {
@@ -143,7 +143,6 @@ const MirrorPanel = ({ step }: { step: number }) => {
 };
 
 const Frame = () => {
-  // the mirrors exist only to aim the finger dot
   const isDotEnabled = useIsFingerDotEnabled();
   return (
     // Concentric radii, see ADR-0106: tray p-2 (8) + card 12 = rounded-[20px].
@@ -193,14 +192,12 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
         ?.closest("[data-player-card]") ?? null
     );
   }
-  // taps 2 and 3 are measured in the hidden mirror holding the step before
-  // them
   const body = frame
     .querySelector(`[data-mirror="${tap - 1}"]`)
     ?.querySelector("[data-moves-step]");
   const buttons = [...(body?.querySelectorAll("button") ?? [])];
   if (tap === 2) {
-    const move = scoringMoves[SENT_RALLY.home]!;
+    const move = scoringMoves[SENT_RALLY.homeMoveIndex]!;
     return (
       buttons.find(
         (button) =>
@@ -209,7 +206,7 @@ const locate = (tap: number, frame: HTMLElement): Element | null => {
       ) ?? null
     );
   }
-  const away = scoringMoves[SENT_RALLY.away]!;
+  const away = scoringMoves[SENT_RALLY.awayMoveIndex]!;
   return (
     buttons.find((button) => button.textContent?.includes(away.text)) ?? null
   );

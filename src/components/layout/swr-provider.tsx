@@ -11,7 +11,6 @@ export function SWRProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Refs keep the handler closure fresh without re-registering the listener.
   const routerRef = useRef(router);
   const toastRef = useRef(toast);
   useEffect(() => {
@@ -20,8 +19,6 @@ export function SWRProvider({ children }: { children: React.ReactNode }) {
   }, [router, toast]);
 
   useEffect(() => {
-    // Never reset: released only by the full page load that sign-in
-    // performs. See error-display-boundary S03.
     let redirecting = false;
     const handleUnauthorized = () => {
       if (redirecting) return;

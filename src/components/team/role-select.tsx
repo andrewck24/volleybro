@@ -17,10 +17,6 @@ interface RoleSelectProps {
   placeholder?: string;
 }
 
-/**
- * T030 [US1] RoleSelect - 角色選擇元件
- * 用於邀請時選擇被邀請者的角色
- */
 export function RoleSelect({
   value,
   onChange,

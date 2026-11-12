@@ -24,20 +24,17 @@ const GameOverview = ({ gameId }: { gameId: string }) => {
 export function GameOverviewSkeleton() {
   return (
     <>
-      {/* mirrors Header: fixed top bar with back button + title */}
       <div className="fixed top-0 left-0 z-10 flex h-[calc(env(safe-area-inset-top)+var(--header-height))] w-full items-center gap-4 border-b-2 border-accent bg-card px-[5%] pt-[env(safe-area-inset-top)]">
         <Skeleton className="size-(--control-size) rounded-full" />{" "}
-        {/* back button */}
-        <Skeleton className="my-0.5 h-5 w-24 flex-1" /> {/* title */}
+        <Skeleton className="my-0.5 h-5 w-24 flex-1" />
       </div>
-      {/* mirrors Banner: bg-card flex-col */}
+
       <div className="flex w-full flex-col items-center justify-center bg-card px-4 py-2">
-        {/* mirrors Info: match name + location */}
         <div className="flex w-full flex-col items-center gap-1 pt-2">
           <Skeleton className="my-0.5 h-4 w-40" />
           <Skeleton className="my-0.5 h-4 w-28" />
         </div>
-        {/* mirrors Teams: flex row with avatars + set score */}
+
         <div className="flex w-full flex-row items-center justify-center gap-2 py-2">
           <div className="flex w-20 flex-col items-center gap-2">
             <Skeleton className="size-15 rounded-md" />
@@ -53,22 +50,22 @@ export function GameOverviewSkeleton() {
             <Skeleton className="my-0.5 h-12 w-full" />
           </div>
         </div>
-        {/* mirrors Scores: set-by-set scores row */}
+
         <div className="flex w-full flex-row items-center justify-center gap-2">
           {Array.from({ length: 3 }, (_, i) => (
             <Skeleton key={i} className="my-0.5 h-5 w-12" />
           ))}
         </div>
-        {/* mirrors action buttons grid */}
+
         <div className="grid w-full grid-cols-2 gap-2 py-2">
           <Skeleton className="h-(--control-size-lg) w-full" />
           <Skeleton className="h-(--control-size-lg) w-full" />
         </div>
       </div>
-      {/* mirrors Stats: Card with CardHeader + Tabs */}
+
       <Card className="w-full">
         <CardHeader>
-          <Skeleton className="my-0.5 h-5 w-20" /> {/* CardTitle */}
+          <Skeleton className="my-0.5 h-5 w-20" />
         </CardHeader>
         <div className="space-y-2 p-4">
           {Array.from({ length: 4 }, (_, i) => (

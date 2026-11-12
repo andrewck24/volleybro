@@ -1,8 +1,16 @@
 import { ActionButton } from "@/components/layout/nav/action-button";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { format } from "date-fns";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSWRConfig } from "swr";
 
 import { server } from "@test/support/msw/server";
@@ -95,6 +103,45 @@ describe("ActionButton / NewGameForm home team name", () => {
     );
 
     await waitFor(() => expect(createBody?.teams.home.name).toBe("自訂隊名"));
+  });
+
+  it("does not reset form defaults on an unrelated render", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick"] });
+    jest.setSystemTime(new Date(2026, 0, 1, 12));
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const Parent = () => {
+      const [count, setCount] = useState(0);
+      return (
+        <>
+          <ActionButton teamId="team-1" />
+          <button onClick={() => setCount((value) => value + 1)}>
+            render {count}
+          </button>
+          <RevalidateTeam />
+        </>
+      );
+    };
+    try {
+      render(
+        <SwrIsolation>
+          <Parent />
+        </SwrIsolation>,
+      );
+      await user.click(screen.getByRole("button", { name: "新增賽事" }));
+      const dialog = await screen.findByRole("dialog");
+      await user.click(await within(dialog).findByText("編輯資訊"));
+
+      const initialDate = format(new Date(2026, 0, 1), "PPP");
+      const nextDate = format(new Date(2026, 0, 2), "PPP");
+      const visibleDate = within(dialog).getByText(initialDate);
+      jest.setSystemTime(new Date(2026, 0, 2, 12));
+      fireEvent.click(screen.getByText("render 0"));
+
+      expect(visibleDate).toBeInTheDocument();
+      expect(within(dialog).queryByText(nextDate)).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   describe("when the team is renamed while the info form is open", () => {

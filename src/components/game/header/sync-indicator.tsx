@@ -23,11 +23,6 @@ import {
 
 export const SYNCED_ACK_MS = 1500;
 
-/**
- * One table rather than a switch per question, so a new condition cannot be
- * added to some of them and not others. Warning is for the two conditions the
- * recorder has to act on; waiting is not one of them.
- */
 const STATUS_STYLE: Record<
   SyncStatus,
   {
@@ -53,14 +48,12 @@ const STATUS_STYLE: Record<
     warning: true,
     showsCount: true,
   },
-  // Cloud, not wifi: the phone's bars can be full while nothing gets through.
   unsent: {
     icon: (className) => <RiCloudOffLine className={className} />,
     warning: false,
     showsCount: true,
   },
   syncing: {
-    // Test id because a spinner has no role or text to query it by.
     icon: (className) => (
       <Spinner className={className} data-testid="sync-spinner" />
     ),
@@ -69,12 +62,6 @@ const STATUS_STYLE: Record<
   },
 };
 
-/**
- * `online` is read only in the unsent case, and only to choose between two
- * sentences that are both true: `false` can promise an automatic send, `true`
- * can promise only further attempts. `othersPending` likewise only names the
- * way out of a full store when there is one to name.
- */
 const copyFor = (
   status: SyncStatus,
   count: number,

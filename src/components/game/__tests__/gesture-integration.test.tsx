@@ -1,16 +1,25 @@
 import Game from "@/components/game";
+import { GamePanel } from "@/components/game/panel";
 import { EntryType, MoveType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
+import { createGame } from "@test/support/fixtures/entities";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
+import { pointerEvent } from "@test/support/dom/pointer-event";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),
@@ -138,6 +147,41 @@ const setUpGame = () => {
 beforeEach(() => answerSignedInUser());
 
 describe("Game gesture split, wired through the real composition", () => {
+  it("starts a new set after the existing set count", async () => {
+    const user = userEvent.setup();
+    const set = createGame().sets[0]!;
+    const completedSet = {
+      ...set,
+      entries: set.entries.map((entry) =>
+        entry.type === EntryType.RALLY
+          ? {
+              ...entry,
+              home: { ...entry.home, score: 25 },
+              away: { ...entry.away, score: 20 },
+            }
+          : entry,
+      ),
+    };
+    const game = createGame({
+      win: null,
+      sets: [completedSet, { ...completedSet, win: null, entries: [] }],
+    });
+    server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
+    render(
+      <Provider store={makeStore()}>
+        <SwrIsolation>
+          <Game gameId="game-1" setIndex={0} />
+        </SwrIsolation>
+      </Provider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "新的一局" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "第 3 局設定" }),
+    ).toBeInTheDocument();
+  });
+
   it("tapping the handle expands the drawer from the idle peek", async () => {
     const user = userEvent.setup();
     setUpGame();
@@ -223,6 +267,36 @@ describe("Game gesture split, wired through the real composition", () => {
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
+    );
+  });
+});
+
+describe("GamePanel moves gesture", () => {
+  it("captures the pointer gesture before child controls receive a click", () => {
+    const store = makeStore();
+    render(
+      <Provider store={store}>
+        <GamePanel gameId="game-1" mode="general" />
+      </Provider>,
+    );
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setPanel("away"));
+    });
+    const move = screen.getByRole("button", { name: "我方攔網失誤" });
+    const awayMoveBeforeSwipe =
+      store.getState().game.general.entryDraft.away.num;
+    expect(awayMoveBeforeSwipe).toBe(scoringMoves[3]!.outcome[0]);
+    expect(move).toHaveTextContent("我方攔網失誤");
+
+    fireEvent(move, pointerEvent("pointerdown", 100));
+    fireEvent(move, pointerEvent("pointermove", 40));
+    fireEvent(move, pointerEvent("pointerup", 40));
+    fireEvent.click(move);
+
+    expect(store.getState().game.general.entryDraft.away.num).toBe(
+      awayMoveBeforeSwipe,
     );
   });
 });

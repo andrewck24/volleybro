@@ -8,7 +8,6 @@ type ToastFn = (opts: {
   variant: "default" | "error";
 }) => void;
 
-// Total: every input resolves to an entry, so no caller branches.
 export function resolveErrorDisplay(error: unknown): ErrorMessage {
   if (error instanceof RefreshTimeoutError)
     return ERROR_MESSAGES.NETWORK_TIMEOUT;

@@ -1,12 +1,17 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { render, screen } from "@testing-library/react";
 
-// The spinner is an svg with no role, so the stub carries the test id that finds it.
 jest.mock("react-icons/ri", () => ({
   RiLoader4Line: () => <span data-testid="spinner-icon">spinner</span>,
 }));
 
 describe("Button loading props", () => {
+  it("merges custom design-token text classes through twMerge", () => {
+    expect(cn("text-body-list", "text-xl")).toBe("text-xl");
+    expect(cn("text-xl", "text-subheadline")).toBe("text-subheadline");
+  });
+
   describe("loading prop", () => {
     it("renders children normally when loading is false", () => {
       render(<Button>Submit</Button>);
@@ -99,7 +104,6 @@ describe("Button loading props", () => {
           <a href="/test">Link</a>
         </Button>,
       );
-      // asChild renders as anchor, not button — no disabled, no aria-busy
       const link = screen.getByRole("link");
       expect(link).not.toHaveAttribute("aria-busy");
       expect(screen.queryByTestId("spinner-icon")).not.toBeInTheDocument();

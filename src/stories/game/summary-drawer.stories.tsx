@@ -52,9 +52,9 @@ const rawEntries: EntryView[] = [
   },
 ];
 
-const entries: IndexedEntry[] = rawEntries.map((entry, index) => ({
+const entries: IndexedEntry[] = rawEntries.map((entry, originalIndex) => ({
   entry,
-  index,
+  originalIndex,
 }));
 
 const meta = {

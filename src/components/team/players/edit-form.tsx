@@ -123,10 +123,9 @@ function PlayerEditFormSkeleton() {
   return (
     <Card className="space-y-4 py-8">
       <Skeleton className="mt-0.5 mb-4.5 h-4 w-16" />{" "}
-      {/* section title: text-sm */}
       <div className="space-y-2">
-        <Skeleton className="my-0.5 h-4 w-12" /> {/* Label */}
-        <Skeleton className="h-9 w-full" /> {/* Input */}
+        <Skeleton className="my-0.5 h-4 w-12" />
+        <Skeleton className="h-9 w-full" />
       </div>
       <div className="space-y-2">
         <Skeleton className="my-0.5 h-4 w-8" />
@@ -137,7 +136,6 @@ function PlayerEditFormSkeleton() {
         <Skeleton className="h-9 w-full" />
       </div>
       <Skeleton className="h-(--control-size-lg) w-full" />{" "}
-      {/* submit button */}
     </Card>
   );
 }

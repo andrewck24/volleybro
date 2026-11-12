@@ -25,7 +25,6 @@ jest.mock("@/lib/auth-client", () => ({
   authClient: { signOut: jest.fn() },
 }));
 
-// The nav bar sits next to the user page and keeps resolving the active team.
 const ActiveTeam = () => {
   const { teamId } = useActiveTeamId();
   return <output aria-label="active team">{teamId}</output>;
@@ -40,8 +39,22 @@ describe("User sign-out", () => {
     server.use(http.get("/api/users", () => HttpResponse.json(createUser())));
   });
 
-  it("S8: the active team preference is gone from storage before the session ends and the app navigates", async () => {
+  it("clears SWR cache before clearing active-team preference", async () => {
     seedActiveTeamPreference("user-1", "team-1");
+    const cache = new Map([
+      ["/api/users", { data: createUser({ id: "user-1" }) }],
+    ]);
+    let cacheAtPreferenceClear: { data?: unknown } | undefined;
+    const removeItem = Storage.prototype.removeItem;
+    jest.spyOn(Storage.prototype, "removeItem").mockImplementation(function (
+      this: Storage,
+      key: string,
+    ) {
+      if (key === "active-team-preference") {
+        cacheAtPreferenceClear = cache.get("/api/users");
+      }
+      return removeItem.call(this, key);
+    });
     let atSignOut: unknown = "unset";
     let atNavigation: unknown = "unset";
     (authClient.signOut as jest.Mock).mockImplementation(async () => {
@@ -52,13 +65,14 @@ describe("User sign-out", () => {
     });
 
     render(
-      <SwrIsolation>
+      <SwrIsolation cache={cache as never}>
         <User />
       </SwrIsolation>,
     );
     await userEvent.click(screen.getByRole("button", { name: "登出" }));
 
     await waitFor(() => expect(mockRouterPush).toHaveBeenCalled());
+    expect(cacheAtPreferenceClear?.data).toBeUndefined();
     expect(atSignOut).toBeNull();
     expect(atNavigation).toBeNull();
   });

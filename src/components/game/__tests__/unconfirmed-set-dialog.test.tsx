@@ -52,7 +52,7 @@ describe("UnconfirmedSetDialog", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("shows the neutral attempting state while the initial write is in flight", () => {
+  it("exposes the pending status as the dialog description", () => {
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: lastRally as never,
@@ -63,7 +63,12 @@ describe("UnconfirmedSetDialog", () => {
 
     renderDialog(gameWithSet(true));
 
-    expect(screen.getAllByText("正在記錄本局結果…").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("dialog", {
+        name: "正在記錄本局結果…",
+        description: "正在儲存本局結果，請稍候。",
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "重試" }),
     ).not.toBeInTheDocument();

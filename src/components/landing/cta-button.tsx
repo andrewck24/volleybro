@@ -42,7 +42,6 @@ export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
   const mounted = useHydrated();
 
   useEffect(() => {
-    // 非 Apple 平台使用 beforeinstallprompt
     if (platform === "mobile") {
       const handleBeforeInstallPrompt = (e: Event) => {
         e.preventDefault();
@@ -91,7 +90,6 @@ export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
     );
   }
 
-  // 已經以 PWA 模式運行、桌面，或瀏覽器還沒提供安裝提示時，直接進入應用程式
   if (
     isPwa ||
     platform === "desktop" ||
@@ -112,7 +110,6 @@ export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
     );
   }
 
-  // iOS 的安裝指引
   if (platform === "iOS") {
     return (
       <Dialog>
@@ -134,7 +131,6 @@ export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
     );
   }
 
-  // 其他平台的安裝按鈕
   return (
     <Button
       {...props}
@@ -186,7 +182,6 @@ const IOSInstallInstruction = () => {
 const checkPlatform = (): Platform => {
   const userAgent = navigator.userAgent.toLowerCase();
 
-  // iOS 檢測
   if (/iphone|ipad|ipod/.test(userAgent)) {
     const match = userAgent.match(/version\/(\d+)/);
     if (match && parseInt(match[1] ?? "", 10) >= 15) {
@@ -195,7 +190,6 @@ const checkPlatform = (): Platform => {
     return "desktop";
   }
 
-  // Desktop 檢測
   if (
     /windows nt/.test(userAgent) ||
     (/macintosh/.test(userAgent) && !/mobile/.test(userAgent)) ||
@@ -204,6 +198,5 @@ const checkPlatform = (): Platform => {
     return "desktop";
   }
 
-  // 其他所有情況視為 mobile
   return "mobile";
 };

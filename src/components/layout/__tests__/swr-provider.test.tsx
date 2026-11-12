@@ -13,7 +13,6 @@ jest.mock("next/navigation", () => ({
   useRouter: () => mockRouter,
 }));
 
-// Requests the URL through SWR, so a failure reaches the provider's onError.
 const Probe = () => {
   useSWR("/api/probe", (url: string) => apiClient(url), {
     shouldRetryOnError: false,
@@ -56,13 +55,13 @@ describe("SWRProvider", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("redirects to sign-in once, with a session-expired toast, on a 401 response", async () => {
+  it("redirects only once when a 401 triggers both error paths", async () => {
     respondWith(401, { code: "AUTHENTICATION", reason: "SESSION_REQUIRED" });
 
     renderProvider(<Probe />);
 
     expect(await screen.findByText("登入逾期")).toBeInTheDocument();
-    // The request error and the unauthorized event both fire for this 401.
+    fireUnauthorized();
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith("/auth/sign-in");
   });

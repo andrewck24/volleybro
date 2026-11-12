@@ -7,7 +7,6 @@ describe("ServerErrorState", () => {
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText(/發球掛網/)).toBeInTheDocument();
-    // Description should explain the error to the user
     expect(screen.getByText(/伺服器/)).toBeInTheDocument();
   });
 

@@ -32,7 +32,6 @@ interface MembershipSectionProps {
   teamId: string;
   ownerPlayerId?: string;
   isCurrentOwner: boolean;
-  /** The caller is looking at their own player. */
   isSelf: boolean;
 }
 

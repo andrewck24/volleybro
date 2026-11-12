@@ -39,10 +39,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [tabValue, setTabValue] = useState("overview");
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general } = useAppSelector((state) => state.game);
-  // Single mounted owner of usePendingWrites for this game: Game sits above
-  // the branch between the recording view and the between-sets view, so one
-  // inFlight ref and one background-retry timer persist across both instead
-  // of each descendant that needs the queue mounting its own.
   const pendingWrites = usePendingWrites(gameId, setIndex);
   const submitEntryDraft = useSubmitEntryDraft(gameId, pendingWrites);
   const { retry } = pendingWrites;
@@ -77,11 +73,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     <PendingWritesContext.Provider value={pendingWrites}>
       <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
         <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
-        {/* One viewport-height flex column: the fixed header's height is reserved
-          once via pt, then court (fixed aspect) and panel (remaining height)
-          fill the rest. The drawer is a vaul snap-point sheet portalled to
-          <body> (fixed at the bottom), so pb reserves its idle peek height and
-          the panel content never sits behind the peek. */}
+
         <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
           <div className="w-full shrink-0 overflow-hidden rounded-lg">
             <GameCourt gameId={gameId} mode="general" />
@@ -113,10 +105,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
 };
 
 export function GameSkeleton() {
-  // Mirror the ready Game layout exactly (viewport-height column, fixed header
-  // reserved once via pt, court / panel / drawer-peek) so there is no jump on
-  // load: same header height, the court is not hidden behind the header, and
-  // the drawer peek is present.
   return (
     <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader />
@@ -124,7 +112,7 @@ export function GameSkeleton() {
         <div className="w-full shrink-0 overflow-hidden rounded-lg">
           <LoadingCourt />
         </div>
-        {/* mirrors GamePanel: progress bar + caption + moves grid, on bg-card */}
+
         <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden rounded-lg bg-card px-2 py-2">
           <Skeleton className="h-1.5 w-full rounded-full" />
           <Skeleton className="h-4 w-40" />
@@ -135,11 +123,7 @@ export function GameSkeleton() {
           </div>
         </div>
       </div>
-      {/* mirrors the drawer idle peek fixed at the viewport bottom: handle +
-          one entry-row-shaped skeleton on the drawer (bg-card) surface. Height
-          is pinned to PEEK_SNAP (80px = h-20) so the peek's top edge lands where
-          the real drawer sits and the ~20px breathing room below the row matches
-          -- no gap above the peek and no jump when the real drawer mounts. */}
+
       <div className="fixed inset-x-0 bottom-0 z-40 mx-auto h-20 w-full max-w-160 rounded-t-[10px] bg-card">
         <div className="pt-2 pb-1.5">
           <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
@@ -160,8 +144,6 @@ const Interval = ({
   setIndex: number;
 }) => {
   const { game } = useGame(gameId);
-  // SetOptions only treats `sets.length` as a new set, and the viewed set is
-  // not always the last one.
   const nextSetIndex = game?.sets.length ?? setIndex + 1;
 
   return (

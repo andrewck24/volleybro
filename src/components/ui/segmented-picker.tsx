@@ -5,7 +5,6 @@ import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 
 import { cn } from "@/lib/utils";
 
-// The thumb must match a segment exactly, so both share one box.
 const SEGMENT_BOX = "h-7 w-11 rounded-md";
 
 interface SegmentedPickerProps {
@@ -23,7 +22,6 @@ const SegmentedPicker = ({
   children,
   className,
 }: SegmentedPickerProps) => {
-  // shortcut: items must be direct children (a wrapper hides the thumb); read selection from context if a caller needs wrappers.
   const index = React.Children.toArray(children).findIndex(
     (child) =>
       React.isValidElement<{ value?: string }>(child) &&

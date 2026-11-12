@@ -13,7 +13,6 @@ afterEach(() => {
 describe("Landing", () => {
   it("lays out one h1 and each section's h2, and every start button leads into the app", async () => {
     const { container } = render(<Landing />);
-    // the lazy stats panel (next/dynamic) loads after the first paint
     await screen.findByText("總分");
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);

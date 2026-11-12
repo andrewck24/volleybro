@@ -41,7 +41,6 @@ function renderSection(props: {
   );
 }
 
-// Holds the response until the test releases it, so the request stays in flight.
 function holdResponse(method: "delete" | "post", path: string): () => void {
   const { promise, release } = deferred();
   server.use(

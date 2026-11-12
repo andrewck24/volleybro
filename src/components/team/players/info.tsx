@@ -28,7 +28,6 @@ export function PlayerInfo({ teamId, playerId }: PlayerInfoProps) {
   const positionLabel = player?.position
     ? POSITION_LABELS[player?.position]
     : undefined;
-  // Only an invitee or a member holds a role; an unlinked player shows none.
   const roleLabel =
     player && player.id === team?.ownerPlayerId
       ? OWNER_LABEL

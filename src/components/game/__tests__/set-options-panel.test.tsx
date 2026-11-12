@@ -25,7 +25,6 @@ const lineup = {
   substitutes: [],
 };
 
-// No sets yet, so the panel is starting a new one.
 const game = {
   id: "rec-1",
   win: null,
@@ -50,7 +49,6 @@ const setUp = async () => {
       </SwrIsolation>
     </Provider>,
   );
-  // The label flips from "儲存設定" once the game loads and this is a new set.
   const button = await screen.findByRole("button", { name: "開始新一局" });
   return { button, user: userEvent.setup() };
 };
@@ -93,8 +91,6 @@ describe("Options (set-options panel) submitting state", () => {
 
     await user.click(button);
 
-    // handleSubmit validates asynchronously before the submit handler runs, so
-    // the disabled state only appears once that validation has settled.
     await waitFor(() => expect(button).toBeDisabled());
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button).toHaveTextContent("開始中");

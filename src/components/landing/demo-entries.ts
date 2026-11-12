@@ -11,16 +11,16 @@ export const entriesOf = (
     type: EntryType.RALLY,
     id: `${idPrefix}-${seq}`,
     seq,
-    win: rally.win,
+    win: rally.homeWon,
     home: {
       score: rally.homeScore,
-      type: scoringMoves[rally.home]!.type,
-      num: rally.home,
+      type: scoringMoves[rally.homeMoveIndex]!.type,
+      num: rally.homeMoveIndex,
       player: { id: rally.player, zone: 4 },
     },
     away: {
       score: rally.awayScore,
-      type: scoringMoves[rally.away]!.type,
-      num: rally.away,
+      type: scoringMoves[rally.awayMoveIndex]!.type,
+      num: rally.awayMoveIndex,
     },
   }));

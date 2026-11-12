@@ -38,7 +38,6 @@ function renderInvitations() {
   );
 }
 
-// Holds the response until the test releases it, so the request stays in flight.
 function holdInvitationResponse(playerId: string) {
   const requests: { body: unknown }[] = [];
   const { promise, release } = deferred();

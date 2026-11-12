@@ -1,10 +1,15 @@
 import { RallyProvider } from "@/components/landing/rally";
 import { StatsCarousel } from "@/components/landing/stats-carousel";
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-// jsdom does no layout: give the track a width and let scrollTo move it and
-// report the scroll, as a browser's snap track would.
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", {
     configurable: true,
@@ -22,7 +27,6 @@ const mount = async () => {
       <StatsCarousel />
     </RallyProvider>,
   );
-  // the first slide loads lazily (next/dynamic)
   await screen.findByText("總分");
 };
 const dot = (title: string) =>
@@ -36,6 +40,26 @@ describe("StatsCarousel", () => {
     expect(heading()).toHaveTextContent("技術類別統計");
     expect(dot("技術類別統計")).toHaveAttribute("aria-current", "true");
     expect(screen.queryByText("開發中")).not.toBeInTheDocument();
+  });
+
+  it("mounts only active and adjacent statistics slides", async () => {
+    await mount();
+
+    const activeSlide = screen.getByRole("group", {
+      name: "1 / 3：技術類別統計",
+    });
+    const adjacentSlide = screen.getByRole("group", {
+      name: "2 / 3：逐球記錄",
+    });
+    const distantSlide = screen.getByRole("group", {
+      name: "3 / 3：分差折線圖",
+    });
+
+    expect(within(activeSlide).getByText("總分")).toBeInTheDocument();
+    const [adjacentEntry] =
+      await within(adjacentSlide).findAllByTestId("landing-entry-row");
+    expect(adjacentEntry).toBeInTheDocument();
+    expect(distantSlide).toBeEmptyDOMElement();
   });
 
   it("cycles with the buttons in both directions, wrapping at the ends", async () => {
@@ -72,6 +96,35 @@ describe("StatsCarousel", () => {
 
     await user.click(dot("分差折線圖"));
     await waitFor(() => expect(heading()).toHaveTextContent("分差折線圖"));
+  });
+
+  it("replaces the slide body when the transition completes", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick"] });
+    try {
+      render(
+        <RallyProvider>
+          <StatsCarousel />
+        </RallyProvider>,
+      );
+      await screen.findByText("總分");
+
+      fireEvent.click(screen.getByRole("button", { name: "下一個" }));
+      expect(heading()).toHaveTextContent("技術類別統計");
+      expect(screen.queryByText("逐球記錄")).not.toBeInTheDocument();
+      expect(
+        screen.getByText("發球、攻擊、攔網、接發、防守，各自累計得失分。"),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        await jest.advanceTimersToNextTimerAsync();
+      });
+      expect(heading()).toHaveTextContent("逐球記錄");
+      expect(
+        screen.queryByText("發球、攻擊、攔網、接發、防守，各自累計得失分。"),
+      ).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("flags only the point-diff chart as in development", async () => {

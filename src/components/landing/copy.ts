@@ -1,6 +1,3 @@
-// The landing's copy and constants. Import-free
-// so the hero side can read it without pulling anything else in.
-
 export const COPY = {
   heroTitle: [
     ["記下", "每一球，"],
@@ -55,7 +52,6 @@ export const LINKS = {
   feedback: "https://github.com/andrewck24/volleybro/discussions",
 };
 
-/** scoringMoves[num].text, copied so the hero stays import-free. */
 const MOVE_TEXT = [
   "發球",
   "發球",
@@ -67,9 +63,9 @@ const MOVE_TEXT = [
   "防守",
   "二傳",
 ];
-/** Mark label for a home move: 9+ are the opponent's unforced errors. */
+const FIRST_OPPONENT_ERROR_MOVE_NUM = MOVE_TEXT.length;
 export const moveLabel = (num: number, win: boolean) =>
-  num >= MOVE_TEXT.length
+  num >= FIRST_OPPONENT_ERROR_MOVE_NUM
     ? "對方失誤"
     : `${MOVE_TEXT[num]}${win ? "得分" : "失分"}`;
 

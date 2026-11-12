@@ -19,8 +19,6 @@ const entry: EntryView = {
 } as unknown as EntryView;
 
 describe("Entry", () => {
-  // An undefined entry can reach <Entry> via the recording Preview or an
-  // optimistic rollback; it must render nothing rather than dereference `.type`.
   it("renders nothing without throwing when entry is undefined", () => {
     const { container } = render(<Entry entry={undefined} players={[]} />);
 
@@ -40,12 +38,9 @@ describe("EntryRow", () => {
     ).toBeInTheDocument();
   });
 
-  it("is collapsed by default", () => {
+  it("starts with collapsed detail state", () => {
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 
-    // entry-row-expanded is now always rendered (height-animated via CSS
-    // grid-rows) so we assert the collapsed state via data attributes
-    // instead of presence/absence.
     expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(
       "data-open",
       "false",
@@ -56,7 +51,6 @@ describe("EntryRow", () => {
     );
   });
 
-  // Scenario: Tap inline-expands the row in place
   it("toggles the inline-expanded accordion content on tap", async () => {
     const user = userEvent.setup();
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
@@ -78,10 +72,7 @@ describe("EntryRow", () => {
     );
   });
 
-  // Scenario: delete/rollback are computed by the last-entry rule but hidden
-  // until their reducers exist -- only edit renders, for both latest and
-  // non-latest entries.
-  it("shows only edit for the latest entry; delete/rollback are hidden", async () => {
+  it("keeps delete and rollback hidden until their reducers exist", async () => {
     const user = userEvent.setup();
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 
@@ -105,8 +96,6 @@ describe("EntryRow", () => {
     ).not.toBeInTheDocument();
   });
 
-  // S08: a rally whose write exhausted its attempts is marked on its row,
-  // with a floating retry control -- not a toast, since it must persist.
   it("shows no retry control when the write has not failed", () => {
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 

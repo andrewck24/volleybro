@@ -9,8 +9,6 @@ const RecordDemo = lazy(() =>
   })),
 );
 
-// The placeholder and the loaded section share the stage column and height, so
-// loading never shifts the page and the intro is in the HTML before any JS.
 const Placeholder = ({
   intro,
   ref,
