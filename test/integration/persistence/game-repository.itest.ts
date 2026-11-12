@@ -149,12 +149,10 @@ describe("game reads and writes", () => {
       try {
         const settledBeforeBothWrites = Promise.race(
           writes.map((write) =>
-            write.then(
-              () =>
-                Promise.reject(
-                  new Error("A write finished before the barrier opened"),
-                ),
-              (error) => Promise.reject(error),
+            write.then(() =>
+              Promise.reject(
+                new Error("A write finished before the barrier opened"),
+              ),
             ),
           ),
         );

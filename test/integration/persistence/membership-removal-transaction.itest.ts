@@ -341,14 +341,12 @@ describe("membership removal transactions", () => {
     try {
       const settledBeforeBothTransactions = Promise.race(
         operations.map((operation) =>
-          operation.then(
-            () =>
-              Promise.reject(
-                new Error(
-                  "An operation finished before both transactions started",
-                ),
+          operation.then(() =>
+            Promise.reject(
+              new Error(
+                "An operation finished before both transactions started",
               ),
-            (error) => Promise.reject(error),
+            ),
           ),
         ),
       );
