@@ -19,11 +19,11 @@ New code carries no comments, doc comments included. A comment is a claim nothin
 - **Work left undone** becomes a Linear issue, linked from the pull request body. Source carries no TODO, FIXME, HACK or XXX marker.
 - **A lint rule that does not fit** is answered by removing the reason: a Testing Library query instead of node access, a generic instead of `any`, a stable dependency instead of an empty array. Only when the rule cannot apply to a file without weakening what it proves, turn the rule off for that file in `eslint.config.js`, in a list whose name says why.
 
-ESLint enforces the mechanical part: inline configuration comments (`eslint-disable` and the like) have no effect and fail the lint, `@ts-*` directives are rejected, and so are the four markers above.
+ESLint enforces it: every comment fails the lint, so inline configuration (`eslint-disable` and the like) and `@ts-*` directives cannot be written either.
 
 ### Existing comments
 
-The rule applies to the code a change touches. A comment inside a hunk the diff modifies is replaced as above in the same change. Other comments in a touched file may be cleared in a separate `refactor:` commit of the same pull request, never mixed into a behaviour change. Review rejects every comment line a diff adds.
+Files that still held comments when the rule arrived are listed in `filesStillCarryingComments` in `eslint.config.js`. The list only shrinks: a change that clears a file removes it from the list, and no change adds a file to it. Inside a listed file a comment in a hunk the diff modifies is replaced as above in the same change, and review rejects every comment line a diff adds. Other comments in a touched file may be cleared in a separate `refactor:` commit of the same pull request, never mixed into a behaviour change.
 
 ## No volatile references in source
 
