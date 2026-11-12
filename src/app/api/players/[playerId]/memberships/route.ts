@@ -8,12 +8,6 @@ import {
 } from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * POST /api/players/{playerId}/memberships - Invite existing PURE_PLAYER
- * PATCH /api/players/{playerId}/memberships - Update player role
- * DELETE /api/players/{playerId}/memberships - Cancel invitation
- */
-
 export const POST = (
   _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },

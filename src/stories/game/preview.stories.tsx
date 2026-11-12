@@ -1,6 +1,10 @@
 import { PreviewCard } from "@/components/game/preview";
 import { EntryType, MoveType } from "@/entities/game";
-import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
+import type {
+  EntryView,
+  GamePlayerView,
+  ReduxEntryDraft,
+} from "@/lib/features/game/types";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 
@@ -20,20 +24,17 @@ const previousEntry: EntryView = {
   away: { score: 10, type: MoveType.DEFENSE, num: 7 },
 };
 
-const undecidedEntry: EntryView = {
-  type: EntryType.RALLY,
+const undecidedEntry: ReduxEntryDraft = {
   id: "entry-undecided",
   seq: 1,
-  // A draft mid-input: the player is chosen but no outcome has been picked
-  // yet, so home/away type stay null and <Rally> renders the muted Figures.
   win: false,
   home: {
     score: 12,
-    type: null as unknown as MoveType,
+    type: null,
     num: 0,
     player: { id: "p1", zone: 4 },
   },
-  away: { score: 10, type: null as unknown as MoveType, num: 0 },
+  away: { score: 10, type: null, num: 0 },
 };
 
 const decidedEntry: EntryView = {
@@ -73,7 +74,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Idle: nothing in progress, the Preview simply shows the previous entry.
 export const Idle: Story = {
   args: {
     entry: previousEntry,
@@ -81,19 +81,17 @@ export const Idle: Story = {
   },
 };
 
-// Undecided: input in progress but the outcome isn't picked yet -- the
-// current score stays muted and the card pulses (no ring/send icon).
 export const Undecided: Story = {
   args: {
-    entry: undecidedEntry,
+    entry: {
+      type: EntryType.RALLY,
+      ...undecidedEntry,
+    } as unknown as EntryView,
     isEditing: true,
     isPulsing: true,
   },
 };
 
-// Decided + complete: every step is done, so the winner-colored Figures show
-// alongside the ring + send icon. Click the card to see the submit-freeze
-// (one-time background flash + demote to the previous entry in place).
 export const Decided: Story = {
   args: {
     entry: decidedEntry,

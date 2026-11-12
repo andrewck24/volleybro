@@ -24,8 +24,6 @@ const SESSION = { user: { id: "user-1" } };
 type RouteResponse = { status: number; json: () => Promise<unknown> };
 
 let GET: (req: never) => Promise<RouteResponse>;
-// Imported after resetModules, so it is the class the route's error handler
-// checks against.
 let NotFoundError: typeof import("@/entities/errors").NotFoundError;
 
 const get = (query = "") =>

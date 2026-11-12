@@ -4,10 +4,6 @@ import { withAuth } from "@/lib/api/wrappers";
 import { TransferOwnershipSchema } from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * POST /api/teams/{teamId}/ownership - Transfer team ownership
- */
-
 export const POST = (
   _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },

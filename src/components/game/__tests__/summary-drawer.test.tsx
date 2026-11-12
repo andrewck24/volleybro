@@ -136,6 +136,7 @@ describe("SummaryDrawerCard structure", () => {
     render(<SummaryDrawerCard {...baseProps} entries={[]} state="idle" />);
 
     expect(await screen.findByTestId("summary-drawer")).toBeInTheDocument();
+    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
     expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
   });
 });

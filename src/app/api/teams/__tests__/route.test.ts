@@ -61,7 +61,6 @@ describe("POST /api/teams", () => {
     consoleSpy.mockRestore();
   });
 
-  // The exact body TeamForm's onSubmit sends (src/components/team/form.tsx):
   it("returns 201 for the payload the new-team form actually sends", async () => {
     const createdTeam = { id: "team-1", name: "RyuJin", nickname: "RYUJIN" };
     mockCreateTeamController.mockResolvedValue(createdTeam);

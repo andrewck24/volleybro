@@ -17,6 +17,14 @@ test("@smoke session is valid", async ({ page }) => {
   expect(session?.user?.email).toBe(email);
 });
 
+test("@smoke serves a tab page on a hard load with no modal open", async ({
+  page,
+}) => {
+  const response = await page.goto("/home");
+  expect(response?.status()).toBe(200);
+  await expect(page).toHaveURL(/\/home$/);
+});
+
 test("@smoke test team read-only page", async ({ page }) => {
   const teamId = required("SMOKE_TEAM_ID");
 

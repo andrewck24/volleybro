@@ -4,10 +4,6 @@ import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * PATCH /api/players/{playerId}/invitations - Accept, reject, or leave
- */
-
 export const PATCH = (
   _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },

@@ -34,9 +34,6 @@ export const HomeStep: Story = {
   },
 };
 
-// Opponent error (our move is UNFORCED): the flow collapses to two steps
-// [select opponent error, confirm outcome], the outcome step active and
-// submittable. Replaces the obsolete single-step away-error collapse.
 export const OpponentErrorCollapsed: Story = {
   args: {
     steps: [
