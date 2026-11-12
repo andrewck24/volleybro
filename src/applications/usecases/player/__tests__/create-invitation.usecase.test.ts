@@ -83,8 +83,11 @@ describe("CreateInvitationUseCase", () => {
 
       const result = await useCase.execute({ playerId, email, role, userId });
 
-      expect(result).toMatchObject({ userId: invitee.id, role });
-      expect(result.email).toBeUndefined();
+      expect(result).toMatchObject({
+        userId: invitee.id,
+        role,
+        email: undefined,
+      });
     });
 
     it("links the account that holds the normalized address", async () => {
