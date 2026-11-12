@@ -9,8 +9,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* VolleyBro design tokens — copy of the app's src/app/globals.css token
-   blocks. Re-copy when the app's tokens change. */
 :root,
 .light {
   --font-saira: "Saira Variable";
@@ -97,9 +95,6 @@
   --chart-5: hsl(270, 45%, 65%);
 }
 
-/* Blueprint-only tokens below are derived from the shared set copied from
-   the app above. */
-
 :root,
 .dark {
   --sidebar: var(--card);
@@ -111,7 +106,6 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 
-  /* informational blue — maps to the shared feedback token */
   --note: var(--info);
 }
 
@@ -164,12 +158,10 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* project extensions (not in canonical shadcn) */
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-note: var(--note);
-  /* Status tones as small text: pulled toward foreground, which keeps 4.5:1
-     on cards in both themes where the raw tone is too light. */
+
   --color-info-text: color-mix(in oklch, var(--info) 65%, var(--foreground));
   --color-success-text: color-mix(
     in oklch,
@@ -183,7 +175,7 @@
   );
 
   --font-sans: var(--font-saira), var(--font-noto-sans-tc), sans-serif;
-  /* Code is set in Sarasa Mono TC: one CJK glyph is exactly two Latin cells wide. */
+
   --font-mono: "Sarasa Mono TC", ui-monospace, monospace;
   --font-heading: var(--font-sans);
   --radius-sm: calc(var(--radius) * 0.6);
@@ -195,7 +187,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* fumadocs UI follows the same tokens — single source of truth for both systems */
 :root,
 .dark {
   --color-fd-background: var(--background);
@@ -223,15 +214,10 @@
   }
 }
 
-/* fumadocs gives a code block no margin of its own: the gap above one comes
-   from the bottom margin of the paragraph before it, so two in a row touch.
-   Unlayered so it outranks the layered prose rules. */
 .prose figure + figure {
   margin-top: 1rem;
 }
 
-/* Tables take spacing from their neighbours. Unlayered: outranks prose and
-   utilities alike. */
 .prose table {
   margin-block: 0;
 }

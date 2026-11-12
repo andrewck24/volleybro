@@ -2,7 +2,7 @@
 
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
-/* Reduced transparency or more contrast: translucent materials fall back to an opaque fill. */
+
 @custom-variant opaque {
   @media (prefers-reduced-transparency: reduce) {
     @slot;
@@ -97,11 +97,9 @@
 }
 
 :root {
-  /* Height of Button `default`/`icon` and every control that mirrors it; the
-     coarse-pointer value below is the HIG 44pt minimum touch target. */
   --control-size: 2.25rem;
   --control-size-lg: 2.5rem;
-  /* Page header height, including the game overview header; not the recording page header. */
+
   --header-height: calc(var(--control-size) + 1rem);
   --safe-area-inset-top: env(safe-area-inset-top);
   --safe-area-inset-right: env(safe-area-inset-right);
@@ -119,7 +117,6 @@
 @theme inline {
   --font-sans: var(--font-saira), var(--font-noto-sans-tc), sans-serif;
 
-  /* Item row type (DESIGN.md body-list / subheadline). */
   --text-body-list: 1.0625rem;
   --text-body-list--line-height: 1.375;
   --text-subheadline: 0.9375rem;
@@ -205,15 +202,10 @@
     @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-background text-foreground transition-colors select-none;
   }
 
-  /* Elevation: suppress Item shadow inside a Card (same-color nesting kept
-     flat until form item-ization); Items inside modal surfaces keep their
-     shadow — with rings removed (D5) it is their only elevation cue. */
   [data-slot="Card"] [data-slot="item"] {
     box-shadow: none;
   }
 
-  /* No reserved gutter, so the docked sheet meets the viewport edge; the viewport
-     reads overscroll-behavior from html only, so the pull bounce is stopped here. */
   html:has(.auth-layout) {
     scrollbar-gutter: auto;
     overscroll-behavior-y: none;
@@ -225,7 +217,6 @@
   }
 }
 
-/* View Transitions Animations */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -295,7 +286,6 @@
   animation: 300ms slide-from-left;
 }
 
-/* Keep navbar visible but avoid old/new stacking (which darkens ring/shadow) */
 ::view-transition-old(bottom-nav) {
   animation: none;
   opacity: 0;
@@ -305,14 +295,12 @@
   animation: none;
 }
 
-/* Disable default cross-fade and group position/size animation for tab-content outside standalone PWA */
 ::view-transition-group(tab-content),
 ::view-transition-old(tab-content),
 ::view-transition-new(tab-content) {
   animation: none;
 }
 
-/* Tab-switch directional slide animation (standalone PWA only) */
 @media (display-mode: standalone) and (width < 768px) {
   [data-direction="forward"]::view-transition-old(tab-content) {
     animation: 300ms ease slide-to-left;
@@ -331,7 +319,6 @@
   }
 }
 
-/* Pull-to-refresh bounce animation */
 @keyframes volleyball-bounce {
   from {
     transform: translateY(0);
@@ -342,8 +329,6 @@
 }
 
 @layer utilities {
-  /* Grows the tap area to --control-size on touch without changing the visual size. */
-  /* :where() keeps specificity at zero so an element already positioned (e.g. `absolute`) keeps it. */
   :where(.touch-target) {
     position: relative;
   }
@@ -367,22 +352,19 @@
   }
 }
 
-/* Pull-to-refresh indicator: hidden outside standalone PWA */
 .pull-refresh-indicator {
   @media not all and (display-mode: standalone) {
     display: none;
   }
 }
 
-/* Hide scrollbar on touch devices in PWA mode */
 @media (pointer: coarse) and (display-mode: standalone) {
-  /* Webkit browsers (iOS Safari, Chrome) */
   ::-webkit-scrollbar {
     display: none;
   }
 
   * {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE, Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 }

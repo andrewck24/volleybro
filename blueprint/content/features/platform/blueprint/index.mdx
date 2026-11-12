@@ -27,6 +27,7 @@ flowchart LR
 
 - Each Change is one EmDash entry at `/changes/<slug>`. Its declarative blocks are rendered through an allowlisted registry of existing Astro components. EmDash content cannot execute TSX, JavaScript, MDX imports or arbitrary component names.
 - Code blocks and annotated diffs are syntax-highlighted with Shiki during the build, following the light or dark theme. Code is set in Sarasa Mono TC. A proposal's path or flow comparison stays interactive as a `step_walkthrough`; a static UI design may be a screenshot.
+- Unlayered `.prose figure + figure` adds 1rem between adjacent figures; a preceding paragraph supplies the gap above one, so consecutive code figures touch.
 - Before G1, a draft is visible only through EmDash's signed, private preview at the same Blueprint route. The publish policy validates the saved content against the Change schema and makes no Linear call.
 - Publishing after G1 makes a new Change public as **進行中**. G2 reviews its code on GitHub and does not republish the article. Once every required PR is merged, the page becomes **已完成** using the last required PR's `merged_at`. There is no public “discussion” state or G1/G2 badge. New, pre-G1 Changes remain private.
 - Required PR URLs are an index. GitHub supplies commits, files changed, additions, deletions and `src` file counts; structured scenario blocks supply the scenario count. The page does not store manual status, merge dates or metrics.
