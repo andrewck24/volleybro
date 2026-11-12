@@ -24,28 +24,23 @@ export const useSubstitutes = (
   return substitutes.filter((s): s is NonNullable<typeof s> => s != null);
 };
 
-// 取得一般模式下的替補球員清單
 const getGeneralModeSubstitutes = (
   game: GameView,
   entryDraft: ReduxEntryDraft,
   setIndex: number,
 ) => {
-  // setIndex references the active set being recorded; guaranteed in bounds
   const { starting, substitutes } = game.sets[setIndex]!.lineups.home;
   const { players } = game.teams.home;
   const startingId = entryDraft.home.player?.id;
 
   const player = starting.find((p) => p.id === startingId);
 
-  // 若此位置之球員已替補兩次，則無法再進行替補
   if (player?.sub?.entryIndex?.out !== undefined) return [];
 
-  // 若是替補球員，只能與原本的球員互換
   if (player?.sub?.entryIndex?.in !== undefined) {
     return [players.find((p) => p.id === player.sub?.id)];
   }
 
-  // 取得可替補球員清單
   const usedIds = new Set([
     ...starting.map((p) => p.id),
     ...starting.map((p) => p?.sub?.id).filter(Boolean),
@@ -56,19 +51,16 @@ const getGeneralModeSubstitutes = (
     .map((sub) => players.find((p) => p.id === sub.id));
 };
 
-// 取得編輯模式下的替補球員清單
 const getEditingModeSubstitutes = (
   game: GameView,
   entryDraft: ReduxEntryDraft,
   setIndex: number,
   seq: number,
 ) => {
-  // setIndex references the active set being recorded; guaranteed in bounds
   const { starting, substitutes } = game.sets[setIndex]!.lineups.home;
   const { players } = game.teams.home;
   const startingId = entryDraft.home.player?.id;
 
-  // 找出目前選取的球員
   const player =
     starting.find((p) => p.id === startingId) ||
     starting.find((p) => p?.sub?.id === startingId);
@@ -77,10 +69,8 @@ const getEditingModeSubstitutes = (
 
   const { sub } = player;
 
-  // 檢查此位置是否已使用完兩次替補
   if ((sub?.entryIndex?.out ?? Infinity) < seq) return [];
 
-  // 若所編輯的時間點為替補狀態，則只能與原本的球員互換
   if ((sub?.entryIndex?.in ?? Infinity) < seq) {
     return [
       players.find(
@@ -90,7 +80,6 @@ const getEditingModeSubstitutes = (
     ];
   }
 
-  // 處理一般球員替補
   const usedIds = new Set([
     ...starting.map((p) => p.id),
     ...starting.map((p) => p?.sub?.id).filter(Boolean),
@@ -100,7 +89,6 @@ const getEditingModeSubstitutes = (
     .filter((sub) => !usedIds.has(sub.id))
     .map((s) => s.id);
 
-  // The replacement is the id on court, or, once swapped back, the sub id.
   if (sub?.entryIndex?.in !== undefined)
     availablePlayers.push(
       sub.entryIndex.out !== undefined ? sub.id : player.id,

@@ -9,7 +9,6 @@ import setCompletionReducer from "@/lib/features/game/set-completion-slice";
 import lineupReducer from "@/lib/features/team/lineup-slice";
 import { configureStore } from "@reduxjs/toolkit";
 
-// A parameter only so a test can hand in a fake; the default is what ships.
 export const makeStore = (
   storage: PendingWritesStorage = localStoragePendingWrites,
 ) => {

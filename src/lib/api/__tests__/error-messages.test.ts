@@ -3,7 +3,6 @@ import { join } from "node:path";
 import * as errors from "@/entities/errors";
 import { ABSORBED_REASONS, ERROR_MESSAGES } from "@/lib/api/error-messages";
 
-// Derived from the exports, so a sixth reason enum is covered on sight.
 const isReasonEnum = (value: unknown): value is Record<string, string> =>
   typeof value === "object" &&
   value !== null &&
@@ -15,8 +14,6 @@ const allReasons = Object.values(errors)
 
 describe("error-messages catalogue", () => {
   it("derives its reasons from the errors module rather than a written list", () => {
-    // Guards the derivation itself: a filter that silently matched nothing
-    // would make every assertion below vacuously true.
     expect(allReasons).toContain(errors.PlayerReason.INVALID_EMAIL);
     expect(allReasons.length).toBeGreaterThanOrEqual(24);
   });
@@ -39,7 +36,6 @@ describe("error-messages catalogue", () => {
 });
 
 describe("the catalogue is the only source", () => {
-  // A copy that has already drifted by a character still escapes this.
   const sourceFiles = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
       const full = join(dir, entry.name);

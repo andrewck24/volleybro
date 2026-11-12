@@ -1,4 +1,3 @@
-// This approach is taken from https://github.com/vercel/next.js/tree/canary/examples/with-mongodb
 import { MongoClient, ServerApiVersion } from "mongodb";
 
 if (!process.env.MONGODB_URI) {
@@ -14,16 +13,9 @@ const options = {
   },
 };
 
-/**
- * The MongoDB client instance.
- * @important This MongoClient instance should be used in `Auth.js` MongoDBAdapter `ONLY`.
- * For more information, see https://authjs.dev/getting-started/adapters/mongodb
- */
-let client: MongoClient;
+let betterAuthMongoClient: MongoClient;
 
 if (process.env.NODE_ENV === "development") {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
   const globalWithMongo = global as typeof globalThis & {
     _mongoClient?: MongoClient;
   };
@@ -31,12 +23,9 @@ if (process.env.NODE_ENV === "development") {
   if (!globalWithMongo._mongoClient) {
     globalWithMongo._mongoClient = new MongoClient(uri, options);
   }
-  client = globalWithMongo._mongoClient;
+  betterAuthMongoClient = globalWithMongo._mongoClient;
 } else {
-  // In production mode, it's best to not use a global variable.
-  client = new MongoClient(uri, options);
+  betterAuthMongoClient = new MongoClient(uri, options);
 }
 
-// Export a module-scoped MongoClient. By doing this in a
-// separate module, the client can be shared across functions.
-export default client;
+export default betterAuthMongoClient;

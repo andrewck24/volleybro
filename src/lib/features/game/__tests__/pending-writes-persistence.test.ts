@@ -8,19 +8,15 @@ import {
   PENDING_WRITES_KEY,
   PENDING_WRITES_VERSION,
   localStoragePendingWrites,
+  rememberRecorder,
   type PendingWritesStorage,
 } from "@/lib/features/game/pending-writes-storage";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry, PersistedQueue } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
+import { waitFor } from "@testing-library/react";
 import { deferred } from "@test/support/gates";
 
-// Consecutive dispatches inside one tick coalesce by design, so anything
-// asserting a later snapshot has to let the microtask queue drain first.
-const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
-
-// A real rally shape, not a cast: restore parses what it reads, so a fixture
-// that could never have been stored would not survive the round trip.
 const entry = (id: string): PendingEntry["entry"] => ({
   type: EntryType.RALLY,
   id,
@@ -46,8 +42,6 @@ const fakeStorage = () => {
   return {
     storage,
     saved,
-    // Holds the next save open so a burst of dispatches can be observed
-    // while one write is still in flight.
     blockSaves: () => {
       saveGate = deferred();
     },
@@ -80,8 +74,7 @@ describe("pending-writes persistence", () => {
     });
 
     store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
-    await settled();
-    expect(saved).toHaveLength(2);
+    await waitFor(() => expect(saved).toHaveLength(2));
     expect(saved[1]).toEqual({ version: PENDING_WRITES_VERSION, items: [] });
   });
 
@@ -108,7 +101,13 @@ describe("pending-writes persistence", () => {
       }),
     );
 
-    await settled();
+    await waitFor(() =>
+      expect(saved.at(-1)?.items[0]?.lastError).toEqual({
+        code: "TRANSIENT",
+        reason: "NETWORK_ERROR",
+        status: 503,
+      }),
+    );
     const last = saved.at(-1)!;
     expect(last.items[0]).toEqual({
       entry: entry("e1"),
@@ -143,9 +142,6 @@ describe("pending-writes persistence", () => {
       }),
     );
 
-    // No await between the dispatch and this assertion: had the write been
-    // deferred to a microtask, an app killed in that window would lose the
-    // rally the recorder has already seen accepted.
     expect(saved).toHaveLength(1);
   });
 
@@ -153,36 +149,34 @@ describe("pending-writes persistence", () => {
     const { storage, saved, blockSaves, releaseSaves } = fakeStorage();
     store = makeStore(storage);
     blockSaves();
+    try {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: entry("e1"),
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: entry("e2"),
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: entry("e3"),
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
 
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: entry("e1"),
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: entry("e2"),
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: entry("e3"),
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
-
-    // The first write is still open, so the two behind it collapse.
-    expect(saved).toHaveLength(1);
-
-    releaseSaves();
-    await settled();
-
-    expect(saved).toHaveLength(2);
+      expect(saved).toHaveLength(1);
+    } finally {
+      releaseSaves();
+    }
+    await waitFor(() => expect(saved).toHaveLength(2));
     expect(saved.at(-1)!.items.map((i) => i.entry.id)).toEqual([
       "e1",
       "e2",
@@ -212,11 +206,15 @@ describe("pending-writes persistence", () => {
       ),
     ).not.toThrow();
 
-    await settled();
-    expect(warn).toHaveBeenCalled();
-    // Storage failing does not lose the rally, only its protection.
-    expect(store.getState().pendingWrites.pending).toHaveLength(1);
-    warn.mockRestore();
+    try {
+      await waitFor(() =>
+        expect(store.getState().pendingWrites.storageUnavailable).toBe(true),
+      );
+      expect(warn).toHaveBeenCalled();
+      expect(store.getState().pendingWrites.pending).toHaveLength(1);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("a failed write does not stall the writes behind it", async () => {
@@ -244,7 +242,9 @@ describe("pending-writes persistence", () => {
         setIndex: 0,
       }),
     );
-    await settled();
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.storageUnavailable).toBe(true),
+    );
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: entry("e2"),
@@ -253,10 +253,12 @@ describe("pending-writes persistence", () => {
       }),
     );
 
-    await settled();
-    expect(saved).toHaveLength(1);
-    expect(saved[0]!.items.map((i) => i.entry.id)).toEqual(["e1", "e2"]);
-    warn.mockRestore();
+    try {
+      await waitFor(() => expect(saved).toHaveLength(1));
+      expect(saved[0]!.items.map((i) => i.entry.id)).toEqual(["e1", "e2"]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
@@ -270,8 +272,6 @@ describe("localStoragePendingWrites", () => {
     };
     const saving = localStoragePendingWrites.save(snapshot);
 
-    // Read before awaiting: the synchronous setItem runs inside the async
-    // body, so the data is already there.
     expect(localStorage.getItem(PENDING_WRITES_KEY)).toBe(
       JSON.stringify(snapshot),
     );
@@ -304,7 +304,6 @@ describe("localStoragePendingWrites", () => {
     expect(localStorage.getItem(PENDING_WRITES_KEY)).toBe(
       JSON.stringify(snapshot),
     );
-    // Nothing of the probe's own is left behind.
     expect(localStorage.length).toBe(1);
   });
 
@@ -320,9 +319,6 @@ describe("localStoragePendingWrites", () => {
     setItem.mockRestore();
   });
 
-  // Safari's private mode hands out an ephemeral quota rather than throwing,
-  // so a bare setItem would report an unusable store as healthy. Reading back
-  // is the half that catches it.
   it("fails the probe when the store accepts a write and keeps nothing", async () => {
     const getItem = jest
       .spyOn(Storage.prototype, "getItem")
@@ -333,10 +329,22 @@ describe("localStoragePendingWrites", () => {
     getItem.mockRestore();
   });
 
+  it("swallows recorder-hint storage failures", () => {
+    const setItem = jest
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("QuotaExceededError");
+      });
+
+    try {
+      expect(() => rememberRecorder("user-1")).not.toThrow();
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it("hands back unreadable stored data rather than hiding it", async () => {
     localStorage.setItem(PENDING_WRITES_KEY, "{ not json");
-    // Not null: the caller has to be able to tell "nothing stored" from
-    // "something stored that nobody can use", so it can clear the latter.
     expect(await localStoragePendingWrites.load()).toBe("{ not json");
   });
 
@@ -377,9 +385,6 @@ describe("probePendingWritesStorage", () => {
     expect(store.getState().pendingWrites.storageUnavailable).toBe(false);
   });
 
-  // Reported before the first rally, which is the only point at which the
-  // recorder still has moves available -- leaving private browsing, freeing
-  // space, or picking up another device.
   it("records an unwritable store rather than letting the failure through", async () => {
     const store = makeStore();
 
@@ -398,8 +403,6 @@ describe("probePendingWritesStorage", () => {
 
 describe("the queue's own save failing", () => {
   it("reports the store as unwritable, because it can fail after a clean probe", async () => {
-    // A quota another origin fills mid-match is the ordinary way this
-    // happens: start-up said yes and the store still stopped keeping things.
     const store = makeStore({
       load: async () => null,
       save: async () => {
@@ -416,9 +419,9 @@ describe("the queue's own save failing", () => {
         setIndex: 0,
       }),
     );
-    await settled();
-
-    expect(store.getState().pendingWrites.storageUnavailable).toBe(true);
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.storageUnavailable).toBe(true),
+    );
   });
 });
 
@@ -466,8 +469,6 @@ describe("restorePendingWrites", () => {
 
   it("never loses a rally recorded while the read was still in flight", async () => {
     const store = makeStore(stored(null));
-    // The recorder gets ahead of the asynchronous read -- the exact window
-    // the merge exists for. Overwriting here would drop e2 silently.
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: entry("e2"),
@@ -543,9 +544,6 @@ describe("restorePendingWrites", () => {
         .pendingWrites.pending.map((p) => [p.entry.id, p.nextAttemptAt]),
     );
     expect(due.transient).toEqual(expect.any(Number));
-    // One standard, applied everywhere: a 4xx is not scheduled, and that
-    // includes an expired session. It stays queued and visible, and the
-    // recorder's retry gesture sends it once they have signed back in.
     expect(due["expired-session"]).toBeNull();
     expect(due["deleted-game"]).toBeNull();
   });
@@ -627,8 +625,6 @@ describe("restorePendingWrites", () => {
   it("treats a snapshot of the wrong shape as nothing stored", async () => {
     const store = makeStore(stored(null));
 
-    // Valid JSON, wrong shape. Storage is writable by anything on this
-    // origin, and whatever comes back goes on to be sent to the server.
     await restorePendingWrites(store.dispatch, {
       load: async () => ({
         version: PENDING_WRITES_VERSION,
@@ -660,7 +656,6 @@ describe("restorePendingWrites", () => {
     });
     const store = makeStore(stored(null));
 
-    // Both are dead to every future build too, so neither is left behind.
     await restorePendingWrites(store.dispatch, junk("{ not json"));
     await restorePendingWrites(
       store.dispatch,
@@ -690,10 +685,10 @@ describe("restorePendingWrites", () => {
     expect(store.getState().pendingWrites.pending).toEqual([]);
   });
 
-  it("leaves a snapshot from a newer build alone", async () => {
+  it("checks a newer snapshot version before validating its shape", async () => {
     let cleared = false;
     const storage: PendingWritesStorage = {
-      load: async () => ({ version: 99, items: [] }),
+      load: async () => ({ version: 99, items: "unreadable" }),
       save: async () => {},
       clear: async () => {
         cleared = true;
@@ -704,8 +699,6 @@ describe("restorePendingWrites", () => {
 
     await restorePendingWrites(store.dispatch, storage);
 
-    // A build the user may also be running could own it, and this is the one
-    // place where guessing wrong destroys unsent work.
     expect(cleared).toBe(false);
     expect(store.getState().pendingWrites.pending).toEqual([]);
   });
@@ -780,7 +773,6 @@ describe("restorePendingWrites expiry", () => {
   });
 
   it("keeps work that might still land however long it has waited", async () => {
-    // A week-long tournament without signal is when the queue has to hold.
     expect(await restore([aged("offline", week * 4, transient)])).toEqual([
       "offline",
     ]);
@@ -822,8 +814,6 @@ describe("restorePendingWrites expiry", () => {
 
     await restorePendingWrites(store.dispatch, storage);
 
-    // Nothing is dispatched, so the listener never writes the shorter queue
-    // back -- without the clear it would be re-read on every start.
     expect(store.getState().pendingWrites.pending).toEqual([]);
     expect(cleared).toBe(true);
   });
@@ -847,8 +837,9 @@ describe("restorePendingWrites expiry", () => {
     const store = makeStore(storage);
 
     await restorePendingWrites(store.dispatch, storage);
-    await settled();
-
+    await waitFor(() =>
+      expect(saved.at(-1)?.items.map((i) => i.entry.id)).toEqual(["live"]),
+    );
     expect(saved.at(-1)!.items.map((i) => i.entry.id)).toEqual(["live"]);
   });
 });

@@ -7,7 +7,6 @@ import {
 } from "@/lib/features/game/helpers";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
-// What useSubmitEntryDraft runs per rally, collapsed onto one game.
 const record = (
   { setIndex, entryIndex }: { setIndex: number; entryIndex: number },
   draft: RallyView & EntryIdentity,
@@ -174,13 +173,13 @@ describe("rally.helper.ts", () => {
       win: true,
       home: {
         score: 1,
-        type: M.ATTACK, // Changed from SERVING to ATTACK
+        type: M.ATTACK,
         num: 1,
         player: { id: "player-1", zone: 1 },
       },
       away: {
         score: 0,
-        type: M.DEFENSE, // Changed from RECEPTION to DEFENSE
+        type: M.DEFENSE,
         num: 1,
         player: { id: "rival-1", zone: 1 },
       },
@@ -236,7 +235,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.isSetInProgress).toBe(true);
         expect(result.phase.isSetPoint).toBe(false);
-        expect(result.game.sets[0]!.win).toBeFalsy(); // 不應該設定勝負
+        expect(result.game.sets[0]!.win).toBeFalsy();
       });
 
       it("should mark the set as completed when home team reaches winning score with 2-point lead", () => {
@@ -255,7 +254,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.game.sets[0]!.win).toBe(true); // 主隊贏了這局
+        expect(result.game.sets[0]!.win).toBe(true);
       });
 
       it("should mark the set as completed when away team reaches winning score with 2-point lead", () => {
@@ -274,7 +273,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.game.sets[0]!.win).toBe(false); // 客隊贏了這局
+        expect(result.game.sets[0]!.win).toBe(false);
       });
 
       it("should detect a set point correctly", () => {
@@ -299,9 +298,9 @@ describe("rally.helper.ts", () => {
       it("should use different winning score for deciding set", () => {
         const mockGame = createMockGame();
         mockGame.sets[0]!.win = true;
-        mockGame.sets.push({ ...mockGame.sets[0]!, win: false }); // 1-1
-        mockGame.sets.push({ ...mockGame.sets[0]!, win: true }); // 2-1
-        mockGame.sets.push({ ...mockGame.sets[0]!, win: false }); // 2-2
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
         mockGame.sets.push({
           ...mockGame.sets[0]!,
           entries: [],
@@ -321,7 +320,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.game.sets[4]!.win).toBe(true); // 主隊贏了決勝局
+        expect(result.game.sets[4]!.win).toBe(true);
       });
     });
 
@@ -350,7 +349,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[2]!.win).toBe(true);
-        expect(result.game.win).toBe(true); // 主隊贏了比賽
+        expect(result.game.win).toBe(true);
       });
 
       it("should mark the game as completed when a team wins majority of sets (2-3)", () => {
@@ -379,7 +378,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[4]!.win).toBe(false);
-        expect(result.game.win).toBe(false); // 客隊贏了比賽
+        expect(result.game.win).toBe(false);
       });
 
       it("should not mark the game as completed when no team has won majority of sets yet (2-1)", () => {
@@ -406,7 +405,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.isSetInProgress).toBe(true);
-        expect(result.game.win).toBeNull(); // 比賽還沒結束
+        expect(result.game.win).toBeNull();
       });
     });
 
@@ -424,7 +423,7 @@ describe("rally.helper.ts", () => {
           type: EntryType.RALLY,
           ...winningRally,
         };
-        mockGame.sets[0]!.win = true; // 已經標記為主隊勝
+        mockGame.sets[0]!.win = true;
 
         const updatedRally = {
           ...winningRally,

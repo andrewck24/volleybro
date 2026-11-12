@@ -2,14 +2,12 @@ import { z } from "zod";
 
 export const ACTIVE_TEAM_PREFERENCE_VERSION = 1;
 
-/** Which team this device shows, bound to the user it was written for. See ADR-0098 and ADR-0099. */
 export type ActiveTeamPreference = {
   version: typeof ACTIVE_TEAM_PREFERENCE_VERSION;
   userId: string;
   teamId: string;
 };
 
-/** Synchronous and never throwing: a failing store is an empty one. `subscribe` also fires for this tab's own writes. */
 export type ActiveTeamPreferenceStorage = {
   load(): ActiveTeamPreference | null;
   save(preference: Omit<ActiveTeamPreference, "version">): void;
@@ -23,7 +21,6 @@ const ActiveTeamPreferenceSchema = z.object({
   teamId: z.string(),
 });
 
-/** Anything unrecognisable, including an unknown version, is `null`. */
 export const parseActiveTeamPreference = (
   raw: unknown,
 ): ActiveTeamPreference | null => {
@@ -31,14 +28,11 @@ export const parseActiveTeamPreference = (
   return result.success ? result.data : null;
 };
 
-/** What the preferred team's own request has said so far. */
 type PreferredTeamStatus = "pending" | "confirmed" | "refused" | "failed";
 
 export type PreferenceState = {
   preference: ActiveTeamPreference | null;
-  /** Undefined until `useUser` has answered. */
   userId: string | undefined;
-  /** `refused`: not a member. `failed`: it could not be asked (network, server, or the user request). */
   preferredTeamStatus: PreferredTeamStatus;
 };
 
@@ -46,11 +40,10 @@ export type ActiveTeamResolutionInput = PreferenceState & {
   joinedTeamIds: string[];
 };
 
-export type ActiveTeamResolution = {
-  teamId: string | undefined;
-  /** `pending`: no team offered yet. `verified`: the preference's team. `unused`: the full resolution's team. */
-  verification: "pending" | "verified" | "unused";
-};
+export type ActiveTeamResolution =
+  | { verification: "pending"; teamId: undefined }
+  | { verification: "verified"; teamId: string }
+  | { verification: "unused"; teamId: string | undefined };
 
 const isPreferenceRejected = ({
   preference,
@@ -61,11 +54,6 @@ const isPreferenceRejected = ({
   ((userId !== undefined && preference.userId !== userId) ||
     preferredTeamStatus === "refused");
 
-/**
- * A preference is trusted only once its team request succeeded and the
- * answered user is the one it was written for; until then no team is offered.
- * Without a usable preference the first joined team is used.
- */
 export const resolveActiveTeam = (
   input: ActiveTeamResolutionInput,
 ): ActiveTeamResolution => {
@@ -83,16 +71,13 @@ export const resolveActiveTeam = (
   return { teamId: undefined, verification: "pending" };
 };
 
-/** What to do with the stored preference. */
 export type PreferenceAction =
   | { type: "keep" }
   | { type: "discard" }
   | { type: "store"; userId: string; teamId: string };
 
 export type PreferenceActionInput = PreferenceState & {
-  /** The team `resolveActiveTeam` chose. */
   teamId: string | undefined;
-  /** The team whose data has been received, if any. */
   loadedTeamId: string | undefined;
 };
 

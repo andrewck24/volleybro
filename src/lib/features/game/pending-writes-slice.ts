@@ -24,8 +24,6 @@ const enqueued: CaseReducer<
   PendingWritesState,
   PayloadAction<Pick<PendingEntry, "entry" | "gameId" | "setIndex" | "userId">>
 > = (state, action) => {
-  // A failed entry can never be sent as it is; the corrected one with its id
-  // replaces it, or the batch would carry the refused content with it.
   const { entry, gameId } = action.payload;
   state.pending = state.pending.filter(
     (p) =>
@@ -48,8 +46,6 @@ const flushSucceeded: CaseReducer<
   state.pending = state.pending.filter((p) => !ids.has(p.entry.id));
 };
 
-// `lastError` is assigned, undefined included: keeping an older reason when
-// this attempt's could not be read would attribute the wrong cause.
 const flushFailed: CaseReducer<
   PendingWritesState,
   PayloadAction<{
@@ -70,13 +66,6 @@ const flushFailed: CaseReducer<
   }
 };
 
-// Manual retry: only items that exhausted their backoff are eligible, and
-// only `nextAttemptAt` resets to fire immediately -- `attempts` is left
-// untouched, so a subsequent failure exhausts the backoff table again
-// immediately rather than restarting the schedule. Scoped to the requesting
-// game -- the flush and the background scheduler both filter by game, so
-// resetting another game's items here would move them to "scheduled" with
-// nothing left to ever attempt them.
 const retryRequested: CaseReducer<
   PendingWritesState,
   PayloadAction<{ gameId: string; userId?: string }>
@@ -107,11 +96,9 @@ const rehydrated: CaseReducer<
       attempts: 0,
       nextAttemptAt: mayBeAttemptedAgain(item.lastError) ? Date.now() : null,
     }));
-  // Restored entries were recorded before anything now in memory.
   state.pending = [...restored, ...state.pending];
 };
 
-/** One-way: nothing here observes a store recovering. */
 const storageUnavailable: CaseReducer<PendingWritesState> = (state) => {
   state.storageUnavailable = true;
 };

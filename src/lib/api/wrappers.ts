@@ -18,12 +18,6 @@ type AuthedRouteHandler = (
   ctx: { userId: string; email: string },
 ) => Promise<NextResponse>;
 
-/**
- * A validation failure travels as the field paths that failed and nothing
- * else. Zod's own message is developer-facing English, and its remaining
- * fields describe the schema. An empty path is legitimate: an unrecognised
- * key names no field the form has, so there is nothing to point at.
- */
 function toFieldPath(issue: unknown): (string | number)[] {
   const path = (issue as { path?: unknown })?.path;
   if (!Array.isArray(path)) return [];
@@ -95,8 +89,7 @@ export function withErrorHandler(handler: RouteHandler): RouteHandler {
       await connectToMongoDB();
       return await handler(req);
     } catch (raw) {
-      // Normalize error before logging so ZodError logs as warn, not error
-      let error: AppError | Error;
+      let error: AppError;
       if (raw instanceof AppError) {
         error = raw;
       } else if (raw instanceof ZodError) {
@@ -117,17 +110,9 @@ export function withErrorHandler(handler: RouteHandler): RouteHandler {
 
       logError(error, req);
 
-      if (error instanceof AppError) {
-        return NextResponse.json(serializeError(error), {
-          status: error.httpStatus,
-        });
-      }
-
-      // Unreachable: all paths above produce an AppError, but TypeScript needs this
-      return NextResponse.json(
-        { code: "UNEXPECTED", reason: CommonReason.UNHANDLED_ERROR },
-        { status: 500 },
-      );
+      return NextResponse.json(serializeError(error), {
+        status: error.httpStatus,
+      });
     }
   };
 }

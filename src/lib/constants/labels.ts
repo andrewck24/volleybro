@@ -1,20 +1,10 @@
-/**
- * T125: Label Constants
- *
- * Centralized definitions for all label mappings used throughout the application
- * This eliminates duplication of label objects across components
- */
-
-// Role labels
 export const ROLE_LABELS: Record<string, string> = {
   MEMBER: "一般成員",
   ADMIN: "管理員",
 };
 
-// The owner is named by the team, not by a role, so its label stands apart.
 export const OWNER_LABEL = "擁有者";
 
-// Position labels for volleyball players
 export const POSITION_LABELS: Record<string, string> = {
   OH: "Outside Hitter",
   MB: "Middle Blocker",
@@ -24,10 +14,6 @@ export const POSITION_LABELS: Record<string, string> = {
   "": "Unspecified",
 };
 
-/**
- * Get label for a value from a mapping
- * Returns the value itself as fallback if not found
- */
 export function getLabel(
   mapping: Record<string, string>,
   value: string,
@@ -35,16 +21,10 @@ export function getLabel(
   return mapping[value] || value;
 }
 
-/**
- * Get role label with fallback
- */
 export function getRoleLabel(role: string): string {
   return getLabel(ROLE_LABELS, role);
 }
 
-/**
- * Get position label with fallback
- */
 export function getPositionLabel(position: string): string {
   return getLabel(POSITION_LABELS, position);
 }

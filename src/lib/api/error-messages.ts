@@ -15,7 +15,6 @@ type ClassKey =
   | "UNKNOWN";
 
 type AbsorbedReason = (typeof ABSORBED_REASONS)[number];
-// Derived, so renaming a reason is a compile error rather than a silent miss.
 type ReasonKey = Exclude<
   AuthReason | CommonReason | GameReason | PlayerReason,
   AbsorbedReason
@@ -23,8 +22,6 @@ type ReasonKey = Exclude<
 
 type CatalogueKey = ClassKey | ReasonKey;
 
-// 401 reasons resolved to SESSION_EXPIRED and the 5xx reason resolved to
-// SERVER_ERROR before the reason lookup ever runs — no catalogue entry needed.
 export const ABSORBED_REASONS = [
   AuthReason.SESSION_REQUIRED,
   AuthReason.INVALID_SESSION,

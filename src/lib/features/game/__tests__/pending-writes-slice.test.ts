@@ -288,6 +288,7 @@ describe("pendingWrites reducer", () => {
       pendingWritesActions.retryRequested({ gameId: "game-1" }),
     );
 
+    expect(state.pending[0]!.attempts).toBe(3);
     expect(state.pending[0]!.nextAttemptAt).toBe(Date.now());
     expect(state.pending[1]!.nextAttemptAt).toBe(
       seeded.pending[1]!.nextAttemptAt,

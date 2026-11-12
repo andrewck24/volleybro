@@ -22,8 +22,6 @@ export const assertRallyAt = (
   }
 };
 
-// Give this the merged view, never the cache: on an edit, a shorter array
-// walks back onto a later rally and reads its score.
 export const deriveEntryPhase = (
   game: GameView,
   setIndex: number,

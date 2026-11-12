@@ -208,8 +208,6 @@ describe("useLineup", () => {
       );
     });
 
-    // Home serves first and plays lose, lose, win, win, win. editingEntryIndex is
-    // the entry being edited, so the rally named in a row is the one just before it.
     it.each([
       ["serving and losing", 1, [1, 2, 3, 4, 5, 6]],
       ["receiving and losing", 2, [1, 2, 3, 4, 5, 6]],

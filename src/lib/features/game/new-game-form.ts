@@ -18,6 +18,31 @@ export const newGameFormDefaults = (
   time: { date: new Date(), start: "", end: "" },
 });
 
+type NewGameInfo = Omit<
+  TMatchInfoForm,
+  "teams" | "phase" | "division" | "category" | "scoring"
+> & {
+  phase: number;
+  division: number;
+  category: number;
+  scoring: Omit<TMatchInfoForm["scoring"], "setCount"> & {
+    setCount: number;
+  };
+};
+
+type NewGameBody = {
+  info: NewGameInfo;
+  teams: {
+    home: {
+      id: string;
+      name: string;
+      players: Omit<LineupListPlayer, "list">[];
+      lineup?: Lineup;
+    };
+    away: { name: string };
+  };
+};
+
 export const newGameBody = ({
   info,
   teamId,
@@ -48,5 +73,5 @@ export const newGameBody = ({
       },
       away: { name: info.teams.away.name },
     },
-  };
+  } satisfies NewGameBody;
 };

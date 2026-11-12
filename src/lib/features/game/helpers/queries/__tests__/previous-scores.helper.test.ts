@@ -15,7 +15,7 @@ describe("getPreviousScores", () => {
       },
     ];
 
-    const entryIndex = 1; // Look for rally before entryIndex
+    const entryIndex = 1;
 
     const scores = getPreviousScores(mockEntries, entryIndex);
 
@@ -23,10 +23,9 @@ describe("getPreviousScores", () => {
   });
 
   it("should return zero scores when no previous Rally exists", () => {
-    // Create Game object without Rally
     const mockEntries: EntryView[] = [
       {
-        type: EntryType.TIMEOUT, // Non-RALLY type
+        type: EntryType.TIMEOUT,
         id: "entry-0",
         seq: 0,
         team: Side.HOME,
@@ -43,7 +42,7 @@ describe("getPreviousScores", () => {
   it("should return zero scores when entryIndex is 0", () => {
     const mockEntries: EntryView[] = [];
 
-    const entryIndex = 0; // No previous entry
+    const entryIndex = 0;
 
     const scores = getPreviousScores(mockEntries, entryIndex);
 
@@ -76,7 +75,7 @@ describe("getPreviousScores", () => {
       },
     ];
 
-    const entryIndex = 3; // Look for rally before entryIndex=3
+    const entryIndex = 3;
 
     const scores = getPreviousScores(mockEntries, entryIndex);
 

@@ -74,8 +74,6 @@ describe("resolveErrorDisplay", () => {
   });
 
   it("resolves client-invented TIMEOUT/NETWORK_ERROR reasons to NETWORK_TIMEOUT before the 5xx branch", () => {
-    // normalizeNetworkError stamps status 503 on these, which would
-    // otherwise fall into the server-error branch.
     const timeout = makeApiClientError(503, "TRANSIENT", "timeout", "TIMEOUT");
     const network = makeApiClientError(
       503,
@@ -131,10 +129,10 @@ describe("resolveErrorDisplay", () => {
     );
 
     const mockToast = jest.fn();
-    showErrorToast(error, mockToast); // toast path
+    showErrorToast(error, mockToast);
     const toastDescription = mockToast.mock.calls[0][0].description;
 
-    const dialogDescription = resolveErrorDisplay(error).description; // dialog path
+    const dialogDescription = resolveErrorDisplay(error).description;
 
     expect(toastDescription).toBe(dialogDescription);
   });

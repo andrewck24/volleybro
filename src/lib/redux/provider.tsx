@@ -17,12 +17,9 @@ function getStore() {
 
 export const ReduxProvider = ({ children }: { children: ReactNode }) => {
   const store = getStore();
-  // In an effect because this component renders on the server too, where there
-  // is no storage to read. Running twice is harmless: `rehydrated` merges.
   useEffect(() => {
     void restorePendingWrites(store.dispatch, localStoragePendingWrites);
     void probePendingWritesStorage(store.dispatch, localStoragePendingWrites);
-    // Covers what the probe cannot see: eviction and ITP throw nothing.
     void requestPersistentStorage();
   }, [store]);
 

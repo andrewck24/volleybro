@@ -1,14 +1,9 @@
-/**
- * Design tokens for programmatic usage (e.g. chart configs, dynamic styles).
- * Source of truth: src/app/globals.css CSS custom properties.
- */
-
 export const chartColors = {
-  1: "var(--chart-1)", // primary teal
-  2: "var(--chart-2)", // coral (contrast)
-  3: "var(--chart-3)", // cool blue
-  4: "var(--chart-4)", // warm yellow
-  5: "var(--chart-5)", // neutral purple
+  teal: "var(--chart-1)",
+  coral: "var(--chart-2)",
+  blue: "var(--chart-3)",
+  yellow: "var(--chart-4)",
+  purple: "var(--chart-5)",
 } as const;
 
 export const feedbackColors = {

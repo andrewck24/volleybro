@@ -20,7 +20,6 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 
-// Define the initial states
 const statusState: ReduxStatus = {
   scores: { home: 0, away: 0 },
   entryIndex: 0,
@@ -64,7 +63,6 @@ const initialState: ReduxGameState = {
   },
 };
 
-// Define the reducers
 const initialize: CaseReducer<
   ReduxGameState,
   PayloadAction<{ game: GameView; setIndex: number }>
@@ -136,7 +134,6 @@ const setEntryDraftHomeMove: CaseReducer<
   const { mode } = state;
   const { win, type, num, outcome } = action.payload;
   const { home, away } = state[mode].status.scores;
-  // every ScoringMove.outcome has at least one entry, each a valid scoringMoves index
   const [outcomeNum = 0] = outcome;
 
   state[mode].status.panel = "away";

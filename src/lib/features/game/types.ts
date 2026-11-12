@@ -7,6 +7,7 @@ import {
   Side,
   type DerivedSetStats,
   type EntryIdentity,
+  type EntryRecord,
 } from "@/entities/game";
 import type { AppErrorCode } from "@/entities/errors";
 import { Position as TeamPosition } from "@/entities/team";
@@ -147,22 +148,25 @@ const ChallengeResponseSchema = z.object({
   success: z.boolean(),
 });
 
-// A stable identity and an ordering position, generated on the client before
-// the optimistic update runs. See entities/game.ts's EntryIdentity for why
-// they are separate fields.
 const EntryIdentityResponseSchema = z.object({
   id: z.string(),
   seq: z.number(),
-});
+}) satisfies z.ZodType<EntryIdentity>;
 
-// Optional because an optimistic entry has no recorder until the server
-// stamps one; every stored entry carries recordedBy and recordedAt.
+type EntryResponseRecord = Omit<
+  Partial<EntryRecord>,
+  "recordedAt" | "editedAt"
+> & {
+  recordedAt?: string;
+  editedAt?: string;
+};
+
 const EntryRecordResponseSchema = z.object({
   recordedBy: z.string().optional(),
   recordedAt: z.string().optional(),
   editedBy: z.string().optional(),
   editedAt: z.string().optional(),
-});
+}) satisfies z.ZodType<EntryResponseRecord>;
 
 export const EntryResponseSchema = z.discriminatedUnion("type", [
   z
@@ -248,13 +252,7 @@ export type TimeoutView = z.infer<typeof TimeoutResponseSchema>;
 export type ChallengeView = z.infer<typeof ChallengeResponseSchema>;
 export type EntryView = z.infer<typeof EntryResponseSchema>;
 
-/**
- * The entries endpoint's response: entries land whenever the entry write
- * succeeds, and `setCompletionConfirmed` is only present when a set result
- * was attempted, stating whether that second write landed. Undefined means
- * no set result was attempted for this write.
- */
-export type RecordEntriesResponse = {
+export type EntryWriteResponse = {
   entries: EntryView[];
   setCompletionConfirmed?: boolean;
 };
@@ -264,10 +262,6 @@ export type GameTeamView = z.infer<typeof GameTeamResponseSchema>;
 export type SetView = z.infer<typeof SetResponseSchema>;
 export type GameSummaryView = z.infer<typeof GameSummaryResponseSchema>;
 
-// For Forms and Tables
-// Two divergences from the request schema are deliberate and unreachable
-// through the controls: the optional id, and the string enums the body
-// converts. See error-display-boundary S07.
 export const MatchInfoFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
@@ -319,7 +313,6 @@ export type LineupListPlayer = {
   list: LineupList;
 };
 
-// For Redux
 export type ReduxStatus = {
   scores: {
     home: number;
@@ -339,10 +332,6 @@ type ReduxRallyDetail = Omit<RallyDetailView, "type" | "num"> & {
 };
 
 export type ReduxEntryDraft = Omit<RallyView, "win" | "home" | "away"> & {
-  // Identity of the entry this draft becomes on submit. Empty/zero until
-  // then: a create fills it in just before the optimistic update runs (a
-  // fresh client-generated id, seq = the current entryIndex); an edit
-  // inherits the original entry's id and seq from setEditingEntryStatus.
   id: string;
   seq: number;
   win: RallyView["win"] | null;
@@ -367,19 +356,12 @@ export type ReduxGameState = {
   };
 };
 
-// For the pending-write queue: unconfirmed entry writes, kept in their own
-// slice because their lifetime differs from the per-set draft above.
-// The part of a failed write worth keeping. `detail` and `message` are absent
-// on purpose: they move with copy and translation, and nothing can act on them.
 export type WriteError = {
   code: AppErrorCode;
   reason: string;
   status: number;
 };
 
-// `at` is the action time the client decided once; every resend carries it.
-// The shape is what the entries endpoint takes, so a queued entry is sent as it
-// is held.
 export type PendingEntryContent = (
   | (RallyView & { type: EntryType.RALLY })
   | (SubstitutionView & { type: EntryType.SUBSTITUTION })
@@ -397,20 +379,11 @@ export type PendingEntry = {
   setIndex: number;
   userId?: string;
   attempts: number;
-  // Timestamp of the next scheduled attempt; null means the backoff budget
-  // is exhausted or the error itself is not retryable.
   nextAttemptAt: number | null;
-  // Why the last attempt failed. `nextAttemptAt: null` conflates a spent
-  // backoff with a failure that can never succeed; this keeps them apart.
   lastError?: WriteError;
-  // When this entry first failed, never refreshed: a flush re-sends every
-  // pending entry for its game, so a moving timestamp would measure the
-  // recorder's activity rather than the entry's age.
   firstFailedAt?: number;
 };
 
-// The queue as it exists on disk. A snapshot whose `version` does not match is
-// not used rather than migrated, and only an older one is cleared -- see D2.
 export type PersistedPendingEntry = Pick<
   PendingEntry,
   "entry" | "gameId" | "setIndex" | "userId" | "lastError" | "firstFailedAt"
@@ -421,9 +394,7 @@ export type PersistedQueue = {
   items: PersistedPendingEntry[];
 };
 
-// Storage is writable by anything on this origin and what comes back is sent
-// to the server, so it is parsed rather than cast.
-export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
+export const PersistedQueueSchema = z.object({
   version: z.number(),
   items: z.array(
     z.object({
@@ -444,8 +415,6 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
       userId: z.string().optional(),
       lastError: z
         .object({
-          // A string rather than the union, which lives in the error model.
-          // Nothing branches on it -- only `status` decides anything.
           code: z.custom<AppErrorCode>((value) => typeof value === "string"),
           reason: z.string(),
           status: z.number(),
@@ -454,15 +423,13 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
       firstFailedAt: z.number().optional(),
     }),
   ),
-});
+}) satisfies z.ZodType<PersistedQueue>;
 
 export type PendingWritesState = {
   pending: PendingEntry[];
-  // The one thing SyncIndicator reports that the queue cannot tell it.
   storageUnavailable: boolean;
 };
 
-// For Other Components
 export interface ITeamsStats {
   home: TeamStatsView;
   away: TeamStatsView;

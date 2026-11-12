@@ -4,15 +4,6 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 
-/**
- * Whether `completeSet` was confirmed for a set, keyed by gameId and
- * setIndex. This is not a copy of anything derivable -- the local cache is
- * already optimistically written to match entries by the time a response
- * arrives, so the only place this fact exists is the flush response itself.
- * Session-only by construction: the store is never persisted, so a reload
- * naturally falls back to the cold-start comparison instead of a stale value
- * here.
- */
 export type SetCompletionState = Record<string, boolean>;
 
 const initialState: SetCompletionState = {};
@@ -20,7 +11,6 @@ const initialState: SetCompletionState = {};
 export const setCompletionKey = (gameId: string, setIndex: number): string =>
   `${gameId}:${setIndex}`;
 
-/** Undefined means no submit-time signal has been recorded this session. */
 export const readSetCompletion = (
   state: SetCompletionState,
   gameId: string,

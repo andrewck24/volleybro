@@ -25,11 +25,9 @@ jest.mock("next/headers", () => ({
 import { auth } from "@/lib/auth";
 const mockGetSession = auth.api.getSession as unknown as jest.Mock;
 
-// Minimal request stub — wrappers only need url and method for logging
 const makeRequest = () =>
   ({ url: "http://localhost/api/test", method: "GET" }) as never;
 
-// Helper to call handler and get response shape
 async function call(
   handler: (
     req: never,
@@ -39,8 +37,6 @@ async function call(
   const body = await res.json();
   return { status: res.status, body };
 }
-
-// --- Task 2.1: withErrorHandler ---
 
 describe("withErrorHandler", () => {
   describe("AppError serialization", () => {
@@ -126,7 +122,7 @@ describe("withErrorHandler", () => {
   });
 
   describe("ZodError conversion", () => {
-    it("sends field paths and nothing else, from a real schema parse", async () => {
+    it("returns field paths without user-provided keys or issue metadata", async () => {
       const schema = z
         .object({
           email: z.string(),
@@ -147,8 +143,6 @@ describe("withErrorHandler", () => {
       const { body } = await call(handler as never);
       const { details } = body as { details: unknown[][] };
 
-      // Asserting against what zod actually emits, not a hand-built issue:
-      // the shape of a finalised issue is not the shape its type declares.
       expect(Object.keys(body as object).sort()).toEqual([
         "code",
         "details",
@@ -207,8 +201,6 @@ describe("withErrorHandler", () => {
   });
 });
 
-// --- Task 2.2: structured error logging ---
-
 describe("withErrorHandler structured logging", () => {
   let consoleSpy: jest.SpyInstance;
 
@@ -239,6 +231,21 @@ describe("withErrorHandler structured logging", () => {
     expect(log).toHaveProperty("path");
     expect(log).toHaveProperty("method");
     expect(log).toHaveProperty("timestamp");
+  });
+
+  it("normalizes validation errors before choosing a warning-level log", async () => {
+    const schema = z.object({ email: z.string() });
+    const handler = withErrorHandler(async () => {
+      schema.parse({ email: 42 });
+      return undefined as never;
+    });
+
+    const response = await handler(makeRequest());
+    const log = JSON.parse(consoleSpy.mock.calls[0]![0] as string);
+
+    expect(response.status).toBe(400);
+    expect(log.level).toBe("warn");
+    expect(log.code).toBe("VALIDATION");
   });
 
   it("keeps the identifying message in the log while it is absent from the body", async () => {
@@ -272,8 +279,6 @@ describe("withErrorHandler structured logging", () => {
     expect(log).toHaveProperty("stack");
   });
 });
-
-// --- Task 2.3: withAuth ---
 
 describe("withAuth", () => {
   it("passes the session's userId and email to the handler", async () => {

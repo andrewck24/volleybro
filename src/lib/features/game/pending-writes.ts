@@ -31,10 +31,6 @@ export const deriveSyncStatus = (
   return "syncing";
 };
 
-/**
- * Deliberately the same judgement as the indicator's warning tone, so the two
- * cannot disagree about one entry. An exhausted backoff is not enough.
- */
 export const hasFailedWrite = (
   state: PendingWritesState,
   entryId: string,
@@ -43,9 +39,6 @@ export const hasFailedWrite = (
     (p) => p.entry.id === entryId && !mayBeAttemptedAgain(p.lastError),
   );
 
-// No writer means no session was ever seen on this device when it was
-// recorded -- a first sign-in still loading -- so the recorder is whoever
-// signed in, and the entry goes out with them.
 export const isQueuedBy = (
   item: Pick<PendingEntry, "userId">,
   userId: string | undefined,
@@ -63,8 +56,6 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
-// Lineups follow from the entries. A history the lineup rules reject keeps the
-// last confirmed lineup; the write that caused it fails on its own.
 export const applyFlushedEntries = (
   game: GameView | undefined,
   setIndex: number,
@@ -107,11 +98,6 @@ export const mergePendingEntries = (
   };
 };
 
-/**
- * How long a queued entry that cannot succeed is kept. Seven days has no
- * measured basis: it restores the exit persistence removed -- closing the app,
- * which used to empty a queue that lived in memory -- and nothing more. See D2.
- */
 export const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>

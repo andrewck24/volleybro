@@ -15,8 +15,6 @@ const MOVE_TYPES = [
   MoveType.UNFORCED,
 ] as const;
 
-// A set with no entries, so the totals a derivation starts from — asking for
-// them keeps the zeroing convention in deriveSetStats alone.
 const emptyTeamStats = (): TeamStatsView =>
   deriveSetStats(undefined, { options: { serve: "home" } }).home;
 
@@ -35,7 +33,6 @@ const addTeamStats = (a: TeamStatsView, b: TeamStatsView): TeamStatsView => {
   return sum;
 };
 
-/** Per-set totals for `setIndex`, or whole-match totals summed across sets when `setIndex` is -1. */
 export const getTeamsStats = (
   game: Pick<GameView, "sets">,
   setIndex: number,
