@@ -144,6 +144,26 @@ describe("CreateInvitationUseCase", () => {
       expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
 
+    it("rejects as already invited an account invitation stored without an invitee address", async () => {
+      const invitee = createUser({ id: "user_invitee", email });
+      mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockUserRepository.findByEmail.mockResolvedValue(invitee);
+      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createInvitedPlayer({
+          id: "player_other",
+          teamId,
+          userId: invitee.id,
+        }),
+      );
+
+      await expect(
+        useCase.execute({ playerId, email, role, userId }),
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_INVITED });
+      expect(mockPlayerRepository.update).not.toHaveBeenCalled();
+    });
+
     it("rejects an unregistered address this team already invited", async () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();

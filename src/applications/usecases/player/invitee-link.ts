@@ -1,6 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { ConflictError, PlayerReason } from "@/entities/errors";
+import { PlayerStatus } from "@/entities/player";
 import { normalizeEmail } from "@/entities/user";
 
 export type InviteeLink = { inviteeEmail: string } & (
@@ -42,8 +43,9 @@ export const resolveInviteeLink = async (
     throw alreadyInvited();
 
   if (user) {
-    if (await players.findByTeamIdAndUserId(teamId, user.id))
-      throw alreadyOnRoster();
+    const seat = await players.findByTeamIdAndUserId(teamId, user.id);
+    if (seat?.status === PlayerStatus.INVITED) throw alreadyInvited();
+    if (seat) throw alreadyOnRoster();
     return { userId: user.id, inviteeEmail: address };
   }
   return { email: address, inviteeEmail: address };
