@@ -120,4 +120,16 @@ describe("creating a team with lineups", () => {
     const [lineup] = (await repo().findById(team.id))!.lineups;
     expect(lineup!.starting.map((player) => player.id)).toEqual(ids);
   });
+
+  it("stores team lineups without ids", async () => {
+    const team = await repo().create({
+      name: "Lineup Id Team",
+      lineups: [lineupFor(Array.from({ length: 6 }, oid))],
+    });
+
+    const stored = await TeamModel.collection.findOne({
+      _id: new Types.ObjectId(team.id),
+    });
+    expect(stored?.lineups?.[0]).not.toHaveProperty("_id");
+  });
 });
