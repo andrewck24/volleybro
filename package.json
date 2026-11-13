@@ -3,7 +3,7 @@
   "version": "0.19.3",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.16.1",
+  "packageManager": "pnpm@12.18.0",
   "engines": {
     "node": "24.x"
   },
@@ -125,7 +125,7 @@
     "next-themes": "^0.4.6",
     "png-to-ico": "^3.0.2",
     "postcss": "^8.5.32",
-    "prettier": "^3.9.10",
+    "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "serwist": "^9.5.13",
     "sharp": "^0.35.5",
