@@ -1,5 +1,21 @@
 # VolleyBro CHANGELOG
 
+## [0.19.4](https://github.com/andrewck24/volleybro/compare/v0.19.3...v0.19.4) 2026-11-13
+
+### Fixed
+
+#### Team
+
+- An invitation sent to an email address now reaches the player's account even when linking failed at sign-up
+- Inviting someone again no longer gives them two seats on the same team
+- Leaving a team or removing a player no longer takes the player off the lineups when the membership change fails
+- A team can no longer end up owned by a player who just left or was removed
+
+#### Infrastructure
+
+- Store new team and game lineups without a database id; lineups saved earlier still load unchanged.
+- Retry temporary database connection failures during atomic writes before returning an error.
+
 ## [0.19.3](https://github.com/andrewck24/volleybro/compare/v0.19.2...v0.19.3) 2026-11-10
 
 ### Fixed
