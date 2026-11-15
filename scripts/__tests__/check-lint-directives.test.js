@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { initRepository } from "../../test/support/git-fixture.js";
 
 const script = fileURLToPath(
   new URL("../check-lint-directives.js", import.meta.url),
@@ -13,7 +14,7 @@ const script = fileURLToPath(
 test("lint directives fail independently of Oxlint suppression", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "lint-directives-"));
   t.after(() => rmSync(directory, { force: true, recursive: true }));
-  execFileSync("git", ["init", "--quiet"], { cwd: directory });
+  initRepository(directory);
   const runGuard = () =>
     spawnSync(process.execPath, [script], {
       cwd: directory,
