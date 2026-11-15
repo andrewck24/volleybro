@@ -75,7 +75,8 @@ describe("Options (set-options panel) submitting state", () => {
 
   it("disables the submit button and shows progress while saving, then posts the set and moves on", async () => {
     jest.useFakeTimers({ doNotFake: ["nextTick"] });
-    jest.setSystemTime(new Date(2026, 0, 1, 9, 10));
+    const openedAt = new Date(2026, 0, 1, 19, 10);
+    jest.setSystemTime(openedAt);
     const { promise, release } = deferred();
     let body: unknown;
     let url!: URL;
@@ -95,7 +96,7 @@ describe("Options (set-options panel) submitting state", () => {
       userEvent.setup({ advanceTimers: jest.advanceTimersByTime }),
     );
     expect(button).toBeEnabled();
-    jest.setSystemTime(new Date(2026, 0, 1, 9, 11));
+    jest.setSystemTime(new Date(2026, 0, 1, 19, 11));
 
     await user.click(button);
 
@@ -109,7 +110,16 @@ describe("Options (set-options panel) submitting state", () => {
     expect(url.searchParams.get("si")).toBe("0");
     expect(body).toEqual({
       lineup,
-      options: { serve: "away", time: { start: "09:10", end: "" } },
+      options: {
+        serve: "away",
+        time: {
+          start: new Intl.DateTimeFormat(undefined, {
+            timeStyle: "short",
+            hour12: false,
+          }).format(openedAt),
+          end: "",
+        },
+      },
     });
     expect(await screen.findByText("新一局已開始")).toBeInTheDocument();
     expect(mockRouterPush).toHaveBeenCalledWith("/game/rec-1/sets/0/entry");
