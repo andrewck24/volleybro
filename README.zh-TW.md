@@ -219,7 +219,7 @@ pnpm verify       # format:check + typecheck + lint + test
 pnpm verify:all   # 靜態檢查 + 依差異選擇的測試與建置
 ```
 
-完成實作段落時執行 `pnpm verify`，開 PR 前在送審版本執行一次 `pnpm verify:all`。
+各項檢查的執行時機見[交付流程](WORKFLOW.md#repository-profile)。
 
 <p align="right">(<a href="#readme-top">回到頂端</a>)</p>
 

@@ -58,6 +58,9 @@ describe("Options (set-options panel) submitting state", () => {
     mockRouterPush.mockClear();
     server.use(http.get("/api/games/rec-1", () => HttpResponse.json(game)));
   });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it("names the serving choices as serving, apart from the starting lineup", async () => {
     await setUp();
@@ -71,6 +74,9 @@ describe("Options (set-options panel) submitting state", () => {
   });
 
   it("disables the submit button and shows progress while saving, then posts the set and moves on", async () => {
+    const clock = jest
+      .spyOn(Date.prototype, "toLocaleTimeString")
+      .mockReturnValue("09:10");
     const { promise, release } = deferred();
     let body: unknown;
     let url!: URL;
@@ -88,6 +94,7 @@ describe("Options (set-options panel) submitting state", () => {
 
     const { button, user } = await setUp();
     expect(button).toBeEnabled();
+    clock.mockReturnValue("09:11");
 
     await user.click(button);
 
@@ -101,7 +108,7 @@ describe("Options (set-options panel) submitting state", () => {
     expect(url.searchParams.get("si")).toBe("0");
     expect(body).toEqual({
       lineup,
-      options: { serve: "away", time: expect.any(Object) },
+      options: { serve: "away", time: { start: "09:10", end: "" } },
     });
     expect(await screen.findByText("新一局已開始")).toBeInTheDocument();
     expect(mockRouterPush).toHaveBeenCalledWith("/game/rec-1/sets/0/entry");

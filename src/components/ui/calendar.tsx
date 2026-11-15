@@ -55,7 +55,9 @@ const Calendar = ({
   ...props
 }: CalendarProps) => {
   const [navView, setNavView] = React.useState<NavView>("days");
-  const [currentYear] = React.useState(() => new Date().getFullYear());
+  const [currentYear, setCurrentYear] = React.useState(() =>
+    new Date().getFullYear(),
+  );
   const [displayYears, setDisplayYears] = React.useState<{
     from: number;
     to: number;
@@ -199,7 +201,10 @@ const Calendar = ({
           <CaptionLabel
             showYearSwitcher={showYearSwitcher}
             navView={navView}
-            setNavView={setNavView}
+            onToggleView={() => {
+              if (navView === "days") setCurrentYear(new Date().getFullYear());
+              setNavView(navView === "days" ? "years" : "days");
+            }}
             displayYears={displayYears}
             {...props}
           />
@@ -386,13 +391,13 @@ const CaptionLabel = ({
   children,
   showYearSwitcher,
   navView,
-  setNavView,
+  onToggleView,
   displayYears,
   ...props
 }: {
   showYearSwitcher?: boolean;
   navView: NavView;
-  setNavView: React.Dispatch<React.SetStateAction<NavView>>;
+  onToggleView: () => void;
   displayYears: { from: number; to: number };
 } & React.HTMLAttributes<HTMLSpanElement>) => {
   if (!showYearSwitcher) return <span {...props}>{children}</span>;
@@ -400,7 +405,7 @@ const CaptionLabel = ({
     <Button
       className="w-full truncate text-sm font-medium"
       variant="ghost"
-      onClick={() => setNavView((prev) => (prev === "days" ? "years" : "days"))}
+      onClick={onToggleView}
     >
       {navView === "days"
         ? children

@@ -219,7 +219,7 @@ pnpm verify       # format:check + typecheck + lint + test
 pnpm verify:all   # Static checks + test and build lanes selected by the diff
 ```
 
-Run `pnpm verify` at section checkpoints and `pnpm verify:all` before opening a pull request. Run the final gate once on the revision going to review.
+See the [delivery workflow](WORKFLOW.md#repository-profile) for when to run each check.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

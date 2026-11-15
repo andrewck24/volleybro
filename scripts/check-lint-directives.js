@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { extname, matchesGlob, relative } from "node:path";
+import { extname, matchesGlob } from "node:path";
 import { parseSync } from "oxc-parser";
 
 const { ignorePatterns } = JSON.parse(
@@ -16,20 +16,20 @@ const extensions = new Set([
   ".mts",
   ".cts",
 ]);
-const paths = process.argv.slice(2);
-const files = paths.length
-  ? paths
-  : execFileSync(
-      "git",
-      ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
-      {
-        encoding: "utf8",
-      },
-    ).split("\0");
+const files = execFileSync(
+  "git",
+  [
+    "ls-files",
+    "-z",
+    "--cached",
+    "--others",
+    "--exclude-standard",
+    "--deduplicate",
+  ],
+  { encoding: "utf8" },
+).split("\0");
 
-for (const file of new Set(
-  files.map((path) => relative(process.cwd(), path)),
-)) {
+for (const file of files) {
   if (
     !extensions.has(extname(file)) ||
     ignorePatterns.some((pattern) => matchesGlob(file, pattern)) ||
@@ -39,8 +39,9 @@ for (const file of new Set(
   }
   const source = readFileSync(file, "utf8");
   const extension = extname(file);
-  const lang = extension === ".js" || extension === ".mjs" ? "jsx" : undefined;
-  const { comments, errors } = parseSync(file, source, { lang });
+  const lang = [".js", ".mjs", ".cjs"].includes(extension) ? "jsx" : undefined;
+  const sourceType = extension === ".cjs" ? "commonjs" : undefined;
+  const { comments, errors } = parseSync(file, source, { lang, sourceType });
   if (errors.length > 0) {
     console.error(`${file}: Unable to check inline lint directives.`);
     process.exitCode = 1;

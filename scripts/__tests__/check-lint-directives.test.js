@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,6 +13,12 @@ const script = fileURLToPath(
 test("lint directives fail independently of Oxlint suppression", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "lint-directives-"));
   t.after(() => rmSync(directory, { force: true, recursive: true }));
+  execFileSync("git", ["init", "--quiet"], { cwd: directory });
+  const runGuard = () =>
+    spawnSync(process.execPath, [script], {
+      cwd: directory,
+      encoding: "utf8",
+    });
   const file = join(directory, "sample.ts");
 
   for (const source of [
@@ -21,29 +27,24 @@ test("lint directives fail independently of Oxlint suppression", (t) => {
     "// eslint-disable-next-line\nexport const value = 1;",
   ]) {
     writeFileSync(file, source);
-    const result = spawnSync(process.execPath, [script, file], {
-      encoding: "utf8",
-    });
+    const result = runGuard();
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Inline lint directives are not allowed/);
   }
 
   writeFileSync(file, 'export const text = "/* oxlint-disable */";');
-  const result = spawnSync(process.execPath, [script, file], {
-    encoding: "utf8",
-  });
+  const result = runGuard();
   assert.equal(result.status, 0, result.stderr);
 
-  for (const name of ["sample.js", "sample.mjs"]) {
+  for (const name of ["sample.js", "sample.mjs", "sample.cjs"]) {
     const jsx = join(directory, name);
-    writeFileSync(
-      jsx,
-      "export const element = <div />; /* oxlint-disable-line */",
-    );
-    const jsxResult = spawnSync(process.execPath, [script, jsx], {
-      encoding: "utf8",
-    });
+    writeFileSync(jsx, "const element = <div />; /* oxlint-disable-line */");
+    const jsxResult = runGuard();
     assert.equal(jsxResult.status, 1);
-    assert.match(jsxResult.stderr, /Inline lint directives are not allowed/);
+    assert.ok(
+      jsxResult.stderr.includes(
+        `${name}:1: Inline lint directives are not allowed.`,
+      ),
+    );
   }
 });
