@@ -1,6 +1,6 @@
 "use client";
 import { isStandalone } from "@/lib/pwa";
-import { RefObject, useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export class RefreshTimeoutError extends Error {
   constructor() {
@@ -58,10 +58,14 @@ export function usePullToRefresh(
   const dampedRef = useRef(0);
   const gestureCleanupRef = useRef<(() => void) | null>(null);
   const onRefreshRef = useRef(onRefresh);
-  onRefreshRef.current = onRefresh;
-  const onErrorRef = useRef(options?.onError);
-  onErrorRef.current = options?.onError;
+  const onError = options?.onError;
+  const onErrorRef = useRef(onError);
   const mountedRef = useRef(true);
+
+  useLayoutEffect(() => {
+    onRefreshRef.current = onRefresh;
+    onErrorRef.current = onError;
+  }, [onRefresh, onError]);
 
   useEffect(() => {
     mountedRef.current = true;

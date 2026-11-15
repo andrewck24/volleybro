@@ -1,0 +1,49 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+
+const script = fileURLToPath(
+  new URL("../check-lint-directives.js", import.meta.url),
+);
+
+test("lint directives fail independently of Oxlint suppression", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "lint-directives-"));
+  t.after(() => rmSync(directory, { force: true, recursive: true }));
+  const file = join(directory, "sample.ts");
+
+  for (const source of [
+    "/* oxlint-disable */\nexport const value = 1;",
+    "export const value = 1; // oxlint-disable-line local/no-comments",
+    "// eslint-disable-next-line\nexport const value = 1;",
+  ]) {
+    writeFileSync(file, source);
+    const result = spawnSync(process.execPath, [script, file], {
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Inline lint directives are not allowed/);
+  }
+
+  writeFileSync(file, 'export const text = "/* oxlint-disable */";');
+  const result = spawnSync(process.execPath, [script, file], {
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+
+  for (const name of ["sample.js", "sample.mjs"]) {
+    const jsx = join(directory, name);
+    writeFileSync(
+      jsx,
+      "export const element = <div />; /* oxlint-disable-line */",
+    );
+    const jsxResult = spawnSync(process.execPath, [script, jsx], {
+      encoding: "utf8",
+    });
+    assert.equal(jsxResult.status, 1);
+    assert.match(jsxResult.stderr, /Inline lint directives are not allowed/);
+  }
+});

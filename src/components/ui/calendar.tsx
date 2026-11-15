@@ -55,18 +55,14 @@ const Calendar = ({
   ...props
 }: CalendarProps) => {
   const [navView, setNavView] = React.useState<NavView>("days");
+  const [currentYear] = React.useState(() => new Date().getFullYear());
   const [displayYears, setDisplayYears] = React.useState<{
     from: number;
     to: number;
-  }>(
-    React.useMemo(() => {
-      const currentYear = new Date().getFullYear();
-      return {
-        from: currentYear - Math.floor(yearRange / 2 - 1),
-        to: currentYear + Math.ceil(yearRange / 2),
-      };
-    }, [yearRange]),
-  );
+  }>(() => ({
+    from: currentYear - Math.floor(yearRange / 2 - 1),
+    to: currentYear + Math.ceil(yearRange / 2),
+  }));
 
   const { onNextClick, onPrevClick, startMonth, endMonth } = props;
 
@@ -211,6 +207,7 @@ const Calendar = ({
         MonthGrid: ({ className, children, ...props }) => (
           <MonthGrid
             className={className}
+            currentYear={currentYear}
             displayYears={displayYears}
             startMonth={startMonth}
             endMonth={endMonth}
@@ -415,6 +412,7 @@ const CaptionLabel = ({
 const MonthGrid = ({
   className,
   children,
+  currentYear,
   displayYears,
   startMonth,
   endMonth,
@@ -424,6 +422,7 @@ const MonthGrid = ({
 }: {
   className?: string;
   children: React.ReactNode;
+  currentYear: number;
   displayYears: { from: number; to: number };
   startMonth?: Date;
   endMonth?: Date;
@@ -433,6 +432,7 @@ const MonthGrid = ({
   if (navView === "years") {
     return (
       <YearGrid
+        currentYear={currentYear}
         displayYears={displayYears}
         startMonth={startMonth}
         endMonth={endMonth}
@@ -452,6 +452,7 @@ const MonthGrid = ({
 
 const YearGrid = ({
   className,
+  currentYear,
   displayYears,
   startMonth,
   endMonth,
@@ -460,6 +461,7 @@ const YearGrid = ({
   ...props
 }: {
   className?: string;
+  currentYear: number;
   displayYears: { from: number; to: number };
   startMonth?: Date;
   endMonth?: Date;
@@ -491,7 +493,7 @@ const YearGrid = ({
               key={i}
               className={cn(
                 "w-full text-sm font-normal text-foreground",
-                displayYears.from + i === new Date().getFullYear() &&
+                displayYears.from + i === currentYear &&
                   "bg-accent font-medium text-accent-foreground",
               )}
               variant="ghost"

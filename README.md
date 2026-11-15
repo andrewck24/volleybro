@@ -216,10 +216,10 @@ pnpm test         # Test suite
 pnpm test:watch   # Tests in watch mode
 pnpm storybook    # Component workshop on :6006
 pnpm verify       # format:check + typecheck + lint + test
-pnpm verify:all   # verify + app build + service-worker assertion + blueprint build
+pnpm verify:all   # Static checks + test and build lanes selected by the diff
 ```
 
-`pnpm verify` is the gate to run before committing; `pnpm verify:all` before opening a pull request.
+Run `pnpm verify` at section checkpoints and `pnpm verify:all` before opening a pull request. Run the final gate once on the revision going to review.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

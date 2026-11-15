@@ -232,6 +232,8 @@ const Closing = () => (
   </section>
 );
 
+const COPYRIGHT_YEAR = new Date().getFullYear();
+
 const Footer = () => (
   <footer
     className={cn(
@@ -243,7 +245,7 @@ const Footer = () => (
       <div className="flex flex-col items-start gap-4">
         <LogoType className="h-7 w-auto" />
         <p className="text-base text-(--free-zone-muted-foreground)">
-          © {new Date().getFullYear()} VolleyBro · Made by{" "}
+          © {COPYRIGHT_YEAR} VolleyBro · Made by{" "}
           <a
             href={LINKS.author}
             target="_blank"

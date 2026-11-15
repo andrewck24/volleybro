@@ -216,10 +216,10 @@ pnpm test         # 測試套件
 pnpm test:watch   # 監看模式執行測試
 pnpm storybook    # 元件工作台，:6006
 pnpm verify       # format:check + typecheck + lint + test
-pnpm verify:all   # verify + 應用建置 + service worker 檢查 + blueprint 建置
+pnpm verify:all   # 靜態檢查 + 依差異選擇的測試與建置
 ```
 
-commit 前請先通過 `pnpm verify`；開 PR 前請先通過 `pnpm verify:all`。
+完成實作段落時執行 `pnpm verify`，開 PR 前在送審版本執行一次 `pnpm verify:all`。
 
 <p align="right">(<a href="#readme-top">回到頂端</a>)</p>
 
