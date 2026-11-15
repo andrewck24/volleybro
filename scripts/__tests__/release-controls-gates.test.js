@@ -357,7 +357,8 @@ test("a pull request that adds an unclassified path fails before any release", a
   };
   const base = await commit("README.md");
   git(["checkout", "-b", "pr"]);
-  const classified = await commit("src/lib/x.ts");
+  await commit("src/lib/x.ts");
+  const classified = await commit(".oxlintrc.pilot.json");
   const unknown = await commit("middleware.ts");
   git(["checkout", "main"]);
   const moved = await commit("unrelated-on-main.txt");
