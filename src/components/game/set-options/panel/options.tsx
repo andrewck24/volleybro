@@ -39,7 +39,7 @@ import { useReplacePosition } from "@/lib/features/team/hooks/use-replace-positi
 import { useAppSelector } from "@/lib/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 
@@ -55,23 +55,9 @@ export const Options = ({ gameId }: { gameId: string }) => {
   const isNewSet = setIndex === game?.sets.length;
   const members = game?.teams.home.players ?? [];
 
-  const defaultValues = useMemo<SetOptionsFormValues>(
-    () =>
-      getSetOptions(
-        game,
-        setIndex,
-        new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
-      ),
-    [game, setIndex],
-  );
-
   const form = useForm<SetOptionsFormValues>({
     resolver: zodResolver(SetOptionsFormSchema),
-    defaultValues,
+    defaultValues: getSetOptions(game, setIndex, ""),
   });
 
   const onSubmit = async (data: SetOptionsFormValues) => {
@@ -101,9 +87,15 @@ export const Options = ({ gameId }: { gameId: string }) => {
     }
   };
 
-  useEffect(() => {
-    form.reset({ ...defaultValues });
-  }, [game, setIndex, defaultValues, form]);
+  const { reset } = form;
+  useLayoutEffect(() => {
+    const now = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    reset(getSetOptions(game, setIndex, now));
+  }, [game, setIndex, reset]);
 
   return (
     <PanelContent className="overflow-y-hidden">

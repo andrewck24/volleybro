@@ -47,6 +47,7 @@ const KNOWN_UNRELATED_PATTERNS = [
   /^CHANGELOG\.md$/,
   /^(?:README|CONTRIBUTING|CODING_STANDARDS|WORKFLOW|LICENSE)(?:\.|$)/,
   /^(?:eslint|jest|next|playwright|postcss|prettier|tailwind|tsconfig)[^.]*\.config\./,
+  /^\.oxlintrc\.pilot\.json$/,
   /^\.?(?:editorconfig|gitignore|prettierignore)$/,
   /^\.(?:agents|claude|storybook|husky|impeccable)\//,
   /^(?:AGENTS|CLAUDE|DESIGN|GLOSSARY|PRODUCT)\.md$/,

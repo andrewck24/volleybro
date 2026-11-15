@@ -101,7 +101,7 @@ describe("Button loading props", () => {
     it("ignores loading when asChild is true", () => {
       render(
         <Button asChild loading>
-          <a href="/test">Link</a>
+          <a href="https://example.test/">Link</a>
         </Button>,
       );
       const link = screen.getByRole("link");

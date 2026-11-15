@@ -55,18 +55,16 @@ const Calendar = ({
   ...props
 }: CalendarProps) => {
   const [navView, setNavView] = React.useState<NavView>("days");
+  const [currentYear, setCurrentYear] = React.useState(() =>
+    new Date().getFullYear(),
+  );
   const [displayYears, setDisplayYears] = React.useState<{
     from: number;
     to: number;
-  }>(
-    React.useMemo(() => {
-      const currentYear = new Date().getFullYear();
-      return {
-        from: currentYear - Math.floor(yearRange / 2 - 1),
-        to: currentYear + Math.ceil(yearRange / 2),
-      };
-    }, [yearRange]),
-  );
+  }>(() => ({
+    from: currentYear - Math.floor(yearRange / 2 - 1),
+    to: currentYear + Math.ceil(yearRange / 2),
+  }));
 
   const { onNextClick, onPrevClick, startMonth, endMonth } = props;
 
@@ -203,7 +201,10 @@ const Calendar = ({
           <CaptionLabel
             showYearSwitcher={showYearSwitcher}
             navView={navView}
-            setNavView={setNavView}
+            onToggleView={() => {
+              if (navView === "days") setCurrentYear(new Date().getFullYear());
+              setNavView(navView === "days" ? "years" : "days");
+            }}
             displayYears={displayYears}
             {...props}
           />
@@ -211,6 +212,7 @@ const Calendar = ({
         MonthGrid: ({ className, children, ...props }) => (
           <MonthGrid
             className={className}
+            currentYear={currentYear}
             displayYears={displayYears}
             startMonth={startMonth}
             endMonth={endMonth}
@@ -389,13 +391,13 @@ const CaptionLabel = ({
   children,
   showYearSwitcher,
   navView,
-  setNavView,
+  onToggleView,
   displayYears,
   ...props
 }: {
   showYearSwitcher?: boolean;
   navView: NavView;
-  setNavView: React.Dispatch<React.SetStateAction<NavView>>;
+  onToggleView: () => void;
   displayYears: { from: number; to: number };
 } & React.HTMLAttributes<HTMLSpanElement>) => {
   if (!showYearSwitcher) return <span {...props}>{children}</span>;
@@ -403,7 +405,7 @@ const CaptionLabel = ({
     <Button
       className="w-full truncate text-sm font-medium"
       variant="ghost"
-      onClick={() => setNavView((prev) => (prev === "days" ? "years" : "days"))}
+      onClick={onToggleView}
     >
       {navView === "days"
         ? children
@@ -415,6 +417,7 @@ const CaptionLabel = ({
 const MonthGrid = ({
   className,
   children,
+  currentYear,
   displayYears,
   startMonth,
   endMonth,
@@ -424,6 +427,7 @@ const MonthGrid = ({
 }: {
   className?: string;
   children: React.ReactNode;
+  currentYear: number;
   displayYears: { from: number; to: number };
   startMonth?: Date;
   endMonth?: Date;
@@ -433,6 +437,7 @@ const MonthGrid = ({
   if (navView === "years") {
     return (
       <YearGrid
+        currentYear={currentYear}
         displayYears={displayYears}
         startMonth={startMonth}
         endMonth={endMonth}
@@ -452,6 +457,7 @@ const MonthGrid = ({
 
 const YearGrid = ({
   className,
+  currentYear,
   displayYears,
   startMonth,
   endMonth,
@@ -460,6 +466,7 @@ const YearGrid = ({
   ...props
 }: {
   className?: string;
+  currentYear: number;
   displayYears: { from: number; to: number };
   startMonth?: Date;
   endMonth?: Date;
@@ -491,7 +498,7 @@ const YearGrid = ({
               key={i}
               className={cn(
                 "w-full text-sm font-normal text-foreground",
-                displayYears.from + i === new Date().getFullYear() &&
+                displayYears.from + i === currentYear &&
                   "bg-accent font-medium text-accent-foreground",
               )}
               variant="ghost"

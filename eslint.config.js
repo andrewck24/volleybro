@@ -5,22 +5,7 @@ import storybook from "eslint-plugin-storybook";
 import testingLibrary from "eslint-plugin-testing-library";
 import { defineConfig, globalIgnores } from "eslint/config";
 
-const noComments = {
-  meta: { type: "problem", schema: [] },
-  create(context) {
-    return {
-      Program() {
-        for (const comment of context.sourceCode.getAllComments()) {
-          if (comment.type === "Shebang") continue;
-          context.report({
-            loc: comment.loc,
-            message: "Comments are not allowed.",
-          });
-        }
-      },
-    };
-  },
-};
+import local from "./scripts/lint-local-plugin.js";
 
 const testsAssertingSerializedSvgMarkup = [
   "blueprint/src/components/diagram.test.tsx",
@@ -52,7 +37,7 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
-    plugins: { local: { rules: { "no-comments": noComments } } },
+    plugins: { local },
     rules: {
       "local/no-comments": "error",
       "@typescript-eslint/ban-ts-comment": [

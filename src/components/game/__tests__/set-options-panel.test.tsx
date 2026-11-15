@@ -36,7 +36,7 @@ const game = {
   sets: [],
 };
 
-const setUp = async () => {
+const setUp = async (user = userEvent.setup()) => {
   const store = makeStore();
   act(() => {
     store.dispatch(lineupActions.initialize([lineup] as never));
@@ -50,13 +50,16 @@ const setUp = async () => {
     </Provider>,
   );
   const button = await screen.findByRole("button", { name: "開始新一局" });
-  return { button, user: userEvent.setup() };
+  return { button, user };
 };
 
 describe("Options (set-options panel) submitting state", () => {
   beforeEach(() => {
     mockRouterPush.mockClear();
     server.use(http.get("/api/games/rec-1", () => HttpResponse.json(game)));
+  });
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it("names the serving choices as serving, apart from the starting lineup", async () => {
@@ -71,6 +74,9 @@ describe("Options (set-options panel) submitting state", () => {
   });
 
   it("disables the submit button and shows progress while saving, then posts the set and moves on", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick"] });
+    const openedAt = new Date(2026, 0, 1, 19, 10);
+    jest.setSystemTime(openedAt);
     const { promise, release } = deferred();
     let body: unknown;
     let url!: URL;
@@ -86,8 +92,11 @@ describe("Options (set-options panel) submitting state", () => {
       }),
     );
 
-    const { button, user } = await setUp();
+    const { button, user } = await setUp(
+      userEvent.setup({ advanceTimers: jest.advanceTimersByTime }),
+    );
     expect(button).toBeEnabled();
+    jest.setSystemTime(new Date(2026, 0, 1, 19, 11));
 
     await user.click(button);
 
@@ -101,7 +110,16 @@ describe("Options (set-options panel) submitting state", () => {
     expect(url.searchParams.get("si")).toBe("0");
     expect(body).toEqual({
       lineup,
-      options: { serve: "away", time: expect.any(Object) },
+      options: {
+        serve: "away",
+        time: {
+          start: new Intl.DateTimeFormat(undefined, {
+            timeStyle: "short",
+            hour12: false,
+          }).format(openedAt),
+          end: "",
+        },
+      },
     });
     expect(await screen.findByText("新一局已開始")).toBeInTheDocument();
     expect(mockRouterPush).toHaveBeenCalledWith("/game/rec-1/sets/0/entry");

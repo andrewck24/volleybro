@@ -7,7 +7,7 @@
     "dev": "astro dev",
     "build": "node build/blueprint.mjs",
     "start": "astro preview",
-    "type-check": "astro check",
+    "typecheck": "astro check",
     "test": "jest",
     "test:persistence": "node --test test/integration/persistence/*.itest.mjs",
     "build:content": "node build/blueprint.mjs --remote",
