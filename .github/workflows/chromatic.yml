@@ -32,7 +32,7 @@ jobs:
           # pull_request checks out an ephemeral merge commit; TurboSnap would
           # then diff every integration commit since the branch point.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
+      - uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3
         with:
           install: false
           node-version-file: false
@@ -66,7 +66,7 @@ jobs:
           node scripts/chromatic-scope.js --base "$BASE_SHA" --head "$HEAD_SHA" \
             --stats storybook-static/preview-stats.json
 
-      - uses: chromaui/action@6ac4c49524e1b1358b8c593c5eea877604228268 # v18.14.2
+      - uses: chromaui/action@5d18868345f53a8f61258ad393396c7e169100fd # v18.14.4
         env:
           CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
           CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
