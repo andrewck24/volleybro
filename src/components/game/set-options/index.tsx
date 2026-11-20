@@ -43,7 +43,11 @@ export const SetOptions = ({
       </DialogHeader>
       <DialogBody>
         <LineupCourt players={game?.teams.home.players ?? []} />
-        <SetOptionsPanel gameId={gameId} isNewSet={isNewSet} />
+        <SetOptionsPanel
+          gameId={gameId}
+          setIndex={setIndex}
+          isNewSet={isNewSet}
+        />
       </DialogBody>
     </DialogContent>
   );

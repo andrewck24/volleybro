@@ -10,9 +10,11 @@ import { useAppSelector } from "@/lib/redux/hooks";
 
 export const SetOptionsPanel = ({
   gameId,
+  setIndex,
   isNewSet,
 }: {
   gameId: string;
+  setIndex: number;
   isNewSet: boolean;
 }) => {
   const { game } = useGame(gameId);
@@ -27,7 +29,7 @@ export const SetOptionsPanel = ({
       ) : optionMode === LineupOptionMode.POSITIONS ? (
         <Positions />
       ) : (
-        <Options gameId={gameId} isNewSet={isNewSet} />
+        <Options gameId={gameId} setIndex={setIndex} isNewSet={isNewSet} />
       )}
     </Panel>
   );

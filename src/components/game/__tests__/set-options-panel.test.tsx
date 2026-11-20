@@ -44,7 +44,7 @@ const setUp = async () => {
   render(
     <Provider store={store}>
       <SwrIsolation>
-        <Options gameId="rec-1" isNewSet />
+        <Options gameId="rec-1" setIndex={0} isNewSet />
         <Toaster />
       </SwrIsolation>
     </Provider>,

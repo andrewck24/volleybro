@@ -161,11 +161,18 @@ describe("Game gesture split, wired through the real composition", () => {
           : entry,
       ),
     };
+    let submittedSetIndex: string | null = null;
     const game = createGame({
       win: null,
       sets: [completedSet, { ...completedSet, win: null, entries: [] }],
     });
-    server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
+    server.use(
+      http.get("/api/games/game-1", () => HttpResponse.json(game)),
+      http.post("/api/games/game-1/sets", ({ request }) => {
+        submittedSetIndex = new URL(request.url).searchParams.get("si");
+        return HttpResponse.json(game);
+      }),
+    );
     render(
       <Provider store={makeStore()}>
         <SwrIsolation>
@@ -179,6 +186,10 @@ describe("Game gesture split, wired through the real composition", () => {
     expect(
       await screen.findByRole("heading", { name: "第 3 局設定" }),
     ).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("button", { name: "開始新一局" }));
+
+    await waitFor(() => expect(submittedSetIndex).toBe("2"));
   });
 
   it("tapping the handle expands the drawer from the idle peek", async () => {

@@ -45,15 +45,16 @@ import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 
 export const Options = ({
   gameId,
+  setIndex,
   isNewSet,
 }: {
   gameId: string;
+  setIndex: number;
   isNewSet: boolean;
 }) => {
   const router = useRouter();
   const { toast } = useToast();
   const { lineups } = useAppSelector((state) => state.lineup);
-  const { setIndex } = useAppSelector((state) => state.game);
   const { hasPairedReplacePosition } = useReplacePosition();
   const { game, mutate } = useGame(gameId);
   const [isSubmitting, setIsSubmitting] = useState(false);
