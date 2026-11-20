@@ -43,7 +43,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 
-export const Options = ({ gameId }: { gameId: string }) => {
+export const Options = ({
+  gameId,
+  isNewSet,
+}: {
+  gameId: string;
+  isNewSet: boolean;
+}) => {
   const router = useRouter();
   const { toast } = useToast();
   const { lineups } = useAppSelector((state) => state.lineup);
@@ -52,7 +58,6 @@ export const Options = ({ gameId }: { gameId: string }) => {
   const { game, mutate } = useGame(gameId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [liberoDialogOpen, setLiberoDialogOpen] = useState(false);
-  const isNewSet = setIndex === game?.sets.length;
   const members = game?.teams.home.players ?? [];
 
   const defaultValues = useMemo<SetOptionsFormValues>(
