@@ -122,6 +122,21 @@ describe("identity-keyed entry writes", () => {
     expect(entries.map((e) => e.id)).toEqual(["entry-7", "entry-8"]);
   });
 
+  it("reorders returned and stored entries when an edit changes seq", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-3", 3, 3), rally("entry-5", 5, 5)]);
+
+    const entries = await write(ref, [rally("entry-3", 7, 7)], editedAt);
+    const persisted = await repo().findById(seeded.gameId);
+
+    for (const result of [entries, persisted!.sets[0]!.entries]) {
+      expect(result.map((entry) => [entry.id, entry.seq])).toEqual([
+        ["entry-5", 5],
+        ["entry-3", 7],
+      ]);
+    }
+  });
+
   it("keeps both entries when two different identities are written concurrently", async () => {
     await Promise.all([
       write({ gameId: seeded.gameId, setIndex: 0 }, [rally("entry-a", 0, 1)]),
