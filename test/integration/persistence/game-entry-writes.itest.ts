@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { GameReason } from "@/entities/errors";
 import { MoveType, type Entry } from "@/entities/game";
@@ -129,6 +130,53 @@ describe("identity-keyed entry writes", () => {
     const entries = await write(ref, [rally("entry-3", 7, 7)], editedAt);
     const persisted = await repo().findById(seeded.gameId);
 
+    for (const result of [entries, persisted!.sets[0]!.entries]) {
+      expect(result.map((entry) => [entry.id, entry.seq])).toEqual([
+        ["entry-5", 5],
+        ["entry-3", 7],
+      ]);
+    }
+  });
+
+  it("rolls back an edit when sorting fails", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-3", 3, 3), rally("entry-5", 5, 5)]);
+    const before = await repo().findById(seeded.gameId);
+    const rawBefore = await mongoose.connection.collection("games").findOne({
+      _id: new mongoose.Types.ObjectId(seeded.gameId),
+    });
+    jest
+      .spyOn(mongoose.model("Game"), "updateOne")
+      .mockRejectedValueOnce(new Error("sort failed"));
+
+    await expect(
+      write(ref, [rally("entry-3", 7, 7)], editedAt),
+    ).rejects.toThrow();
+    const persisted = await repo().findById(seeded.gameId);
+    const rawAfter = await mongoose.connection.collection("games").findOne({
+      _id: new mongoose.Types.ObjectId(seeded.gameId),
+    });
+    expect(persisted!.sets[0]).toEqual(before!.sets[0]);
+    expect(rawAfter!.sets[0].ver).toBe(rawBefore!.sets[0].ver);
+  });
+
+  it("retries a stale edit without losing the concurrent entry", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-3", 3, 3)]);
+    const instance = repo();
+    const internals = instance as unknown as {
+      findSet: (ref: unknown) => Promise<object>;
+    };
+    const stale = await internals.findSet(ref);
+    await write(ref, [rally("entry-5", 5, 5)]);
+    jest.spyOn(internals, "findSet").mockResolvedValueOnce(stale);
+
+    const entries = await instance.upsertEntries(
+      ref,
+      [{ entry: rally("entry-3", 7, 7), at: editedAt }],
+      operator,
+    );
+    const persisted = await repo().findById(seeded.gameId);
     for (const result of [entries, persisted!.sets[0]!.entries]) {
       expect(result.map((entry) => [entry.id, entry.seq])).toEqual([
         ["entry-5", 5],
