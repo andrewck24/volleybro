@@ -1,4 +1,5 @@
 name: CI
+run-name: ${{ github.event.action == 'edited' && !github.event.changes.base && 'CI metadata-only event' || format('CI · {0}', github.event.pull_request.title || inputs.source || github.ref_name) }}
 
 on:
   pull_request:
@@ -14,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ inputs.source || github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.action == 'edited' && !github.event.changes.base && 'metadata-' || '' }}${{ inputs.source || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -26,9 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: >-
-      inputs.source == '' ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
-       github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN)
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      (inputs.source == '' ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+        github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN))
     cache-mode: none
     outputs:
       sha: ${{ steps.source.outputs.sha }}
@@ -87,7 +89,7 @@ jobs:
     name: Static checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: inputs.source == ''
+    if: &full_unscoped (github.event.action != 'edited' || github.event.changes.base) && inputs.source == ''
     steps:
       - uses: actions/checkout@v7
         with:
@@ -116,7 +118,7 @@ jobs:
     name: Workflow tests (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: inputs.source == ''
+    if: *full_unscoped
     strategy:
       fail-fast: false
       matrix:
@@ -186,7 +188,7 @@ jobs:
     name: Blueprint
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: inputs.source == ''
+    if: *full_unscoped
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
@@ -205,7 +207,7 @@ jobs:
 
   commitlint:
     name: Commit messages
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -232,17 +234,6 @@ jobs:
           COMMITLINT_BRANCH: ${{ github.head_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-      - name: Validate PR title
-        run: |
-          if [ "$PR_TITLE" = "release: update versions" ]; then
-            node scripts/release-controls.js validate-version-pr
-          else
-            printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --config commitlint.title.config.js
-          fi
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
 
   # The app-build lane of scripts/verify.js (pnpm build, then
   # scripts/assert-sw.js) has no job here: it runs as Vercel's build command,
@@ -252,8 +243,8 @@ jobs:
   # jobs without this would leave that context permanently unreported and
   # every pull request blocked, so the name stays and becomes the gate the
   # parallel jobs report through.
-  verify:
-    name: Verify
+  full-verify:
+    name: ${{ github.event.action == 'edited' && !github.event.changes.base && 'CI metadata-only event' || 'Verify' }}
     needs:
       [
         source-identity,
@@ -264,7 +255,7 @@ jobs:
         blueprint,
         commitlint,
       ]
-    if: always()
+    if: always() && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

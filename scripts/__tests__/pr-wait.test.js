@@ -1,4 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { assessReadiness, parseGhOutput } from "../pr-wait.js";
@@ -102,6 +107,57 @@ test("only the newest pull_request run's Verify decides", () => {
   ]) {
     const checks = [cancelled, ciCheck(101, "Verify", state), vercel];
     assert.equal(assessReadiness({ checks, pr: open, head }).status, status);
+  }
+});
+
+test("pr:wait uses the full Verify when a newer CI run is only a metadata edit", async (t) => {
+  const bin = await mkdtemp(join(tmpdir(), "pr-wait-gh-"));
+  t.after(() => rm(bin, { recursive: true, force: true }));
+  await writeFile(
+    join(bin, "gh"),
+    `#!/usr/bin/env node
+const [group, operation] = process.argv.slice(2);
+const responses = JSON.parse(process.env.FAKE_GH_RESPONSES);
+console.log(JSON.stringify(responses[group + " " + operation]));
+`,
+    { mode: 0o755 },
+  );
+  const cli = fileURLToPath(new URL("../pr-wait.js", import.meta.url));
+  const run = (verifyState, runTitle) =>
+    spawnSync(
+      process.execPath,
+      [cli, "42", "--head", head, "--timeout", "0.2", "--interval", "0.01"],
+      {
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          FAKE_GH_RESPONSES: JSON.stringify({
+            "pr view": open,
+            "pr checks": [
+              ...(verifyState ? [ciCheck(100, "Verify", verifyState)] : []),
+              ciCheck(101, "Static checks", "SKIPPED"),
+              vercel,
+            ],
+            "run view": { displayTitle: runTitle },
+          }),
+        },
+        encoding: "utf8",
+        timeout: 5000,
+      },
+    );
+
+  const metadataTitle = "CI metadata-only event";
+  const success = run("SUCCESS", metadataTitle);
+  assert.equal(success.status, 0, success.stderr);
+  const failure = run("FAILURE", metadataTitle);
+  assert.notEqual(failure.status, 0);
+  assert.match(failure.stderr, /Verify is FAILURE/);
+  for (const result of [
+    run(null, metadataTitle),
+    run("SUCCESS", "CI · retarget"),
+  ]) {
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /timed out: waiting for Verify/);
   }
 });
 

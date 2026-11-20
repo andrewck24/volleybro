@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
+import { renderActionsTemplate } from "./actions-expression.js";
 import { git as gitIn, initRepository } from "./git-fixture.js";
 
 export const cli = fileURLToPath(
@@ -40,8 +41,12 @@ const markerName = (prefix) => {
   assert.equal(other, name);
   return name;
 };
+const fullCiJobName = (job) =>
+  renderActionsTemplate(ci[job].name, {
+    github: { event: { action: "synchronize" } },
+  });
 export const JOB = {
-  verify: ci.verify.name,
+  verify: fullCiJobName("full-verify"),
   unit: ci.test.name,
   integration: ci.integration.name,
   smoke: release["production-smoke"].name,
