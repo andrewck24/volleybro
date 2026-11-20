@@ -20,6 +20,17 @@ test("denies --auto and a merge without --match-head-commit", () => {
   for (const c of [
     `gh pr merge 12 --auto --merge --match-head-commit ${sha}`,
     "gh pr merge 12 --merge",
+    "GH_HOST=github.com gh pr merge 1",
+    "env gh pr merge 1",
+    "GH_HOST=github.com env gh pr merge 1",
+    "env -- gh pr merge 1",
+    "command gh pr merge 1",
+    "(gh pr merge 1)",
+    "if true; then gh pr merge 1; fi",
+    "while gh pr merge 1; do break; done",
+    "until gh pr merge 1; do break; done",
+    "{ gh pr merge 1; }",
+    "gh \\\npr merge 1",
     "gh pr merge --auto --squash",
     "gh pr merge 12 --match-head-commit --merge",
     `gh pr merge 1 --merge; gh pr merge 2 --match-head-commit ${sha}`,
@@ -58,4 +69,30 @@ test("hook entry point fails closed on invalid stdin", () => {
   );
   assert.equal(r.status, 2);
   assert.match(r.stderr, /not valid JSON/);
+});
+
+test("allows quoted mentions and respects shell quoting and escapes", () => {
+  for (const c of [
+    'echo "gh pr merge 1"',
+    "echo 'gh api repos/a/b/pulls/1/merge -X PUT'",
+    'echo "hello; gh pr merge 1"',
+    "echo gh\\ pr\\ merge\\ 1",
+  ])
+    assert.equal(checkPrMerge(c), null, c);
+});
+
+test("requires a pinned head for GitHub API merges regardless of flag order", () => {
+  for (const c of [
+    "gh api repos/a/b/pulls/1/merge --method PUT",
+    "gh api -X PUT repos/a/b/pulls/1/merge",
+    "gh api --method=PUT repos/a/b/pulls/1/merge -f sha=",
+  ])
+    assert.match(checkPrMerge(c), /sha/, c);
+  for (const c of [
+    `gh api repos/a/b/pulls/1/merge --method PUT -f sha=${sha}`,
+    `gh api -X PUT -F sha=${sha} repos/a/b/pulls/1/merge`,
+    `gh api --field sha=${sha} --method=PUT repos/a/b/pulls/1/merge`,
+    "gh api repos/a/b/pulls/1/merge --method GET",
+  ])
+    assert.equal(checkPrMerge(c), null, c);
 });
