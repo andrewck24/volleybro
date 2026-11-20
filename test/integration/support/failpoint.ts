@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export async function withFailPoint<T>(
-  mode: "alwaysOn" | { times: number },
+  mode: "alwaysOn" | { times: number } | { skip: number },
   data:
     | { failCommands: string[]; errorCode: number; errorLabels?: string[] }
     | { failCommands: string[]; closeConnection: true },

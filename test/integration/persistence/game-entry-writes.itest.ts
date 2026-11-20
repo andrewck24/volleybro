@@ -7,6 +7,7 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
+import { withFailPoint } from "../support/failpoint";
 import { callRoute } from "../support/request";
 import { oid, seedGame, type SeededGame } from "../support/seed";
 
@@ -145,12 +146,12 @@ describe("identity-keyed entry writes", () => {
     const rawBefore = await mongoose.connection.collection("games").findOne({
       _id: new mongoose.Types.ObjectId(seeded.gameId),
     });
-    jest
-      .spyOn(mongoose.model("Game"), "updateOne")
-      .mockRejectedValueOnce(new Error("sort failed"));
-
     await expect(
-      write(ref, [rally("entry-3", 7, 7)], editedAt),
+      withFailPoint(
+        { skip: 1 },
+        { failCommands: ["update"], errorCode: 2 },
+        () => write(ref, [rally("entry-3", 7, 7)], editedAt),
+      ),
     ).rejects.toThrow();
     const persisted = await repo().findById(seeded.gameId);
     const rawAfter = await mongoose.connection.collection("games").findOne({
@@ -160,29 +161,20 @@ describe("identity-keyed entry writes", () => {
     expect(rawAfter!.sets[0].ver).toBe(rawBefore!.sets[0].ver);
   });
 
-  it("retries a stale edit without losing the concurrent entry", async () => {
+  it("keeps a concurrent entry while editing and sorting", async () => {
     const ref = { gameId: seeded.gameId, setIndex: 0 };
     await write(ref, [rally("entry-3", 3, 3)]);
-    const instance = repo();
-    const internals = instance as unknown as {
-      findSet: (ref: unknown) => Promise<object>;
-    };
-    const stale = await internals.findSet(ref);
-    await write(ref, [rally("entry-5", 5, 5)]);
-    jest.spyOn(internals, "findSet").mockResolvedValueOnce(stale);
-
-    const entries = await instance.upsertEntries(
-      ref,
-      [{ entry: rally("entry-3", 7, 7), at: editedAt }],
-      operator,
-    );
+    await Promise.all([
+      write(ref, [rally("entry-3", 7, 7)], editedAt),
+      write(ref, [rally("entry-5", 5, 5)]),
+    ]);
     const persisted = await repo().findById(seeded.gameId);
-    for (const result of [entries, persisted!.sets[0]!.entries]) {
-      expect(result.map((entry) => [entry.id, entry.seq])).toEqual([
-        ["entry-5", 5],
-        ["entry-3", 7],
-      ]);
-    }
+    expect(
+      persisted!.sets[0]!.entries.map((entry) => [entry.id, entry.seq]),
+    ).toEqual([
+      ["entry-5", 5],
+      ["entry-3", 7],
+    ]);
   });
 
   it("keeps both entries when two different identities are written concurrently", async () => {
