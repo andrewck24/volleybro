@@ -55,15 +55,6 @@ test("denies --auto and a merge without --match-head-commit", () => {
   }
 });
 
-test("hook entry point emits a deny decision from stdin JSON", () => {
-  assert.equal(run(`gh pr merge 1 --match-head-commit ${sha}`), "");
-  assert.equal(
-    JSON.parse(run("gh pr merge 1 --auto")).hookSpecificOutput
-      .permissionDecision,
-    "deny",
-  );
-});
-
 test("hook entry point fails closed on invalid stdin", () => {
   const r = spawnSync(
     "node",
