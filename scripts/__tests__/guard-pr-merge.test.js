@@ -20,6 +20,7 @@ const assertDenied = (command, reason) => {
 test("allows an exact-head merge and unrelated commands", () => {
   for (const c of [
     `gh pr merge --merge --match-head-commit ${sha}`,
+    `gh pr merge 12 --merge --match-head-commit ${sha}`,
     "gh pr view 12",
     "pnpm pr:wait 12 --head abc",
   ]) {
@@ -29,6 +30,8 @@ test("allows an exact-head merge and unrelated commands", () => {
 
 test("denies --auto and a merge without --match-head-commit", () => {
   for (const c of [
+    `gh pr merge 012 --merge --match-head-commit ${sha}`,
+    `gh pr merge 12a --merge --match-head-commit ${sha}`,
     `gh pr merge 12 --auto --merge --match-head-commit ${sha}`,
     "gh pr merge 12 --merge",
     "GH_HOST=github.com gh pr merge 1",
@@ -42,6 +45,7 @@ test("denies --auto and a merge without --match-head-commit", () => {
     "until gh pr merge 1; do break; done",
     "{ gh pr merge 1; }",
     "gh \\\npr merge 1",
+    "gh pr mer\\\nge 1",
     "gh pr merge --auto --squash",
     "gh pr merge 12 --match-head-commit --merge",
     `gh pr merge 1 --merge; gh pr merge 2 --match-head-commit ${sha}`,

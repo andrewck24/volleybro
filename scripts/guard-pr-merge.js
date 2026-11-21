@@ -2,14 +2,16 @@
 import { fileURLToPath } from "node:url";
 
 const DENY =
-  "Use the plain pinned merge: `gh pr merge --merge --match-head-commit <reviewed-head>`. Run `pnpm pr:wait <number> --head <reviewed-head>` first.";
+  "Use the plain pinned merge: `gh pr merge [<number>] --merge --match-head-commit <reviewed-head>`. Run `pnpm pr:wait <number> --head <reviewed-head>` first.";
 
 function checkPrMerge(command) {
-  const intentText = command.toLowerCase().replace(/["'\\]/g, "");
+  const intentText = command.toLowerCase().replace(/["'\\\r\n]/g, "");
   const hasMergeIntent =
     intentText.includes("gh") && intentText.includes("merge");
   const isCanonicalMerge =
-    /^gh pr merge --merge --match-head-commit [a-fA-F0-9]+$/.test(command);
+    /^gh pr merge (?:[1-9][0-9]* )?--merge --match-head-commit [a-fA-F0-9]+$/.test(
+      command,
+    );
   return hasMergeIntent && !isCanonicalMerge ? DENY : null;
 }
 
