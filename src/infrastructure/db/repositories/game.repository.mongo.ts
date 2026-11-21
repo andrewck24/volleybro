@@ -292,6 +292,18 @@ export class GameRepositoryImpl implements IGameRepository {
               session,
             });
             if (result.matchedCount !== ops.length) throw conflict;
+            if (plan.some((step) => "edited" in step)) {
+              const sorted = await this.model.updateOne(
+                { ...guard, ...atVer(path, ver + ops.length) },
+                {
+                  $push: {
+                    [`${path}.entries`]: { $each: [], $sort: { seq: 1 } },
+                  },
+                },
+                { session },
+              );
+              if (sorted.matchedCount !== 1) throw conflict;
+            }
           });
           return true;
         } catch (error) {
