@@ -16,6 +16,7 @@ const FAILED_STATES = new Set([
 ]);
 
 const RUN_ID = /\/actions\/runs\/(\d+)\//;
+const METADATA_ONLY_RUN_TITLE = "CI metadata-only event";
 
 function runId(check) {
   return Number(check.link?.match(RUN_ID)?.[1] ?? 0);
@@ -100,14 +101,46 @@ function readPr(number) {
   ]);
 }
 
-function readChecks(number) {
-  return ghJson([
+async function readChecks(number) {
+  const checks = await ghJson([
     "pr",
     "checks",
     number,
     "--json",
     "name,state,workflow,event,link",
   ]);
+  const verify = checks.find(
+    (check) => check.name === "Verify" && runId(check) > 0,
+  );
+  if (!verify) return checks;
+
+  const workflowChecks = checks.filter(
+    (check) =>
+      check.workflow === verify.workflow && check.event === "pull_request",
+  );
+  const latestVerify = Math.max(
+    0,
+    ...workflowChecks.filter((check) => check.name === "Verify").map(runId),
+  );
+  if (!latestVerify) return checks;
+  const newerRuns = new Set(
+    workflowChecks.map(runId).filter((id) => id > latestVerify),
+  );
+  const metadataOnlyRuns = new Set();
+  await Promise.all(
+    [...newerRuns].map(async (id) => {
+      const run = await ghJson([
+        "run",
+        "view",
+        String(id),
+        "--json",
+        "displayTitle",
+      ]);
+      if (run.displayTitle === METADATA_ONLY_RUN_TITLE)
+        metadataOnlyRuns.add(id);
+    }),
+  );
+  return checks.filter((check) => !metadataOnlyRuns.has(runId(check)));
 }
 
 function option(argv, name, fallback) {

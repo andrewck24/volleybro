@@ -1,0 +1,59 @@
+name: PR metadata
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-metadata-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: 0
+
+jobs:
+  validate:
+    name: PR metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e
+        with:
+          install: false
+          node-version-file: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate PR title
+        run: |
+          if [ "$PR_TITLE" = "release: update versions" ]; then
+            node scripts/release-controls.js validate-version-pr
+          else
+            printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --config commitlint.title.config.js
+          fi
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
+      - name: Validate PR body
+        if: ${{ !cancelled() }}
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from "node:fs";
+
+          const { pull_request: pr } = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
+          if (!pr.body?.trim()) {
+            console.error("Enter a PR description or release notes.");
+            process.exitCode = 1;
+          }
+          JS

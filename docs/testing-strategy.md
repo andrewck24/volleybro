@@ -228,7 +228,7 @@ New components in `ui/` and `custom/` must include a Storybook story before the 
 
 ## Where Tests Run
 
-CI runs every check on every pull request and is the authority (ADR-0092). The local gates are defined in `WORKFLOW.md`'s Repository profile; `pnpm verify:all --dry-run` prints which lanes a diff runs. The integration tests download a `mongodb-memory-server` binary on first run.
+CI runs every check when a pull request is opened, reopened, updated with new commits, or retargeted to a different base branch (ADR-0092). Title and body edits run the separate `PR metadata` check and preserve the full run's required `Verify` result. The local gates are defined in `WORKFLOW.md`'s Repository profile; `pnpm verify:all --dry-run` prints which lanes a diff runs. The integration tests download a `mongodb-memory-server` binary on first run.
 
 Each run replaces `.verify-logs/` with every lane's full output (`<lane>.log`, gitignored); read it rather than rerunning a failed gate. A Jest lane whose worker crashes with `SIGSEGV` reruns once on its own, and the summary says so.
 
