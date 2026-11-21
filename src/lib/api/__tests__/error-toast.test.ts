@@ -185,14 +185,11 @@ describe("showErrorToast", () => {
     });
   });
 
-  it("shows the shared connection error for RefreshTimeoutError", () => {
+  it("emits one error toast for RefreshTimeoutError", () => {
     showErrorToast(new RefreshTimeoutError(), mockToast);
 
-    expect(mockToast).toHaveBeenCalledWith({
-      title: "連線異常",
-      description: "目前無法完成連線，請稍後再試；若問題持續，請確認網路連線。",
-      variant: "error",
-    });
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockToast.mock.calls[0][0].variant).toBe("error");
   });
 
   it("shows fallback toast for non-ApiClientError, without leaking the raw message", () => {

@@ -12,4 +12,4 @@
 
 #### UI
 
-- Show the generic error message for reasons matching inherited object properties
+- Show a generic error message when an API error has an unrecognized reason
