@@ -43,7 +43,7 @@ function tokenize(command) {
   return commands;
 }
 
-export function checkPrMerge(command) {
+function checkPrMerge(command) {
   for (const part of tokenize(command)) {
     let index = 0;
     while (

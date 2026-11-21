@@ -1,9 +1,21 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { checkPrMerge } from "../guard-pr-merge.js";
 
 const sha = "0123456789abcdef";
+
+const run = (command) =>
+  spawnSync(
+    "node",
+    [new URL("../guard-pr-merge.js", import.meta.url).pathname],
+    { input: JSON.stringify({ tool_input: { command } }), encoding: "utf8" },
+  ).stdout;
+
+const assertDenied = (command, reason) => {
+  const output = JSON.parse(run(command)).hookSpecificOutput;
+  assert.equal(output.permissionDecision, "deny", command);
+  assert.match(output.permissionDecisionReason, reason, command);
+};
 
 test("allows an exact-head merge and unrelated commands", () => {
   for (const c of [
@@ -12,7 +24,7 @@ test("allows an exact-head merge and unrelated commands", () => {
     "gh pr view 12",
     "pnpm pr:wait 12 --head abc",
   ]) {
-    assert.equal(checkPrMerge(c), null, c);
+    assert.equal(run(c), "", c);
   }
 });
 
@@ -39,20 +51,11 @@ test("denies --auto and a merge without --match-head-commit", () => {
     "gh pr merge 1 --match-head-commit=",
     "cd x && gh  pr merge 12 --merge --match-head-commit",
   ]) {
-    assert.match(checkPrMerge(c), /pnpm pr:wait/, c);
+    assertDenied(c, /pnpm pr:wait/);
   }
 });
 
 test("hook entry point emits a deny decision from stdin JSON", () => {
-  const run = (command) =>
-    spawnSync(
-      "node",
-      [new URL("../guard-pr-merge.js", import.meta.url).pathname],
-      {
-        input: JSON.stringify({ tool_input: { command } }),
-        encoding: "utf8",
-      },
-    ).stdout;
   assert.equal(run(`gh pr merge 1 --match-head-commit ${sha}`), "");
   assert.equal(
     JSON.parse(run("gh pr merge 1 --auto")).hookSpecificOutput
@@ -78,7 +81,7 @@ test("allows quoted mentions and respects shell quoting and escapes", () => {
     'echo "hello; gh pr merge 1"',
     "echo gh\\ pr\\ merge\\ 1",
   ])
-    assert.equal(checkPrMerge(c), null, c);
+    assert.equal(run(c), "", c);
 });
 
 test("requires a pinned head for GitHub API merges regardless of flag order", () => {
@@ -87,12 +90,12 @@ test("requires a pinned head for GitHub API merges regardless of flag order", ()
     "gh api -X PUT repos/a/b/pulls/1/merge",
     "gh api --method=PUT repos/a/b/pulls/1/merge -f sha=",
   ])
-    assert.match(checkPrMerge(c), /sha/, c);
+    assertDenied(c, /sha/);
   for (const c of [
     `gh api repos/a/b/pulls/1/merge --method PUT -f sha=${sha}`,
     `gh api -X PUT -F sha=${sha} repos/a/b/pulls/1/merge`,
     `gh api --field sha=${sha} --method=PUT repos/a/b/pulls/1/merge`,
     "gh api repos/a/b/pulls/1/merge --method GET",
   ])
-    assert.equal(checkPrMerge(c), null, c);
+    assert.equal(run(c), "", c);
 });
