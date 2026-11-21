@@ -146,7 +146,7 @@ const setUpGame = () => {
 beforeEach(() => answerSignedInUser());
 
 describe("Game gesture split, wired through the real composition", () => {
-  it("starts a new set after the existing set count", async () => {
+  it("submitting the next set from the interval screen POSTs with an index equal to the existing set count", async () => {
     const user = userEvent.setup();
     const set = createGame().sets[0]!;
     const completedSet = {
