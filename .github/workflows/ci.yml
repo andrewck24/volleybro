@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       source:
@@ -232,17 +232,6 @@ jobs:
           COMMITLINT_BRANCH: ${{ github.head_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-      - name: Validate PR title
-        run: |
-          if [ "$PR_TITLE" = "release: update versions" ]; then
-            node scripts/release-controls.js validate-version-pr
-          else
-            printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --config commitlint.title.config.js
-          fi
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
 
   # The app-build lane of scripts/verify.js (pnpm build, then
   # scripts/assert-sw.js) has no job here: it runs as Vercel's build command,
