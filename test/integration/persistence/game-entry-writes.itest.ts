@@ -3,6 +3,7 @@ import type { IGameRepository } from "@/applications/repositories/game.repositor
 import { GameReason } from "@/entities/errors";
 import { MoveType, type Entry } from "@/entities/game";
 import { createRecordedRally } from "@test/support/fixtures/entries";
+import { barrier, releaseGates } from "@test/support/gates";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
@@ -59,6 +60,8 @@ describe("identity-keyed entry writes", () => {
     });
     expect(created.status).toBe(201);
   });
+
+  afterEach(() => releaseGates());
 
   it("keeps the edit when a create and an edit of one id share a batch", async () => {
     const entries = await repo().upsertEntries(
@@ -146,13 +149,49 @@ describe("identity-keyed entry writes", () => {
     const rawBefore = await mongoose.connection.collection("games").findOne({
       _id: new mongoose.Types.ObjectId(seeded.gameId),
     });
-    await expect(
-      withFailPoint(
-        { skip: 1 },
-        { failCommands: ["update"], errorCode: 2 },
-        () => write(ref, [rally("entry-3", 7, 7)], editedAt),
-      ),
-    ).rejects.toThrow();
+    const driverCollection = mongoose.mongo.Collection.prototype;
+    const { bulkWrite, updateOne } = driverCollection;
+    const badValue = 2;
+    let editedEntries = 0;
+    const edit = jest
+      .spyOn(driverCollection, "bulkWrite")
+      .mockImplementationOnce(async function (
+        this: mongoose.mongo.Collection,
+        ...args
+      ) {
+        const result = await bulkWrite.apply(this, args);
+        editedEntries = result.modifiedCount;
+        return result;
+      });
+    const sort = jest
+      .spyOn(driverCollection, "updateOne")
+      .mockImplementationOnce(async function (
+        this: mongoose.mongo.Collection,
+        ...args
+      ) {
+        expect(editedEntries).toBe(1);
+        expect(args[1]).toMatchObject({
+          $push: { "sets.0.entries": { $each: [], $sort: { seq: 1 } } },
+        });
+        return withFailPoint(
+          { times: 1 },
+          { failCommands: ["update"], errorCode: badValue },
+          () => updateOne.apply(this, args),
+        );
+      });
+    try {
+      await expect(
+        write(ref, [rally("entry-3", 7, 7)], editedAt),
+      ).rejects.toMatchObject({
+        originalError: {
+          code: badValue,
+          message: expect.stringContaining("failCommand"),
+        },
+      });
+    } finally {
+      sort.mockRestore();
+      edit.mockRestore();
+    }
     const persisted = await repo().findById(seeded.gameId);
     const rawAfter = await mongoose.connection.collection("games").findOne({
       _id: new mongoose.Types.ObjectId(seeded.gameId),
@@ -164,14 +203,50 @@ describe("identity-keyed entry writes", () => {
   it("keeps a concurrent entry while editing and sorting", async () => {
     const ref = { gameId: seeded.gameId, setIndex: 0 };
     await write(ref, [rally("entry-3", 3, 3)]);
-    await Promise.all([
-      write(ref, [rally("entry-3", 7, 7)], editedAt),
-      write(ref, [rally("entry-5", 5, 5)]),
-    ]);
-    const persisted = await repo().findById(seeded.gameId);
-    expect(
-      persisted!.sets[0]!.entries.map((entry) => [entry.id, entry.seq]),
-    ).toEqual([
+
+    const editWrite = barrier(1);
+    const driverCollection = mongoose.mongo.Collection.prototype;
+    const { bulkWrite } = driverCollection;
+    const pauseEdit = jest
+      .spyOn(driverCollection, "bulkWrite")
+      .mockImplementationOnce(async function (
+        this: mongoose.mongo.Collection,
+        ...args
+      ) {
+        await editWrite.wait();
+        return bulkWrite.apply(this, args);
+      });
+    const edit = write(ref, [rally("entry-3", 7, 7)], editedAt);
+    const games = mongoose.connection.db!.collection<{
+      sets: { entries: Entry[] }[];
+    }>("games");
+    const storedOrder = async () => {
+      const game = await games.findOne({
+        _id: new mongoose.Types.ObjectId(seeded.gameId),
+      });
+      return game!.sets[0]!.entries.map(({ id, seq }) => [id, seq]);
+    };
+    try {
+      await Promise.race([
+        editWrite.ready,
+        edit.then(() => {
+          throw new Error(
+            "The edit finished before reaching the write barrier",
+          );
+        }),
+      ]);
+      await write(ref, [rally("entry-5", 5, 5)]);
+      expect(await storedOrder()).toEqual([
+        ["entry-3", 3],
+        ["entry-5", 5],
+      ]);
+    } finally {
+      editWrite.release();
+      await Promise.allSettled([edit]);
+      pauseEdit.mockRestore();
+    }
+    await edit;
+    expect(await storedOrder()).toEqual([
       ["entry-5", 5],
       ["entry-3", 7],
     ]);
