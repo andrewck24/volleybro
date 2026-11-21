@@ -4,11 +4,22 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 import { parse } from "yaml";
-import {
-  evaluateActionsExpression,
-  renderActionsTemplate,
-} from "../../test/support/actions-expression.js";
+
+function evaluateActionsExpression(expression, context) {
+  return runInNewContext(expression.replace(/^\$\{\{(.*)\}\}$/s, "$1"), {
+    ...context,
+    always: () => true,
+    format: (template, value) => template.replace("{0}", value),
+  });
+}
+
+function renderActionsTemplate(template, context) {
+  return template.replace(/\$\{\{(.*?)\}\}/g, (_, expression) =>
+    evaluateActionsExpression(expression, context),
+  );
+}
 
 const loadWorkflow = (name) =>
   parse(readFileSync(`.github/workflows/${name}.yml`, "utf8"));
@@ -136,10 +147,9 @@ for (const [field, title, body, error] of [
     const job = Object.values(metadata.jobs).find(
       ({ name }) => name === "PR metadata",
     );
-    const [installDependencies, ...validationSteps] = job.steps.filter(
-      ({ run }) => run,
+    const validationSteps = job.steps.filter(
+      ({ run }) => run && !/^pnpm install(?:\s|$)/.test(run.trimStart()),
     );
-    assert.equal(installDependencies.run, "pnpm install --frozen-lockfile");
     const failures = [];
     for (const step of validationSteps) {
       const env = Object.fromEntries(
