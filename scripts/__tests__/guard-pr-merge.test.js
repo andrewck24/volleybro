@@ -19,8 +19,7 @@ const assertDenied = (command, reason) => {
 
 test("allows an exact-head merge and unrelated commands", () => {
   for (const c of [
-    `gh pr merge 12 --merge --match-head-commit ${sha}`,
-    `gh pr merge 12 --merge --match-head-commit=${sha}`,
+    `gh pr merge --merge --match-head-commit ${sha}`,
     "gh pr view 12",
     "pnpm pr:wait 12 --head abc",
   ]) {
@@ -65,30 +64,27 @@ test("hook entry point fails closed on invalid stdin", () => {
   assert.match(r.stderr, /not valid JSON/);
 });
 
-test("allows quoted mentions and respects shell quoting and escapes", () => {
+test("denies quoted or escaped merge intent", () => {
   for (const c of [
     'echo "gh pr merge 1"',
     "echo 'gh api repos/a/b/pulls/1/merge -X PUT'",
     'echo "hello; gh pr merge 1"',
-    "echo gh\\ pr\\ merge\\ 1",
   ])
-    assert.equal(run(c), "", c);
+    assertDenied(c, /plain pinned merge/);
+  assertDenied("echo gh\\ pr\\ merge\\ 1", /plain pinned merge/);
 });
 
-test("requires a pinned head for GitHub API merges regardless of flag order", () => {
+test("denies GitHub API merges regardless of flag order", () => {
   for (const c of [
     "gh api repos/a/b/pulls/1/merge --method PUT",
     "gh api -X PUT repos/a/b/pulls/1/merge",
     "gh api --method=PUT repos/a/b/pulls/1/merge -f sha=",
   ])
-    assertDenied(c, /sha/);
-  for (const c of [
+    assertDenied(c, /plain pinned merge/);
+  assertDenied(
     `gh api repos/a/b/pulls/1/merge --method PUT -f sha=${sha}`,
-    `gh api -X PUT -F sha=${sha} repos/a/b/pulls/1/merge`,
-    `gh api --field sha=${sha} --method=PUT repos/a/b/pulls/1/merge`,
-    "gh api repos/a/b/pulls/1/merge --method GET",
-  ])
-    assert.equal(run(c), "", c);
+    /plain pinned merge/,
+  );
 });
 
 test("denies merge commands with ambiguous shell syntax or options", () => {
@@ -98,6 +94,12 @@ test("denies merge commands with ambiguous shell syntax or options", () => {
     "gh api repos/a/b/pulls/1/merge -X PUT --jq --method=GET",
     "> /tmp/merge-log gh pr merge 1",
     "gh pr merge 1 --match-head-commit $HEAD",
+    "env -i gh pr merge 1",
+    "command env gh pr merge 1",
+    "gh pr 'merge' 1",
+    'gh pr m"erge" 1',
+    'gh api repos/a/b/pulls/1/"merge" --method PUT',
+    "gh pr merge 1 --merge --match-head-commit *",
   ])
     assertDenied(c, /pnpm pr:wait/);
 });
