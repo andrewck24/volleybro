@@ -9,6 +9,7 @@ function tokenize(command) {
   let token = "";
   let quote = null;
   let hasToken = false;
+  let uncertain = false;
   const push = () => {
     if (hasToken) commands.at(-1).push(token);
     token = "";
@@ -16,6 +17,8 @@ function tokenize(command) {
   };
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
+    if ((c === "$" || c === "`") && quote !== "'") uncertain = true;
+    if (!quote && /[#<>]/.test(c)) uncertain = true;
     if (c === "\\" && quote !== "'") {
       if (command[i + 1] === "\n") {
         i++;
@@ -40,11 +43,19 @@ function tokenize(command) {
     }
   }
   push();
-  return commands;
+  return { commands, uncertain: uncertain || quote !== null };
 }
 
 function checkPrMerge(command) {
-  for (const part of tokenize(command)) {
+  const { commands, uncertain } = tokenize(command);
+  for (const part of commands) {
+    const ghIndex = part.findIndex(
+      (token, i) =>
+        token === "gh" &&
+        ((part[i + 1] === "pr" && part[i + 2] === "merge") ||
+          part[i + 1] === "api"),
+    );
+    if (uncertain && ghIndex >= 0) return DENY;
     let index = 0;
     while (
       ["then", "do", "else", "if", "while", "until", "{", "!"].includes(
@@ -61,6 +72,9 @@ function checkPrMerge(command) {
     const tokens = part.slice(index);
     if (tokens[0] !== "gh") continue;
     if (tokens[1] === "pr" && tokens[2] === "merge") {
+      const allowed =
+        /^(?:--merge|--squash|--rebase|--delete-branch|--admin|--auto|--match-head-commit(?:=.*)?|\d+|[^-]+)$/;
+      if (tokens.slice(3).some((token) => !allowed.test(token))) return DENY;
       const hasAuto = tokens.some(
         (t) => t === "--auto" || t.startsWith("--auto="),
       );
@@ -73,6 +87,7 @@ function checkPrMerge(command) {
     }
     if (tokens[1] === "api") {
       let isMergeEndpoint = false;
+      let unknown = false;
       let isPut = false;
       let hasPinnedHead = false;
       for (let i = 2; i < tokens.length; i++) {
@@ -86,12 +101,17 @@ function checkPrMerge(command) {
           hasPinnedHead ||= /^sha=.+/.test(field);
         } else if (/^(?:--field|--raw-field)=/.test(token)) {
           hasPinnedHead ||= /^(?:--field|--raw-field)=sha=.+/.test(token);
+        } else if (token.startsWith("-")) {
+          unknown = true;
         } else if (/^\/?repos\/[^/]+\/[^/]+\/pulls\/\d+\/merge$/.test(token)) {
           isMergeEndpoint = true;
         }
       }
-      if (isMergeEndpoint && isPut && !hasPinnedHead)
-        return "gh api pull request merges need a sha field containing the reviewed head. Run `pnpm pr:wait <number> --head <reviewed-head>` first.";
+      if (
+        (isMergeEndpoint && unknown) ||
+        (isMergeEndpoint && isPut && !hasPinnedHead)
+      )
+        return "Use a plain gh api merge with a sha field containing the reviewed head. Run `pnpm pr:wait <number> --head <reviewed-head>` first.";
     }
   }
   return null;

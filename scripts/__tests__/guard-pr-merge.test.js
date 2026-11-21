@@ -90,3 +90,14 @@ test("requires a pinned head for GitHub API merges regardless of flag order", ()
   ])
     assert.equal(run(c), "", c);
 });
+
+test("denies merge commands with ambiguous shell syntax or options", () => {
+  for (const c of [
+    "gh pr merge 1 # --match-head-commit abc",
+    "gh api repos/a/b/pulls/1/merge -XPUT",
+    "gh api repos/a/b/pulls/1/merge -X PUT --jq --method=GET",
+    "> /tmp/merge-log gh pr merge 1",
+    "gh pr merge 1 --match-head-commit $HEAD",
+  ])
+    assertDenied(c, /pnpm pr:wait/);
+});
