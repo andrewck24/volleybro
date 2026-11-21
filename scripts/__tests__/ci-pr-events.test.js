@@ -10,8 +10,6 @@ import { parse } from "yaml";
 function evaluateActionsExpression(expression, context) {
   return runInNewContext(expression.replace(/^\$\{\{(.*)\}\}$/s, "$1"), {
     ...context,
-    always: () => true,
-    format: (template, value) => template.replace("{0}", value),
   });
 }
 
@@ -25,100 +23,105 @@ const loadWorkflow = (name) =>
   parse(readFileSync(`.github/workflows/${name}.yml`, "utf8"));
 const ci = loadWorkflow("ci");
 const metadata = loadWorkflow("pr-metadata");
-const leadingAlways =
-  /^\s*(?:\$\{\{\s*)?always\s*\(\s*\)\s*(?:&&|(?:\}\}\s*)?$)/i;
+test("PR edits trigger only the separate metadata workflow", () => {
+  assert.equal(ci.on.pull_request.types.includes("edited"), false);
+  assert.equal(metadata.on.pull_request.types.includes("edited"), true);
 
-test("job conditions use only the status check modeled by the routing tests", () => {
-  for (const workflow of [ci, metadata]) {
-    for (const [id, job] of Object.entries(workflow.jobs)) {
-      assert.doesNotMatch(
-        (job.if ?? "").replace(leadingAlways, ""),
-        /\b(?:always|success|failure|cancelled)\s*\(/i,
-        `${workflow.name} / ${id} uses an unsupported job status condition`,
-      );
-    }
-  }
-});
-
-function route(workflow, action, changes) {
-  assert.ok(workflow.on.pull_request.types.includes(action));
-  const context = {
-    github: {
-      workflow: workflow.name,
-      event_name: "pull_request",
-      event: {
-        action,
-        changes,
-        pull_request: { number: 42, title: "ci: update workflow" },
-      },
-    },
-    inputs: { source: "" },
-    matrix: { shard: 1 },
+  const github = {
+    event: { pull_request: { number: 42 } },
   };
-  function reachesRunner(id) {
-    const { if: condition, needs } = workflow.jobs[id];
-    if (condition && !evaluateActionsExpression(condition, context))
-      return false;
-    return (
-      leadingAlways.test(condition ?? "") ||
-      [needs ?? []].flat().every(reachesRunner)
-    );
-  }
-  const checks = Object.entries(workflow.jobs).map(([id, job]) => ({
-    name: renderActionsTemplate(job.name, context),
-    runs: reachesRunner(id),
-  }));
-  return {
-    group: renderActionsTemplate(workflow.concurrency.group, context),
-    runName: renderActionsTemplate(
-      workflow["run-name"] ?? workflow.name,
-      context,
-    ),
-    checks,
-  };
-}
-
-for (const [field, from, metadataOnly] of [
-  ["body", "Old description", true],
-  ["title", "ci: old title", true],
-  ["base", { ref: { from: "old-base" } }, false],
-]) {
-  test(`PR ${field} edit ${metadataOnly ? "runs only metadata validation" : "runs full CI"}`, () => {
-    const synchronized = route(ci, "synchronize", {});
-    const changes = { [field]: typeof from === "string" ? { from } : from };
-    const edit = route(ci, "edited", changes);
-    const validation = route(metadata, "edited", changes);
-
-    assert.notEqual(validation.group, synchronized.group);
-    assert.deepEqual(validation.checks, [{ name: "PR metadata", runs: true }]);
-    if (metadataOnly) {
-      assert.notEqual(edit.group, synchronized.group);
-      assert.equal(edit.runName, "CI metadata-only event");
-      assert.ok(
-        edit.checks.every(({ name, runs }) => name !== "Verify" && !runs),
-      );
-    } else {
-      assert.deepEqual(edit, synchronized);
-    }
-  });
-}
-
-test("new commits run full CI and publish both merge check contexts", () => {
-  const synchronized = route(ci, "synchronize", {});
-  assert.equal(ci.concurrency["cancel-in-progress"], true);
-  assert.deepEqual(
-    synchronized.checks.find(({ name }) => name === "Verify"),
-    { name: "Verify", runs: true },
+  assert.notEqual(
+    renderActionsTemplate(ci.concurrency.group, {
+      github: { ...github, workflow: ci.name },
+      inputs: { source: "" },
+    }),
+    renderActionsTemplate(metadata.concurrency.group, { github }),
   );
-  assert.ok(synchronized.checks.every(({ runs }) => runs));
-
-  for (const action of ["opened", "reopened", "synchronize"]) {
-    assert.deepEqual(route(ci, action, {}), synchronized);
-    assert.deepEqual(route(metadata, action, {}).checks, [
-      { name: "PR metadata", runs: true },
-    ]);
-  }
 });
+
+test("opening, reopening or pushing to a PR still triggers both checks", () => {
+  for (const action of ["opened", "reopened", "synchronize"]) {
+    assert.ok(ci.on.pull_request.types.includes(action), action);
+    assert.ok(metadata.on.pull_request.types.includes(action), action);
+  }
+  assert.ok(Object.values(ci.jobs).some(({ name }) => name === "Verify"));
+  assert.ok(
+    Object.values(metadata.jobs).some(({ name }) => name === "PR metadata"),
+  );
+});
+
+function runMetadata(t, eventOverrides, githubState = {}) {
+  const directory = mkdtempSync(join(tmpdir(), "pr-metadata-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const eventPath = join(directory, "event.json");
+  const event = {
+    action: "edited",
+    changes: {},
+    ...eventOverrides,
+    pull_request: {
+      node_id: "pr-id",
+      head: { sha: "current-head" },
+      title: "ci: update workflow",
+      body: "A PR description",
+      ...eventOverrides.pull_request,
+    },
+  };
+  writeFileSync(eventPath, JSON.stringify(event));
+  writeFileSync(
+    join(directory, "gh"),
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+const { retargetedAt, runs = [] } = JSON.parse(process.env.METADATA_GITHUB_STATE);
+if (args[1] === "graphql") {
+  console.log(retargetedAt ?? "");
+} else if (args.includes("repos/example/volleybro/actions/workflows/ci.yml/runs")) {
+  const filters = new URLSearchParams(args.filter((_, index) => args[index - 1] === "-f").join("&"));
+  const count = runs.filter(({ head, createdAt }) =>
+    filters.get("event") === "pull_request" &&
+    head === filters.get("head_sha") &&
+    "<=" + createdAt <= filters.get("created")
+  ).length;
+  console.log(count);
+} else {
+  process.exitCode = 2;
+}
+`,
+    { mode: 0o755 },
+  );
+
+  const job = Object.values(metadata.jobs).find(
+    ({ name }) => name === "PR metadata",
+  );
+  const validationSteps = job.steps.filter(
+    ({ run }) => run && !/^pnpm install(?:\s|$)/.test(run.trimStart()),
+  );
+  const failures = [];
+  for (const step of validationSteps) {
+    const env = Object.fromEntries(
+      Object.entries(step.env ?? {}).map(([key, value]) => [
+        key,
+        renderActionsTemplate(value, {
+          github: { event, token: "" },
+          vars: { RELEASE_BOT_LOGIN: "" },
+        }),
+      ]),
+    );
+    const result = spawnSync("bash", ["-ec", step.run], {
+      env: {
+        ...process.env,
+        ...env,
+        PATH: `${directory}:${process.env.PATH}`,
+        GITHUB_EVENT_PATH: eventPath,
+        GITHUB_REPOSITORY: "example/volleybro",
+        METADATA_GITHUB_STATE: JSON.stringify(githubState),
+      },
+      encoding: "utf8",
+    });
+    assert.ifError(result.error);
+    if (result.status !== 0) failures.push(result);
+  }
+  return failures;
+}
 
 for (const [field, title, body, error] of [
   ["title", "invalid title", "A PR description", /type-empty/],
@@ -130,46 +133,59 @@ for (const [field, title, body, error] of [
   ],
 ]) {
   test(`PR metadata rejects an invalid ${field} from the event payload`, (t) => {
-    const directory = mkdtempSync(join(tmpdir(), "pr-metadata-"));
-    t.after(() => rmSync(directory, { recursive: true, force: true }));
-    const eventPath = join(directory, "event.json");
-    const event = {
-      action: "edited",
-      changes: {
-        [field]: {
-          from: field === "title" ? "ci: old title" : "Old description",
-        },
-      },
+    const failures = runMetadata(t, {
+      changes: { [field]: { from: "Previous value" } },
       pull_request: { title, body },
-    };
-    writeFileSync(eventPath, JSON.stringify(event));
-
-    const job = Object.values(metadata.jobs).find(
-      ({ name }) => name === "PR metadata",
-    );
-    const validationSteps = job.steps.filter(
-      ({ run }) => run && !/^pnpm install(?:\s|$)/.test(run.trimStart()),
-    );
-    const failures = [];
-    for (const step of validationSteps) {
-      const env = Object.fromEntries(
-        Object.entries(step.env ?? {}).map(([key, value]) => [
-          key,
-          renderActionsTemplate(value, {
-            github: { event, token: "" },
-            vars: { RELEASE_BOT_LOGIN: "" },
-          }),
-        ]),
-      );
-      const result = spawnSync("bash", ["-ec", step.run], {
-        env: { ...process.env, ...env, GITHUB_EVENT_PATH: eventPath },
-        encoding: "utf8",
-      });
-      assert.ifError(result.error);
-      if (result.status !== 0) failures.push(result);
-    }
+    });
     assert.equal(failures.length, 1);
     assert.equal(failures[0].status, 1);
     assert.match(failures[0].stdout + failures[0].stderr, error);
   });
 }
+
+const retargetedAt = "2026-11-21T12:00:00Z";
+const runs = [
+  { head: "current-head", createdAt: retargetedAt },
+  { head: "fresh-head", createdAt: "2026-11-21T12:01:00Z" },
+];
+
+test("a base edit rejects same-head CI evidence even before the timeline reports the change", (t) => {
+  const failures = runMetadata(
+    t,
+    {
+      changes: { base: { ref: { from: "old-base" } } },
+      pull_request: { updated_at: retargetedAt },
+    },
+    { runs },
+  );
+  assert.equal(failures.length, 1);
+  assert.match(
+    failures[0].stderr,
+    /Push a new commit after changing the base branch/,
+  );
+});
+
+test("a later body edit still rejects CI evidence predating a base change", (t) => {
+  const failures = runMetadata(
+    t,
+    { changes: { body: { from: "Previous description" } } },
+    { retargetedAt, runs },
+  );
+  assert.equal(failures.length, 1);
+  assert.match(
+    failures[0].stderr,
+    /Push a new commit after changing the base branch/,
+  );
+});
+
+test("metadata edits pass on a head first verified after a base change", (t) => {
+  const failures = runMetadata(
+    t,
+    {
+      changes: { body: { from: "Previous description" } },
+      pull_request: { head: { sha: "fresh-head" } },
+    },
+    { retargetedAt, runs },
+  );
+  assert.deepEqual(failures, []);
+});

@@ -41,7 +41,7 @@ const markerName = (prefix) => {
   return name;
 };
 export const JOB = {
-  verify: "Verify",
+  verify: ci.verify.name,
   unit: ci.test.name,
   integration: ci.integration.name,
   smoke: release["production-smoke"].name,

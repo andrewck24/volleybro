@@ -5,7 +5,9 @@ on:
     types: [opened, synchronize, reopened, edited]
 
 permissions:
+  actions: read
   contents: read
+  pull-requests: read
 
 concurrency:
   group: pr-metadata-${{ github.event.pull_request.number }}
@@ -20,6 +22,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Reject CI evidence predating a base change
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_ID: ${{ github.event.pull_request.node_id }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_CHANGED_AT: ${{ github.event.changes.base && github.event.pull_request.updated_at || '' }}
+        run: |
+          retargeted_at=$(gh api graphql -f id="$PR_ID" -f query='
+            query($id: ID!) {
+              node(id: $id) {
+                ... on PullRequest {
+                  timelineItems(last: 1, itemTypes: [BASE_REF_CHANGED_EVENT]) {
+                    nodes { ... on BaseRefChangedEvent { createdAt } }
+                  }
+                }
+              }
+            }' --jq '.data.node.timelineItems.nodes | if type == "array" then .[0].createdAt // "" else error("Missing PR timeline") end')
+          if [[ "$PR_BASE_CHANGED_AT" > "$retargeted_at" ]]; then
+            retargeted_at=$PR_BASE_CHANGED_AT
+          fi
+          if [[ -z "$retargeted_at" ]]; then
+            exit 0
+          fi
+
+          previous_runs=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+            -f event=pull_request -f head_sha="$PR_HEAD" -f created="<=$retargeted_at" \
+            -F per_page=1 --jq '.total_count')
+          if [[ "$previous_runs" != 0 ]]; then
+            echo "Push a new commit after changing the base branch to run full CI on a fresh head." >&2
+            exit 1
+          fi
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0

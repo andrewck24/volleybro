@@ -1,9 +1,8 @@
 name: CI
-run-name: ${{ github.event.action == 'edited' && !github.event.changes.base && 'CI metadata-only event' || format('CI · {0}', github.event.pull_request.title || inputs.source || github.ref_name) }}
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       source:
@@ -15,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.action == 'edited' && !github.event.changes.base && 'metadata-' || '' }}${{ inputs.source || github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ inputs.source || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -27,10 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: >-
-      (github.event.action != 'edited' || github.event.changes.base) &&
-      (inputs.source == '' ||
-       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
-        github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN))
+      inputs.source == '' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+       github.actor == vars.RELEASE_OWNER_LOGIN && github.triggering_actor == vars.RELEASE_OWNER_LOGIN)
     cache-mode: none
     outputs:
       sha: ${{ steps.source.outputs.sha }}
@@ -89,7 +87,7 @@ jobs:
     name: Static checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: &full_unscoped (github.event.action != 'edited' || github.event.changes.base) && inputs.source == ''
+    if: inputs.source == ''
     steps:
       - uses: actions/checkout@v7
         with:
@@ -118,7 +116,7 @@ jobs:
     name: Workflow tests (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: *full_unscoped
+    if: inputs.source == ''
     strategy:
       fail-fast: false
       matrix:
@@ -188,7 +186,7 @@ jobs:
     name: Blueprint
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: *full_unscoped
+    if: inputs.source == ''
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3
@@ -207,7 +205,7 @@ jobs:
 
   commitlint:
     name: Commit messages
-    if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -243,8 +241,8 @@ jobs:
   # jobs without this would leave that context permanently unreported and
   # every pull request blocked, so the name stays and becomes the gate the
   # parallel jobs report through.
-  full-verify:
-    name: ${{ github.event.action == 'edited' && !github.event.changes.base && 'CI metadata-only event' || 'Verify' }}
+  verify:
+    name: Verify
     needs:
       [
         source-identity,
@@ -255,7 +253,7 @@ jobs:
         blueprint,
         commitlint,
       ]
-    if: always() && (github.event.action != 'edited' || github.event.changes.base)
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
