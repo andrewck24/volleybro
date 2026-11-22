@@ -55,6 +55,7 @@ Promote verified knowledge through `docs/agents/artifact-lifecycle.md` before th
 - Write Change prose in zh-TW with English technical terms. Features/Design System, scenario strings, ADRs and agent-facing documents use English.
 - Component string props using `renderInline` support backtick code and single-level matched `**strong**`; code spans take precedence and unmatched markers remain literal. SVG labels remain plain text.
 - Titles name the Change. Other-Change references and prose wrapping follow `CONTRIBUTING.md`.
+- A change that renames or removes a code identifier (a constant, type, function, error reason, route, token and so on) searches every decision record that is not superseded and every Feature page in the same PR, and updates each mention. Changing a decision record's `decision` body follows `docs/agents/domain.md`; updating a name or count there does not change the decision itself. Superseded decision records and `docs/changes/archive/` are history and stay unchanged.
 
 ## Static Change delivery
 
