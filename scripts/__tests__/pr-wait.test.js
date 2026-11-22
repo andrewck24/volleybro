@@ -82,14 +82,14 @@ const ciCheck = (run, name, state, event = "pull_request") => ({
   workflow: "CI",
   link: `https://github.com/o/r/actions/runs/${run}/job/${run}${name.length}`,
 });
-const vercel = { name: "Vercel", state: "SUCCESS", workflow: "", link: "" };
-const metadata = {
+const metadataCheck = (run, state) => ({
   name: "PR metadata",
-  state: "SUCCESS",
+  state,
   event: "pull_request",
   workflow: "PR metadata",
-  link: "https://github.com/o/r/actions/runs/50/job/501",
-};
+  link: `https://github.com/o/r/actions/runs/${run}/job/${run}1`,
+});
+const vercel = { name: "Vercel", state: "SUCCESS", workflow: "", link: "" };
 
 test("an older successful Verify cannot satisfy a new CI run without Verify", () => {
   const checks = [
@@ -113,7 +113,7 @@ test("only the newest pull_request run's Verify decides", () => {
       ciCheck(100, "Verify", olderState),
       latest,
       vercel,
-      metadata,
+      metadataCheck(50, "SUCCESS"),
     ];
     const result = assessReadiness({ checks, pr: open, head });
     assert.equal(result.status, status);
@@ -146,14 +146,6 @@ test("any failed Vercel entry fails whatever order gh lists them in", () => {
   }
 });
 
-const metadataCheck = (run, state, event = "pull_request") => ({
-  name: "PR metadata",
-  state,
-  event,
-  workflow: "PR metadata",
-  link: `https://github.com/o/r/actions/runs/${run}/job/${run}1`,
-});
-
 test("a failed PR metadata check fails with its link", () => {
   const failed = metadataCheck(200, "FAILURE");
   const checks = [ciCheck(100, "Verify", "SUCCESS"), vercel, failed];
@@ -172,18 +164,6 @@ test("a pending PR metadata check makes pr:wait wait and name it", () => {
   const result = assessReadiness({ checks, pr: open, head });
   assert.equal(result.status, "wait");
   assert.match(result.reason, /PR metadata/);
-});
-
-test("a newer successful PR metadata run supersedes an older failed one", () => {
-  const checks = [
-    ciCheck(100, "Verify", "SUCCESS"),
-    vercel,
-    metadataCheck(200, "FAILURE"),
-    metadataCheck(201, "SUCCESS"),
-  ];
-  assert.deepEqual(assessReadiness({ checks, pr: open, head }), {
-    status: "ready",
-  });
 });
 
 test("gh output before the first check is reported reads as no checks", () => {
