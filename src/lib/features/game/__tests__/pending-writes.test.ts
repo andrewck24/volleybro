@@ -215,6 +215,29 @@ describe("mergePendingEntries", () => {
     expect(seqsOf(merged, 1)).toEqual(["s0", "q"]);
   });
 
+  it("skips a queued entry whose seq differs from the stored one and still applies the rest", () => {
+    const game = makeGame([[0, 1]]);
+    let merged: GameView | undefined;
+    expect(() => {
+      merged = mergePendingEntries(
+        game,
+        [queued("s1", 5), queued("q", 2)],
+        "game-1",
+      );
+    }).not.toThrow();
+    expect(seqsOf(merged)).toEqual(["s0", "s1", "q"]);
+    expect(merged?.sets[0]?.entries[1]).toMatchObject({ seq: 1 });
+  });
+
+  it("skips a queued entry whose seq differs from an earlier queued one", () => {
+    const merged = mergePendingEntries(
+      makeGame([[0]]),
+      [queued("q", 1), queued("q", 3)],
+      "game-1",
+    );
+    expect(merged?.sets[0]?.entries.map((e) => e.seq)).toEqual([0, 1]);
+  });
+
   it("leaves win alone", () => {
     const game = makeGame([[0]]);
     game.win = null;
