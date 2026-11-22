@@ -483,21 +483,35 @@ test("authorize validates the real PR, exact check sources and metadata through 
   const original = JSON.parse(await readFile(f.statePath, "utf8"));
   const sourceFailure = /Latest Verify check/;
   const statusFailure = /Latest Vercel commit status/;
+  const metadata = {
+    ...original.checks[0],
+    name: "PR metadata",
+    status: "in_progress",
+    conclusion: null,
+    started_at: "2026-10-02T00:00:00Z",
+  };
+  await updateApi(f, { ...original, checks: [...original.checks, metadata] });
+  const withMetadataEdit = run(f, "authorize");
+  assert.equal(withMetadataEdit.status, 0, withMetadataEdit.stderr);
+
   const checkCases = [
-    [[], sourceFailure],
+    [
+      [{ ...metadata, status: "completed", conclusion: "success" }],
+      sourceFailure,
+    ],
     [[{ ...original.checks[0], app: { id: 999 } }], sourceFailure],
     [[{ ...original.checks[0], head_sha: f.merge }], sourceFailure],
-    [
+    ...["failure", "cancelled"].map((conclusion) => [
       [
         ...original.checks,
         {
           ...original.checks[0],
-          conclusion: "failure",
+          conclusion,
           started_at: "2026-10-02T00:00:00Z",
         },
       ],
       sourceFailure,
-    ],
+    ]),
   ];
   const statusCases = [
     [[{ ...original.statuses[0], context: "Vercel Preview Comments" }]],

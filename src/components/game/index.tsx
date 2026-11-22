@@ -176,7 +176,11 @@ const Interval = ({
               新的一局
             </Button>
           </DialogTrigger>
-          <SetOptions gameId={gameId} setIndex={nextSetIndex} />
+          <SetOptions
+            gameId={gameId}
+            setIndex={nextSetIndex}
+            isNewSet={nextSetIndex === game?.sets.length}
+          />
         </Dialog>
       </div>
     </>

@@ -8,10 +8,11 @@ const open = { state: "OPEN", headRefOid: head, mergeStateStatus: "CLEAN" };
 const passing = [
   { name: "Verify", state: "SUCCESS" },
   { name: "Vercel", state: "SUCCESS" },
+  { name: "PR metadata", state: "SUCCESS" },
   { name: "Chromatic", state: "PENDING" },
 ];
 
-test("ready once Verify and Vercel pass on the pinned head and GitHub reports CLEAN", () => {
+test("ready once Verify, Vercel and PR metadata pass on the pinned head and GitHub reports CLEAN", () => {
   assert.deepEqual(assessReadiness({ checks: passing, pr: open, head }), {
     status: "ready",
   });
@@ -81,11 +82,18 @@ const ciCheck = (run, name, state, event = "pull_request") => ({
   workflow: "CI",
   link: `https://github.com/o/r/actions/runs/${run}/job/${run}${name.length}`,
 });
+const metadataCheck = (run, state) => ({
+  name: "PR metadata",
+  state,
+  event: "pull_request",
+  workflow: "PR metadata",
+  link: `https://github.com/o/r/actions/runs/${run}/job/${run}1`,
+});
 const vercel = { name: "Vercel", state: "SUCCESS", workflow: "", link: "" };
 
-test("a cancelled run's failed Verify waits while the new run is queued", () => {
+test("an older successful Verify cannot satisfy a new CI run without Verify", () => {
   const checks = [
-    ciCheck(100, "Verify", "FAILURE"),
+    ciCheck(100, "Verify", "SUCCESS"),
     ciCheck(101, "Test", "QUEUED"),
     vercel,
   ];
@@ -95,13 +103,23 @@ test("a cancelled run's failed Verify waits while the new run is queued", () => 
 });
 
 test("only the newest pull_request run's Verify decides", () => {
-  const cancelled = ciCheck(100, "Verify", "FAILURE");
-  for (const [state, status] of [
-    ["SUCCESS", "ready"],
-    ["FAILURE", "fail"],
+  for (const [olderState, newerState, status] of [
+    ["CANCELLED", "SUCCESS", "ready"],
+    ["SUCCESS", "FAILURE", "fail"],
+    ["SUCCESS", "CANCELLED", "fail"],
   ]) {
-    const checks = [cancelled, ciCheck(101, "Verify", state), vercel];
-    assert.equal(assessReadiness({ checks, pr: open, head }).status, status);
+    const latest = ciCheck(101, "Verify", newerState);
+    const checks = [
+      ciCheck(100, "Verify", olderState),
+      latest,
+      vercel,
+      metadataCheck(50, "SUCCESS"),
+    ];
+    const result = assessReadiness({ checks, pr: open, head });
+    assert.equal(result.status, status);
+    if (status === "fail") {
+      assert.equal(result.reason, `Verify is ${newerState}: ${latest.link}`);
+    }
   }
 });
 
@@ -121,8 +139,31 @@ test("any failed Vercel entry fails whatever order gh lists them in", () => {
     [vercel, failed, verify],
     [failed, vercel, verify],
   ]) {
-    assert.equal(assessReadiness({ checks, pr: open, head }).status, "fail");
+    assert.deepEqual(assessReadiness({ checks, pr: open, head }), {
+      status: "fail",
+      reason: "Vercel is FAILURE",
+    });
   }
+});
+
+test("a failed PR metadata check fails with its link", () => {
+  const failed = metadataCheck(200, "FAILURE");
+  const checks = [ciCheck(100, "Verify", "SUCCESS"), vercel, failed];
+  assert.deepEqual(assessReadiness({ checks, pr: open, head }), {
+    status: "fail",
+    reason: `PR metadata is FAILURE: ${failed.link}`,
+  });
+});
+
+test("a pending PR metadata check makes pr:wait wait and name it", () => {
+  const checks = [
+    ciCheck(100, "Verify", "SUCCESS"),
+    vercel,
+    metadataCheck(200, "PENDING"),
+  ];
+  const result = assessReadiness({ checks, pr: open, head });
+  assert.equal(result.status, "wait");
+  assert.match(result.reason, /PR metadata/);
 });
 
 test("gh output before the first check is reported reads as no checks", () => {

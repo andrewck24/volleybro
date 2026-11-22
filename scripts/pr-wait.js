@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const execFileAsync = promisify(execFile);
 
-export const REQUIRED_CHECKS = ["Verify", "Vercel"];
+export const REQUIRED_CHECKS = ["Verify", "Vercel", "PR metadata"];
 const FAILED_STATES = new Set([
   "FAILURE",
   "CANCELLED",
@@ -52,7 +52,8 @@ export function assessReadiness({ checks, pr, head }) {
   ]);
   for (const [name, check] of required) {
     if (check && FAILED_STATES.has(check.state)) {
-      return { status: "fail", reason: `${name} is ${check.state}` };
+      const link = check.link ? `: ${check.link}` : "";
+      return { status: "fail", reason: `${name} is ${check.state}${link}` };
     }
   }
   if (pr.mergeStateStatus === "BEHIND") {

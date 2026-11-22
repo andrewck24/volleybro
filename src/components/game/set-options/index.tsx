@@ -17,9 +17,11 @@ import { useEffect } from "react";
 export const SetOptions = ({
   gameId,
   setIndex,
+  isNewSet,
 }: {
   gameId: string;
   setIndex: number;
+  isNewSet: boolean;
 }) => {
   const dispatch = useAppDispatch();
   const { game } = useGame(gameId);
@@ -41,7 +43,11 @@ export const SetOptions = ({
       </DialogHeader>
       <DialogBody>
         <LineupCourt players={game?.teams.home.players ?? []} />
-        <SetOptionsPanel gameId={gameId} />
+        <SetOptionsPanel
+          gameId={gameId}
+          setIndex={setIndex}
+          isNewSet={isNewSet}
+        />
       </DialogBody>
     </DialogContent>
   );

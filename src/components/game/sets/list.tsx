@@ -62,7 +62,11 @@ export const SetsList = ({ gameId }: { gameId: string }) => {
         新增一局
       </Button>
       <Dialog open={optionsOpen} onOpenChange={setOptionsOpen}>
-        <SetOptions gameId={gameId} setIndex={setIndex} />
+        <SetOptions
+          gameId={gameId}
+          setIndex={setIndex}
+          isNewSet={setIndex === game?.sets.length}
+        />
       </Dialog>
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <SetEdit gameId={gameId} setIndex={setIndex} />

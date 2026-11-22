@@ -1,4 +1,4 @@
-import { upsertEntries } from "@/entities/game";
+import { isSeqChanged, upsertEntries } from "@/entities/game";
 import type {
   GameView,
   PendingEntry,
@@ -90,10 +90,17 @@ export const mergePendingEntries = (
       const group = bySet.get(setIndex);
       if (!group) return set;
 
-      return upsertEntries(
-        set,
-        group.map(({ entry }) => entry),
-      ).set;
+      const seen = new Map(set.entries.map((e) => [e.id, e]));
+      const accepted = group
+        .map(({ entry }) => entry)
+        .filter((entry) => {
+          const existing = seen.get(entry.id);
+          if (existing && isSeqChanged(existing, entry)) return false;
+          seen.set(entry.id, entry);
+          return true;
+        });
+
+      return upsertEntries(set, accepted).set;
     }),
   };
 };
