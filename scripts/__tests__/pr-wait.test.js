@@ -100,12 +100,13 @@ test("only the newest pull_request run's Verify decides", () => {
     ["SUCCESS", "FAILURE", "fail"],
     ["SUCCESS", "CANCELLED", "fail"],
   ]) {
-    const checks = [
-      ciCheck(100, "Verify", olderState),
-      ciCheck(101, "Verify", newerState),
-      vercel,
-    ];
-    assert.equal(assessReadiness({ checks, pr: open, head }).status, status);
+    const latest = ciCheck(101, "Verify", newerState);
+    const checks = [ciCheck(100, "Verify", olderState), latest, vercel];
+    const result = assessReadiness({ checks, pr: open, head });
+    assert.equal(result.status, status);
+    if (status === "fail") {
+      assert.equal(result.reason, `Verify is ${newerState}: ${latest.link}`);
+    }
   }
 });
 
@@ -125,7 +126,10 @@ test("any failed Vercel entry fails whatever order gh lists them in", () => {
     [vercel, failed, verify],
     [failed, vercel, verify],
   ]) {
-    assert.equal(assessReadiness({ checks, pr: open, head }).status, "fail");
+    assert.deepEqual(assessReadiness({ checks, pr: open, head }), {
+      status: "fail",
+      reason: "Vercel is FAILURE",
+    });
   }
 });
 
