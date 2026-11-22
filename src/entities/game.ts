@@ -404,8 +404,15 @@ export function deriveSetPhase(
   return { isSetInProgress: true, isSetPoint: false };
 }
 
+export function isSeqChanged(
+  existing: EntryIdentity,
+  incoming: EntryIdentity,
+): boolean {
+  return existing.seq !== incoming.seq;
+}
+
 function assertSeqFixed(existing: EntryIdentity, incoming: EntryIdentity) {
-  if (existing.seq !== incoming.seq)
+  if (isSeqChanged(existing, incoming))
     throw new ValidationError(
       GameReason.ENTRY_SEQ_CHANGED,
       "An entry's seq is fixed once it is created",
