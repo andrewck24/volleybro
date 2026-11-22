@@ -1,4 +1,6 @@
 import { CreateForm } from "@/components/team/players/create-form";
+import { Toaster } from "@/components/ui/toaster";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -39,6 +41,7 @@ async function setup({ email }: { email?: string } = {}) {
   render(
     <SwrIsolation>
       <CreateForm teamId={TEAM_ID} />
+      <Toaster />
     </SwrIsolation>,
   );
   const nameField = await screen.findByPlaceholderText("輸入姓名");
@@ -53,6 +56,26 @@ async function setup({ email }: { email?: string } = {}) {
 }
 
 describe("CreateForm", () => {
+  it("shows a failed submit once, in the form, and raises no toast", async () => {
+    server.use(
+      http.post(`/api/teams/${TEAM_ID}/players`, () =>
+        HttpResponse.json(
+          { code: "UNEXPECTED", reason: "UNHANDLED_ERROR" },
+          { status: 500 },
+        ),
+      ),
+    );
+    await setup();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(ERROR_MESSAGES.SERVER_ERROR.title);
+    expect(alert).toHaveTextContent(ERROR_MESSAGES.SERVER_ERROR.description);
+    expect(
+      screen.getAllByText(ERROR_MESSAGES.SERVER_ERROR.description),
+    ).toHaveLength(1);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("replaces with the new player's page on success", async () => {
     await setup();
 

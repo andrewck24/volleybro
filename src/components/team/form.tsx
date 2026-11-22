@@ -2,6 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import type { ErrorMessage } from "@/lib/api/error-messages";
 import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogBody, DialogFooter } from "@/components/ui/dialog";
@@ -12,6 +13,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormSubmitError,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useFormDraft } from "@/hooks/use-form-draft";
@@ -21,7 +23,7 @@ import { useTeam, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import type { TeamView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { type Resolver } from "react-hook-form";
 import { RiSaveLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
@@ -57,6 +59,7 @@ const TeamForm = ({
   onStateChange,
   className,
 }: TeamFormProps) => {
+  const [submitError, setSubmitError] = useState<ErrorMessage>();
   const { form, clearDraft } = useFormDraft<TeamFormValues>(draftKey, {
     resolver: zodResolver(TeamSchema) as Resolver<TeamFormValues>,
     defaultValues: {
@@ -82,13 +85,12 @@ const TeamForm = ({
   }, [isDirty, onStateChange]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
+    setSubmitError(undefined);
     try {
       await onSubmit(data);
       clearDraft();
     } catch (e) {
-      form.setError("root", {
-        message: resolveErrorDisplay(e).description,
-      });
+      setSubmitError(resolveErrorDisplay(e));
     }
   });
 
@@ -125,14 +127,10 @@ const TeamForm = ({
               </FormItem>
             )}
           />
-          {form.formState.errors.root && (
-            <p className="text-sm text-error-text">
-              {form.formState.errors.root.message}
-            </p>
-          )}
         </Card>
       </DialogBody>
-      <DialogFooter>
+      <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-end sm:space-x-0">
+        <FormSubmitError error={submitError} />
         <Button
           type="submit"
           size="lg"
