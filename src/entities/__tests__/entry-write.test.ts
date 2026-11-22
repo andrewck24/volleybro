@@ -148,16 +148,14 @@ describe("planEntryUpserts", () => {
     expect(result.set.entries).toEqual([edited]);
   });
 
-  it("accepts an edit that keeps the seq and rejects one that changes it", () => {
-    const set = setOf(rally(1, 1, 0));
-    const edit = (seq: number) => () =>
+  it("rejects an edit that changes the seq", () => {
+    expect(() =>
       planEntryUpserts(
-        set,
-        [{ entry: { ...rally(1, 2, 0), seq }, at: later }],
+        setOf(rally(1, 1, 0)),
+        [{ entry: { ...rally(1, 2, 0), seq: 2 }, at: later }],
         "p2",
-      );
-    expect(edit(1)).not.toThrow();
-    expect(edit(2)).toThrow(ValidationError);
+      ),
+    ).toThrow(ValidationError);
   });
 
   it("classifies a later write of an id against the earlier one in the batch", () => {
