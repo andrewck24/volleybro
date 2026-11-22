@@ -1,12 +1,11 @@
 ---
-import { emdashComponents, type PortableTextBlock } from "emdash/ui";
+import type { ComponentProps } from "astro/types";
+import { emdashComponents } from "emdash/ui";
 
 const EmDashPortableTextBlock = emdashComponents.block;
 
-const props = Astro.props as {
-  node: PortableTextBlock & { id?: string };
-  index: number;
-  isInline: boolean;
+const props = Astro.props as ComponentProps<typeof EmDashPortableTextBlock> & {
+  node: { id?: string };
 };
 const blockProps = { ...props, id: props.node.id };
 ---
