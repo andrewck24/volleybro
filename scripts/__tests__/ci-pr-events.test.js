@@ -13,7 +13,7 @@ function evaluateActionsExpression(expression, context) {
   });
 }
 
-function renderActionsTemplate(template, context) {
+function interpolateActionsTemplate(template, context) {
   return template.replace(/\$\{\{(.*?)\}\}/g, (_, expression) =>
     evaluateActionsExpression(expression, context),
   );
@@ -31,11 +31,11 @@ test("PR edits trigger only the separate metadata workflow", () => {
     event: { pull_request: { number: 42 } },
   };
   assert.notEqual(
-    renderActionsTemplate(ci.concurrency.group, {
+    interpolateActionsTemplate(ci.concurrency.group, {
       github: { ...github, workflow: ci.name },
       inputs: { source: "" },
     }),
-    renderActionsTemplate(metadata.concurrency.group, { github }),
+    interpolateActionsTemplate(metadata.concurrency.group, { github }),
   );
 });
 
@@ -48,6 +48,48 @@ test("opening, reopening or pushing to a PR still triggers both checks", () => {
   assert.ok(
     Object.values(metadata.jobs).some(({ name }) => name === "PR metadata"),
   );
+});
+
+test("Verify's job condition stops it on workflow cancellation", () => {
+  assert.equal(ci.concurrency["cancel-in-progress"], true);
+  assert.equal(
+    evaluateActionsExpression(ci.jobs.verify.if, {
+      always: () => true,
+      cancelled: () => true,
+    }),
+    false,
+  );
+});
+
+test("Verify still fails on a dependency failure in a running workflow", () => {
+  const verify = ci.jobs.verify;
+  const needs = Object.fromEntries(
+    verify.needs.map((job) => [job, { result: "success" }]),
+  );
+  needs.static.result = "failure";
+  assert.equal(
+    evaluateActionsExpression(verify.if, {
+      always: () => true,
+      cancelled: () => false,
+    }),
+    true,
+  );
+
+  const report = interpolateActionsTemplate(
+    verify.steps[0].run
+      .replaceAll("needs.*.result", "results")
+      .replace(/needs\.([\w-]+)\.result/g, 'needs["$1"].result'),
+    {
+      needs,
+      results: Object.values(needs).map(({ result }) => result),
+      contains: (results, result) => results.includes(result),
+      inputs: { source: "" },
+      github: { event_name: "pull_request" },
+    },
+  );
+  const result = spawnSync("bash", ["-ec", report], { encoding: "utf8" });
+  assert.ifError(result.error);
+  assert.equal(result.status, 1, result.stderr);
 });
 
 function runMetadata(t, eventOverrides, githubState = {}) {
@@ -100,7 +142,7 @@ if (args[1] === "graphql") {
     const env = Object.fromEntries(
       Object.entries(step.env ?? {}).map(([key, value]) => [
         key,
-        renderActionsTemplate(value, {
+        interpolateActionsTemplate(value, {
           github: { event, token: "" },
           vars: { RELEASE_BOT_LOGIN: "" },
         }),

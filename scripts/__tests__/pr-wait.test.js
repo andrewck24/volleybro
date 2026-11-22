@@ -83,9 +83,9 @@ const ciCheck = (run, name, state, event = "pull_request") => ({
 });
 const vercel = { name: "Vercel", state: "SUCCESS", workflow: "", link: "" };
 
-test("a cancelled run's failed Verify waits while the new run is queued", () => {
+test("an older successful Verify cannot satisfy a new CI run without Verify", () => {
   const checks = [
-    ciCheck(100, "Verify", "FAILURE"),
+    ciCheck(100, "Verify", "SUCCESS"),
     ciCheck(101, "Test", "QUEUED"),
     vercel,
   ];
@@ -95,12 +95,16 @@ test("a cancelled run's failed Verify waits while the new run is queued", () => 
 });
 
 test("only the newest pull_request run's Verify decides", () => {
-  const cancelled = ciCheck(100, "Verify", "FAILURE");
-  for (const [state, status] of [
-    ["SUCCESS", "ready"],
-    ["FAILURE", "fail"],
+  for (const [olderState, newerState, status] of [
+    ["CANCELLED", "SUCCESS", "ready"],
+    ["SUCCESS", "FAILURE", "fail"],
+    ["SUCCESS", "CANCELLED", "fail"],
   ]) {
-    const checks = [cancelled, ciCheck(101, "Verify", state), vercel];
+    const checks = [
+      ciCheck(100, "Verify", olderState),
+      ciCheck(101, "Verify", newerState),
+      vercel,
+    ];
     assert.equal(assessReadiness({ checks, pr: open, head }).status, status);
   }
 });
