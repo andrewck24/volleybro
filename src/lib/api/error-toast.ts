@@ -10,15 +10,17 @@ type ToastFn = (opts: {
 
 export function resolveErrorDisplay(error: unknown): ErrorMessage {
   if (error instanceof RefreshTimeoutError)
-    return ERROR_MESSAGES.NETWORK_TIMEOUT;
+    return ERROR_MESSAGES.CONNECTION_ERROR;
   if (!(error instanceof ApiClientError)) return ERROR_MESSAGES.UNKNOWN;
   if (error.status === 401) return ERROR_MESSAGES.SESSION_EXPIRED;
   if (error.reason === "TIMEOUT" || error.reason === "NETWORK_ERROR")
-    return ERROR_MESSAGES.NETWORK_TIMEOUT;
+    return ERROR_MESSAGES.CONNECTION_ERROR;
   if (error.status >= 500 || error.code === "UNEXPECTED")
     return ERROR_MESSAGES.SERVER_ERROR;
   const byReason: Record<string, ErrorMessage | undefined> = ERROR_MESSAGES;
-  return byReason[error.reason] ?? ERROR_MESSAGES.UNKNOWN;
+  return Object.hasOwn(byReason, error.reason)
+    ? byReason[error.reason]!
+    : ERROR_MESSAGES.UNKNOWN;
 }
 
 export function handle401Redirect(

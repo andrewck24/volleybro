@@ -9,7 +9,7 @@ export type ErrorMessage = { title: string; description: string };
 
 type ClassKey =
   | "SESSION_EXPIRED"
-  | "NETWORK_TIMEOUT"
+  | "CONNECTION_ERROR"
   | "SERVER_ERROR"
   | "LATER_SUBSTITUTION_INVALID"
   | "UNKNOWN";
@@ -35,9 +35,9 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "這次修改會讓比分 {home}:{away} 時的換人無效",
     description: "請調整換上或換下的球員，或先修改後面的換人",
   },
-  NETWORK_TIMEOUT: {
-    title: "連線逾時",
-    description: "請稍後再試，若問題持續請確認網路連線",
+  CONNECTION_ERROR: {
+    title: "連線異常",
+    description: "目前無法完成連線，請稍後再試；若問題持續，請確認網路連線。",
   },
   SERVER_ERROR: {
     title: "哎呀，發球掛網！",

@@ -50,10 +50,10 @@ describe("handle401Redirect", () => {
 });
 
 describe("resolveErrorDisplay", () => {
-  it("resolves RefreshTimeoutError to NETWORK_TIMEOUT", () => {
+  it("resolves RefreshTimeoutError to CONNECTION_ERROR", () => {
     expect(resolveErrorDisplay(new RefreshTimeoutError())).toEqual({
-      title: "連線逾時",
-      description: "請稍後再試，若問題持續請確認網路連線",
+      title: "連線異常",
+      description: "目前無法完成連線，請稍後再試；若問題持續，請確認網路連線。",
     });
   });
 
@@ -73,7 +73,7 @@ describe("resolveErrorDisplay", () => {
     expect(resolveErrorDisplay(error).title).toBe("登入逾期");
   });
 
-  it("resolves client-invented TIMEOUT/NETWORK_ERROR reasons to NETWORK_TIMEOUT before the 5xx branch", () => {
+  it("resolves TIMEOUT and NETWORK_ERROR to the shared CONNECTION_ERROR before the 5xx branch", () => {
     const timeout = makeApiClientError(503, "TRANSIENT", "timeout", "TIMEOUT");
     const network = makeApiClientError(
       503,
@@ -81,8 +81,12 @@ describe("resolveErrorDisplay", () => {
       "network",
       "NETWORK_ERROR",
     );
-    expect(resolveErrorDisplay(timeout).title).toBe("連線逾時");
-    expect(resolveErrorDisplay(network).title).toBe("連線逾時");
+    const connectionError = {
+      title: "連線異常",
+      description: "目前無法完成連線，請稍後再試；若問題持續，請確認網路連線。",
+    };
+    expect(resolveErrorDisplay(timeout)).toEqual(connectionError);
+    expect(resolveErrorDisplay(network)).toEqual(connectionError);
   });
 
   it("resolves status >= 500 or code UNEXPECTED to SERVER_ERROR", () => {
@@ -119,6 +123,17 @@ describe("resolveErrorDisplay", () => {
       description: "請重新整理頁面後再試一次，若問題持續請聯繫我們",
     });
   });
+
+  it.each(["constructor", "toString"])(
+    "resolves inherited catalogue property %s to UNKNOWN",
+    (reason) => {
+      const error = makeApiClientError(400, "VALIDATION", "x", reason);
+      expect(resolveErrorDisplay(error)).toEqual({
+        title: "發生未預期的錯誤",
+        description: "請重新整理頁面後再試一次，若問題持續請聯繫我們",
+      });
+    },
+  );
 
   it("the toast surface and the inline-dialog surface agree on one failure", () => {
     const error = makeApiClientError(
@@ -170,14 +185,11 @@ describe("showErrorToast", () => {
     });
   });
 
-  it("shows 連線逾時 for RefreshTimeoutError", () => {
+  it("emits one error toast for RefreshTimeoutError", () => {
     showErrorToast(new RefreshTimeoutError(), mockToast);
 
-    expect(mockToast).toHaveBeenCalledWith({
-      title: "連線逾時",
-      description: "請稍後再試，若問題持續請確認網路連線",
-      variant: "error",
-    });
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockToast.mock.calls[0][0].variant).toBe("error");
   });
 
   it("shows fallback toast for non-ApiClientError, without leaking the raw message", () => {
