@@ -228,7 +228,7 @@ New components in `ui/` and `custom/` must include a Storybook story before the 
 
 ## Where Tests Run
 
-CI runs every check on every pull request and is the authority (ADR-0092). The local gates are defined in `WORKFLOW.md`'s Repository profile; `pnpm verify:all --dry-run` prints which lanes a diff runs. The integration tests download a `mongodb-memory-server` binary on first run.
+CI runs every check when a pull request is opened, reopened, or updated with new commits (ADR-0092). GitHub delivers title, body, and base changes as `edited` events, which run only the separate `PR metadata` workflow. When the new protected base contains commits missing from the PR branch, strict required checks block the merge until the branch is brought up to date. That update emits `synchronize` and runs full CI against the new base. To cover retargeting an already up-to-date branch, `PR metadata` rejects an unchanged head with any PR CI run created at or before the most recent retarget. Push a new commit to obtain fresh verification for the new base. The local gates are defined in `WORKFLOW.md`'s Repository profile; `pnpm verify:all --dry-run` prints which lanes a diff runs. The integration tests download a `mongodb-memory-server` binary on first run.
 
 Each run replaces `.verify-logs/` with every lane's full output (`<lane>.log`, gitignored); read it rather than rerunning a failed gate. A Jest lane whose worker crashes with `SIGSEGV` reruns once on its own, and the summary says so.
 
