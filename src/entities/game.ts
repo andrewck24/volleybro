@@ -565,6 +565,12 @@ export function planEntryUpserts<
       return [{ id: entry.id, created }];
     }
 
+    if (existing.seq !== entry.seq)
+      throw new ValidationError(
+        CommonReason.INVALID_INPUT,
+        "An entry's seq is fixed once it is created",
+      );
+
     if (
       existing.recordedBy === operator &&
       existing.recordedAt?.getTime() === at.getTime()

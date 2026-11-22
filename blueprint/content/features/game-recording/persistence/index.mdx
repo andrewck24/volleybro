@@ -76,7 +76,7 @@ What a batch of entry writes makes of a set is decided by two pure functions in 
 
 - **New write paths must not use `update()`.** A sixth game write path that reaches for it means this condition was not honoured.
 - Both entry operations stay ordinary updates rather than aggregation pipeline updates, so Mongoose casting still bounds the blast radius.
-- Identity never changes; sequence may be renumbered. Overloading one field for both would make reordering an edit to identity.
+- Identity and sequence are both immutable after creation; the entry write rules reject an edit that carries a different sequence.
 - A failed cast may damage only the entry being written. Every entry already recorded in that set stays intact.
 - **An unwritable store is tolerated at the call site, never inside the adapter.** The port reports honestly whether data reached the disk; whether that failure is survivable is a policy, and it lives in one line next to the rest of the queue's policy.
 - An entry whose last failure cannot be fixed by sending it again is dropped after seven days. Persisting the queue removed the only exit such an entry had — closing the app — and this restores it. Work that might still land never expires, however long it has waited.
