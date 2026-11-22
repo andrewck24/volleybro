@@ -12,4 +12,4 @@
 
 #### UI
 
-- Show a generic error message when an API error has an unrecognized reason
+- Show the generic error message instead of a broken result when an API error reason happens to match a built-in name such as `constructor` or `toString`
