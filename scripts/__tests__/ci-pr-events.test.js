@@ -61,12 +61,8 @@ test("Verify's job condition stops it on workflow cancellation", () => {
   );
 });
 
-test("Verify still fails on a dependency failure in a running workflow", () => {
+test("Verify reports dependency results in a running workflow", () => {
   const verify = ci.jobs.verify;
-  const needs = Object.fromEntries(
-    verify.needs.map((job) => [job, { result: "success" }]),
-  );
-  needs.static.result = "failure";
   assert.equal(
     evaluateActionsExpression(verify.if, {
       always: () => true,
@@ -75,21 +71,58 @@ test("Verify still fails on a dependency failure in a running workflow", () => {
     true,
   );
 
-  const report = interpolateActionsTemplate(
-    verify.steps[0].run
-      .replaceAll("needs.*.result", "results")
-      .replace(/needs\.([\w-]+)\.result/g, 'needs["$1"].result'),
-    {
+  const { env: expressions, run } = verify.steps[0];
+  for (const [
+    label,
+    overrides,
+    status,
+    source = "",
+    event = "pull_request",
+  ] of [
+    ["all jobs succeed", {}, 0],
+    ["static fails", { static: "failure" }, 1],
+    ["source identity fails", { "source-identity": "failure" }, 1],
+    ["blueprint is cancelled", { blueprint: "cancelled" }, 1],
+    ["test is skipped", { test: "skipped" }, 1],
+    ["integration is skipped", { integration: "skipped" }, 1],
+    [
+      "workflow tests are skipped without a source",
+      { "workflow-tests": "skipped" },
+      1,
+    ],
+    [
+      "workflow tests are skipped with a source",
+      { "workflow-tests": "skipped" },
+      0,
+      "source-sha",
+      "workflow_dispatch",
+    ],
+    ["commitlint is skipped on a PR", { commitlint: "skipped" }, 1],
+    ["commitlint is skipped on push", { commitlint: "skipped" }, 0, "", "push"],
+  ]) {
+    const needs = Object.fromEntries(
+      verify.needs.map((job) => [job, { result: overrides[job] ?? "success" }]),
+    );
+    const context = {
       needs,
       results: Object.values(needs).map(({ result }) => result),
-      contains: (results, result) => results.includes(result),
-      inputs: { source: "" },
-      github: { event_name: "pull_request" },
-    },
-  );
-  const result = spawnSync("bash", ["-ec", report], { encoding: "utf8" });
-  assert.ifError(result.error);
-  assert.equal(result.status, 1, result.stderr);
+      join: (items, separator) => items.join(separator),
+      inputs: { source },
+      github: { event_name: event },
+    };
+    const env = Object.fromEntries(
+      Object.entries(expressions).map(([key, value]) => [
+        key,
+        interpolateActionsTemplate(
+          value.replaceAll("needs.*.result", "results"),
+          context,
+        ),
+      ]),
+    );
+    const result = spawnSync("bash", ["-ec", run], { env, encoding: "utf8" });
+    assert.ifError(result.error);
+    assert.equal(result.status, status, `${label}: ${result.stderr}`);
+  }
 });
 
 function runMetadata(t, eventOverrides, githubState = {}) {
