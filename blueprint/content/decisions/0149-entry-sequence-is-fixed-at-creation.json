@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "0149",
+  "title": "An entry's sequence is fixed at creation, and the entry write rules reject a write that changes it",
+  "capabilities": ["game-recording/persistence"],
+  "context": "ADR-0010 kept identity and position as separate fields because position \"must be renumberable\", and named a client batch renumber as the path for mid-set insertion. No such operation was built. The recording UI creates an entry with seq equal to its position in the set and an edit keeps the draft's stored seq, so nothing in the app ever renumbers. The write rules still accepted an edit carrying a different seq for an existing id, and the repository's $set path then left the stored array out of seq order, so an edit could return entries unsorted.",
+  "decision": "An entry's seq is fixed at creation. The shared entry write rules in entities (ADR-0147) reject a write whose id already exists with a different seq, on client and server alike, before anything is written; the rejection is GameReason.ENTRY_SEQ_CHANGED. Because seq never changes, the order the $push $sort establishes holds, and entries are read back in seq order. Mid-set insertion, if it is ever built, must choose a new ordering design, for example fractional or gap-based ordering, and revisit this record.",
+  "alternatives": [
+    {
+      "option": "Re-sort entries inside the edit transaction",
+      "reason": "Supports an operation nobody performs, and needed driver-level transaction tests to prove it. It keeps a renumbering path alive that the UI never uses."
+    },
+    {
+      "option": "Keep seq renumberable and renumber in a client batch when inserting",
+      "reason": "ADR-0010's future path. Rewrites many entries per insertion, and no insertion feature exists to justify it now."
+    }
+  ],
+  "consequences": [
+    "An edit carrying a different seq for an existing id fails with ENTRY_SEQ_CHANGED; the API answers 400 and the client overlay throws the same error.",
+    "A write replayed by the same recorder at the same instant with a different seq is rejected too, rather than ignored as a resend.",
+    "Appending never renumbers and deleting leaves a harmless gap, as before."
+  ],
+  "revisitTriggers": [
+    "Post-match editing gains mid-set insertion, which needs an ordering design that does not renumber, such as fractional or gap-based ordering."
+  ],
+  "originChange": "entry-seq-order"
+}

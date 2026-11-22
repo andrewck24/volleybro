@@ -42,5 +42,6 @@
     "A future entry write path reaches for the repository's general-purpose update() instead of upsertEntries, meaning game-positional-writes' D2 surviving condition was not honoured.",
     "The database evaluation selects a relational store, which invalidates the document-specific guard, arrayFilters and $sort implementation but should leave the interface, the identity model and the ordering model untouched."
   ],
-  "originChange": "retryable-entry-writes"
+  "originChange": "retryable-entry-writes",
+  "supersededBy": "0149"
 }

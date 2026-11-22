@@ -1,4 +1,4 @@
-import { CommonReason, ValidationError } from "@/entities/errors";
+import { CommonReason, GameReason, ValidationError } from "@/entities/errors";
 import {
   EntryType,
   MoveType,
@@ -38,14 +38,25 @@ describe("upsertEntries", () => {
   it("overwrites by id and orders by seq", () => {
     const result = upsertEntries(
       { startingLineups, entries: [rally(2, 1, 1), rally(1, 0, 1)] },
-      [{ ...rally(2, 1, 1), seq: 3 }, rally(4, 2, 1)],
+      [{ ...rally(2, 5, 1) }, rally(4, 2, 1)],
     );
     if ("invalid" in result) throw new Error("expected a set");
     expect(result.set.entries.map((e) => [e.id, e.seq])).toEqual([
       ["rally-1", 1],
-      ["rally-2", 3],
+      ["rally-2", 2],
       ["rally-4", 4],
     ]);
+    expect(result.set.entries[1]).toMatchObject({ home: { score: 5 } });
+  });
+
+  it("refuses a write that changes the seq of a stored id", () => {
+    expect(() =>
+      upsertEntries(setOf(rally(1, 0, 1)), [
+        stored({ ...rally(1, 0, 1), seq: 3 }),
+      ]),
+    ).toThrow(
+      expect.objectContaining({ reason: GameReason.ENTRY_SEQ_CHANGED }),
+    );
   });
 
   it("returns the refused substitution with the score before it", () => {
@@ -148,14 +159,32 @@ describe("planEntryUpserts", () => {
     expect(result.set.entries).toEqual([edited]);
   });
 
-  it("rejects an edit that changes the seq", () => {
-    expect(() =>
-      planEntryUpserts(
-        setOf(rally(1, 1, 0)),
-        [{ entry: { ...rally(1, 2, 0), seq: 2 }, at: later }],
-        "p2",
-      ),
-    ).toThrow(ValidationError);
+  it.each([
+    [
+      "an edit",
+      setOf(rally(1, 1, 0)),
+      [{ entry: { ...rally(1, 2, 0), seq: 2 }, at: later }],
+      "p2",
+    ],
+    [
+      "a resend of the same recorder and instant",
+      setOf(rally(1, 1, 0)),
+      [{ entry: { ...rally(1, 1, 0), seq: 2 }, at }],
+      "p1",
+    ],
+    [
+      "an edit after a create in the same batch",
+      emptySet,
+      [
+        { entry: rally(1, 1, 0), at },
+        { entry: { ...rally(1, 2, 0), seq: 2 }, at: later },
+      ],
+      "p1",
+    ],
+  ])("rejects %s that changes the seq", (_, set, writes, operator) => {
+    expect(() => planEntryUpserts(set, writes, operator)).toThrow(
+      expect.objectContaining({ reason: GameReason.ENTRY_SEQ_CHANGED }),
+    );
   });
 
   it("classifies a later write of an id against the earlier one in the batch", () => {
