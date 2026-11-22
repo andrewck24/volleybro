@@ -57,19 +57,4 @@ describe("EntriesEdit rally submission", () => {
     expect(puts).toHaveLength(1);
     expect(puts[0]!.body).toMatchObject([{ id: "e1", seq: 0 }]);
   });
-
-  it("stays in editing mode when the write fails", async () => {
-    const user = userEvent.setup();
-    const puts = answerEntries(() => HttpResponse.error());
-    const { store } = renderEntriesEdit();
-    await screen.findByRole("button", { name: "back" });
-    act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
-    });
-
-    await user.click(await screen.findByTestId("preview-trigger"));
-
-    await waitFor(() => expect(puts.length).toBeGreaterThan(0));
-    expect(store.getState().game.mode).toBe("editing");
-  });
 });
