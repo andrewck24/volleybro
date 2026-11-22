@@ -16,7 +16,7 @@
     }
   ],
   "consequences": [
-    "An edit carrying a different seq for an existing id fails with ENTRY_SEQ_CHANGED; the API answers 400 and the client overlay throws the same error.",
+    "An edit carrying a different seq for an existing id fails with ENTRY_SEQ_CHANGED; the API answers 400 and the client overlay skips such a queued entry instead of throwing, so one bad queued entry cannot blank the game page.",
     "A write replayed by the same recorder at the same instant with a different seq is rejected too, rather than ignored as a resend.",
     "Appending never renumbers and deleting leaves a harmless gap, as before."
   ],
