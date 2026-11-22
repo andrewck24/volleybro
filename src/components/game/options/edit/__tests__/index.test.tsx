@@ -1,11 +1,15 @@
 import { EntriesEdit } from "@/components/game/options/edit";
 import { Dialog } from "@/components/ui/dialog";
+import { gameActions } from "@/lib/features/game/game-slice";
+import { scoringMoves } from "@/lib/scoring-moves";
+import { answerEntries } from "@test/support/msw/entries";
 import {
   holdEditedWrite,
   renderEditingGame,
 } from "@test/support/react/render-editing-game";
-import { screen } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { HttpResponse } from "msw";
 
 const renderEntriesEdit = () =>
   renderEditingGame(
@@ -32,5 +36,40 @@ describe("EntriesEdit back control", () => {
     holdEditedWrite(store);
 
     expect(await screen.findByRole("button", { name: "back" })).toBeDisabled();
+  });
+});
+
+describe("EntriesEdit rally submission", () => {
+  it("writes the edited rally under its id and seq, then returns to general mode", async () => {
+    const user = userEvent.setup();
+    const puts = answerEntries(() =>
+      HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
+    );
+    const { store } = renderEntriesEdit();
+    await screen.findByRole("button", { name: "back" });
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    expect(puts).toHaveLength(1);
+    expect(puts[0]!.body).toMatchObject([{ id: "e1", seq: 0 }]);
+  });
+
+  it("stays in editing mode when the write fails", async () => {
+    const user = userEvent.setup();
+    const puts = answerEntries(() => HttpResponse.error());
+    const { store } = renderEntriesEdit();
+    await screen.findByRole("button", { name: "back" });
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() => expect(puts.length).toBeGreaterThan(0));
+    expect(store.getState().game.mode).toBe("editing");
   });
 });
