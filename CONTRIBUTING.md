@@ -86,8 +86,6 @@ Git hooks need no per-worktree setup: `prepare` points the shared `core.hooksPat
 
 Delegate to Codex through `codex:rescue` or the companion runtime, never a bare `codex exec`, which idles when its stdin is left open.
 
-`.claude/settings.json` registers `scripts/guard-pr-merge.js` as a `PreToolUse` hook on `Bash`: it denies `gh pr merge` with `--auto` or without `--match-head-commit`, and points to `pnpm pr:wait` and WORKFLOW.md section 5.
-
 `.worktreeinclude` lists `.env.local`, so agent tooling that reads that file copies it into each worktree it creates. A worktree made with plain `git worktree add`, or by a tool that ignores the file, gets no copy: copy `.env.local` yourself before running `pnpm build` or `pnpm dev`.
 
 Remove a worktree that still holds symlinks with `git worktree remove --force <path>`.
