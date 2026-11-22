@@ -253,18 +253,33 @@ jobs:
         blueprint,
         commitlint,
       ]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Report the parallel jobs' result
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+          TEST_RESULT: ${{ needs.test.result }}
+          STATIC_RESULT: ${{ needs.static.result }}
+          WORKFLOW_TESTS_RESULT: ${{ needs['workflow-tests'].result }}
+          INTEGRATION_RESULT: ${{ needs.integration.result }}
+          BLUEPRINT_RESULT: ${{ needs.blueprint.result }}
+          COMMITLINT_RESULT: ${{ needs.commitlint.result }}
+          SOURCE: ${{ inputs.source }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          echo "test=${{ needs.test.result }}"
-          echo "static=${{ needs.static.result }}"
-          echo "workflow-tests=${{ needs.workflow-tests.result }}"
-          echo "integration=${{ needs.integration.result }}"
-          echo "blueprint=${{ needs.blueprint.result }}"
-          echo "commitlint=${{ needs.commitlint.result }}"
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.test.result != 'success' || needs.integration.result != 'success' || (inputs.source == '' && needs.workflow-tests.result != 'success') || (github.event_name == 'pull_request' && needs.commitlint.result != 'success') }}" = "true" ]; then
+          echo "test=$TEST_RESULT"
+          echo "static=$STATIC_RESULT"
+          echo "workflow-tests=$WORKFLOW_TESTS_RESULT"
+          echo "integration=$INTEGRATION_RESULT"
+          echo "blueprint=$BLUEPRINT_RESULT"
+          echo "commitlint=$COMMITLINT_RESULT"
+          if [[ " $RESULTS " == *" failure "* ||
+                " $RESULTS " == *" cancelled "* ||
+                "$TEST_RESULT" != success ||
+                "$INTEGRATION_RESULT" != success ||
+                ( -z "$SOURCE" && "$WORKFLOW_TESTS_RESULT" != success ) ||
+                ( "$EVENT_NAME" == pull_request && "$COMMITLINT_RESULT" != success ) ]]; then
             exit 1
           fi
