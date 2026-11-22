@@ -30,7 +30,14 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
+
+const SubmittingSummaryDrawer = (
+  props: Omit<ComponentProps<typeof SummaryDrawer>, "onSubmit">,
+) => {
+  const submitEntryDraft = useSubmitEntryDraft(props.gameId);
+  return <SummaryDrawer {...props} onSubmit={submitEntryDraft} />;
+};
 
 const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const { game, isLoading, error, mutate } = useGame(gameId);
@@ -40,7 +47,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general } = useAppSelector((state) => state.game);
   const pendingWrites = usePendingWrites(gameId, setIndex);
-  const submitEntryDraft = useSubmitEntryDraft(gameId, pendingWrites);
   const { retry } = pendingWrites;
 
   const handleOptionOpen = (tabValue: string) => {
@@ -84,11 +90,10 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
             className="min-h-0 flex-1"
           />
         </div>
-        <SummaryDrawer
+        <SubmittingSummaryDrawer
           gameId={gameId}
           state={drawerState}
           onToggle={toggleDrawer}
-          onSubmit={submitEntryDraft}
           onEditRequest={() => setDialogOpen(true)}
           onEntryRetry={() => void retry()}
         />
