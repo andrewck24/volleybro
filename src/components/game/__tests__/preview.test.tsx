@@ -5,7 +5,6 @@ import { EntryType, MoveType } from "@/entities/game";
 import {
   PendingWritesContext,
   usePendingWrites,
-  usePendingWritesContext,
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
@@ -128,8 +127,7 @@ const setUpPreview = (
 };
 
 const SubmittingPreview = ({ mode }: { mode: "general" | "editing" }) => {
-  const pendingWrites = usePendingWritesContext();
-  const submit = useSubmitEntryDraft("game-1", pendingWrites);
+  const submit = useSubmitEntryDraft("game-1");
   return <GamePreview gameId="game-1" mode={mode} onSubmit={submit} />;
 };
 

@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { EntryType } from "@/entities/game";
-import { useGame } from "@/hooks/use-data";
-import { usePendingWritesContext } from "@/hooks/use-pending-writes";
 import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { applySubstitution } from "@/lib/features/game/helpers";
+import { useEntryRecording } from "@/lib/features/game/hooks/use-entry-recording";
 import { useSubstitutes } from "@/lib/features/game/hooks/use-substitutes";
-import type { ReduxGameState } from "@/lib/features/game/types";
+import type {
+  GameView,
+  PendingSubstitution,
+  ReduxGameState,
+} from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import { RiArrowLeftSLine, RiCheckLine } from "react-icons/ri";
@@ -26,8 +29,7 @@ export const Substitutes = ({
 }) => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
-  const { game, mutate } = useGame(gameId);
-  const { enqueue, flush } = usePendingWritesContext();
+  const { record, edit } = useEntryRecording(gameId);
   const { setIndex } = useAppSelector((state) => state.game);
   const { status, entryDraft: draft } = useAppSelector(
     (state) => state.game[mode],
@@ -43,19 +45,16 @@ export const Substitutes = ({
 
   const onSubmit = async () => {
     const { team, players } = draft.substitution!;
-    const entry = {
-      type: EntryType.SUBSTITUTION as const,
-      team,
-      players,
-      id: isEditing ? draft.id : crypto.randomUUID(),
-      seq: isEditing ? draft.seq : entryIndex,
-      at: new Date().toISOString(),
-    };
-    const checked = applySubstitution(game!, setIndex, entry);
-    if ("invalid" in checked) {
-      const { substitutionId, scoreBefore } = checked.invalid;
+    const content = { type: EntryType.SUBSTITUTION as const, team, players };
+    const apply = (target: GameView, entry: PendingSubstitution) =>
+      applySubstitution(target, setIndex, entry);
+    const result = isEditing
+      ? await edit(content, apply)
+      : record(content, apply);
+    if (result.status === "invalid") {
+      const { substitutionId, scoreBefore } = result.invalid;
       toast(
-        substitutionId === entry.id
+        substitutionId === result.entry.id
           ? { ...ERROR_MESSAGES.INVALID_SUBSTITUTION, variant: "error" }
           : {
               ...ERROR_MESSAGES.LATER_SUBSTITUTION_INVALID,
@@ -67,23 +66,9 @@ export const Substitutes = ({
       );
       return;
     }
-    mutate(
-      (raw) => {
-        const applied = applySubstitution(raw!, setIndex, entry);
-        return "game" in applied ? applied.game : raw;
-      },
-      { revalidate: false },
-    );
-    enqueue(entry);
-    if (!isEditing) {
-      dispatch(gameActions.confirmEntryDraftSubstitution());
-      void flush();
-      return;
-    }
-    const result = await flush();
-    if (!result.ok) return;
+    if (result.status === "failed") return;
     dispatch(gameActions.confirmEntryDraftSubstitution());
-    dispatch(gameActions.setGameMode("general"));
+    if (isEditing) dispatch(gameActions.setGameMode("general"));
   };
 
   return (

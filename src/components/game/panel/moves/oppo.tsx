@@ -1,67 +1,50 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
 import { useGame } from "@/hooks/use-data";
-import type { PendingWritesApi } from "@/hooks/use-pending-writes";
-import { EntryType } from "@/entities/game";
+import { EntryType, type EntryIdentity } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
   applyEntry,
   assertRallyAt,
   deriveEntryPhase,
 } from "@/lib/features/game/helpers";
-import type { RallyView } from "@/lib/features/game/types";
+import { useEntryRecording } from "@/lib/features/game/hooks/use-entry-recording";
+import type { GameView, RallyView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 
-export const useSubmitEntryDraft = (
-  gameId: string,
-  { enqueue, flush }: Pick<PendingWritesApi, "enqueue" | "flush">,
-) => {
+export const useSubmitEntryDraft = (gameId: string) => {
   const dispatch = useAppDispatch();
   const { setIndex, mode } = useAppSelector((state) => state.game);
   const {
     status: { entryIndex },
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
-  const { game, mutate } = useGame(gameId);
+  const { game } = useGame(gameId);
+  const { record, edit } = useEntryRecording(gameId);
+
+  const content = () => ({
+    ...(draft as RallyView),
+    type: EntryType.RALLY as const,
+  });
+  const phaseOf = (entry: RallyView & EntryIdentity) =>
+    deriveEntryPhase(game!, setIndex, entryIndex, entry);
+  const apply = (target: GameView, entry: RallyView & EntryIdentity) => ({
+    game: applyEntry(target, setIndex, entry, phaseOf(entry)),
+  });
 
   const create = () => {
-    const entry = {
-      ...(draft as RallyView),
-      type: EntryType.RALLY as const,
-      id: crypto.randomUUID(),
-      seq: entryIndex,
-      at: new Date().toISOString(),
-    };
-    const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
-    mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
-      revalidate: false,
-    });
-    enqueue(entry);
-    dispatch(gameActions.confirmEntryDraftRally(phase));
-    void flush();
+    const result = record(content(), apply);
+    if (result.status !== "recorded") return;
+    dispatch(gameActions.confirmEntryDraftRally(phaseOf(result.entry)));
   };
 
   const update = async () => {
-    const entry = {
-      ...(draft as RallyView),
-      type: EntryType.RALLY as const,
-      id: draft.id,
-      seq: draft.seq,
-      at: new Date().toISOString(),
-    };
     assertRallyAt(game!, setIndex, entryIndex);
-    const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
-    mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
-      revalidate: false,
-    });
-    enqueue(entry);
-    const result = await flush();
-    if (!result.ok) {
-      return;
-    }
-    dispatch(gameActions.confirmEntryDraftRally(phase));
+    const result = await edit(content(), apply);
+    if (result.status !== "edited") return;
+    dispatch(gameActions.confirmEntryDraftRally(phaseOf(result.entry)));
     dispatch(gameActions.setGameMode("general"));
   };
 
