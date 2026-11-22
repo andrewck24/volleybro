@@ -36,7 +36,7 @@ const dialogContentVariants = cva(
     variants: {
       size: {
         default: "top-[50%] max-h-[85svh] max-w-[90vw]",
-        lg: "top-[calc(50%+(var(--safe-area-inset-top)+var(--header-height))/2)] h-[calc(100%-var(--safe-area-inset-top)-var(--header-height))] w-full sm:max-w-196",
+        lg: "top-[calc(50%+(var(--safe-area-inset-top)+var(--header-height))/2)] h-[calc(100%-var(--safe-area-inset-top)-var(--header-height))] w-full sm:max-w-page",
       },
     },
     defaultVariants: { size: "default" },
@@ -75,7 +75,7 @@ const DialogBody = ({
   <div
     data-slot="DialogBody"
     className={cn(
-      "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4",
+      "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-(--page-gutter) pb-4",
       className,
     )}
     {...props}

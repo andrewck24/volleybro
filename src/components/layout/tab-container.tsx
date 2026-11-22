@@ -161,13 +161,13 @@ export const TabContainer = ({
   return (
     <>
       {modal}
-      <div className="mx-auto w-full max-w-196">
+      <div className="mx-auto w-full max-w-page md:[--page-inset-start:var(--nav-rail-width)]">
         {TAB_ORDER.map((tab) => (
           <div
             key={tab}
             className={cn(
               "min-h-dvh bg-background pt-[calc(env(safe-area-inset-top)+var(--header-height))] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+5rem)] pl-[env(safe-area-inset-left)]",
-              "md:min-h-auto md:pb-[calc(env(safe-area-inset-bottom)+0.5rem)] md:pl-[calc(env(safe-area-inset-left)+4rem)]",
+              "md:min-h-auto md:pb-[calc(env(safe-area-inset-bottom)+0.5rem)] md:pl-[calc(env(safe-area-inset-left)+var(--page-inset-start))]",
               activeTab === tab ? "block" : "hidden",
             )}
             style={{

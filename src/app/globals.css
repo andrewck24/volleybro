@@ -101,6 +101,10 @@
   --control-size-lg: 2.5rem;
 
   --header-height: calc(var(--control-size) + 1rem);
+  --page-max-width: 49rem;
+  --page-gutter: 1rem;
+  --nav-rail-width: 4rem;
+  --page-inset-start: 0px;
   --safe-area-inset-top: env(safe-area-inset-top);
   --safe-area-inset-right: env(safe-area-inset-right);
   --safe-area-inset-bottom: env(safe-area-inset-bottom);
@@ -115,6 +119,8 @@
 }
 
 @theme inline {
+  --container-page: var(--page-max-width);
+
   --font-sans: var(--font-saira), var(--font-noto-sans-tc), sans-serif;
 
   --text-body-list: 1.0625rem;
