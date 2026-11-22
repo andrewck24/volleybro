@@ -91,7 +91,7 @@ What a batch of entry writes makes of a set is decided by two pure functions in 
 - A store that works for this session and forgets afterwards cannot be seen at all. Private browsing, the platform's long-inactivity clearing and eviction under disk pressure all write and read back correctly; nothing synchronous distinguishes them from a healthy store. Persistence is requested once at start-up for the two the browser can act on, and that request's effect is not verifiable from inside the app.
 - Seven days has no measured basis. It restores a property persistence removed rather than expressing anything known about how long a stuck entry is worth keeping.
 - Idempotency holds for the same identity carrying the same payload. The same identity carrying a different payload is last-write-wins, which is an ordering question left to intent anchors; a different sequence is the exception and is rejected.
-- Inserting a rally mid-set needs a new ordering design, because sequence is fixed at creation; see ADR-0149. Appending never changes sequence, and deleting leaves a harmless gap.
+- Inserting an entry mid-set (a substitution, timeout or challenge recorded after the fact) needs an ordering design that keeps existing sequence values, decided together with sync-recording's intent anchor; see ADR-0149. Appending never changes sequence, and deleting leaves a harmless gap.
 
 ## Implemented decisions
 
