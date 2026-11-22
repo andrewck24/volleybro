@@ -244,6 +244,10 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 
 Common app specimens include court/panel gaps (`gap-1` / `gap-2`), the drawer peek reservation (`pb-21`) and the fixed-header reservation plus safe area. These are examples, not new global spacing tokens. SwiftUI correspondence: layout spacing, safe-area handling and adaptive layouts.
 
+### Page width
+
+Page chrome and page content share one width: `--page-max-width` in `globals.css`, exposed as `max-w-page` (49rem, 784px). The shared `Header`, the `(workspace)` layout, `TabContainer` and the `lg` Dialog size all use it, so their outer edges line up at every width; never write a literal width for a page-level box. Inner edges share tokens too: `--page-gutter` (1rem) is the horizontal inset of the header row and of `DialogBody`, so the header's back button lines up with the content's first edge, and `--page-inset-start` (0 by default, `--nav-rail-width` once `TabContainer` shows the side rail at `md`) is the left offset of both the header and the tab content. The mobile bottom navigation bar and the recording page header keep their own widths.
+
 ### Breakpoints
 
 These are the existing Tailwind defaults, not a new application-specific scale.

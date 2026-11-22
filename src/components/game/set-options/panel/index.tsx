@@ -8,7 +8,15 @@ import { useGame } from "@/hooks/use-data";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 
-export const SetOptionsPanel = ({ gameId }: { gameId: string }) => {
+export const SetOptionsPanel = ({
+  gameId,
+  setIndex,
+  isNewSet,
+}: {
+  gameId: string;
+  setIndex: number;
+  isNewSet: boolean;
+}) => {
   const { game } = useGame(gameId);
   const { optionMode } = useAppSelector((state) => state.lineup.status);
 
@@ -21,7 +29,7 @@ export const SetOptionsPanel = ({ gameId }: { gameId: string }) => {
       ) : optionMode === LineupOptionMode.POSITIONS ? (
         <Positions />
       ) : (
-        <Options gameId={gameId} />
+        <Options gameId={gameId} setIndex={setIndex} isNewSet={isNewSet} />
       )}
     </Panel>
   );

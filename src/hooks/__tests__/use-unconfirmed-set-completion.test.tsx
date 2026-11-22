@@ -38,7 +38,7 @@ const renderUnconfirmed = (win: boolean | null) => {
 const enqueue = (id: string, gameId: string, setIndex: number) =>
   store.dispatch(
     pendingWritesActions.enqueued({
-      entry: { type: EntryType.RALLY, id } as never,
+      entry: { type: EntryType.RALLY, id, seq: 0 } as never,
       gameId,
       setIndex,
     }),

@@ -404,6 +404,21 @@ export function deriveSetPhase(
   return { isSetInProgress: true, isSetPoint: false };
 }
 
+export function isSeqChanged(
+  existing: EntryIdentity,
+  incoming: EntryIdentity,
+): boolean {
+  return existing.seq !== incoming.seq;
+}
+
+function assertSeqFixed(existing: EntryIdentity, incoming: EntryIdentity) {
+  if (isSeqChanged(existing, incoming))
+    throw new ValidationError(
+      GameReason.ENTRY_SEQ_CHANGED,
+      "An entry's seq is fixed once it is created",
+    );
+}
+
 function mergeEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
@@ -412,8 +427,12 @@ function mergeEntries<T extends EntryIdentity>(
 
   for (const entry of incoming) {
     const at = next.findIndex((e) => e.id === entry.id);
-    if (at === -1) next.push(entry);
-    else next[at] = entry;
+    const existing = next[at];
+    if (!existing) next.push(entry);
+    else {
+      assertSeqFixed(existing, entry);
+      next[at] = entry;
+    }
   }
 
   return next.sort((a, b) => a.seq - b.seq);
@@ -564,6 +583,8 @@ export function planEntryUpserts<
       stored.set(entry.id, created);
       return [{ id: entry.id, created }];
     }
+
+    assertSeqFixed(existing, entry);
 
     if (
       existing.recordedBy === operator &&

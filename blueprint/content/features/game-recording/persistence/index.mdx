@@ -72,11 +72,11 @@ What a batch of entry writes makes of a set is decided by two pure functions in 
 - Nothing may rely on the Mongoose schema to reject an entry. It is the layer that looks like it does and does not, which is how a rally missing the move it recorded reached the database in the first place.
 
 - A disagreement between what the recorder sees and what the server holds is the app's to resolve. It never becomes a user action — a confirm dialog, a manual refresh, a choice of which copy is right — unless the app genuinely cannot decide; one interruption during recording loses a rally.
-- The queue is laid over the server's answer by the same identity-and-sequence rule the repository writes by, so what the recorder sees now is what the server will hold once the queue drains.
+- The queue is laid over the server's answer by the same identity-and-sequence rule the repository writes by. A queued entry that would change an existing entry's sequence is skipped there, while the server rejects the same write, so what the recorder sees now is what the server will hold once the queue drains.
 
 - **New write paths must not use `update()`.** A sixth game write path that reaches for it means this condition was not honoured.
 - Both entry operations stay ordinary updates rather than aggregation pipeline updates, so Mongoose casting still bounds the blast radius.
-- Identity never changes; sequence may be renumbered. Overloading one field for both would make reordering an edit to identity.
+- Identity and sequence are both immutable after creation; the entry write rules reject a write that carries a different sequence for an existing identity (ADR-0149). Because sequence never changes, the order the `$push` `$sort` establishes holds, and entries are read back in sequence order.
 - A failed cast may damage only the entry being written. Every entry already recorded in that set stays intact.
 - **An unwritable store is tolerated at the call site, never inside the adapter.** The port reports honestly whether data reached the disk; whether that failure is survivable is a policy, and it lives in one line next to the rest of the queue's policy.
 - An entry whose last failure cannot be fixed by sending it again is dropped after seven days. Persisting the queue removed the only exit such an entry had — closing the app — and this restores it. Work that might still land never expires, however long it has waited.
@@ -90,8 +90,8 @@ What a batch of entry writes makes of a set is decided by two pure functions in 
 - Only one cause of that reaches a recorder. Blocked site data is detectable but unreachable — cookies being blocked stops the sign-in first — so a full quota is what the condition actually reports, and the wording names it. The queue is the only thing this app puts in local storage, so a full store is usually its own unsent rallies from a game nobody has reopened.
 - A store that works for this session and forgets afterwards cannot be seen at all. Private browsing, the platform's long-inactivity clearing and eviction under disk pressure all write and read back correctly; nothing synchronous distinguishes them from a healthy store. Persistence is requested once at start-up for the two the browser can act on, and that request's effect is not verifiable from inside the app.
 - Seven days has no measured basis. It restores a property persistence removed rather than expressing anything known about how long a stuck entry is worth keeping.
-- Idempotency holds for the same identity carrying the same payload. The same identity carrying a different payload is last-write-wins, which is an ordering question left to intent anchors.
-- Inserting a rally mid-set is the first operation that would need renumbering; appending never does, and deleting leaves a harmless gap.
+- Idempotency holds for the same identity carrying the same payload. The same identity carrying a different payload is last-write-wins, which is an ordering question left to intent anchors; a different sequence is the exception and is rejected.
+- Inserting an entry mid-set (a substitution, timeout or challenge recorded after the fact) needs an ordering design that keeps existing sequence values, decided together with sync-recording's intent anchor; see ADR-0149. Appending never changes sequence, and deleting leaves a harmless gap.
 
 ## Implemented decisions
 

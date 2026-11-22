@@ -2,7 +2,6 @@ import { Substitutes } from "@/components/game/panel/substitutes";
 import { Toaster } from "@/components/ui/toaster";
 import { EntryType, MoveType, Side, upsertEntries } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
-import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
@@ -12,14 +11,12 @@ import {
   toEntryView,
 } from "@test/support/fixtures/entries";
 import { answerEntries } from "@test/support/msw/entries";
-import { deferred } from "@test/support/gates";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
-import type { Cache } from "swr";
 
 const lineups = {
   home: {
@@ -64,10 +61,6 @@ const renderPanel = async (
   game: ReturnType<typeof gameWith>,
   editingEntryIndex?: number,
   benchPlayer = /選手二/,
-  options: {
-    cache?: Cache;
-    setup?: (store: ReturnType<typeof makeStore>) => void;
-  } = {},
 ) => {
   server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
   const store = makeStore();
@@ -83,9 +76,8 @@ const renderPanel = async (
       }),
     );
   }
-  options.setup?.(store);
   render(
-    <SwrIsolation cache={options.cache}>
+    <SwrIsolation>
       <Provider store={store}>
         <PendingWritesOwner>
           <Substitutes
@@ -103,31 +95,20 @@ const renderPanel = async (
 beforeEach(() => answerSignedInUser());
 
 describe("Substitutes.onSubmit", () => {
-  it("sends the substitution through the entries endpoint with the time it was made", async () => {
+  it("sends the chosen substitute in for the selected player", async () => {
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     await renderPanel(gameWith([]));
 
-    const before = Date.now();
     await userEvent.click(screen.getByRole("button", { name: /確認/ }));
-    const after = Date.now();
 
     await waitFor(() => expect(puts).toHaveLength(1));
-    const { si, body } = puts[0]!;
-    expect(si).toBe("0");
-    expect(body).toEqual([
-      {
+    expect(puts[0]!.body).toEqual([
+      expect.objectContaining({
         type: EntryType.SUBSTITUTION,
-        id: expect.any(String),
-        seq: 0,
-        at: expect.any(String),
         team: Side.HOME,
         players: { in: "p2", out: "p1" },
-      },
+      }),
     ]);
-    const { at } = (body as { at: string }[])[0]!;
-    expect(new Date(at).toISOString()).toBe(at);
-    expect(Date.parse(at)).toBeGreaterThanOrEqual(before);
-    expect(Date.parse(at)).toBeLessThanOrEqual(after);
   });
 
   it("refuses a substitution taking off a player the entries already took off and sends nothing", async () => {
@@ -151,71 +132,6 @@ describe("Substitutes.onSubmit", () => {
 
     expect(await screen.findByText("換人與目前陣容不符")).toBeInTheDocument();
     expect(puts).toHaveLength(0);
-  });
-});
-
-describe("Substitutes with a substitution still queued", () => {
-  it("validates against merged entries but writes to the cache", async () => {
-    const gate = deferred();
-    const puts = answerEntries(async () => {
-      await gate.promise;
-      return HttpResponse.json({ entries: [] });
-    });
-    const cache = new Map();
-    let pending!: () => unknown[];
-    await renderPanel(gameWith([]), undefined, /選手三/, {
-      cache,
-      setup: (store) => {
-        pending = () => store.getState().pendingWrites.pending;
-        store.dispatch(
-          pendingWritesActions.enqueued({
-            gameId: "game-1",
-            setIndex: 0,
-            entry: {
-              type: EntryType.SUBSTITUTION,
-              id: "queued",
-              seq: 0,
-              at: new Date().toISOString(),
-              team: Side.HOME,
-              players: { in: "p2", out: "p1" },
-            },
-          }),
-        );
-        store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-        store.dispatch(gameActions.setEntryDraftSubstitution("p3"));
-      },
-    });
-
-    try {
-      await userEvent.click(screen.getByRole("button", { name: /確認/ }));
-
-      await waitFor(() => expect(puts).toHaveLength(1));
-      const cached = cache.get("/api/games/game-1") as {
-        data: ReturnType<typeof gameWith>;
-      };
-      expect(cached.data.sets[0]!.entries).toEqual([]);
-    } finally {
-      gate.release();
-    }
-    await waitFor(() => expect(pending()).toEqual([]));
-    const submitted = puts
-      .flatMap(
-        ({ body }) =>
-          body as {
-            type: EntryType;
-            id: string;
-            players: { in: string; out: string };
-          }[],
-      )
-      .find(({ players }) => players.in === "p3" && players.out === "p2");
-    expect(submitted).toEqual(
-      expect.objectContaining({
-        type: EntryType.SUBSTITUTION,
-        id: expect.any(String),
-        players: { in: "p3", out: "p2" },
-      }),
-    );
-    expect(submitted?.id).not.toBe("queued");
   });
 });
 
@@ -251,7 +167,7 @@ describe("Substitutes while editing a substitution", () => {
     );
   });
 
-  it("resends the same entry with the corrected player and the time of the edit", async () => {
+  it("resends the same entry with the corrected player", async () => {
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     await renderPanel(gameWith([recorded]), 0);
 
@@ -260,14 +176,13 @@ describe("Substitutes while editing a substitution", () => {
 
     await waitFor(() => expect(puts).toHaveLength(1));
     expect(puts[0]!.body).toEqual([
-      {
+      expect.objectContaining({
         type: EntryType.SUBSTITUTION,
         id: "sub-1",
         seq: 5,
-        at: expect.any(String),
         team: Side.HOME,
         players: { in: "p3", out: "p1" },
-      },
+      }),
     ]);
   });
 

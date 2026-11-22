@@ -48,12 +48,11 @@ export const Header = ({
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 z-50 flex h-[calc(env(safe-area-inset-top)+var(--header-height))] w-full flex-row items-center justify-center gap-4 overscroll-none bg-background px-3 pt-[env(safe-area-inset-top)]",
-        "md:pl-16",
+        "fixed top-0 left-0 z-50 flex h-[calc(env(safe-area-inset-top)+var(--header-height))] w-full flex-row items-center justify-center gap-4 overscroll-none bg-background pt-[env(safe-area-inset-top)]",
         className,
       )}
     >
-      <div className="mx-auto flex h-(--header-height) w-full max-w-160 items-center justify-center gap-3">
+      <div className="mx-auto flex h-(--header-height) w-full max-w-page items-center justify-center gap-3 pr-(--page-gutter) pl-[calc(var(--page-inset-start)+var(--page-gutter))]">
         {backHref ? (
           <Button
             onClick={handleBack}
