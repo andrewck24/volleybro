@@ -6,4 +6,4 @@
 
 #### Record
 
-- Keep entries in sequence order after editing their sequence number
+- Reject an entry edit that changes the entry's sequence number
