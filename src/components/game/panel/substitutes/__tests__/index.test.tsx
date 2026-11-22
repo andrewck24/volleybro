@@ -167,7 +167,7 @@ describe("Substitutes while editing a substitution", () => {
     );
   });
 
-  it("sends the corrected player", async () => {
+  it("resends the same entry with the corrected player", async () => {
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     await renderPanel(gameWith([recorded]), 0);
 
@@ -178,6 +178,8 @@ describe("Substitutes while editing a substitution", () => {
     expect(puts[0]!.body).toEqual([
       expect.objectContaining({
         type: EntryType.SUBSTITUTION,
+        id: "sub-1",
+        seq: 5,
         team: Side.HOME,
         players: { in: "p3", out: "p1" },
       }),

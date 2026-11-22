@@ -16,8 +16,7 @@ export type EntryContent = DistributiveOmit<
   keyof EntryIdentity | "at"
 >;
 
-export type RecordedEntry<C extends EntryContent> = C &
-  EntryIdentity & { at: string };
+type RecordedEntry<C extends EntryContent> = C & EntryIdentity & { at: string };
 
 export type ApplyEntry<C extends EntryContent> = (
   game: GameView,

@@ -66,7 +66,7 @@ export const Substitutes = ({
       );
       return;
     }
-    if (result.status !== "edited" && isEditing) return;
+    if (result.status === "failed") return;
     dispatch(gameActions.confirmEntryDraftSubstitution());
     if (isEditing) dispatch(gameActions.setGameMode("general"));
   };

@@ -92,12 +92,7 @@ const swap = (
 const rallyApply =
   (snapshot: GameView): ApplyEntry<typeof rallyContent> =>
   (target, entry) => ({
-    game: applyEntry(
-      target,
-      0,
-      entry,
-      deriveEntryPhase(snapshot, 0, entry.seq, entry),
-    ),
+    game: applyEntry(target, 0, entry, deriveEntryPhase(snapshot, 0, 0, entry)),
   });
 
 const substitutionApply: ApplyEntry<{
@@ -163,12 +158,15 @@ describe("useEntryRecording.record", () => {
     const { result } = await renderRecording(gameWith([]));
 
     let recorded!: ReturnType<typeof result.current.recording.record>;
+    const before = Date.now();
     act(() => {
       recorded = result.current.recording.record(
         rallyContent,
         rallyApply(result.current.game!),
       );
     });
+
+    const after = Date.now();
 
     expect(recorded).toEqual({
       status: "recorded",
@@ -179,6 +177,9 @@ describe("useEntryRecording.record", () => {
         at: expect.any(String),
       },
     });
+    const { at } = (recorded as { entry: { at: string } }).entry;
+    expect(Date.parse(at)).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(at)).toBeLessThanOrEqual(after);
     expect(result.current.game!.sets[0]!.entries).toHaveLength(1);
     expect(pending()).toHaveLength(1);
     await waitFor(() => expect(puts).toHaveLength(1));
@@ -190,7 +191,8 @@ describe("useEntryRecording.record", () => {
 
   it("gives each call its own id and numbers it by the store's entry index", async () => {
     answerEntries(() => HttpResponse.json({ entries: [] }));
-    const { result } = await renderRecording(gameWith([]));
+    const { result } = await renderRecording(gameWith([recordedRally]));
+    const { entryIndex } = store.getState().game.general.status;
 
     const first = result.current.recording.record(
       rallyContent,
@@ -203,7 +205,9 @@ describe("useEntryRecording.record", () => {
 
     if (first.status !== "recorded" || second.status !== "recorded")
       throw new Error("expected both entries to be recorded");
-    expect(first.entry.seq).toBe(second.entry.seq);
+    expect(entryIndex).toBe(1);
+    expect(first.entry.seq).toBe(entryIndex);
+    expect(second.entry.seq).toBe(entryIndex);
     expect(first.entry.id).not.toBe(second.entry.id);
     await waitFor(() => expect(pending()).toHaveLength(0));
   });
@@ -212,11 +216,14 @@ describe("useEntryRecording.record", () => {
 describe("useEntryRecording.edit", () => {
   it("keeps the entry's id and seq, sends it, and reports success once the write lands", async () => {
     const puts = answerEntries(() =>
-      HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
+      HttpResponse.json({ entries: [{ id: "e1", seq: 5 }] }),
     );
-    const { result } = await renderRecording(gameWith([recordedRally]), {
-      editing: true,
-    });
+    const { result } = await renderRecording(
+      gameWith([{ ...recordedRally, seq: 5 }]),
+      {
+        editing: true,
+      },
+    );
 
     let outcome!: Awaited<ReturnType<typeof result.current.recording.edit>>;
     await act(async () => {
@@ -228,12 +235,12 @@ describe("useEntryRecording.edit", () => {
 
     expect(outcome).toEqual({
       status: "edited",
-      entry: { ...rallyContent, id: "e1", seq: 0, at: expect.any(String) },
+      entry: { ...rallyContent, id: "e1", seq: 5, at: expect.any(String) },
     });
     expect(puts).toEqual([
       {
         si: "0",
-        body: [expect.objectContaining({ id: "e1", seq: 0 })],
+        body: [expect.objectContaining({ id: "e1", seq: 5 })],
       },
     ]);
     expect(pending()).toHaveLength(0);
