@@ -100,7 +100,7 @@ describe("useSubmitEntryDraft update path", () => {
 
   it("confirms the edit and returns to general mode once the write succeeds", async () => {
     const puts = answerEntries(() =>
-      HttpResponse.json({ entries: [{ id: "e1" }] }),
+      HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
     );
     const { result } = await editFirstEntry(gameWith([rally]));
 
@@ -196,7 +196,7 @@ describe("useSubmitEntryDraft action time", () => {
   it("stamps an edit with the moment it was made and resends it unchanged", async () => {
     const puts = answerEntries(
       () => HttpResponse.error(),
-      () => HttpResponse.json({ entries: [{ id: "e1" }] }),
+      () => HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
     );
     const { result } = await editFirstEntry(gameWith([rally]));
     act(() => {
