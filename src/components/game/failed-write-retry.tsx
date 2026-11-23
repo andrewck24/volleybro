@@ -18,6 +18,7 @@ export const FailedWriteRetry = ({
     <button
       type="button"
       disabled={!onRetry}
+      title={onRetry ? undefined : "請先補齊這一球的內容"}
       data-testid={testId}
       onClick={(e) => {
         e.stopPropagation();

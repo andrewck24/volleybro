@@ -257,6 +257,7 @@ describe("GamePreview submission", () => {
     );
     await user.click(screen.getByTestId("preview-trigger"));
     act(() => {
+      store.dispatch(gameActions.editWriteStaged("e2"));
       store.dispatch(
         pendingWritesActions.enqueued({
           entry: { id: "e2", seq: 1, win: true, home: {}, away: {} } as never,
@@ -472,6 +473,65 @@ describe("GamePreview editing write status", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
+  it("looks like a normal edit while only the entry's creation write is scheduled", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T09:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(
+      screen.queryByRole("status", { name: "送出中" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells the edit's own scheduled write from an exhausted creation write of the same entry", async () => {
+    const { store } = setUpEditing();
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T09:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1@2026-01-01T09:00:00.000Z"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+      store.dispatch(
+        gameActions.editWriteStaged("e1@2026-01-01T09:05:00.000Z"),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T09:05:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(
+      await screen.findByRole("status", { name: "送出中" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("offers a retry once background retries are exhausted, so the frozen card does not strand the edit", async () => {
     const user = userEvent.setup();
     const { store, onSubmit } = setUpEditing();
@@ -585,6 +645,7 @@ describe("GamePreview editing write status", () => {
     const { store, onSubmit } = setUpEditing();
 
     act(() => {
+      store.dispatch(gameActions.editWriteStaged("e1"));
       store.dispatch(
         pendingWritesActions.enqueued({
           entry: queuedEntry as never,

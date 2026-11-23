@@ -49,9 +49,12 @@ export const writeKey = ({ id, at }: { id: string; at?: string }): string =>
 
 export const isPendingWrite = (
   state: PendingWritesState,
-  entryId: string,
+  key: string | null,
 ): boolean =>
-  state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt !== null);
+  key !== null &&
+  state.pending.some(
+    (p) => writeKey(p.entry) === key && p.nextAttemptAt !== null,
+  );
 
 export const isUnscheduledWrite = (
   state: PendingWritesState,

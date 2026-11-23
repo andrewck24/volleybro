@@ -62,8 +62,9 @@ describe("useEditingGuard", () => {
     expect(event.preventDefault).not.toHaveBeenCalled();
   });
 
-  it("reports writing while the entry has a scheduled attempt, and blocks dismissal", () => {
+  it("reports writing while the edit's write has a scheduled attempt, and blocks dismissal", () => {
     act(() => enterEditing("e1"));
+    act(() => store.dispatch(gameActions.editWriteStaged("e1")));
     act(() =>
       store.dispatch(
         pendingWritesActions.enqueued({
@@ -150,6 +151,70 @@ describe("useEditingGuard", () => {
 
     expect(store.getState().game.mode).toBe("general");
     expect(screen.getByText("編輯未儲存")).toBeInTheDocument();
+  });
+
+  it("lets the edit close while only the entry's creation write is still scheduled", () => {
+    act(() => enterEditing("e1"));
+    act(() =>
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { id: "e1", seq: 0, at: "2026-01-01T09:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      ),
+    );
+
+    const { result } = renderHook(() => useEditingGuard(), { wrapper });
+    expect(result.current.writing).toBe(false);
+    const event = { preventDefault: jest.fn() };
+    act(() => result.current.guardDismiss(event));
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    act(() => result.current.leaveEditing());
+
+    expect(store.getState().game.mode).toBe("general");
+    expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
+  });
+
+  it("tells the edit's own scheduled write from an exhausted creation write of the same entry", () => {
+    act(() => enterEditing("e1"));
+    const creation = { id: "e1", seq: 0, at: "2026-01-01T09:00:00.000Z" };
+    act(() =>
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: creation as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      ),
+    );
+    for (let attempt = 0; attempt < 4; attempt++)
+      act(() =>
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1@2026-01-01T09:00:00.000Z"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        ),
+      );
+    act(() => {
+      store.dispatch(
+        gameActions.editWriteStaged("e1@2026-01-01T09:05:00.000Z"),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...creation, at: "2026-01-01T09:05:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    const { result } = renderHook(() => useEditingGuard(), { wrapper });
+
+    expect(result.current.writing).toBe(true);
+    expect(result.current.failed).toBe(false);
   });
 
   it("leaves silently when only the entry's creation write has run out of retries", () => {
