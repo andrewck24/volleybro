@@ -411,19 +411,6 @@ export function isSeqChanged(
   return existing.seq !== incoming.seq;
 }
 
-type EntryWinner = { type?: EntryType; win?: boolean | null };
-
-function isWinnerChanged(
-  existing: EntryWinner,
-  incoming: EntryWinner,
-): boolean {
-  return (
-    existing.type === EntryType.RALLY &&
-    incoming.type === EntryType.RALLY &&
-    existing.win !== incoming.win
-  );
-}
-
 function assertSeqFixed(existing: EntryIdentity, incoming: EntryIdentity) {
   if (isSeqChanged(existing, incoming))
     throw new ValidationError(
@@ -432,19 +419,15 @@ function assertSeqFixed(existing: EntryIdentity, incoming: EntryIdentity) {
     );
 }
 
-function assertTypeFixed(
-  existing: { type: EntryType },
-  incoming: { type: EntryType },
-) {
+type EntryKind = { type: EntryType; win?: boolean | null };
+
+function assertKindFixed(existing: EntryKind, incoming: EntryKind) {
   if (existing.type !== incoming.type)
     throw new ValidationError(
       GameReason.ENTRY_TYPE_CHANGED,
       "An entry's type is fixed once it is created",
     );
-}
-
-function assertWinnerFixed(existing: EntryWinner, incoming: EntryWinner) {
-  if (isWinnerChanged(existing, incoming))
+  if (existing.type === EntryType.RALLY && existing.win !== incoming.win)
     throw new ValidationError(
       GameReason.ENTRY_WINNER_CHANGED,
       "The side that won a rally is fixed once it is recorded",
@@ -617,8 +600,7 @@ export function planEntryUpserts<
     }
 
     assertSeqFixed(existing, entry);
-    assertTypeFixed(existing, entry);
-    assertWinnerFixed(existing, entry);
+    assertKindFixed(existing, entry);
 
     if (
       existing.recordedBy === operator &&
