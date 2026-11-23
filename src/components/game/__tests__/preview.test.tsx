@@ -505,6 +505,34 @@ describe("GamePreview editing write status", () => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
   });
 
+  it("disables the retry while the draft is incomplete", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    act(() => {
+      store.dispatch(gameActions.editWriteStaged("e1"));
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: queuedEntry as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      store.dispatch(
+        pendingWritesActions.flushFailed({
+          keys: ["e1"],
+          retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
+        }),
+      );
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+    });
+
+    const retry = await screen.findByRole("button", { name: "重試" });
+    expect(retry).toBeDisabled();
+    await user.click(retry);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("shows the write in progress, not the retry control, while a retry of an exhausted write is scheduled", async () => {
     const user = userEvent.setup();
     const { store, onSubmit } = setUpEditing();
