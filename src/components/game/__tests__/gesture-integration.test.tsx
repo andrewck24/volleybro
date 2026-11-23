@@ -306,12 +306,15 @@ describe("Game rally edit started from the summary drawer", () => {
 
     await user.click(await screen.findByTestId("preview-trigger"));
 
-    await waitFor(() => expect(puts).toHaveLength(1));
     await waitFor(() =>
       expect(
         screen.queryByRole("button", { name: "back" }),
       ).not.toBeInTheDocument(),
     );
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.pending).toHaveLength(0),
+    );
+    expect(puts).toHaveLength(1);
     expect(store.getState().game.mode).toBe("general");
     expect(store.getState().game.general.status.entryIndex).toBe(1);
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(

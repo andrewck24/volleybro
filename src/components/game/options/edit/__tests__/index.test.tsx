@@ -55,6 +55,9 @@ describe("EntriesEdit rally submission", () => {
     await user.click(await screen.findByTestId("preview-trigger"));
 
     await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.pending).toHaveLength(0),
+    );
     expect(puts).toHaveLength(1);
     expect(puts[0]!.body).toMatchObject([{ id: "e1", seq: 0 }]);
   });
@@ -73,7 +76,10 @@ describe("EntriesEdit rally submission", () => {
 
     await user.click(await screen.findByTestId("preview-trigger"));
 
-    await waitFor(() => expect(puts).toHaveLength(1));
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.pending).toHaveLength(0),
+    );
+    expect(puts).toHaveLength(1);
     expect(puts[0]!.body).toMatchObject([{ id: "e1", seq: 0 }]);
   });
 });
