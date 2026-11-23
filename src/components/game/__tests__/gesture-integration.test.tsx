@@ -1,6 +1,7 @@
 import Game from "@/components/game";
 import { GamePanel } from "@/components/game/panel";
 import { EntryType, MoveType } from "@/entities/game";
+import { hasFailedWrite } from "@/lib/features/game/pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
@@ -112,12 +113,14 @@ const makeMockGame = () => ({
   },
 });
 
-const setUpGame = () => {
+const setUpGame = ({ failWrites = false } = {}) => {
   const game = makeMockGame();
   const puts: { home: { player: { id: string } } }[] = [];
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(game)),
     http.put("/api/games/game-1/sets/entries", async ({ request }) => {
+      if (failWrites)
+        return HttpResponse.json({ code: "VALIDATION" }, { status: 400 });
       const sent = (await request.json()) as typeof puts;
       puts.push(...sent);
       for (const entry of sent) {
@@ -312,6 +315,31 @@ describe("Game rally edit started from the summary drawer", () => {
       "data-state",
       "expanded",
     );
+  });
+
+  it("keeps the edit dialog open in editing mode when the write fails", async () => {
+    const user = userEvent.setup();
+    const { store } = setUpGame({ failWrites: true });
+    await startEditing(user);
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() =>
+      expect(
+        hasFailedWrite(
+          store.getState().pendingWrites,
+          store.getState().game.editing.entryDraft.id,
+        ),
+      ).toBe(true),
+    );
+    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.home.num).toBe(
+      scoringMoves[3]!.num,
+    );
+    expect(screen.getByRole("button", { name: "back" })).toBeInTheDocument();
   });
 
   it("closes the edit dialog and shows the expanded drawer when the back control is used", async () => {

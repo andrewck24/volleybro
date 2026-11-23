@@ -44,6 +44,7 @@ export const useSubmitEntryDraft = (gameId: string) => {
     assertRallyAt(game!, setIndex, entryIndex);
     const result = await edit(content(), apply);
     if (result.status !== "edited") return;
+    dispatch(gameActions.confirmEntryDraftRally(phaseOf(result.entry)));
     dispatch(gameActions.setGameMode("general"));
   };
 

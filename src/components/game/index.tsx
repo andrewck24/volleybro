@@ -60,8 +60,9 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
-    if (game) dispatch(gameActions.initialize({ game, setIndex }));
-  }, [gameId, setIndex, game, dispatch]);
+    if (game && mode !== "editing")
+      dispatch(gameActions.initialize({ game, setIndex }));
+  }, [gameId, setIndex, game, mode, dispatch]);
 
   useEffect(() => {
     if (wasEditing.current && mode === "general") setDialogOpen(false);
