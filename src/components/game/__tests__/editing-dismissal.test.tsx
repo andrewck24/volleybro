@@ -30,9 +30,9 @@ const Host = ({
   );
 };
 
-describe.each([
-  ["SetEdit", <SetEdit key="set" gameId="game-1" setIndex={0} />],
-])("%s editing dismissal", (_name, dialogBody) => {
+describe("SetEdit editing dismissal", () => {
+  const dialogBody = <SetEdit gameId="game-1" setIndex={0} />;
+
   it("cannot be dismissed by escape or an outside click while the edit is being written", async () => {
     const onOpenChange = jest.fn();
     const user = userEvent.setup({ pointerEventsCheck: 0 });

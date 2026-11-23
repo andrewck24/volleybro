@@ -309,7 +309,7 @@ describe("Game rally edit started from the summary drawer", () => {
     await waitFor(() => expect(puts).toHaveLength(1));
     await waitFor(() =>
       expect(
-        screen.queryByRole("heading", { name: "數據總覽" }),
+        screen.queryByRole("button", { name: "back" }),
       ).not.toBeInTheDocument(),
     );
     expect(store.getState().game.mode).toBe("general");
@@ -367,7 +367,7 @@ describe("Game rally edit started from the summary drawer", () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("heading", { name: "數據總覽" }),
+        screen.queryByRole("button", { name: "back" }),
       ).not.toBeInTheDocument(),
     );
     expect(store.getState().game.mode).toBe("general");
