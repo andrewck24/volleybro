@@ -120,15 +120,17 @@ const setUpGame = () => {
     http.put("/api/games/game-1/sets/entries", async ({ request }) => {
       const sent = (await request.json()) as typeof puts;
       puts.push(...sent);
-      game.sets[0]!.entries.push(
-        ...sent.map(
-          (entry) =>
-            ({
-              type: EntryType.RALLY,
-              ...entry,
-            }) as (typeof game.sets)[0]["entries"][0],
-        ),
-      );
+      for (const entry of sent) {
+        const recorded = {
+          type: EntryType.RALLY,
+          ...entry,
+        } as (typeof game.sets)[0]["entries"][0];
+        const at = game.sets[0]!.entries.findIndex(
+          (e) => (e as { id?: string }).id === (entry as { id?: string }).id,
+        );
+        if (at >= 0) game.sets[0]!.entries[at] = recorded;
+        else game.sets[0]!.entries.push(recorded);
+      }
       return HttpResponse.json({ entries: game.sets[0]!.entries });
     }),
   );
@@ -277,6 +279,57 @@ describe("Game gesture split, wired through the real composition", () => {
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
+    );
+  });
+});
+
+describe("Game rally edit started from the summary drawer", () => {
+  const startEditing = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByTestId("summary-drawer-handle"));
+    await user.click(await screen.findByTestId("entry-row"));
+    await user.click(await screen.findByTestId("entry-action-edit"));
+    await screen.findByRole("button", { name: "back" });
+  };
+
+  it("closes the edit dialog and shows the expanded drawer once the edit is submitted", async () => {
+    const user = userEvent.setup();
+    const { store, puts } = setUpGame();
+    await startEditing(user);
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() => expect(puts).toHaveLength(1));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "數據總覽" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(store.getState().game.mode).toBe("general");
+    expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
+      "data-state",
+      "expanded",
+    );
+  });
+
+  it("closes the edit dialog and shows the expanded drawer when the back control is used", async () => {
+    const user = userEvent.setup();
+    const { store } = setUpGame();
+    await startEditing(user);
+
+    await user.click(screen.getByRole("button", { name: "back" }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "數據總覽" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(store.getState().game.mode).toBe("general");
+    expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
+      "data-state",
+      "expanded",
     );
   });
 });

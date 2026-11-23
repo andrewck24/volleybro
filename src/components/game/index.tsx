@@ -30,7 +30,7 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 
 const SubmittingSummaryDrawer = (
   props: Omit<ComponentProps<typeof SummaryDrawer>, "onSubmit">,
@@ -45,7 +45,8 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
-  const { id, general } = useAppSelector((state) => state.game);
+  const { id, general, mode } = useAppSelector((state) => state.game);
+  const wasEditing = useRef(false);
   const pendingWrites = usePendingWrites(gameId, setIndex);
   const { retry } = pendingWrites;
 
@@ -61,6 +62,11 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   useEffect(() => {
     if (game) dispatch(gameActions.initialize({ game, setIndex }));
   }, [gameId, setIndex, game, dispatch]);
+
+  useEffect(() => {
+    if (wasEditing.current && mode === "general") setDialogOpen(false);
+    wasEditing.current = mode === "editing";
+  }, [mode]);
 
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || id !== gameId) {
