@@ -10,11 +10,6 @@ import TeamForm, {
 import { deferred } from "@test/support/gates";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { server } from "@test/support/msw/server";
-import { createTeam, createUser } from "@test/support/fixtures/entities";
-import {
-  storedActiveTeamPreference,
-  storedPreferenceOf,
-} from "@test/support/storage/active-team-preference";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
@@ -163,41 +158,10 @@ describe("EditTeamWorkspace", () => {
 });
 
 describe("NewTeamWorkspace", () => {
-  beforeEach(() => localStorage.clear());
-
   it("renders the team creation form", () => {
     render(<NewTeamWorkspace />);
     expect(
       screen.getByPlaceholderText("日本國家男子排球隊"),
     ).toBeInTheDocument();
-  });
-
-  it("makes the created team this device's active team", async () => {
-    server.use(
-      http.get("/api/users", () =>
-        HttpResponse.json(createUser({ id: "user-1" })),
-      ),
-      http.post("/api/teams", () =>
-        HttpResponse.json(createTeam({ id: "team-new" })),
-      ),
-    );
-    const user = userEvent.setup();
-    render(
-      <SwrIsolation>
-        <NewTeamWorkspace />
-      </SwrIsolation>,
-    );
-
-    await user.type(
-      screen.getByPlaceholderText("日本國家男子排球隊"),
-      "New Team",
-    );
-    await user.click(screen.getByRole("button", { name: "建立隊伍" }));
-
-    await waitFor(() =>
-      expect(storedActiveTeamPreference()).toEqual(
-        storedPreferenceOf("user-1", "team-new"),
-      ),
-    );
   });
 });

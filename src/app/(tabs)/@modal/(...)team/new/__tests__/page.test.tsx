@@ -1,9 +1,13 @@
-import { useTeam } from "@/hooks/use-data";
+import { ActionButton } from "@/components/layout/nav/action-button";
+import { TeamSwitcher } from "@/components/team/team-switcher";
+import { useActiveTeamId, useTeam } from "@/hooks/use-data";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 
+import { createTeam, createUser } from "@test/support/fixtures/entities";
+import { answerTeamRequests } from "@test/support/msw/team-handlers";
 import { server } from "@test/support/msw/server";
 import NewTeamModalPage from "../page";
 
@@ -26,9 +30,22 @@ const Tree = ({ showTeam = false }: { showTeam?: boolean }) => (
   </SwrIsolation>
 );
 
+const ActiveTeam = () => {
+  const { teamId, isLoading } = useActiveTeamId();
+  return (
+    <>
+      <output aria-label="active team">{teamId}</output>
+      <output aria-label="active team loading">{String(isLoading)}</output>
+      <TeamSwitcher teamId={teamId ?? ""} />
+      <ActionButton teamId={teamId} />
+    </>
+  );
+};
+
 beforeEach(() => {
   mockReplace.mockClear();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 async function fillAndSubmit() {
@@ -82,5 +99,52 @@ describe("NewTeamModalPage", () => {
 
     rerender(<Tree showTeam />);
     expect(screen.getByText("My Team")).toBeInTheDocument();
+  });
+
+  it("makes a first team active and lists it, so a game can be started without opening the team", async () => {
+    const joinedTeamIds: string[] = [];
+    answerTeamRequests({
+      user: createUser({ id: "user-1" }),
+      teams: [createTeam({ id: VALID_OBJECT_ID, name: "My Team" })],
+      joinedTeamIds,
+    });
+    server.use(
+      http.post("/api/teams", () => {
+        joinedTeamIds.push(VALID_OBJECT_ID);
+        return HttpResponse.json(
+          createTeam({ id: VALID_OBJECT_ID, name: "My Team" }),
+        );
+      }),
+    );
+    const cache = new Map();
+    const { rerender } = render(
+      <SwrIsolation cache={cache}>
+        <NewTeamModalPage />
+        <ActiveTeam />
+      </SwrIsolation>,
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText("active team loading")).toHaveTextContent(
+        "false",
+      ),
+    );
+
+    await fillAndSubmit();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    rerender(
+      <SwrIsolation cache={cache}>
+        <ActiveTeam />
+      </SwrIsolation>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("active team")).toHaveTextContent(
+        VALID_OBJECT_ID,
+      ),
+    );
+    expect(screen.getByRole("button", { name: "新增賽事" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: /My Team/ }));
+    const switcher = await screen.findByRole("dialog", { name: "切換球隊" });
+    expect(await within(switcher).findByText("My Team")).toBeInTheDocument();
   });
 });

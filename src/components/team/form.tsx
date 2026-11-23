@@ -204,7 +204,9 @@ function EditTeamWorkspaceSkeleton() {
   );
 }
 
-export function NewTeamWorkspace() {
+export function NewTeamWorkspace({
+  onStateChange,
+}: Pick<TeamFormProps, "onStateChange">) {
   const router = useRouter();
   const { mutate } = useSWRConfig();
   const { user } = useUser();
@@ -217,7 +219,10 @@ export function NewTeamWorkspace() {
       body: JSON.stringify(formData),
     });
     mutate(`/api/teams/${team.id}`, team, false);
-    if (user) save({ userId: user.id, teamId: team.id });
+    if (user) {
+      save({ userId: user.id, teamId: team.id });
+      mutate(`/api/users/${user.id}/players`);
+    }
     router.replace(`/team/${team.id}?tab=about`);
   };
 
@@ -225,6 +230,7 @@ export function NewTeamWorkspace() {
     <TeamForm
       draftKey="draft:team:new"
       onSubmit={onSubmit}
+      onStateChange={onStateChange}
       className="w-full"
     />
   );
