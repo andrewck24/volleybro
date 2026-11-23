@@ -271,6 +271,47 @@ describe("useEntryRecording.edit", () => {
     expect(pending()).toHaveLength(0);
   });
 
+  it("keeps editing while a retry replaces a refused edit, and leaves only once the retry lands", async () => {
+    const gate = deferred();
+    const puts = answerEntries(
+      () =>
+        HttpResponse.json(
+          { code: "VALIDATION", reason: "BAD_REQUEST" },
+          { status: 400 },
+        ),
+      async () => {
+        await gate.promise;
+        return HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] });
+      },
+    );
+    const { result } = await renderRecording(gameWith([recordedRally]), {
+      editing: true,
+    });
+    const submit = () =>
+      result.current.recording.edit(
+        rallyContent,
+        rallyApply(result.current.game!),
+      );
+
+    await act(async () => {
+      expect((await submit()).status).toBe("failed");
+    });
+    expect(store.getState().game.mode).toBe("editing");
+
+    let retry!: ReturnType<typeof submit>;
+    act(() => {
+      retry = submit();
+    });
+    await waitFor(() => expect(puts).toHaveLength(2));
+    expect(store.getState().game.mode).toBe("editing");
+
+    gate.release();
+    await act(async () => {
+      expect((await retry).status).toBe("edited");
+    });
+    expect(pending()).toHaveLength(0);
+  });
+
   it("sends one write when the background flush is already due as the edit is staged", async () => {
     const gate = deferred();
     const puts = answerEntries(async () => {
