@@ -5,7 +5,7 @@ packages:
 # The @hookform/resolvers entry: only the Zod resolver is used, so its optional ajv peer is stripped.
 # Its ajv-formats peer is kept: stripping it also drops ajv-formats 3's own ajv peer, breaking the Storybook build.
 overrides:
-  "@hookform/resolvers@6>ajv": "-"
+  "@hookform/resolvers@7>ajv": "-"
   # minimatch 9 (glob 10) and 10 (glob 13, typescript-estree, ts-morph) are inside GHSA-g3hv-75wg-m249; remove once those consumers resolve minimatch >=11.0.1 on their own.
   minimatch@>=7.0.0 <11.0.1: ^11.0.1
   # glob 10 (test-exclude) and 13 (jest, @serwist/build) are inside GHSA-3g3m-2fjr-6pw4, whose range also covers the 13.0.7 backport; remove once those consumers resolve glob >=14.0.2 on their own.
