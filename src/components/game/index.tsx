@@ -61,16 +61,10 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
-    if (
-      !game ||
-      (initialized.current &&
-        mode === "editing" &&
-        general.status.isSetInProgress)
-    )
-      return;
+    if (!game || (initialized.current && mode === "editing")) return;
     initialized.current = true;
     dispatch(gameActions.initialize({ game, setIndex }));
-  }, [gameId, setIndex, game, mode, general.status.isSetInProgress, dispatch]);
+  }, [gameId, setIndex, game, mode, dispatch]);
 
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || id !== gameId) {
@@ -180,7 +174,7 @@ const Interval = ({
         <AccordionItem value="summary" className="w-full bg-card">
           <AccordionTrigger className="w-full p-4">逐球紀錄</AccordionTrigger>
           <AccordionContent className="h-full w-full px-4">
-            <GameOptionsSummary gameId={gameId} />
+            <GameOptionsSummary gameId={gameId} interactive={false} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

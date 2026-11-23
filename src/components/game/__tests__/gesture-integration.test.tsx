@@ -379,7 +379,7 @@ describe("Game rally edit started from the summary drawer", () => {
 });
 
 describe("Game between sets", () => {
-  it("does not stay in editing mode when a rally in the list is tapped", async () => {
+  it("does not switch to editing when a rally in the list is tapped", async () => {
     const user = userEvent.setup();
     const set = createGame().sets[0]!;
     const finished = {
@@ -415,10 +415,7 @@ describe("Game between sets", () => {
       )[0]!,
     );
 
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
-    expect(
-      screen.queryByRole("button", { name: "back" }),
-    ).not.toBeInTheDocument();
+    expect(store.getState().game.mode).toBe("general");
   });
 });
 
