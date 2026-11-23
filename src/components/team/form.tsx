@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { useActiveTeamPreference } from "@/hooks/use-active-team-preference";
-import { useTeam, useUser } from "@/hooks/use-data";
+import { userPlayersKey, useTeam, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import type { TeamView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
@@ -221,7 +221,7 @@ export function NewTeamWorkspace({
     mutate(`/api/teams/${team.id}`, team, false);
     if (user) {
       save({ userId: user.id, teamId: team.id });
-      mutate(`/api/users/${user.id}/players`);
+      mutate(userPlayersKey(user.id));
     }
     router.replace(`/team/${team.id}?tab=about`);
   };

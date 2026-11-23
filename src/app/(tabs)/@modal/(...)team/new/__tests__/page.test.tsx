@@ -30,19 +30,54 @@ const Tree = ({ showTeam = false }: { showTeam?: boolean }) => (
   </SwrIsolation>
 );
 
-const ActiveTeam = () => {
-  const { teamId, isLoading } = useActiveTeamId();
+const OTHER_TEAM_ID = "507f1f77bcf86cd799439012";
+
+const Workspace = () => {
+  const { teamId } = useActiveTeamId();
   return (
     <>
-      <output aria-label="active team">{teamId}</output>
-      <output aria-label="active team loading">{String(isLoading)}</output>
       <TeamSwitcher teamId={teamId ?? ""} />
       <ActionButton teamId={teamId} />
     </>
   );
 };
 
+const createTeamFrom = async (joinedTeamIds: string[]) => {
+  const { answered } = answerTeamRequests({
+    user: createUser({ id: "user-1" }),
+    teams: [
+      createTeam({ id: OTHER_TEAM_ID, name: "Old Team" }),
+      createTeam({ id: VALID_OBJECT_ID, name: "My Team" }),
+    ],
+    joinedTeamIds,
+  });
+  server.use(
+    http.post("/api/teams", () => {
+      joinedTeamIds.push(VALID_OBJECT_ID);
+      return HttpResponse.json(
+        createTeam({ id: VALID_OBJECT_ID, name: "My Team" }),
+      );
+    }),
+  );
+  const cache = new Map();
+  const { rerender } = render(
+    <SwrIsolation cache={cache}>
+      <NewTeamModalPage />
+      <Workspace />
+    </SwrIsolation>,
+  );
+  await waitFor(() => expect(answered).toContain("/api/users/user-1/players"));
+  await fillAndSubmit();
+  await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+  rerender(
+    <SwrIsolation cache={cache}>
+      <Workspace />
+    </SwrIsolation>,
+  );
+};
+
 beforeEach(() => {
+  answerTeamRequests();
   mockReplace.mockClear();
   sessionStorage.clear();
   localStorage.clear();
@@ -101,50 +136,22 @@ describe("NewTeamModalPage", () => {
     expect(screen.getByText("My Team")).toBeInTheDocument();
   });
 
-  it("makes a first team active and lists it, so a game can be started without opening the team", async () => {
-    const joinedTeamIds: string[] = [];
-    answerTeamRequests({
-      user: createUser({ id: "user-1" }),
-      teams: [createTeam({ id: VALID_OBJECT_ID, name: "My Team" })],
-      joinedTeamIds,
-    });
-    server.use(
-      http.post("/api/teams", () => {
-        joinedTeamIds.push(VALID_OBJECT_ID);
-        return HttpResponse.json(
-          createTeam({ id: VALID_OBJECT_ID, name: "My Team" }),
-        );
-      }),
-    );
-    const cache = new Map();
-    const { rerender } = render(
-      <SwrIsolation cache={cache}>
-        <NewTeamModalPage />
-        <ActiveTeam />
-      </SwrIsolation>,
-    );
-    await waitFor(() =>
-      expect(screen.getByLabelText("active team loading")).toHaveTextContent(
-        "false",
-      ),
-    );
-
-    await fillAndSubmit();
-    await waitFor(() => expect(mockReplace).toHaveBeenCalled());
-    rerender(
-      <SwrIsolation cache={cache}>
-        <ActiveTeam />
-      </SwrIsolation>,
-    );
+  it("lets a new account start a game with its first team without opening the team page", async () => {
+    await createTeamFrom([]);
 
     await waitFor(() =>
-      expect(screen.getByLabelText("active team")).toHaveTextContent(
-        VALID_OBJECT_ID,
-      ),
+      expect(screen.getByRole("button", { name: "新增賽事" })).toBeEnabled(),
     );
-    expect(screen.getByRole("button", { name: "新增賽事" })).toBeEnabled();
-    await userEvent.click(screen.getByRole("button", { name: /My Team/ }));
+  });
+
+  it("makes the created team the active one and lists it beside the user's other teams", async () => {
+    await createTeamFrom([OTHER_TEAM_ID]);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /My Team/ }),
+    );
     const switcher = await screen.findByRole("dialog", { name: "切換球隊" });
+    expect(await within(switcher).findByText("Old Team")).toBeInTheDocument();
     expect(await within(switcher).findByText("My Team")).toBeInTheDocument();
   });
 });
