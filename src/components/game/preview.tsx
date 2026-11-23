@@ -72,7 +72,8 @@ export const PreviewCard = ({
     if (!isEditing) onExpand?.();
   };
 
-  const shownEntry = frozen && !failed ? (previousEntry ?? entry) : entry;
+  const shownEntry =
+    frozen && !writing && !failed ? (previousEntry ?? entry) : entry;
   const showSendAffordance = Boolean(
     isEditing && isComplete && !frozen && !writing && !failed,
   );
@@ -207,7 +208,9 @@ export const GamePreview = ({
 
   const writing = mode === "editing" && isPendingWrite(pendingWrites, draftId);
   const failed =
-    mode === "editing" && isUnscheduledWrite(pendingWrites, draftId);
+    !writing &&
+    mode === "editing" &&
+    isUnscheduledWrite(pendingWrites, draftId);
 
   return (
     <PreviewCard

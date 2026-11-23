@@ -228,6 +228,50 @@ describe("GamePreview submission", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps showing the edited draft, not the previous rally, while its write is scheduled", async () => {
+    const user = userEvent.setup();
+    const firstEntry = mockGame.sets[0]!.entries[0]!;
+    const secondEntry = {
+      ...firstEntry,
+      id: "e2",
+      seq: 1,
+      home: { ...firstEntry.home, score: 2, player: { id: "p2", zone: 1 } },
+    };
+    const fullGame = {
+      ...mockGame,
+      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
+    };
+    const store = initializedStore(fullGame);
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: fullGame as never,
+          entryIndex: 1,
+        }),
+      );
+    });
+    renderPreview(
+      store,
+      <GamePreview gameId="game-1" mode="editing" onSubmit={jest.fn()} />,
+      fullGame,
+    );
+    await user.click(screen.getByTestId("preview-trigger"));
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { id: "e2", seq: 1, win: true, home: {}, away: {} } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(screen.getByRole("status", { name: "送出中" })).toBeInTheDocument();
+    expect(
+      screen.getByText("2", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows the edited draft again once its write is refused, and a retry that lands leaves editing", async () => {
     const user = userEvent.setup();
     let attempts = 0;
@@ -429,6 +473,47 @@ describe("GamePreview editing write status", () => {
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "重試" }));
     expect(onSubmit).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the write in progress, not the retry control, while a retry of an exhausted write is scheduled", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    await user.click(screen.getByTestId("preview-trigger"));
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T10:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: [`e1@2026-01-01T10:00:00.000Z`],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+    });
+    await user.click(await screen.findByRole("button", { name: "重試" }));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T10:05:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(screen.getByRole("status", { name: "送出中" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a progress indicator instead of the send affordance while the write is scheduled, and ignores taps", async () => {
