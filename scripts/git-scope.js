@@ -2,9 +2,15 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
+const GIT_OUTPUT_LIMIT = 64 * 1024 * 1024;
 
 export async function git(root, args) {
-  return (await execFileAsync("git", args, { cwd: root })).stdout.trim();
+  return (
+    await execFileAsync("git", args, {
+      cwd: root,
+      maxBuffer: GIT_OUTPUT_LIMIT,
+    })
+  ).stdout.trim();
 }
 
 async function orNull(read) {

@@ -11,6 +11,7 @@ import {
   checkChangeScope,
   checkDecisionImmutability,
   checkDecisionRecordLength,
+  checkRemovedIdentifiers,
   checkWorkflow,
 } from "../check-workflow.js";
 
@@ -724,4 +725,135 @@ test("the CLI fails on a rewritten decision", async () => {
     execFileAsync("node", [CHECK_WORKFLOW_SCRIPT], { cwd: root }),
     (error) => /\[decision-immutable\]/.test(error.stderr),
   );
+});
+
+const REMOVED_SOURCE = "src/lib/errors.ts";
+const NAMING_DECISION_PATH =
+  "blueprint/content/decisions/0033-error-catalogue.json";
+const namingDecision = (fields = {}) =>
+  `${JSON.stringify({ ...ADOPTED, id: "0033", decision: "Report NETWORK_TIMEOUT when the request stalls.", ...fields })}\n`;
+
+async function removeIdentifier(prefix, { seed = {}, change = {} } = {}) {
+  const { root, git } = await initGitRepository(prefix, (directory) =>
+    writeFiles(directory, {
+      [REMOVED_SOURCE]:
+        'export const NETWORK_TIMEOUT = "network-timeout";\nexport const RETRY_LIMIT = 3;\n',
+      ...seed,
+    }),
+  );
+  await git(["checkout", "-q", "-b", `fast/${prefix}`]);
+  await writeFiles(root, {
+    [REMOVED_SOURCE]: "export const RETRY_LIMIT = 3;\n",
+    ...change,
+  });
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "remove"]);
+  return root;
+}
+
+test("checkRemovedIdentifiers reports a decision record and a Feature page that still name a removed identifier", async () => {
+  const root = await removeIdentifier("removed-named", {
+    seed: {
+      [NAMING_DECISION_PATH]: namingDecision(),
+      "blueprint/content/features/errors/index.mdx":
+        "Shows `NETWORK_TIMEOUT` as a retry prompt.\n",
+    },
+  });
+  const diagnostics = await checkRemovedIdentifiers(root);
+  assert.equal(diagnostics.length, 2);
+  assert.match(
+    diagnostics.join("\n"),
+    /0033-error-catalogue\.json \[removed-identifier\]: names NETWORK_TIMEOUT, which this diff removes from src/,
+  );
+  assert.match(
+    diagnostics.join("\n"),
+    /features\/errors\/index\.mdx \[removed-identifier\]: names NETWORK_TIMEOUT/,
+  );
+});
+
+test("checkRemovedIdentifiers ignores a superseded decision record", async () => {
+  const root = await removeIdentifier("removed-superseded", {
+    seed: { [NAMING_DECISION_PATH]: namingDecision({ supersededBy: "0034" }) },
+  });
+  assert.deepEqual(await checkRemovedIdentifiers(root), []);
+});
+
+test("checkRemovedIdentifiers ignores an identifier the diff moves to another src file", async () => {
+  const root = await removeIdentifier("removed-moved", {
+    seed: { [NAMING_DECISION_PATH]: namingDecision() },
+    change: {
+      "src/lib/network.ts":
+        'export const NETWORK_TIMEOUT = "network-timeout";\n',
+    },
+  });
+  assert.deepEqual(await checkRemovedIdentifiers(root), []);
+});
+
+test("checkRemovedIdentifiers ignores a decision record the same diff adds", async () => {
+  const root = await removeIdentifier("removed-new-record", {
+    change: { [NAMING_DECISION_PATH]: namingDecision() },
+  });
+  assert.deepEqual(await checkRemovedIdentifiers(root), []);
+});
+
+test("checkRemovedIdentifiers ignores a name only a record's context or alternatives hold", async () => {
+  const root = await removeIdentifier("removed-history-fields", {
+    seed: {
+      [NAMING_DECISION_PATH]: namingDecision({
+        decision: "Report a connection error when the request stalls.",
+        context: "NETWORK_TIMEOUT was reported for every stall.",
+        alternatives: [
+          { option: "Keep NETWORK_TIMEOUT", reason: "Too vague." },
+        ],
+      }),
+    },
+  });
+  assert.deepEqual(await checkRemovedIdentifiers(root), []);
+});
+
+test("checkRemovedIdentifiers reports a name a record's consequences hold", async () => {
+  const root = await removeIdentifier("removed-consequences", {
+    seed: {
+      [NAMING_DECISION_PATH]: namingDecision({
+        decision: "Report a connection error when the request stalls.",
+        consequences: ["Clients retry on NETWORK_TIMEOUT."],
+      }),
+    },
+  });
+  const diagnostics = await checkRemovedIdentifiers(root);
+  assert.equal(diagnostics.length, 1);
+  assert.match(
+    diagnostics[0],
+    /0033-error-catalogue\.json \[removed-identifier\]: names NETWORK_TIMEOUT/,
+  );
+});
+
+test("checkRemovedIdentifiers reports a name that starts a line of a record's decision", async () => {
+  const root = await removeIdentifier("removed-after-newline", {
+    seed: {
+      [NAMING_DECISION_PATH]: namingDecision({
+        decision: "Report stalls.\nNETWORK_TIMEOUT names them.",
+      }),
+    },
+  });
+  assert.equal((await checkRemovedIdentifiers(root)).length, 1);
+});
+
+test("checkRemovedIdentifiers ignores a name only a removed comment held", async () => {
+  const root = await removeIdentifier("removed-comment", {
+    seed: {
+      [REMOVED_SOURCE]:
+        "// Typed with TypeScript.\n/* TypeScript */\nexport const RETRY_LIMIT = 3;\n",
+      [NAMING_DECISION_PATH]: namingDecision({ decision: "Use TypeScript." }),
+    },
+  });
+  assert.deepEqual(await checkRemovedIdentifiers(root), []);
+});
+
+test("checkRemovedIdentifiers fails closed when the base cannot be compared", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "removed-no-git-"));
+  roots.push(root);
+  const diagnostics = await checkRemovedIdentifiers(root);
+  assert.equal(diagnostics.length, 1);
+  assert.match(diagnostics[0], /\[removed-identifier\]: cannot compare/);
 });
