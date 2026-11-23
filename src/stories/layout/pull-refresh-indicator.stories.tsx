@@ -6,7 +6,7 @@ const meta = {
   component: PullRefreshIndicator,
   decorators: [
     (Story) => (
-      <div>
+      <div className="[&>[data-testid=pull-refresh-wrapper]]:flex!">
         <Story />
         <div className="border p-4">比賽紀錄</div>
       </div>
