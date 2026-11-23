@@ -45,6 +45,10 @@ export function buildReleasePrBody({ packageName, version, changelog }) {
     "",
     entry,
     "",
+    "## 摘要",
+    "",
+    `本 PR 彙整 ${packageName}@${version} 的發行說明。由發行負責人審閱並合併後啟動發行流程。`,
+    "",
   ].join("\n");
 
   if (body.length > MAX_GITHUB_PR_BODY_CHARS) {
