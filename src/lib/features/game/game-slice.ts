@@ -111,8 +111,11 @@ const setEntryDraftPlayer: CaseReducer<
   const isSamePlayer = id === state[mode].entryDraft.home.player?.id;
 
   state[mode].status.panel = "home";
+  const { id: entryId, seq } = state[mode].entryDraft;
   state[mode].entryDraft = {
     ...initialState[mode].entryDraft,
+    id: entryId,
+    seq,
     home: {
       ...initialState[mode].entryDraft.home,
       player: isSamePlayer

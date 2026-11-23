@@ -57,4 +57,22 @@ describe("EntriesEdit rally submission", () => {
     expect(puts).toHaveLength(1);
     expect(puts[0]!.body).toMatchObject([{ id: "e1", seq: 0 }]);
   });
+
+  it("keeps the rally's id and seq when the player is changed before submitting", async () => {
+    const user = userEvent.setup();
+    const puts = answerEntries(() =>
+      HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
+    );
+    const { store } = renderEntriesEdit();
+    await screen.findByRole("button", { name: "back" });
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() => expect(puts).toHaveLength(1));
+    expect(puts[0]!.body).toMatchObject([{ id: "e1", seq: 0 }]);
+  });
 });
