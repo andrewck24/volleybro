@@ -79,6 +79,8 @@ const initialize: CaseReducer<
   const stats = deriveSetStats(set?.entries, {
     options: set?.options ?? { serve: "home" },
   });
+  const isSameSet = state.id === game.id && state.setIndex === setIndex;
+  const generalPanel = isSameSet ? state.general.status.panel : "home";
   state.id = game.id;
   state.setIndex = setIndex;
   state.mode = "general";
@@ -91,7 +93,11 @@ const initialize: CaseReducer<
     panel: "home" as ReduxStatus["panel"],
     stats,
   };
-  state.general.status = { ...state.general.status, ...status };
+  state.general.status = {
+    ...state.general.status,
+    ...status,
+    panel: generalPanel,
+  };
   state.editing.status = { ...state.editing.status, ...status };
 };
 
