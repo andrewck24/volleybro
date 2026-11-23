@@ -108,7 +108,7 @@ const DialogHeader = ({
       className={cn(
         "flex min-w-0 flex-1 flex-col items-start gap-1",
         (onExpand || closeButton) &&
-          "pt-[calc((var(--control-size)-1.25rem)/2)]",
+          "[&>[data-slot=DialogTitle]]:min-h-(--control-size)",
       )}
     >
       {children}
