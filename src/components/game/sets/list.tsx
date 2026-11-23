@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { getPreviousRally, isSetFinished } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
+import {
+  PendingWritesContext,
+  usePendingWrites,
+} from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import type { MatchView, SetView } from "@/lib/features/game/types";
 import { useAppDispatch } from "@/lib/redux/hooks";
@@ -30,6 +34,7 @@ export const SetsList = ({ gameId }: { gameId: string }) => {
   const [setIndex, setSetIndex] = useState<number>(0);
   const [optionsOpen, setOptionsOpen] = useState<boolean>(false);
   const [editOpen, setEditOpen] = useState<boolean>(false);
+  const pendingWrites = usePendingWrites(gameId, setIndex);
 
   const handleOptionsOpen = (setIndex: number) => {
     setSetIndex(setIndex);
@@ -43,7 +48,7 @@ export const SetsList = ({ gameId }: { gameId: string }) => {
   };
 
   return (
-    <>
+    <PendingWritesContext.Provider value={pendingWrites}>
       <Accordion type="single" collapsible className="flex flex-col gap-2">
         {game?.sets.map((set, index) => (
           <SetItem
@@ -71,7 +76,7 @@ export const SetsList = ({ gameId }: { gameId: string }) => {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <SetEdit gameId={gameId} setIndex={setIndex} />
       </Dialog>
-    </>
+    </PendingWritesContext.Provider>
   );
 };
 
