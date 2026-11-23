@@ -7,6 +7,11 @@ import {
 import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 import type { ApiError } from "@/lib/api/parse-api-error";
 
+const connectionError = {
+  title: "連線異常",
+  description: "目前無法完成連線，請稍後再試；若問題持續，請確認網路連線。",
+};
+
 const makeApiClientError = (
   status: number,
   code: string,
@@ -51,10 +56,9 @@ describe("handle401Redirect", () => {
 
 describe("resolveErrorDisplay", () => {
   it("resolves RefreshTimeoutError to CONNECTION_ERROR", () => {
-    expect(resolveErrorDisplay(new RefreshTimeoutError())).toEqual({
-      title: "連線異常",
-      description: "目前無法完成連線，請稍後再試；若問題持續，請確認網路連線。",
-    });
+    expect(resolveErrorDisplay(new RefreshTimeoutError())).toEqual(
+      connectionError,
+    );
   });
 
   it("resolves a non-ApiClientError to UNKNOWN", () => {
@@ -81,10 +85,6 @@ describe("resolveErrorDisplay", () => {
       "network",
       "NETWORK_ERROR",
     );
-    const connectionError = {
-      title: "連線異常",
-      description: "目前無法完成連線，請稍後再試；若問題持續，請確認網路連線。",
-    };
     expect(resolveErrorDisplay(timeout)).toEqual(connectionError);
     expect(resolveErrorDisplay(network)).toEqual(connectionError);
   });
@@ -185,11 +185,12 @@ describe("showErrorToast", () => {
     });
   });
 
-  it("emits one error toast for RefreshTimeoutError", () => {
+  it("shows one connection-error toast for RefreshTimeoutError", () => {
     showErrorToast(new RefreshTimeoutError(), mockToast);
 
-    expect(mockToast).toHaveBeenCalledTimes(1);
-    expect(mockToast.mock.calls[0][0].variant).toBe("error");
+    expect(mockToast.mock.calls).toEqual([
+      [{ ...connectionError, variant: "error" }],
+    ]);
   });
 
   it("shows fallback toast for non-ApiClientError, without leaking the raw message", () => {
