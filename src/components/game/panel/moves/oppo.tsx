@@ -46,7 +46,6 @@ export const useSubmitEntryDraft = (gameId: string) => {
     }
     const result = await edit(content(), apply);
     if (result.status !== "edited") return;
-    dispatch(gameActions.confirmEntryDraftRally(phaseOf(result.entry)));
     dispatch(gameActions.setGameMode("general"));
   };
 

@@ -1,5 +1,6 @@
 import { EntriesEdit } from "@/components/game/options/edit";
 import { Dialog } from "@/components/ui/dialog";
+import { PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { answerEntries } from "@test/support/msw/entries";
@@ -74,5 +75,39 @@ describe("EntriesEdit rally submission", () => {
 
     await waitFor(() => expect(puts).toHaveLength(1));
     expect(puts[0]!.body).toMatchObject([{ id: "e1", seq: 0 }]);
+  });
+});
+
+describe("EntriesEdit after a write that first fails with a server error", () => {
+  afterEach(() => jest.useRealTimers());
+
+  it("leaves editing mode when the background retry finally succeeds", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick"] });
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const puts = answerEntries((_, attempt) =>
+      attempt <= 3
+        ? HttpResponse.json({ code: "UNKNOWN" }, { status: 503 })
+        : HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
+    );
+    const { store } = renderEntriesEdit();
+    await screen.findByRole("button", { name: "back" });
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(2000);
+    });
+    expect(store.getState().game.mode).toBe("editing");
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(
+        PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
+      );
+    });
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    expect(puts).toHaveLength(4);
   });
 });
