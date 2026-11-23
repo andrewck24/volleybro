@@ -86,7 +86,7 @@ describe("useSubmitEntryDraft update path", () => {
       editingEntryIndex: 0,
     });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
     });
 
     await act(async () => {

@@ -48,7 +48,7 @@ describe("EntriesEdit rally submission", () => {
     const { store } = renderEntriesEdit();
     await screen.findByRole("button", { name: "back" });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
     });
 
     await user.click(await screen.findByTestId("preview-trigger"));

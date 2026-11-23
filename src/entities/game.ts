@@ -411,11 +411,32 @@ export function isSeqChanged(
   return existing.seq !== incoming.seq;
 }
 
+type EntryWinner = EntryIdentity & { type?: EntryType; win?: boolean | null };
+
+function isWinnerChanged(
+  existing: EntryWinner,
+  incoming: EntryWinner,
+): boolean {
+  return (
+    existing.type === EntryType.RALLY &&
+    incoming.type === EntryType.RALLY &&
+    existing.win !== incoming.win
+  );
+}
+
 function assertSeqFixed(existing: EntryIdentity, incoming: EntryIdentity) {
   if (isSeqChanged(existing, incoming))
     throw new ValidationError(
       GameReason.ENTRY_SEQ_CHANGED,
       "An entry's seq is fixed once it is created",
+    );
+}
+
+function assertWinnerFixed(existing: EntryWinner, incoming: EntryWinner) {
+  if (isWinnerChanged(existing, incoming))
+    throw new ValidationError(
+      GameReason.ENTRY_WINNER_CHANGED,
+      "The side that won a rally is fixed once it is recorded",
     );
 }
 
@@ -585,6 +606,7 @@ export function planEntryUpserts<
     }
 
     assertSeqFixed(existing, entry);
+    assertWinnerFixed(existing, entry);
 
     if (
       existing.recordedBy === operator &&

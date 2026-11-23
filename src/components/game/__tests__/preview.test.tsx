@@ -483,10 +483,10 @@ describe("GamePreview editing write status", () => {
           entryIndex: 0,
         }),
       );
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
       store.dispatch(
         gameActions.setEntryDraftAwayMove(
-          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+          scoringMoves[scoringMoves[4]!.outcome[0]!]!,
         ),
       );
     });

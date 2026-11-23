@@ -249,7 +249,9 @@ describe("useEntryRecording.edit", () => {
   it("reports the failure, keeps the edit on screen and queued, and resends it unchanged with the time of the edit", async () => {
     const puts = answerEntries(() => HttpResponse.error());
     const { result } = await renderRecording(
-      gameWith([{ ...recordedRally, win: false }]),
+      gameWith([
+        { ...recordedRally, away: { ...recordedRally.away, score: 4 } },
+      ]),
       { editing: true },
     );
 
@@ -267,7 +269,7 @@ describe("useEntryRecording.edit", () => {
     expect(pending()).toHaveLength(1);
     expect(result.current.game!.sets[0]!.entries[0]).toMatchObject({
       id: "e1",
-      win: true,
+      away: { score: 0 },
     });
     const at = (puts[0]!.body as { at: string }[])[0]!.at;
     expect(Date.parse(at)).toBeGreaterThanOrEqual(before);

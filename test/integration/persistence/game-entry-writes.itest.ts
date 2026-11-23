@@ -1,5 +1,6 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { GameReason } from "@/entities/errors";
+import mongoose from "mongoose";
 import { MoveType, type Entry } from "@/entities/game";
 import { createRecordedRally } from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
@@ -151,6 +152,36 @@ describe("identity-keyed entry writes", () => {
     expect(persisted!.sets[0]!.entries[0]).toMatchObject({
       home: { score: 1 },
     });
+  });
+
+  it("refuses an edit that changes which side won, leaving the set and its version unchanged", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-1", 0, 1)]);
+    const stored = () =>
+      mongoose.connection
+        .collection("games")
+        .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) });
+    const before = (await stored())!.sets[0];
+
+    await expect(
+      repo().upsertEntries(
+        ref,
+        [
+          {
+            entry: { ...rally("entry-1", 0, 9), win: false } as Entry,
+            at: editedAt,
+          },
+        ],
+        operator,
+      ),
+    ).rejects.toMatchObject({
+      reason: GameReason.ENTRY_WINNER_CHANGED,
+      httpStatus: 400,
+    });
+
+    const after = (await stored())!.sets[0];
+    expect(after.ver).toBe(before.ver);
+    expect(after.entries).toEqual(before.entries);
   });
 
   it("reports GAME_NOT_FOUND for a game that does not exist", async () => {

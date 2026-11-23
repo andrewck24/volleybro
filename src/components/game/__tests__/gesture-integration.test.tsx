@@ -301,7 +301,7 @@ describe("Game rally edit started from the summary drawer", () => {
     const { store, puts } = setUpGame();
     await startEditing(user);
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
     });
 
     await user.click(await screen.findByTestId("preview-trigger"));
@@ -325,7 +325,7 @@ describe("Game rally edit started from the summary drawer", () => {
     const { store } = setUpGame({ failWrites: true });
     await startEditing(user);
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
     });
 
     await user.click(await screen.findByTestId("preview-trigger"));
@@ -340,7 +340,7 @@ describe("Game rally edit started from the summary drawer", () => {
     );
     expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().game.editing.entryDraft.home.num).toBe(
-      scoringMoves[3]!.num,
+      scoringMoves[4]!.num,
     );
     expect(screen.getByRole("button", { name: "back" })).toBeInTheDocument();
   });

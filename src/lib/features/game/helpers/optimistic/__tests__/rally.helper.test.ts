@@ -427,9 +427,7 @@ describe("rally.helper.ts", () => {
 
         const updatedRally = {
           ...winningRally,
-          win: false,
-          home: { ...winningRally.home, score: 23 },
-          away: { ...winningRally.away, score: 25 },
+          home: { ...winningRally.home, score: 24 },
         };
 
         const result = record(
@@ -438,9 +436,8 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.phase.isSetPoint).toBe(false);
-        expect(result.game.sets[0]!.win).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(true);
+        expect(result.game.sets[0]!.win).toBeNull();
       });
     });
   });

@@ -14,11 +14,16 @@ const startingLineups: SetLineups = { home: lineup() };
 
 const detail = (score: number) => ({ score, type: MoveType.ATTACK, num: 1 });
 
-const rally = (seq: number, home: number, away: number): EntryContent => ({
+const rally = (
+  seq: number,
+  home: number,
+  away: number,
+  win = true,
+): EntryContent => ({
   type: EntryType.RALLY,
   id: `rally-${seq}`,
   seq,
-  win: true,
+  win,
   home: detail(home),
   away: detail(away),
 });
@@ -185,6 +190,35 @@ describe("planEntryUpserts", () => {
     expect(() => planEntryUpserts(set, writes, operator)).toThrow(
       expect.objectContaining({ reason: GameReason.ENTRY_SEQ_CHANGED }),
     );
+  });
+
+  it.each([
+    [
+      "a stored rally",
+      setOf(rally(1, 1, 0)),
+      [{ entry: rally(1, 1, 0, false), at: later }],
+    ],
+    [
+      "a rally created earlier in the same batch",
+      emptySet,
+      [
+        { entry: rally(1, 1, 0), at },
+        { entry: rally(1, 1, 0, false), at: later },
+      ],
+    ],
+  ])("rejects an edit of %s that changes the winner", (_, set, writes) => {
+    expect(() => planEntryUpserts(set, writes, "p1")).toThrow(
+      expect.objectContaining({ reason: GameReason.ENTRY_WINNER_CHANGED }),
+    );
+  });
+
+  it("accepts an edit of a rally that keeps the winner", () => {
+    const result = planEntryUpserts(
+      setOf(rally(1, 1, 0)),
+      [{ entry: rally(1, 5, 0), at: later }],
+      "p1",
+    );
+    expect(result).toMatchObject({ steps: [{ id: "rally-1", edited: {} }] });
   });
 
   it("classifies a later write of an id against the earlier one in the batch", () => {
