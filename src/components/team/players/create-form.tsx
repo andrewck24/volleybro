@@ -9,6 +9,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormSubmitError,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,7 +24,8 @@ import { PlayerRole } from "@/entities/player";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { apiClient } from "@/lib/api/api-client";
-import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
+import type { ErrorMessage } from "@/lib/api/error-messages";
+import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import type { PlayerView } from "@/lib/features/team/types";
 import {
@@ -32,7 +34,7 @@ import {
 } from "@/interface/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { type Resolver } from "react-hook-form";
 import { RiAddLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
@@ -47,6 +49,7 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
 
+  const [submitError, setSubmitError] = useState<ErrorMessage>();
   const { form, clearDraft } = useFormDraft<CreatePlayerInput>(
     `draft:player:new:${teamId}`,
     {
@@ -69,6 +72,7 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
   }, [isDirty, onStateChange]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
+    setSubmitError(undefined);
     try {
       const player = await apiClient<PlayerView>(
         `/api/teams/${teamId}/players`,
@@ -83,10 +87,7 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
       clearDraft();
       router.replace(`/team/${teamId}/players/${player.id}`);
     } catch (error) {
-      showErrorToast(error, toast);
-      form.setError("root", {
-        message: resolveErrorDisplay(error).description,
-      });
+      setSubmitError(resolveErrorDisplay(error));
     }
   });
 
@@ -212,14 +213,10 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
               )}
             />
           )}
-          {form.formState.errors.root && (
-            <p className="text-sm text-error-text">
-              {form.formState.errors.root.message}
-            </p>
-          )}
         </Card>
       </DialogBody>
-      <DialogFooter>
+      <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-end sm:space-x-0">
+        <FormSubmitError error={submitError} />
         <Button
           type="submit"
           size="lg"

@@ -23,6 +23,7 @@ const noIndexHeaders =
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  agentRules: false,
   headers: async () => noIndexHeaders,
   experimental: {
     optimizePackageImports: ["react-icons"],

@@ -607,11 +607,150 @@ export async function checkDecisionImmutability(root) {
   return diagnostics;
 }
 
+const SOURCE_CODE_PATHSPECS = ["ts", "tsx", "js"].map(
+  (ext) => `:(glob)src/**/*.${ext}`,
+);
+const COMMENT_LINE = /^\s*(?:\/\/|\/\*|\*)/;
+const IDENTIFIER_TOKEN = /[A-Za-z_][A-Za-z0-9_]*/g;
+const IDENTIFIER_SHAPES = [
+  /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/,
+  /^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+$/,
+  /^[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]*)+$/,
+];
+const GREP_NO_MATCH = 1;
+
+function isIdentifier(token) {
+  return IDENTIFIER_SHAPES.some((shape) => shape.test(token));
+}
+
+async function grepAtHead(root, names, pathspecs, flags) {
+  if (names.length === 0) return [];
+  try {
+    const output = await git(root, [
+      "grep",
+      "-F",
+      ...flags,
+      ...names.flatMap((name) => ["-e", name]),
+      "HEAD",
+      "--",
+      ...pathspecs,
+    ]);
+    return output.split("\n").filter(Boolean);
+  } catch (error) {
+    if (error.code === GREP_NO_MATCH) return [];
+    throw error;
+  }
+}
+
+const CURRENT_RULE_FIELDS = ["title", "decision", "consequences"];
+
+function namesWord(text, word) {
+  return new RegExp(`(?<![A-Za-z0-9_])${word}(?![A-Za-z0-9_])`).test(text);
+}
+
+async function currentRuleText(root, relativePath) {
+  const content = await git(root, ["show", `HEAD:${relativePath}`]);
+  let record;
+  try {
+    record = JSON.parse(content);
+  } catch {
+    return content;
+  }
+  if (record.supersededBy) return "";
+  return CURRENT_RULE_FIELDS.flatMap((field) => record[field] ?? []).join("\n");
+}
+
+export async function checkRemovedIdentifiers(root) {
+  const base = await resolveScopeBase(root);
+  let removed;
+  let featureMentions;
+  let decisionMentions;
+  try {
+    const mergeBase = await git(root, ["merge-base", base, "HEAD"]);
+    const removedLines = (
+      await git(root, [
+        "diff",
+        "-U0",
+        "--no-renames",
+        mergeBase,
+        "HEAD",
+        "--",
+        ...SOURCE_CODE_PATHSPECS,
+      ])
+    )
+      .split("\n")
+      .filter((line) => line.startsWith("-") && !line.startsWith("---"))
+      .map((line) => line.slice(1))
+      .filter((line) => !COMMENT_LINE.test(line));
+    const candidates = [
+      ...new Set(
+        removedLines.flatMap((line) =>
+          (line.match(IDENTIFIER_TOKEN) ?? []).filter(isIdentifier),
+        ),
+      ),
+    ];
+    const remaining = new Set(
+      await grepAtHead(root, candidates, ["src"], ["-o", "-w", "-h"]),
+    );
+    removed = candidates.filter((candidate) => !remaining.has(candidate));
+    const addedRecords = new Set(
+      (
+        await git(root, [
+          "diff",
+          "--name-only",
+          "--diff-filter=A",
+          mergeBase,
+          "HEAD",
+          "--",
+          DECISIONS_DIR,
+        ])
+      )
+        .split("\n")
+        .filter(Boolean),
+    );
+    featureMentions = (
+      await grepAtHead(root, removed, [FEATURE_CONTENT], ["-o", "-w"])
+    ).map((line) => line.match(/^HEAD:(.+):([^:]+)$/).slice(1));
+    decisionMentions = [];
+    for (const line of await grepAtHead(
+      root,
+      removed,
+      [DECISIONS_DIR],
+      ["-l"],
+    )) {
+      const relativePath = line.replace(/^HEAD:/, "");
+      if (addedRecords.has(relativePath)) continue;
+      const text = await currentRuleText(root, relativePath);
+      for (const identifier of removed) {
+        if (namesWord(text, identifier)) {
+          decisionMentions.push([relativePath, identifier]);
+        }
+      }
+    }
+  } catch (error) {
+    return [
+      `src [removed-identifier]: cannot compare against ${base} (${error.message.split("\n")[0]}); fetch the base history so the check can run`,
+    ];
+  }
+
+  const diagnostics = new Set();
+  for (const [relativePath, identifier] of [
+    ...featureMentions,
+    ...decisionMentions,
+  ]) {
+    diagnostics.add(
+      `${relativePath} [removed-identifier]: names ${identifier}, which this diff removes from src; update the mention (decision records follow docs/agents/domain.md, Decision-Amend)`,
+    );
+  }
+  return [...diagnostics];
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const diagnostics = [
     ...(await checkWorkflow()),
     ...(await checkDecisionImmutability(process.cwd())),
+    ...(await checkRemovedIdentifiers(process.cwd())),
   ];
   const warnings = [
     ...(await checkChangeScope(process.cwd(), {

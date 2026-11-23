@@ -17,6 +17,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormSubmitError,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,7 +33,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { usePlayer, useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
-import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
+import type { ErrorMessage } from "@/lib/api/error-messages";
+import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import type { PlayerView } from "@/lib/features/team/types";
 import {
   UpdatePlayerInfoSchema,
@@ -41,7 +43,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { FiUser } from "react-icons/fi";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { type Resolver } from "react-hook-form";
 import { RiSaveLine } from "react-icons/ri";
 import { useFormDraft } from "@/hooks/use-form-draft";
@@ -155,6 +157,7 @@ function InfoSection({
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
 
+  const [submitError, setSubmitError] = useState<ErrorMessage>();
   const { form, clearDraft } = useFormDraft<UpdatePlayerInfoInput>(
     `draft:player:${player.id}`,
     {
@@ -176,6 +179,7 @@ function InfoSection({
   }, [isDirty, onStateChange]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
+    setSubmitError(undefined);
     try {
       await apiClient(`/api/players/${player.id}`, {
         method: "PATCH",
@@ -192,10 +196,7 @@ function InfoSection({
         router.replace(`/team/${teamId}/players/${player.id}`);
       }
     } catch (error) {
-      showErrorToast(error, toast);
-      form.setError("root", {
-        message: resolveErrorDisplay(error).description,
-      });
+      setSubmitError(resolveErrorDisplay(error));
     }
   });
 
@@ -266,11 +267,7 @@ function InfoSection({
           </FormItem>
         )}
       />
-      {form.formState.errors.root && (
-        <p className="text-sm text-error-text">
-          {form.formState.errors.root.message}
-        </p>
-      )}
+      <FormSubmitError error={submitError} />
       <Button
         type="submit"
         size="lg"
