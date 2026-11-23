@@ -1,10 +1,6 @@
 import { EntryType, MoveType as M, type EntryIdentity } from "@/entities/game";
 import { Position } from "@/entities/team";
-import {
-  applyEntry,
-  assertRallyAt,
-  deriveEntryPhase,
-} from "@/lib/features/game/helpers";
+import { applyEntry, deriveEntryPhase } from "@/lib/features/game/helpers";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 const record = (
@@ -196,13 +192,50 @@ describe("rally.helper.ts", () => {
       });
     });
 
-    it("should throw error when entry is not a rally", () => {
+    it("should not mutate the game passed in", () => {
       const mockGame = createMockGame();
-      mockGame.sets[0]!.entries[0]!.type = EntryType.TIMEOUT;
+      const before = JSON.parse(JSON.stringify(mockGame));
 
-      expect(() => {
-        assertRallyAt(mockGame, mockParams.setIndex, mockParams.entryIndex);
-      }).toThrow("Entry is not a rally");
+      const result = record(mockParams, mockRally, mockGame);
+
+      expect(mockGame).toEqual(before);
+      expect(result.game).not.toBe(mockGame);
+    });
+  });
+
+  describe("updateRallyOptimistic", () => {
+    const mockParams = {
+      setIndex: 0,
+      entryIndex: 0,
+    };
+
+    const newRally: RallyView & EntryIdentity = {
+      id: "entry-0",
+      seq: 0,
+      win: true,
+      home: {
+        score: 1,
+        type: M.ATTACK,
+        num: 1,
+        player: { id: "player-1", zone: 1 },
+      },
+      away: {
+        score: 0,
+        type: M.DEFENSE,
+        num: 1,
+        player: { id: "rival-1", zone: 1 },
+      },
+    };
+
+    it("should update existing rally entry with new data", () => {
+      const mockGame = createMockGame();
+
+      const result = record(mockParams, newRally, mockGame);
+
+      expect(result.game.sets[0]!.entries[0]).toEqual({
+        type: EntryType.RALLY,
+        ...newRally,
+      });
     });
 
     it("should not mutate the game passed in", () => {

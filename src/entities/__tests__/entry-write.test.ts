@@ -212,6 +212,23 @@ describe("planEntryUpserts", () => {
     );
   });
 
+  it.each([
+    [
+      "a stored rally into a substitution",
+      setOf(rally(1, 1, 0)),
+      [{ entry: { ...sub(1, "a", "x"), id: "rally-1" }, at: later }],
+    ],
+    [
+      "a stored substitution into a rally",
+      setOf({ ...sub(1, "a", "x") }),
+      [{ entry: { ...rally(1, 1, 0), id: "sub-1" }, at: later }],
+    ],
+  ])("rejects an edit that turns %s", (_, set, writes) => {
+    expect(() => planEntryUpserts(set, writes, "p1")).toThrow(
+      expect.objectContaining({ reason: GameReason.ENTRY_TYPE_CHANGED }),
+    );
+  });
+
   it("accepts an edit of a rally that keeps the winner", () => {
     const result = planEntryUpserts(
       setOf(rally(1, 1, 0)),

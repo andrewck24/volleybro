@@ -8,6 +8,7 @@ import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { answerEntries } from "@test/support/msw/entries";
+import { useToast } from "@/components/ui/use-toast";
 import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { server } from "@test/support/msw/server";
@@ -46,6 +47,7 @@ const gameWith = (entries: unknown[]) => ({
 const useHarness = () => ({
   submit: useSubmitEntryDraft("game-1"),
   game: useGame("game-1").game,
+  toasts: useToast().toasts,
 });
 
 let store: AppStore;
@@ -109,7 +111,7 @@ describe("useSubmitEntryDraft update path", () => {
     expect(store.getState().game.mode).toBe("general");
   });
 
-  it("throws before queuing anything when the entry is not a rally", async () => {
+  it("tells the recorder and queues nothing when the entry being edited is not a rally", async () => {
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
     const timeout = {
       id: "e1",
@@ -121,12 +123,14 @@ describe("useSubmitEntryDraft update path", () => {
       editingEntryIndex: 0,
     });
 
-    await expect(
-      act(async () => {
-        await result.current.submit();
-      }),
-    ).rejects.toThrow("Entry is not a rally");
+    await act(async () => {
+      await result.current.submit();
+    });
 
+    expect(result.current.toasts[0]).toMatchObject({
+      title: "這筆紀錄的類型無法變更",
+    });
+    expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
     expect(puts).toHaveLength(0);
   });

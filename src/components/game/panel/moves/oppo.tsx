@@ -1,13 +1,11 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
+import { useToast } from "@/components/ui/use-toast";
 import { useGame } from "@/hooks/use-data";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { EntryType, type EntryIdentity } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
-import {
-  applyEntry,
-  assertRallyAt,
-  deriveEntryPhase,
-} from "@/lib/features/game/helpers";
+import { applyEntry, deriveEntryPhase } from "@/lib/features/game/helpers";
 import { useEntryRecording } from "@/lib/features/game/hooks/use-entry-recording";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -16,6 +14,7 @@ import { FiMinus, FiPlus } from "react-icons/fi";
 
 export const useSubmitEntryDraft = (gameId: string) => {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const { setIndex, mode } = useAppSelector((state) => state.game);
   const {
     status: { entryIndex },
@@ -41,7 +40,10 @@ export const useSubmitEntryDraft = (gameId: string) => {
   };
 
   const update = async () => {
-    assertRallyAt(game!, setIndex, entryIndex);
+    if (game!.sets[setIndex]?.entries[entryIndex]?.type !== EntryType.RALLY) {
+      toast({ ...ERROR_MESSAGES.ENTRY_TYPE_CHANGED, variant: "error" });
+      return;
+    }
     const result = await edit(content(), apply);
     if (result.status !== "edited") return;
     dispatch(gameActions.confirmEntryDraftRally(phaseOf(result.entry)));

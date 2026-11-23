@@ -432,6 +432,17 @@ function assertSeqFixed(existing: EntryIdentity, incoming: EntryIdentity) {
     );
 }
 
+function assertTypeFixed(
+  existing: { type: EntryType },
+  incoming: { type: EntryType },
+) {
+  if (existing.type !== incoming.type)
+    throw new ValidationError(
+      GameReason.ENTRY_TYPE_CHANGED,
+      "An entry's type is fixed once it is created",
+    );
+}
+
 function assertWinnerFixed(existing: EntryWinner, incoming: EntryWinner) {
   if (isWinnerChanged(existing, incoming))
     throw new ValidationError(
@@ -606,6 +617,7 @@ export function planEntryUpserts<
     }
 
     assertSeqFixed(existing, entry);
+    assertTypeFixed(existing, entry);
     assertWinnerFixed(existing, entry);
 
     if (

@@ -151,6 +151,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "這筆紀錄的順序無法更動",
     description: "請重新整理後再試",
   },
+  ENTRY_TYPE_CHANGED: {
+    title: "這筆紀錄的類型無法變更",
+    description: "換人只能修改換上與換下的球員，得分紀錄也不能改成換人",
+  },
   ENTRY_WINNER_CHANGED: {
     title: "目前無法變更這一球的得分方",
     description: "動作與球員仍可修改，但這一球得分的一方不能更動",
