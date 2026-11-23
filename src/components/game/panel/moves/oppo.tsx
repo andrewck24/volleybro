@@ -1,4 +1,5 @@
 "use client";
+import { getEntryProgress } from "@/components/game/panel/entry-progress";
 import { Container, MoveButton } from "@/components/game/panel/moves";
 import { useToast } from "@/components/ui/use-toast";
 import { useGame } from "@/hooks/use-data";
@@ -50,6 +51,7 @@ export const useSubmitEntryDraft = (gameId: string) => {
   };
 
   return async () => {
+    if (!getEntryProgress(draft).submittable) return;
     if (mode === "general") {
       create();
     } else {

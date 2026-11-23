@@ -98,6 +98,24 @@ describe("useSubmitEntryDraft update path", () => {
     expect(store.getState().game.mode).toBe("editing");
   });
 
+  it("stages nothing while the draft is incomplete, so a retry cannot queue a half-filled rally", async () => {
+    const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
+    const { result } = await renderSubmitter(gameWith([rally]), {
+      editingEntryIndex: 0,
+    });
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+    });
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+    expect(puts).toHaveLength(0);
+    expect(store.getState().game.mode).toBe("editing");
+  });
+
   it("returns to general mode once the write succeeds", async () => {
     answerEntries(() => HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }));
     const { result } = await renderSubmitter(gameWith([rally]), {
@@ -121,6 +139,10 @@ describe("useSubmitEntryDraft update path", () => {
     };
     const { result } = await renderSubmitter(gameWith([timeout]), {
       editingEntryIndex: 0,
+    });
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
     });
 
     await act(async () => {
