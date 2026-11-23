@@ -37,11 +37,6 @@ const rallyDetailState: ReduxEntryDraft["home"] = {
   player: { id: "", zone: 0 },
 };
 
-const draftSide = (side: ReduxEntryDraft["home"]): ReduxEntryDraft["home"] =>
-  side.player
-    ? { ...side, player: { ...side.player, id: side.player.id ?? "" } }
-    : side;
-
 const initialState: ReduxGameState = {
   id: "",
   setIndex: 0,
@@ -286,15 +281,14 @@ const setEditingEntryStatus: CaseReducer<
     win: entry.type === EntryType.RALLY ? entry.win : null,
     home:
       entry.type === EntryType.RALLY
-        ? draftSide(entry.home)
+        ? entry.home
         : entry.type === EntryType.SUBSTITUTION
           ? {
               ...rallyDetailState,
               player: { id: entry.players.out, zone: 0 },
             }
           : rallyDetailState,
-    away:
-      entry.type === EntryType.RALLY ? draftSide(entry.away) : rallyDetailState,
+    away: entry.type === EntryType.RALLY ? entry.away : rallyDetailState,
     ...(entry.type === EntryType.SUBSTITUTION
       ? { substitution: entry }
       : entry.type === EntryType.TIMEOUT

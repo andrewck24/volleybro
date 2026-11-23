@@ -164,6 +164,18 @@ describe("PUT /api/games/:id/sets/entries", () => {
       expect(await storedRally()).toEqual(before);
     });
 
+    it("stores a rally whose side has no player when the request carries a null id", async () => {
+      const response = await sendRally({
+        ...rally,
+        away: { ...rally.away, player: { id: null, zone: 0 } },
+      });
+
+      expect(response.status).toBe(200);
+      expect(await storedRally()).toMatchObject({
+        away: { player: { id: null } },
+      });
+    });
+
     it("refuses an edit that changes which side won with a 400 and leaves the rally as recorded", async () => {
       await sendRally(rally);
       useFakeAuth({ playerId: editor });
