@@ -1,4 +1,4 @@
-import { GameOptions } from "@/components/game/options";
+import { EntriesEditDialog } from "@/components/game/options/edit/dialog";
 import { SetEdit } from "@/components/game/sets/edit";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -31,15 +31,6 @@ const Host = ({
 };
 
 describe.each([
-  [
-    "GameOptions",
-    <GameOptions
-      key="options"
-      gameId="game-1"
-      tabValue="overview"
-      setTabValue={() => {}}
-    />,
-  ],
   ["SetEdit", <SetEdit key="set" gameId="game-1" setIndex={0} />],
 ])("%s editing dismissal", (_name, dialogBody) => {
   it("cannot be dismissed by escape or an outside click while the edit is being written", async () => {
@@ -71,5 +62,33 @@ describe.each([
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
     await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+  });
+});
+
+describe("EntriesEditDialog", () => {
+  it("cannot be dismissed by escape or an outside click while the edit is being written", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const { store } = renderEditingGame(<EntriesEditDialog gameId="game-1" />);
+    holdEditedWrite(store);
+    await screen.findByRole("dialog");
+
+    await user.keyboard("{Escape}");
+    await user.click(document.body);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(store.getState().game.mode).toBe("editing");
+  });
+
+  it("closes and leaves editing mode on escape", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const { store } = renderEditingGame(<EntriesEditDialog gameId="game-1" />);
+    await screen.findByRole("dialog");
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
   });
 });

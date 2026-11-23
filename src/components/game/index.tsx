@@ -4,6 +4,7 @@ import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { GameCourt } from "@/components/game/court";
 import { GameHeader } from "@/components/game/header";
 import { GameOptions } from "@/components/game/options";
+import { EntriesEditDialog } from "@/components/game/options/edit/dialog";
 import { GameOptionsSummary } from "@/components/game/options/summary";
 import { GamePanel } from "@/components/game/panel";
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
@@ -30,13 +31,7 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ComponentProps,
-} from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 
 const SubmittingSummaryDrawer = (
   props: Omit<ComponentProps<typeof SummaryDrawer>, "onSubmit">,
@@ -49,11 +44,9 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const { game, isLoading, error, mutate } = useGame(gameId);
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [leavingEdit, setLeavingEdit] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general, mode } = useAppSelector((state) => state.game);
-  const wasEditing = useRef(false);
   const initialized = useRef(false);
   const pendingWrites = usePendingWrites(gameId, setIndex);
   const { retry } = pendingWrites;
@@ -61,7 +54,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const handleOptionOpen = (tabValue: string) => {
     dispatch(gameActions.initialize({ game: game!, setIndex }));
     setTabValue(tabValue);
-    setLeavingEdit(false);
     setDialogOpen(true);
   };
 
@@ -74,14 +66,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     dispatch(gameActions.initialize({ game, setIndex }));
   }, [gameId, setIndex, game, mode, dispatch]);
 
-  useLayoutEffect(() => {
-    if (wasEditing.current && mode === "general") {
-      setDialogOpen(false);
-      setLeavingEdit(true);
-    }
-    wasEditing.current = mode === "editing";
-  }, [mode]);
-
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || id !== gameId) {
     return <GameSkeleton />;
@@ -91,6 +75,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     return (
       <PendingWritesContext.Provider value={pendingWrites}>
         <Interval gameId={gameId} setIndex={setIndex} />
+        <EntriesEditDialog gameId={gameId} />
       </PendingWritesContext.Provider>
     );
   }
@@ -114,10 +99,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
           gameId={gameId}
           state={drawerState}
           onToggle={toggleDrawer}
-          onEditRequest={() => {
-            setLeavingEdit(false);
-            setDialogOpen(true);
-          }}
           onEntryRetry={() => void retry()}
         />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -125,9 +106,9 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
             gameId={gameId}
             tabValue={tabValue}
             setTabValue={setTabValue}
-            keepEditing={leavingEdit}
           />
         </Dialog>
+        <EntriesEditDialog gameId={gameId} />
       </div>
     </PendingWritesContext.Provider>
   );
