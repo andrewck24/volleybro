@@ -6,8 +6,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import {
-  hasFailedWrite,
   isPendingWrite,
+  isUnscheduledWrite,
 } from "@/lib/features/game/pending-writes";
 import type {
   EntryView,
@@ -206,7 +206,8 @@ export const GamePreview = ({
     preview;
 
   const writing = mode === "editing" && isPendingWrite(pendingWrites, draftId);
-  const failed = mode === "editing" && hasFailedWrite(pendingWrites, draftId);
+  const failed =
+    mode === "editing" && isUnscheduledWrite(pendingWrites, draftId);
 
   return (
     <PreviewCard

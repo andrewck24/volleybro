@@ -228,44 +228,7 @@ describe("GamePreview submission", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows the edited draft again once its write is refused", async () => {
-    const user = userEvent.setup();
-    server.use(
-      http.put("/api/games/game-1/sets/entries", () =>
-        HttpResponse.json({ code: "VALIDATION" }, { status: 400 }),
-      ),
-    );
-    const firstEntry = mockGame.sets[0]!.entries[0]!;
-    const secondEntry = {
-      ...firstEntry,
-      id: "e2",
-      seq: 1,
-      home: { ...firstEntry.home, score: 2, player: { id: "p2", zone: 1 } },
-    };
-    const fullGame = {
-      ...mockGame,
-      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
-    };
-    const store = initializedStore(fullGame);
-    act(() => {
-      store.dispatch(
-        gameActions.setEditingEntryStatus({
-          game: fullGame as never,
-          entryIndex: 1,
-        }),
-      );
-    });
-    renderPreview(store, <SubmittingPreview mode="editing" />, fullGame);
-
-    await user.click(screen.getByTestId("preview-trigger"));
-
-    await screen.findByRole("button", { name: "重試" });
-    expect(
-      screen.getByText("2", { selector: "[data-score-badge]" }),
-    ).toBeInTheDocument();
-  });
-
-  it("completes the edit and leaves editing when retrying a refused write succeeds", async () => {
+  it("shows the edited draft again once its write is refused, and a retry that lands leaves editing", async () => {
     const user = userEvent.setup();
     let attempts = 0;
     server.use(
@@ -299,7 +262,11 @@ describe("GamePreview submission", () => {
     renderPreview(store, <SubmittingPreview mode="editing" />, fullGame);
     await user.click(screen.getByTestId("preview-trigger"));
 
-    await user.click(await screen.findByRole("button", { name: "重試" }));
+    const retry = await screen.findByRole("button", { name: "重試" });
+    expect(
+      screen.getByText("2", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+    await user.click(retry);
 
     await waitFor(() => expect(store.getState().game.mode).toBe("general"));
     expect(attempts).toBe(2);
@@ -431,6 +398,38 @@ describe("GamePreview editing write status", () => {
     );
     return { store, onSubmit };
   };
+
+  it("offers a retry once background retries are exhausted, so the frozen card does not strand the edit", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: queuedEntry as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+    });
+
+    expect(
+      await screen.findByRole("button", { name: "重試" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "重試" }));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+  });
 
   it("shows a progress indicator instead of the send affordance while the write is scheduled, and ignores taps", async () => {
     const user = userEvent.setup();
