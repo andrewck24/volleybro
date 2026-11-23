@@ -411,7 +411,7 @@ export function isSeqChanged(
   return existing.seq !== incoming.seq;
 }
 
-type EntryWinner = EntryIdentity & { type?: EntryType; win?: boolean | null };
+type EntryWinner = { type?: EntryType; win?: boolean | null };
 
 function isWinnerChanged(
   existing: EntryWinner,

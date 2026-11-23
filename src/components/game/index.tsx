@@ -75,7 +75,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     return (
       <PendingWritesContext.Provider value={pendingWrites}>
         <Interval gameId={gameId} setIndex={setIndex} />
-        <EntriesEditDialog gameId={gameId} />
       </PendingWritesContext.Provider>
     );
   }
