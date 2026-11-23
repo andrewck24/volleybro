@@ -5,7 +5,6 @@ import { getEntryProgress } from "@/components/game/panel/entry-progress";
 import { Spinner } from "@/components/ui/spinner";
 import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import { usePendingWritesContext } from "@/hooks/use-pending-writes";
 import {
   hasFailedWrite,
   isPendingWrite,
@@ -201,7 +200,6 @@ export const GamePreview = ({
 }) => {
   const draftId = useAppSelector((state) => state.game[mode].entryDraft.id);
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
-  const { retry } = usePendingWritesContext();
   const preview = useEntryDraftPreview(gameId, mode);
   if (!preview.hasPreview) return null;
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
@@ -221,9 +219,7 @@ export const GamePreview = ({
       isComplete={isComplete}
       writing={writing}
       failed={failed}
-      onRetry={
-        mode === "editing" ? () => void (onSubmit ?? retry)() : undefined
-      }
+      onRetry={mode === "editing" ? onSubmit : undefined}
       onSubmit={onSubmit}
       onExpand={onExpandDrawer}
       className={className}

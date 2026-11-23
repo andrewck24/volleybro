@@ -8,7 +8,6 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
-import { PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -504,87 +503,6 @@ describe("GamePreview editing write status", () => {
 
     gate.release();
     await waitFor(() => expect(store.getState().game.mode).toBe("general"));
-  });
-
-  it("prevents a click retry from racing a scheduled background flush", async () => {
-    jest.useFakeTimers({ doNotFake: ["nextTick"] });
-    const gate = deferred();
-    const sent: unknown[] = [];
-    server.use(
-      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
-        sent.push(await request.json());
-        await gate.promise;
-        return HttpResponse.json({
-          entries: [queuedEntry, { ...queuedEntry, id: "e2" }],
-        });
-      }),
-    );
-    const store = makeStore();
-    act(() => {
-      store.dispatch(
-        gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
-      );
-      store.dispatch(
-        gameActions.setEditingEntryStatus({
-          game: mockGame as never,
-          entryIndex: 0,
-        }),
-      );
-      for (const entry of [queuedEntry, { ...queuedEntry, id: "e2" }]) {
-        store.dispatch(
-          pendingWritesActions.enqueued({
-            entry: entry as never,
-            gameId: "game-1",
-            setIndex: 0,
-          }),
-        );
-      }
-      store.dispatch(
-        pendingWritesActions.flushFailed({
-          ids: ["e1"],
-          retryable: false,
-          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
-        }),
-      );
-      store.dispatch(
-        pendingWritesActions.flushFailed({
-          ids: ["e2"],
-          retryable: true,
-          lastError: {
-            code: "TRANSIENT",
-            reason: "NETWORK_ERROR",
-            status: 503,
-          },
-        }),
-      );
-    });
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    try {
-      renderPreview(store, <GamePreview gameId="game-1" mode="editing" />);
-      await user.click(screen.getByRole("button", { name: "重試" }));
-      await waitFor(() => expect(sent).toHaveLength(1));
-
-      await act(async () => {
-        await jest.advanceTimersByTimeAsync(
-          PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
-        );
-      });
-      expect(sent).toHaveLength(1);
-
-      gate.release();
-      await waitFor(() =>
-        expect(store.getState().pendingWrites.pending).toHaveLength(0),
-      );
-      await act(async () => {
-        await jest.advanceTimersByTimeAsync(
-          PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[1]!,
-        );
-      });
-      expect(sent).toHaveLength(1);
-    } finally {
-      gate.release();
-      jest.useRealTimers();
-    }
   });
 });
 
