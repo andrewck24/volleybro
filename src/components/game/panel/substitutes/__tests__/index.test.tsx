@@ -1,6 +1,8 @@
 import { Substitutes } from "@/components/game/panel/substitutes";
 import { Toaster } from "@/components/ui/toaster";
 import { EntryType, MoveType, Side, upsertEntries } from "@/entities/game";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
+import { deferred } from "@test/support/gates";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
@@ -13,7 +15,7 @@ import {
 import { answerEntries } from "@test/support/msw/entries";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
@@ -90,6 +92,7 @@ const renderPanel = async (
     </SwrIsolation>,
   );
   await screen.findByRole("button", { name: benchPlayer });
+  return { store };
 };
 
 beforeEach(() => answerSignedInUser());
@@ -183,6 +186,36 @@ describe("Substitutes while editing a substitution", () => {
         team: Side.HOME,
         players: { in: "p3", out: "p1" },
       }),
+    ]);
+  });
+
+  it("sends the corrected substitution once the write that created it lands, and leaves editing only then", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async (put, attempt) => {
+      if (attempt === 1) await gate.promise;
+      return HttpResponse.json({ entries: put.body as object[] });
+    });
+    const { store } = await renderPanel(gameWith([recorded]), 0);
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...recorded, at: "2026-01-01T10:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+    await waitFor(() => expect(puts).toHaveLength(1));
+
+    await userEvent.click(screen.getByRole("button", { name: /選手三/ }));
+    await userEvent.click(screen.getByRole("button", { name: /確認/ }));
+    expect(store.getState().game.mode).toBe("editing");
+    gate.release();
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    expect(puts).toHaveLength(2);
+    expect(puts[1]!.body).toMatchObject([
+      { id: "sub-1", players: { in: "p3", out: "p1" } },
     ]);
   });
 

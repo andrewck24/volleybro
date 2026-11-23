@@ -3,17 +3,21 @@ import { useCallback, useState } from "react";
 import { useGame } from "@/hooks/use-data";
 import { EntryType } from "@/entities/game";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
-import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
+import {
+  applyFlushedEntries,
+  writeKey,
+} from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import {
   readSetCompletion,
   setCompletionActions,
 } from "@/lib/features/game/set-completion-slice";
 import type { EntryView } from "@/lib/features/game/types";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useAppDispatch, useAppSelector, useAppStore } from "@/lib/redux/hooks";
 
 export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const { game, mutate } = useGame(gameId);
   const [retrying, setRetrying] = useState(false);
   const sessionConfirmed = useAppSelector((state) =>
@@ -60,6 +64,13 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
 
     setRetrying(true);
 
+    const queued = store
+      .getState()
+      .pendingWrites.pending.filter(
+        (p) => p.gameId === gameId && p.entry.id === lastRally.id,
+      )
+      .map((p) => writeKey(p.entry));
+
     const {
       recordedBy: _recordedBy,
       recordedAt,
@@ -86,10 +97,10 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
         }),
       );
 
-      dispatch(pendingWritesActions.flushSucceeded({ keys: [lastRally.id] }));
+      dispatch(pendingWritesActions.flushSucceeded({ keys: queued }));
     }
     setRetrying(false);
-  }, [dispatch, gameId, mutate, set, setIndex]);
+  }, [dispatch, gameId, mutate, set, setIndex, store]);
 
   return { unconfirmed, attempting, retry };
 }

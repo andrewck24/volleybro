@@ -242,6 +242,29 @@ describe("useUnconfirmedSetCompletion", () => {
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 
+  it("clears the queued write of that entry after a successful retry, whatever time it was staged at", async () => {
+    answerEntries(() => HttpResponse.json({ entries: [lastRally] }));
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: {
+          type: EntryType.RALLY,
+          id: "e1",
+          seq: 0,
+          at: "2026-01-01T10:00:00.000Z",
+        } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    const { result } = renderUnconfirmed(true);
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+
   it("retry leaves the session signal untouched on failure", async () => {
     answerEntries(() =>
       HttpResponse.json(
