@@ -11,7 +11,12 @@ describe("handleUserCreated (auth hook)", () => {
   const playerRepository = createMockPlayerRepository();
 
   beforeAll(() => {
+    container.snapshot();
     container.rebind(TYPES.PlayerRepository).toConstantValue(playerRepository);
+  });
+
+  afterAll(() => {
+    container.restore();
   });
 
   beforeEach(() => {
