@@ -16,6 +16,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 
 interface FormProps<TFieldValues extends FieldValues> {
@@ -176,6 +177,20 @@ const FormMessage = ({
   );
 };
 
+const FormSubmitError = ({
+  error,
+  className,
+}: {
+  error?: { title: string; description: string };
+  className?: string;
+}) =>
+  error && (
+    <Alert variant="error" className={className}>
+      <AlertTitle>{error.title}</AlertTitle>
+      <AlertDescription>{error.description}</AlertDescription>
+    </Alert>
+  );
+
 const FormLabel = ({
   className,
   ...props
@@ -254,6 +269,7 @@ export {
   FormControl,
   FormDescription,
   FormMessage,
+  FormSubmitError,
   FormField,
   FormRadioGroup,
   FormRadioItem,

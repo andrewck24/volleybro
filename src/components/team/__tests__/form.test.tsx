@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { Toaster } from "@/components/ui/toaster";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import TeamForm, {
   EditTeamWorkspace,
   NewTeamWorkspace,
@@ -26,6 +28,29 @@ beforeEach(() => {
 });
 
 describe("TeamForm", () => {
+  it("shows a failed submit once, in the form, and raises no toast", async () => {
+    onSubmit.mockRejectedValue(new Error("boom"));
+    render(
+      <>
+        <TeamForm
+          draftKey="draft:team:fail"
+          defaultValues={{ name: "Team", nickname: "T" }}
+          onSubmit={onSubmit}
+        />
+        <Toaster />
+      </>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /儲存修改/ }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(ERROR_MESSAGES.UNKNOWN.title);
+    expect(alert).toHaveTextContent(ERROR_MESSAGES.UNKNOWN.description);
+    expect(
+      screen.getAllByText(ERROR_MESSAGES.UNKNOWN.description),
+    ).toHaveLength(1);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("loads defaults that arrive after mount", async () => {
     const { rerender } = render(
       <TeamForm draftKey="draft:team:abc" onSubmit={onSubmit} />,

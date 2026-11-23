@@ -1,4 +1,6 @@
 import { EditForm } from "@/components/team/players/edit-form";
+import { Toaster } from "@/components/ui/toaster";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -45,6 +47,7 @@ async function setup(onSuccess?: () => void) {
   render(
     <SwrIsolation>
       <EditForm teamId={TEAM_ID} playerId={PLAYER_ID} onSuccess={onSuccess} />
+      <Toaster />
     </SwrIsolation>,
   );
   const nameField = await screen.findByDisplayValue("Alice");
@@ -54,6 +57,26 @@ async function setup(onSuccess?: () => void) {
 }
 
 describe("EditForm", () => {
+  it("shows a failed submit once, in the form, and raises no toast", async () => {
+    server.use(
+      http.patch(`/api/players/${PLAYER_ID}`, () =>
+        HttpResponse.json(
+          { code: "UNEXPECTED", reason: "UNHANDLED_ERROR" },
+          { status: 500 },
+        ),
+      ),
+    );
+    await setup();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(ERROR_MESSAGES.SERVER_ERROR.title);
+    expect(alert).toHaveTextContent(ERROR_MESSAGES.SERVER_ERROR.description);
+    expect(
+      screen.getAllByText(ERROR_MESSAGES.SERVER_ERROR.description),
+    ).toHaveLength(1);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("calls onSuccess and does not push when onSuccess is provided", async () => {
     const onSuccess = jest.fn();
     await setup(onSuccess);
