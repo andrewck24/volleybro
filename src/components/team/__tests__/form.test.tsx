@@ -3,10 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Toaster } from "@/components/ui/toaster";
 import { ERROR_MESSAGES } from "@/lib/api/error-messages";
-import TeamForm, {
-  EditTeamWorkspace,
-  NewTeamWorkspace,
-} from "@/components/team/form";
+import TeamForm, { EditTeamWorkspace } from "@/components/team/form";
 import { deferred } from "@test/support/gates";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { server } from "@test/support/msw/server";
@@ -154,14 +151,5 @@ describe("EditTeamWorkspace", () => {
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
-  });
-});
-
-describe("NewTeamWorkspace", () => {
-  it("renders the team creation form", () => {
-    render(<NewTeamWorkspace />);
-    expect(
-      screen.getByPlaceholderText("日本國家男子排球隊"),
-    ).toBeInTheDocument();
   });
 });
