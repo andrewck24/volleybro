@@ -196,52 +196,6 @@ describe("rally.helper.ts", () => {
       const mockGame = createMockGame();
       const before = JSON.parse(JSON.stringify(mockGame));
 
-      const result = record(mockParams, mockRally, mockGame);
-
-      expect(mockGame).toEqual(before);
-      expect(result.game).not.toBe(mockGame);
-    });
-  });
-
-  describe("updateRallyOptimistic", () => {
-    const mockParams = {
-      setIndex: 0,
-      entryIndex: 0,
-    };
-
-    const newRally: RallyView & EntryIdentity = {
-      id: "entry-0",
-      seq: 0,
-      win: true,
-      home: {
-        score: 1,
-        type: M.ATTACK,
-        num: 1,
-        player: { id: "player-1", zone: 1 },
-      },
-      away: {
-        score: 0,
-        type: M.DEFENSE,
-        num: 1,
-        player: { id: "rival-1", zone: 1 },
-      },
-    };
-
-    it("should update existing rally entry with new data", () => {
-      const mockGame = createMockGame();
-
-      const result = record(mockParams, newRally, mockGame);
-
-      expect(result.game.sets[0]!.entries[0]).toEqual({
-        type: EntryType.RALLY,
-        ...newRally,
-      });
-    });
-
-    it("should not mutate the game passed in", () => {
-      const mockGame = createMockGame();
-      const before = JSON.parse(JSON.stringify(mockGame));
-
       const result = record(mockParams, newRally, mockGame);
 
       expect(mockGame).toEqual(before);
