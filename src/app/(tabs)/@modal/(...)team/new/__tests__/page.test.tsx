@@ -1,9 +1,13 @@
-import { useTeam } from "@/hooks/use-data";
+import { ActionButton } from "@/components/layout/nav/action-button";
+import { TeamSwitcher } from "@/components/team/team-switcher";
+import { useActiveTeamId, useTeam } from "@/hooks/use-data";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 
+import { createTeam, createUser } from "@test/support/fixtures/entities";
+import { answerTeamRequests } from "@test/support/msw/team-handlers";
 import { server } from "@test/support/msw/server";
 import NewTeamModalPage from "../page";
 
@@ -26,9 +30,57 @@ const Tree = ({ showTeam = false }: { showTeam?: boolean }) => (
   </SwrIsolation>
 );
 
+const OTHER_TEAM_ID = "507f1f77bcf86cd799439012";
+
+const Workspace = () => {
+  const { teamId } = useActiveTeamId();
+  return (
+    <>
+      <TeamSwitcher teamId={teamId ?? ""} />
+      <ActionButton teamId={teamId} />
+    </>
+  );
+};
+
+const createTeamFrom = async (joinedTeamIds: string[]) => {
+  const { answered } = answerTeamRequests({
+    user: createUser({ id: "user-1" }),
+    teams: [
+      createTeam({ id: OTHER_TEAM_ID, name: "Old Team" }),
+      createTeam({ id: VALID_OBJECT_ID, name: "My Team" }),
+    ],
+    joinedTeamIds,
+  });
+  server.use(
+    http.post("/api/teams", () => {
+      joinedTeamIds.push(VALID_OBJECT_ID);
+      return HttpResponse.json(
+        createTeam({ id: VALID_OBJECT_ID, name: "My Team" }),
+      );
+    }),
+  );
+  const cache = new Map();
+  const { rerender } = render(
+    <SwrIsolation cache={cache}>
+      <NewTeamModalPage />
+      <Workspace />
+    </SwrIsolation>,
+  );
+  await waitFor(() => expect(answered).toContain("/api/users/user-1/players"));
+  await fillAndSubmit();
+  await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+  rerender(
+    <SwrIsolation cache={cache}>
+      <Workspace />
+    </SwrIsolation>,
+  );
+};
+
 beforeEach(() => {
+  answerTeamRequests();
   mockReplace.mockClear();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 async function fillAndSubmit() {
@@ -82,5 +134,24 @@ describe("NewTeamModalPage", () => {
 
     rerender(<Tree showTeam />);
     expect(screen.getByText("My Team")).toBeInTheDocument();
+  });
+
+  it("lets a new account start a game with its first team without opening the team page", async () => {
+    await createTeamFrom([]);
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "新增賽事" })).toBeEnabled(),
+    );
+  });
+
+  it("makes the created team the active one and lists it beside the user's other teams", async () => {
+    await createTeamFrom([OTHER_TEAM_ID]);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /My Team/ }),
+    );
+    const switcher = await screen.findByRole("dialog", { name: "切換球隊" });
+    expect(await within(switcher).findByText("Old Team")).toBeInTheDocument();
+    expect(await within(switcher).findByText("My Team")).toBeInTheDocument();
   });
 });

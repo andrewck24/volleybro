@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { useActiveTeamPreference } from "@/hooks/use-active-team-preference";
-import { useTeam, useUser } from "@/hooks/use-data";
+import { userPlayersKey, useTeam, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import type { TeamView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
@@ -204,7 +204,9 @@ function EditTeamWorkspaceSkeleton() {
   );
 }
 
-export function NewTeamWorkspace() {
+export function NewTeamWorkspace({
+  onStateChange,
+}: Pick<TeamFormProps, "onStateChange">) {
   const router = useRouter();
   const { mutate } = useSWRConfig();
   const { user } = useUser();
@@ -217,7 +219,10 @@ export function NewTeamWorkspace() {
       body: JSON.stringify(formData),
     });
     mutate(`/api/teams/${team.id}`, team, false);
-    if (user) save({ userId: user.id, teamId: team.id });
+    if (user) {
+      save({ userId: user.id, teamId: team.id });
+      mutate(userPlayersKey(user.id));
+    }
     router.replace(`/team/${team.id}?tab=about`);
   };
 
@@ -225,6 +230,7 @@ export function NewTeamWorkspace() {
     <TeamForm
       draftKey="draft:team:new"
       onSubmit={onSubmit}
+      onStateChange={onStateChange}
       className="w-full"
     />
   );

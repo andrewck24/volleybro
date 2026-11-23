@@ -56,8 +56,11 @@ export const useUser = () => {
   return { user: data, error, isLoading, isValidating, mutate };
 };
 
+export const userPlayersKey = (userId: string) =>
+  `/api/users/${userId}/players`;
+
 export const useUserPlayers = (userId: string | undefined) => {
-  const key = userId ? `/api/users/${userId}/players` : null;
+  const key = userId ? userPlayersKey(userId) : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     UserPlayerView[],
     ApiClientError
