@@ -61,10 +61,16 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
-    if (!game || (initialized.current && mode === "editing")) return;
+    if (
+      !game ||
+      (initialized.current &&
+        mode === "editing" &&
+        general.status.isSetInProgress)
+    )
+      return;
     initialized.current = true;
     dispatch(gameActions.initialize({ game, setIndex }));
-  }, [gameId, setIndex, game, mode, dispatch]);
+  }, [gameId, setIndex, game, mode, general.status.isSetInProgress, dispatch]);
 
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || id !== gameId) {

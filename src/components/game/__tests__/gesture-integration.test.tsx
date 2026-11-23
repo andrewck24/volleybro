@@ -378,6 +378,50 @@ describe("Game rally edit started from the summary drawer", () => {
   });
 });
 
+describe("Game between sets", () => {
+  it("does not stay in editing mode when a rally in the list is tapped", async () => {
+    const user = userEvent.setup();
+    const set = createGame().sets[0]!;
+    const finished = {
+      ...set,
+      entries: set.entries.map((entry) =>
+        entry.type === EntryType.RALLY
+          ? {
+              ...entry,
+              home: { ...entry.home, score: 25 },
+              away: { ...entry.away, score: 20 },
+            }
+          : entry,
+      ),
+    };
+    server.use(
+      http.get("/api/games/game-1", () =>
+        HttpResponse.json(createGame({ win: null, sets: [finished] })),
+      ),
+    );
+    const store = makeStore();
+    render(
+      <Provider store={store}>
+        <SwrIsolation>
+          <Game gameId="game-1" setIndex={0} />
+        </SwrIsolation>
+      </Provider>,
+    );
+    await user.click(await screen.findByRole("button", { name: "逐球紀錄" }));
+
+    fireEvent.click(
+      (
+        await screen.findAllByText("25", { selector: "[data-score-badge]" })
+      )[0]!,
+    );
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    expect(
+      screen.queryByRole("button", { name: "back" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("GamePanel moves gesture", () => {
   it("captures the pointer gesture before child controls receive a click", () => {
     const store = makeStore();
