@@ -73,7 +73,7 @@ export const PreviewCard = ({
     if (!isEditing) onExpand?.();
   };
 
-  const shownEntry = frozen ? (previousEntry ?? entry) : entry;
+  const shownEntry = frozen && !failed ? (previousEntry ?? entry) : entry;
   const showSendAffordance = Boolean(
     isEditing && isComplete && !frozen && !writing && !failed,
   );

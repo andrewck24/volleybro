@@ -30,7 +30,13 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 
 const SubmittingSummaryDrawer = (
   props: Omit<ComponentProps<typeof SummaryDrawer>, "onSubmit">,
@@ -43,6 +49,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const { game, isLoading, error, mutate } = useGame(gameId);
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [leavingEdit, setLeavingEdit] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general, mode } = useAppSelector((state) => state.game);
@@ -54,6 +61,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const handleOptionOpen = (tabValue: string) => {
     dispatch(gameActions.initialize({ game: game!, setIndex }));
     setTabValue(tabValue);
+    setLeavingEdit(false);
     setDialogOpen(true);
   };
 
@@ -66,8 +74,11 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     dispatch(gameActions.initialize({ game, setIndex }));
   }, [gameId, setIndex, game, mode, dispatch]);
 
-  useEffect(() => {
-    if (wasEditing.current && mode === "general") setDialogOpen(false);
+  useLayoutEffect(() => {
+    if (wasEditing.current && mode === "general") {
+      setDialogOpen(false);
+      setLeavingEdit(true);
+    }
     wasEditing.current = mode === "editing";
   }, [mode]);
 
@@ -103,7 +114,10 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
           gameId={gameId}
           state={drawerState}
           onToggle={toggleDrawer}
-          onEditRequest={() => setDialogOpen(true)}
+          onEditRequest={() => {
+            setLeavingEdit(false);
+            setDialogOpen(true);
+          }}
           onEntryRetry={() => void retry()}
         />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -111,6 +125,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
             gameId={gameId}
             tabValue={tabValue}
             setTabValue={setTabValue}
+            keepEditing={leavingEdit}
           />
         </Dialog>
       </div>

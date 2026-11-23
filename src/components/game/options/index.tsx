@@ -16,10 +16,12 @@ export const GameOptions = ({
   gameId,
   tabValue,
   setTabValue,
+  keepEditing = false,
 }: {
   gameId: string;
   tabValue: string;
   setTabValue: (value: string) => void;
+  keepEditing?: boolean;
 }) => {
   const { mode } = useAppSelector((state) => state.game);
   const { guardDismiss, leaveEditing } = useEditingGuard();
@@ -31,7 +33,7 @@ export const GameOptions = ({
       onInteractOutside={guardDismiss}
       onCloseAutoFocus={leaveEditing}
     >
-      {mode === "editing" ? (
+      {mode === "editing" || keepEditing ? (
         <EntriesEdit gameId={gameId} />
       ) : (
         <>

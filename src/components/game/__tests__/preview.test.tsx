@@ -229,6 +229,43 @@ describe("GamePreview submission", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows the edited draft again once its write is refused", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.put("/api/games/game-1/sets/entries", () =>
+        HttpResponse.json({ code: "VALIDATION" }, { status: 400 }),
+      ),
+    );
+    const firstEntry = mockGame.sets[0]!.entries[0]!;
+    const secondEntry = {
+      ...firstEntry,
+      id: "e2",
+      seq: 1,
+      home: { ...firstEntry.home, score: 2, player: { id: "p2", zone: 1 } },
+    };
+    const fullGame = {
+      ...mockGame,
+      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
+    };
+    const store = initializedStore(fullGame);
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: fullGame as never,
+          entryIndex: 1,
+        }),
+      );
+    });
+    renderPreview(store, <SubmittingPreview mode="editing" />, fullGame);
+
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    await screen.findByRole("button", { name: "重試" });
+    expect(
+      screen.getByText("2", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+  });
+
   it("shares one in-progress draft between Preview and the Summary drawer", () => {
     const store = initializedStore();
     act(() => {
