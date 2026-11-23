@@ -11,7 +11,7 @@ import mongoose from "mongoose";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { Position, type Lineup } from "@/entities/team";
-import { lineupFor, oid, seedGame } from "../support/seed";
+import { lineupFor, oid, readRawGame, seedGame } from "../support/seed";
 
 const startedSet = (lineup: Lineup) => {
   const lineups = { home: lineup, away: { ...lineup, starting: [] } };
@@ -152,11 +152,6 @@ describe("game reads and writes", () => {
   });
 
   describe("adding a set", () => {
-    const rawGame = (id: string) =>
-      mongoose.connection
-        .collection("games")
-        .findOne({ _id: new mongoose.Types.ObjectId(id) });
-
     it("appends a set without overwriting concurrent entries", async () => {
       const { gameId, playerIds } = await seedGame();
       const at = new Date("2026-03-01T10:00:00.000Z");
@@ -236,7 +231,7 @@ describe("game reads and writes", () => {
       if (kind === "started")
         await games().addSet({ gameId, setIndex: 0 }, set);
       const target = kind === "missing" ? oid() : gameId;
-      const before = await rawGame(gameId);
+      const before = await readRawGame(gameId);
 
       await expect(
         games().addSet({ gameId: target, setIndex: index }, set),
@@ -246,7 +241,7 @@ describe("game reads and writes", () => {
           games().addSet({ gameId: target, setIndex: index }, set),
         ).rejects.toMatchObject({ reason: GameReason.GAME_NOT_FOUND });
 
-      expect(await rawGame(gameId)).toEqual(before);
+      expect(await readRawGame(gameId)).toEqual(before);
     });
 
     it("drops the home team's lineup when asked to", async () => {
@@ -262,7 +257,9 @@ describe("game reads and writes", () => {
         { clearTeamLineup: true },
       );
 
-      expect((await rawGame(gameId))!.teams.home).not.toHaveProperty("lineup");
+      expect((await readRawGame(gameId))!.teams.home).not.toHaveProperty(
+        "lineup",
+      );
     });
   });
 });
