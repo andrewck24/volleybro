@@ -106,13 +106,20 @@ let cached: () => { sets: { entries: ({ id: string } | undefined)[] }[] };
 
 const renderRecording = async (
   seeded: ReturnType<typeof gameWith>,
-  options: { editing?: boolean; served?: ReturnType<typeof gameWith> } = {},
+  options: {
+    editing?: boolean;
+    served?: ReturnType<typeof gameWith>;
+    loading?: boolean;
+  } = {},
 ) => {
   store = makeStore();
+  const response = deferred();
+  if (!options.loading) response.release();
   server.use(
-    http.get("/api/games/game-1", () =>
-      HttpResponse.json(options.served ?? seeded),
-    ),
+    http.get("/api/games/game-1", async () => {
+      await response.promise;
+      return HttpResponse.json(options.served ?? seeded);
+    }),
   );
   store.dispatch(
     gameActions.initialize({ game: seeded as never, setIndex: 0 }),
@@ -140,7 +147,8 @@ const renderRecording = async (
     },
     { wrapper },
   );
-  await waitFor(() => expect(view.result.current.game).toBeDefined());
+  if (!options.loading)
+    await waitFor(() => expect(view.result.current.game).toBeDefined());
   return view;
 };
 
@@ -210,6 +218,23 @@ describe("useEntryRecording.record", () => {
     expect(second.entry.seq).toBe(entryIndex);
     expect(first.entry.id).not.toBe(second.entry.id);
     await waitFor(() => expect(pending()).toHaveLength(0));
+  });
+});
+
+describe("useEntryRecording before the game has loaded", () => {
+  it("records nothing and queues nothing instead of throwing", async () => {
+    const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
+    const { result } = await renderRecording(gameWith([]), { loading: true });
+
+    const outcome = result.current.recording.record(
+      rallyContent,
+      rallyApply(gameWith([]) as never),
+    );
+
+    expect(outcome.status).toBe("failed");
+    expect(result.current.game).toBeUndefined();
+    expect(pending()).toHaveLength(0);
+    expect(puts).toHaveLength(0);
   });
 });
 

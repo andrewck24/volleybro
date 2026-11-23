@@ -7,7 +7,7 @@ import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
-import { oid, seedGame, type SeededGame } from "../support/seed";
+import { oid, readRawGame, seedGame, type SeededGame } from "../support/seed";
 
 const rally = (
   id: string,
@@ -151,6 +151,23 @@ describe("identity-keyed entry writes", () => {
     expect(persisted!.sets[0]!.entries[0]).toMatchObject({
       home: { score: 1 },
     });
+  });
+
+  it("rejects a new seq for an existing entry without touching the set or its version", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-1", 0, 1)]);
+    const before = (await readRawGame(seeded.gameId))!.sets[0];
+
+    await expect(
+      write(ref, [rally("entry-1", 3, 1)], editedAt),
+    ).rejects.toMatchObject({
+      reason: GameReason.ENTRY_SEQ_CHANGED,
+      httpStatus: 400,
+    });
+
+    const after = (await readRawGame(seeded.gameId))!.sets[0];
+    expect(after.ver).toBe(before.ver);
+    expect(after.entries).toEqual(before.entries);
   });
 
   it("reports GAME_NOT_FOUND for a game that does not exist", async () => {

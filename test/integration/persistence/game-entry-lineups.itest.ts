@@ -12,7 +12,13 @@ import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
-import { lineupFor, oid, seedGame, type SeededGame } from "../support/seed";
+import {
+  lineupFor,
+  oid,
+  readRawGame,
+  seedGame,
+  type SeededGame,
+} from "../support/seed";
 
 const operator = oid();
 const recordedAt = new Date("2026-03-01T10:00:00.000Z");
@@ -155,9 +161,7 @@ describe("the lineup a set stores with its entries", () => {
     await instance.updateSet(ref(), { options });
 
     expect((await storedSet()).options.serve).toBe("home");
-    const raw = await mongoose.connection
-      .collection("games")
-      .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) });
+    const raw = await readRawGame(seeded.gameId);
     expect(raw!.sets[0].ver).toBe(2);
   });
 
@@ -176,11 +180,7 @@ describe("the lineup a set stores with its entries", () => {
 
   it("keeps an existing set's entries and version when the next set is created", async () => {
     await write([substitution("sub-1", 1, benchIds[0]!)]);
-    const verOf = async () =>
-      (await mongoose.connection
-        .collection("games")
-        .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) }))!.sets[0]
-        .ver;
+    const verOf = async () => (await readRawGame(seeded.gameId))!.sets[0].ver;
     const before = await verOf();
     expect(before).toBeGreaterThan(0);
 
