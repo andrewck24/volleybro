@@ -70,8 +70,8 @@ export const useEntryRecording = (gameId: string) => {
   const record = <C extends EntryContent>(
     content: C,
     apply: ApplyEntry<C>,
-  ): RecordResult<C> => {
-    const result = stage(
+  ): RecordResult<C> =>
+    stage(
       content,
       {
         id: crypto.randomUUID(),
@@ -79,9 +79,6 @@ export const useEntryRecording = (gameId: string) => {
       },
       apply,
     );
-    if (result.status === "recorded") void flush();
-    return result;
-  };
 
   const edit = async <C extends EntryContent>(
     content: C,
