@@ -44,6 +44,9 @@ export const isQueuedBy = (
   userId: string | undefined,
 ): boolean => item.userId === undefined || item.userId === userId;
 
+export const writeKey = ({ id, at }: { id: string; at?: string }): string =>
+  at === undefined ? id : `${id}@${at}`;
+
 export const isPendingWrite = (
   state: PendingWritesState,
   entryId: string,

@@ -5,6 +5,7 @@ import {
   type FlushResult,
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { writeKey } from "@/lib/features/game/pending-writes";
 import type { GameView, PendingEntryContent } from "@/lib/features/game/types";
 import { useAppStore } from "@/lib/redux/hooks";
 
@@ -105,10 +106,23 @@ export const useEntryRecording = (gameId: string) => {
     const { id, seq } = store.getState().game.editing.entryDraft;
     const result = stage(content, { id, seq }, apply);
     if (result.status !== "recorded") return result;
-    const flushed: FlushResult = await flush();
-    if (!flushed.ok) {
+    const isQueued = () =>
+      store
+        .getState()
+        .pendingWrites.pending.some(
+          (p) => writeKey(p.entry) === writeKey(result.entry),
+        );
+    let flushed: FlushResult = await flush();
+    for (let again = 0; again < 2 && flushed.ok && isQueued(); again++)
+      flushed = await flush();
+    if (!flushed.ok || isQueued()) {
       leaveWhenWritten(result.entry);
-      return { status: "failed", error: flushed.error };
+      return {
+        status: "failed",
+        error: flushed.ok
+          ? new Error("The edit was not written")
+          : flushed.error,
+      };
     }
     return { status: "edited", entry: result.entry };
   };

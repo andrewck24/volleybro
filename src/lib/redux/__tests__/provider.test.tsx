@@ -1,3 +1,4 @@
+import { writeKey } from "@/lib/features/game/pending-writes";
 import { EntryType, MoveType } from "@/entities/game";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { PENDING_WRITES_KEY } from "@/lib/features/game/pending-writes-storage";
@@ -51,7 +52,9 @@ describe("persistence wiring", () => {
     store.dispatch(enqueue("e1"));
     expect(storedIds()).toEqual(["e1"]);
 
-    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
+    store.dispatch(
+      pendingWritesActions.flushSucceeded({ keys: [writeKey(entry("e1"))] }),
+    );
     await waitFor(() => expect(storedIds()).toEqual([]));
   });
 

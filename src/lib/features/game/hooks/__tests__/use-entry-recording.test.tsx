@@ -312,6 +312,55 @@ describe("useEntryRecording.edit", () => {
     expect(pending()).toHaveLength(0);
   });
 
+  it("sends an edit staged while the entry's creation is still in flight, and reports it only once it is written", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async (put, attempt) => {
+      if (attempt === 1) await gate.promise;
+      return HttpResponse.json({ entries: put.body as object[] });
+    });
+    const { result } = await renderRecording(gameWith([]));
+    let created!: ReturnType<typeof result.current.recording.record>;
+    act(() => {
+      created = result.current.recording.record(
+        rallyContent,
+        rallyApply(result.current.game!),
+      );
+    });
+    await waitFor(() => expect(puts).toHaveLength(1));
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: result.current.game as never,
+          entryIndex: 0,
+        }),
+      );
+    });
+    const edited = { ...rallyContent, away: { ...rallyContent.away, num: 3 } };
+
+    let outcome!: Awaited<ReturnType<typeof result.current.recording.edit>>;
+    let finished!: Promise<void>;
+    act(() => {
+      finished = result.current.recording
+        .edit(edited, rallyApply(result.current.game!))
+        .then((value) => {
+          outcome = value;
+        });
+    });
+    gate.release();
+    await act(async () => {
+      await finished;
+    });
+
+    expect(created.status).toBe("recorded");
+    expect(outcome.status).toBe("edited");
+    expect(puts).toHaveLength(2);
+    expect(puts[1]!.body).toMatchObject([{ away: { num: 3 } }]);
+    expect(pending()).toHaveLength(0);
+    expect(result.current.game!.sets[0]!.entries[0]).toMatchObject({
+      away: { num: 3 },
+    });
+  });
+
   it("sends one write when the background flush is already due as the edit is staged", async () => {
     const gate = deferred();
     const puts = answerEntries(async () => {

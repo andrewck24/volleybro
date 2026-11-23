@@ -101,7 +101,7 @@ describe("useEditingGuard", () => {
     act(() =>
       store.dispatch(
         pendingWritesActions.flushFailed({
-          ids: ["e1"],
+          keys: ["e1"],
           retryable: false,
           lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),

@@ -86,7 +86,7 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
         }),
       );
 
-      dispatch(pendingWritesActions.flushSucceeded({ ids: [lastRally.id] }));
+      dispatch(pendingWritesActions.flushSucceeded({ keys: [lastRally.id] }));
     }
     setRetrying(false);
   }, [dispatch, gameId, mutate, set, setIndex]);

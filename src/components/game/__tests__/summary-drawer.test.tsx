@@ -358,7 +358,7 @@ describe("SummaryDrawer", () => {
       );
       store.dispatch(
         pendingWritesActions.flushFailed({
-          ids: [allEntries[1]!.id],
+          keys: [allEntries[1]!.id],
           retryable: false,
           lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),

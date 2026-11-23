@@ -446,7 +446,7 @@ describe("GamePreview editing write status", () => {
       );
       store.dispatch(
         pendingWritesActions.flushFailed({
-          ids: ["e1"],
+          keys: ["e1"],
           retryable: true,
         }),
       );
