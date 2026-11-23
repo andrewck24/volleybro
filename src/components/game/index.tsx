@@ -47,6 +47,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general, mode } = useAppSelector((state) => state.game);
   const wasEditing = useRef(false);
+  const initialized = useRef(false);
   const pendingWrites = usePendingWrites(gameId, setIndex);
   const { retry } = pendingWrites;
 
@@ -60,8 +61,9 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
-    if (game && mode !== "editing")
-      dispatch(gameActions.initialize({ game, setIndex }));
+    if (!game || (initialized.current && mode === "editing")) return;
+    initialized.current = true;
+    dispatch(gameActions.initialize({ game, setIndex }));
   }, [gameId, setIndex, game, mode, dispatch]);
 
   useEffect(() => {

@@ -113,7 +113,10 @@ const makeMockGame = () => ({
   },
 });
 
-const setUpGame = ({ failWrites = false } = {}) => {
+const setUpGame = ({
+  failWrites = false,
+  store = makeStore(),
+}: { failWrites?: boolean; store?: ReturnType<typeof makeStore> } = {}) => {
   const game = makeMockGame();
   const puts: { home: { player: { id: string } } }[] = [];
   server.use(
@@ -137,7 +140,6 @@ const setUpGame = ({ failWrites = false } = {}) => {
       return HttpResponse.json({ entries: game.sets[0]!.entries });
     }),
   );
-  const store = makeStore();
   render(
     <Provider store={store}>
       <SwrIsolation>
@@ -340,6 +342,19 @@ describe("Game rally edit started from the summary drawer", () => {
       scoringMoves[3]!.num,
     );
     expect(screen.getByRole("button", { name: "back" })).toBeInTheDocument();
+  });
+
+  it("leaves editing mode when the page mounts with a store left in editing", async () => {
+    const store = makeStore();
+    const game = makeMockGame() as never;
+    store.dispatch(gameActions.initialize({ game, setIndex: 0 }));
+    store.dispatch(gameActions.setEditingEntryStatus({ game, entryIndex: 0 }));
+    expect(store.getState().game.mode).toBe("editing");
+
+    setUpGame({ store });
+
+    await screen.findByTestId("summary-drawer");
+    expect(store.getState().game.mode).toBe("general");
   });
 
   it("closes the edit dialog and shows the expanded drawer when the back control is used", async () => {
