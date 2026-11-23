@@ -313,6 +313,7 @@ describe("Game rally edit started from the summary drawer", () => {
       ).not.toBeInTheDocument(),
     );
     expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.general.status.entryIndex).toBe(1);
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "expanded",

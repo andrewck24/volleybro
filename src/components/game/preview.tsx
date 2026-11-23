@@ -221,7 +221,9 @@ export const GamePreview = ({
       isComplete={isComplete}
       writing={writing}
       failed={failed}
-      onRetry={mode === "editing" ? () => void retry() : undefined}
+      onRetry={
+        mode === "editing" ? () => void (onSubmit ?? retry)() : undefined
+      }
       onSubmit={onSubmit}
       onExpand={onExpandDrawer}
       className={className}

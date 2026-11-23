@@ -266,6 +266,46 @@ describe("GamePreview submission", () => {
     ).toBeInTheDocument();
   });
 
+  it("completes the edit and leaves editing when retrying a refused write succeeds", async () => {
+    const user = userEvent.setup();
+    let attempts = 0;
+    server.use(
+      http.put("/api/games/game-1/sets/entries", () => {
+        attempts += 1;
+        return attempts === 1
+          ? HttpResponse.json({ code: "VALIDATION" }, { status: 400 })
+          : HttpResponse.json({ entries: [{ id: "e2", seq: 1 }] });
+      }),
+    );
+    const firstEntry = mockGame.sets[0]!.entries[0]!;
+    const secondEntry = {
+      ...firstEntry,
+      id: "e2",
+      seq: 1,
+      home: { ...firstEntry.home, score: 2, player: { id: "p2", zone: 1 } },
+    };
+    const fullGame = {
+      ...mockGame,
+      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
+    };
+    const store = initializedStore(fullGame);
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: fullGame as never,
+          entryIndex: 1,
+        }),
+      );
+    });
+    renderPreview(store, <SubmittingPreview mode="editing" />, fullGame);
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    await user.click(await screen.findByRole("button", { name: "重試" }));
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    expect(attempts).toBe(2);
+  });
+
   it("shares one in-progress draft between Preview and the Summary drawer", () => {
     const store = initializedStore();
     act(() => {
@@ -547,16 +587,9 @@ describe("GamePreview editing write status", () => {
     }
   });
 
-  it("shows a retry control once the write is refused, and retry resends the entry", async () => {
+  it("shows a retry control once the write is refused, and retry submits the edit again", async () => {
     const user = userEvent.setup();
-    let sent: unknown;
-    server.use(
-      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
-        sent = await request.json();
-        return HttpResponse.json({ entries: [queuedEntry] });
-      }),
-    );
-    const { store } = setUpEditing();
+    const { store, onSubmit } = setUpEditing();
 
     act(() => {
       store.dispatch(
@@ -578,10 +611,7 @@ describe("GamePreview editing write status", () => {
     expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).toBeNull();
     await user.click(screen.getByRole("button", { name: "重試" }));
 
-    await waitFor(() =>
-      expect(store.getState().pendingWrites.pending).toHaveLength(0),
-    );
-    expect(sent).toEqual([queuedEntry]);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });
 
