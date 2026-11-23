@@ -157,7 +157,7 @@ describe("useEditingGuard", () => {
     act(() =>
       store.dispatch(
         pendingWritesActions.enqueued({
-          entry: { id: "e1", seq: 0 } as never,
+          entry: { id: "e1", seq: 0, at: "2026-01-01T09:00:00.000Z" } as never,
           gameId: "game-1",
           setIndex: 0,
         }),
@@ -167,7 +167,7 @@ describe("useEditingGuard", () => {
       act(() =>
         store.dispatch(
           pendingWritesActions.flushFailed({
-            keys: ["e1"],
+            keys: ["e1@2026-01-01T09:00:00.000Z"],
             retryable: true,
             lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
           }),

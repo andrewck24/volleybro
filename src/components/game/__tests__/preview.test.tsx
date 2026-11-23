@@ -449,7 +449,7 @@ describe("GamePreview editing write status", () => {
     act(() => {
       store.dispatch(
         pendingWritesActions.enqueued({
-          entry: queuedEntry as never,
+          entry: { ...queuedEntry, at: "2026-01-01T09:00:00.000Z" } as never,
           gameId: "game-1",
           setIndex: 0,
         }),
@@ -457,7 +457,7 @@ describe("GamePreview editing write status", () => {
       for (let attempt = 0; attempt < 4; attempt++) {
         store.dispatch(
           pendingWritesActions.flushFailed({
-            keys: ["e1"],
+            keys: ["e1@2026-01-01T09:00:00.000Z"],
             retryable: true,
             lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
           }),
