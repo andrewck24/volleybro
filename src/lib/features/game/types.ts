@@ -354,6 +354,7 @@ export type ReduxGameState = {
     status: ReduxStatus;
     entryDraft: ReduxEntryDraft;
   };
+  editWriteKey: string | null;
 };
 
 export type WriteError = {

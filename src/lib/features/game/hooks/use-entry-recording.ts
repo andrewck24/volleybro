@@ -106,6 +106,7 @@ export const useEntryRecording = (gameId: string) => {
     const { id, seq } = store.getState().game.editing.entryDraft;
     const result = stage(content, { id, seq }, apply);
     if (result.status !== "recorded") return result;
+    store.dispatch(gameActions.editWriteStaged(writeKey(result.entry)));
     const isQueued = () =>
       store
         .getState()

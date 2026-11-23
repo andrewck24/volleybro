@@ -361,6 +361,25 @@ describe("useEntryRecording.edit", () => {
     });
   });
 
+  it("records which write the edit staged, so the edit can tell it from the entry's earlier writes", async () => {
+    answerEntries(() => HttpResponse.error());
+    const { result } = await renderRecording(gameWith([recordedRally]), {
+      editing: true,
+    });
+
+    await act(async () => {
+      await result.current.recording.edit(
+        rallyContent,
+        rallyApply(result.current.game!),
+      );
+    });
+
+    const [queued] = pending();
+    expect(store.getState().game.editWriteKey).toBe(
+      `e1@${(queued!.entry as { at: string }).at}`,
+    );
+  });
+
   it("sends one write when the background flush is already due as the edit is staged", async () => {
     const gate = deferred();
     const puts = answerEntries(async () => {

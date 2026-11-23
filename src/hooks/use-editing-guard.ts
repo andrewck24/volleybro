@@ -12,11 +12,12 @@ export function useEditingGuard() {
   const { toast } = useToast();
   const mode = useAppSelector((state) => state.game.mode);
   const entryId = useAppSelector((state) => state.game.editing.entryDraft.id);
+  const editWriteKey = useAppSelector((state) => state.game.editWriteKey);
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
 
   const writing = mode === "editing" && isPendingWrite(pendingWrites, entryId);
   const failed =
-    mode === "editing" && isUnscheduledWrite(pendingWrites, entryId);
+    mode === "editing" && isUnscheduledWrite(pendingWrites, editWriteKey);
 
   const guardDismiss = (event: { preventDefault: () => void }) => {
     if (writing) event.preventDefault();

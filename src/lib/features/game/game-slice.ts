@@ -61,6 +61,7 @@ const initialState: ReduxGameState = {
       away: rallyDetailState,
     },
   },
+  editWriteKey: null,
 };
 
 const initialize: CaseReducer<
@@ -84,6 +85,7 @@ const initialize: CaseReducer<
   state.id = game.id;
   state.setIndex = setIndex;
   state.mode = "general";
+  state.editWriteKey = null;
   const status = {
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
@@ -106,6 +108,13 @@ const setGameMode: CaseReducer<
   PayloadAction<ReduxGameState["mode"]>
 > = (state, action) => {
   state.mode = action.payload;
+};
+
+const editWriteStaged: CaseReducer<ReduxGameState, PayloadAction<string>> = (
+  state,
+  action,
+) => {
+  state.editWriteKey = action.payload;
 };
 
 const setEntryDraftPlayer: CaseReducer<
@@ -284,6 +293,7 @@ const setEditingEntryStatus: CaseReducer<
   );
 
   state.mode = "editing";
+  state.editWriteKey = null;
   state.editing.entryDraft = {
     id: entry.id,
     seq: entry.seq,
@@ -323,6 +333,7 @@ const gameSlice = createSlice({
   reducers: {
     initialize,
     setGameMode,
+    editWriteStaged,
     setEntryDraftPlayer,
     setEntryDraftHomeMove,
     setEntryDraftAwayMove,

@@ -89,6 +89,7 @@ describe("useEditingGuard", () => {
 
   it("reports failed once attempts are exhausted, allows dismissal, and tells the recorder on leave", () => {
     act(() => enterEditing("e1"));
+    act(() => store.dispatch(gameActions.editWriteStaged("e1")));
     act(() =>
       store.dispatch(
         pendingWritesActions.enqueued({
@@ -123,6 +124,7 @@ describe("useEditingGuard", () => {
 
   it("tells the recorder on leave when background retries ran out, not only when the server refused", () => {
     act(() => enterEditing("e1"));
+    act(() => store.dispatch(gameActions.editWriteStaged("e1")));
     act(() =>
       store.dispatch(
         pendingWritesActions.enqueued({
@@ -148,6 +150,35 @@ describe("useEditingGuard", () => {
 
     expect(store.getState().game.mode).toBe("general");
     expect(screen.getByText("編輯未儲存")).toBeInTheDocument();
+  });
+
+  it("leaves silently when only the entry's creation write has run out of retries", () => {
+    act(() => enterEditing("e1"));
+    act(() =>
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { id: "e1", seq: 0 } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      ),
+    );
+    for (let attempt = 0; attempt < 4; attempt++)
+      act(() =>
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        ),
+      );
+
+    const { result } = renderHook(() => useEditingGuard(), { wrapper });
+    act(() => result.current.leaveEditing());
+
+    expect(store.getState().game.mode).toBe("general");
+    expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
   });
 
   it("leaves silently once idle (no failed write)", () => {

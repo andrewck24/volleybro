@@ -201,6 +201,7 @@ export const GamePreview = ({
 }) => {
   const draftId = useAppSelector((state) => state.game[mode].entryDraft.id);
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
+  const editWriteKey = useAppSelector((state) => state.game.editWriteKey);
   const preview = useEntryDraftPreview(gameId, mode);
   if (!preview.hasPreview) return null;
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
@@ -210,7 +211,7 @@ export const GamePreview = ({
   const failed =
     !writing &&
     mode === "editing" &&
-    isUnscheduledWrite(pendingWrites, draftId);
+    isUnscheduledWrite(pendingWrites, editWriteKey);
 
   return (
     <PreviewCard

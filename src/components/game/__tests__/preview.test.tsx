@@ -443,6 +443,35 @@ describe("GamePreview editing write status", () => {
     return { store, onSubmit };
   };
 
+  it("behaves like a normal edit when only the entry's creation write has run out of retries", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: queuedEntry as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
   it("offers a retry once background retries are exhausted, so the frozen card does not strand the edit", async () => {
     const user = userEvent.setup();
     const { store, onSubmit } = setUpEditing();
@@ -450,6 +479,7 @@ describe("GamePreview editing write status", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
 
     act(() => {
+      store.dispatch(gameActions.editWriteStaged("e1"));
       store.dispatch(
         pendingWritesActions.enqueued({
           entry: queuedEntry as never,
@@ -481,6 +511,9 @@ describe("GamePreview editing write status", () => {
     await user.click(screen.getByTestId("preview-trigger"));
     act(() => {
       store.dispatch(
+        gameActions.editWriteStaged("e1@2026-01-01T10:00:00.000Z"),
+      );
+      store.dispatch(
         pendingWritesActions.enqueued({
           entry: { ...queuedEntry, at: "2026-01-01T10:00:00.000Z" } as never,
           gameId: "game-1",
@@ -501,6 +534,9 @@ describe("GamePreview editing write status", () => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
 
     act(() => {
+      store.dispatch(
+        gameActions.editWriteStaged("e1@2026-01-01T10:05:00.000Z"),
+      );
       store.dispatch(
         pendingWritesActions.enqueued({
           entry: { ...queuedEntry, at: "2026-01-01T10:05:00.000Z" } as never,
