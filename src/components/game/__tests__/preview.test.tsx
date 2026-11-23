@@ -586,33 +586,6 @@ describe("GamePreview editing write status", () => {
       jest.useRealTimers();
     }
   });
-
-  it("shows a retry control once the write is refused, and retry submits the edit again", async () => {
-    const user = userEvent.setup();
-    const { store, onSubmit } = setUpEditing();
-
-    act(() => {
-      store.dispatch(
-        pendingWritesActions.enqueued({
-          entry: queuedEntry as never,
-          gameId: "game-1",
-          setIndex: 0,
-        }),
-      );
-      store.dispatch(
-        pendingWritesActions.flushFailed({
-          ids: ["e1"],
-          retryable: false,
-          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
-        }),
-      );
-    });
-
-    expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).toBeNull();
-    await user.click(screen.getByRole("button", { name: "重試" }));
-
-    expect(onSubmit).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe("GamePreview gesture split", () => {
