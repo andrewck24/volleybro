@@ -1,6 +1,5 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { GameReason } from "@/entities/errors";
-import mongoose from "mongoose";
 import { MoveType, type Entry } from "@/entities/game";
 import { createRecordedRally } from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
@@ -8,7 +7,7 @@ import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "../support/auth";
 import { callRoute } from "../support/request";
-import { oid, seedGame, type SeededGame } from "../support/seed";
+import { oid, readRawGame, seedGame, type SeededGame } from "../support/seed";
 
 const rally = (
   id: string,
@@ -154,14 +153,27 @@ describe("identity-keyed entry writes", () => {
     });
   });
 
+  it("rejects a new seq for an existing entry without touching the set or its version", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-1", 0, 1)]);
+    const before = (await readRawGame(seeded.gameId))!.sets[0];
+
+    await expect(
+      write(ref, [rally("entry-1", 3, 1)], editedAt),
+    ).rejects.toMatchObject({
+      reason: GameReason.ENTRY_SEQ_CHANGED,
+      httpStatus: 400,
+    });
+
+    const after = (await readRawGame(seeded.gameId))!.sets[0];
+    expect(after.ver).toBe(before.ver);
+    expect(after.entries).toEqual(before.entries);
+  });
+
   it("refuses an edit that changes which side won, leaving the set and its version unchanged", async () => {
     const ref = { gameId: seeded.gameId, setIndex: 0 };
     await write(ref, [rally("entry-1", 0, 1)]);
-    const stored = () =>
-      mongoose.connection
-        .collection("games")
-        .findOne({ _id: new mongoose.Types.ObjectId(seeded.gameId) });
-    const before = (await stored())!.sets[0];
+    const before = (await readRawGame(seeded.gameId))!.sets[0];
 
     await expect(
       repo().upsertEntries(
@@ -179,7 +191,7 @@ describe("identity-keyed entry writes", () => {
       httpStatus: 400,
     });
 
-    const after = (await stored())!.sets[0];
+    const after = (await readRawGame(seeded.gameId))!.sets[0];
     expect(after.ver).toBe(before.ver);
     expect(after.entries).toEqual(before.entries);
   });

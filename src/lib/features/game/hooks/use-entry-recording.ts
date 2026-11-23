@@ -23,8 +23,11 @@ export type ApplyEntry<C extends EntryContent> = (
   entry: RecordedEntry<C>,
 ) => { game: GameView } | { invalid: InvalidEntryWrite };
 
+type WriteFailed = { status: "failed"; error: unknown };
+
 export type RecordResult<C extends EntryContent> =
   | { status: "recorded"; entry: RecordedEntry<C> }
+  | WriteFailed
   | {
       status: "invalid";
       invalid: InvalidEntryWrite;
@@ -33,7 +36,7 @@ export type RecordResult<C extends EntryContent> =
 
 export type EditResult<C extends EntryContent> =
   | { status: "edited"; entry: RecordedEntry<C> }
-  | { status: "failed"; error: unknown }
+  | WriteFailed
   | {
       status: "invalid";
       invalid: InvalidEntryWrite;
@@ -41,7 +44,7 @@ export type EditResult<C extends EntryContent> =
     };
 
 export const useEntryRecording = (gameId: string) => {
-  const { game, mutate } = useGame(gameId);
+  const { game, error, mutate } = useGame(gameId);
   const { enqueue, flush } = usePendingWritesContext();
   const store = useAppStore();
 
@@ -50,10 +53,11 @@ export const useEntryRecording = (gameId: string) => {
     identity: EntryIdentity,
     apply: ApplyEntry<C>,
   ): RecordResult<C> => {
+    if (!game) return { status: "failed", error };
     const entry: RecordedEntry<C> = Object.assign({}, content, identity, {
       at: new Date().toISOString(),
     });
-    const checked = apply(game!, entry);
+    const checked = apply(game, entry);
     if ("invalid" in checked)
       return { status: "invalid", invalid: checked.invalid, entry };
     mutate(
@@ -70,8 +74,8 @@ export const useEntryRecording = (gameId: string) => {
   const record = <C extends EntryContent>(
     content: C,
     apply: ApplyEntry<C>,
-  ): RecordResult<C> => {
-    const result = stage(
+  ): RecordResult<C> =>
+    stage(
       content,
       {
         id: crypto.randomUUID(),
@@ -79,9 +83,6 @@ export const useEntryRecording = (gameId: string) => {
       },
       apply,
     );
-    if (result.status === "recorded") void flush();
-    return result;
-  };
 
   const edit = async <C extends EntryContent>(
     content: C,
@@ -89,7 +90,7 @@ export const useEntryRecording = (gameId: string) => {
   ): Promise<EditResult<C>> => {
     const { id, seq } = store.getState().game.editing.entryDraft;
     const result = stage(content, { id, seq }, apply);
-    if (result.status === "invalid") return result;
+    if (result.status !== "recorded") return result;
     const flushed: FlushResult = await flush();
     if (!flushed.ok) return { status: "failed", error: flushed.error };
     return { status: "edited", entry: result.entry };

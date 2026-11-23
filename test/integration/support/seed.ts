@@ -5,6 +5,7 @@ import type { Lineup } from "@/entities/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { randomBytes } from "node:crypto";
+import mongoose from "mongoose";
 
 export const oid = () => randomBytes(12).toString("hex");
 
@@ -78,3 +79,8 @@ export const seedGame = async ({
 
   return { gameId: game.id, teamId, playerIds, lineup: lineupFor(playerIds) };
 };
+
+export const readRawGame = (gameId: string) =>
+  mongoose.connection
+    .collection("games")
+    .findOne({ _id: new mongoose.Types.ObjectId(gameId) });
