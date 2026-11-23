@@ -1,8 +1,11 @@
 import { EntriesEdit } from "@/components/game/options/edit";
 import { Dialog } from "@/components/ui/dialog";
 import { PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
+import { deferred } from "@test/support/gates";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { scoringMoves } from "@/lib/scoring-moves";
+import { rally } from "@test/support/fixtures/editing-game";
 import { answerEntries } from "@test/support/msw/entries";
 import {
   holdEditedWrite,
@@ -115,5 +118,45 @@ describe("EntriesEdit after a write that first fails with a server error", () =>
 
     await waitFor(() => expect(store.getState().game.mode).toBe("general"));
     expect(puts).toHaveLength(4);
+  });
+});
+
+describe("EntriesEdit while the entry's own creation write is still queued", () => {
+  it("stays open with the draft intact when that write finishes, and leaves once the edit is written", async () => {
+    const user = userEvent.setup();
+    const gate = deferred();
+    const puts = answerEntries(async (_, attempt) => {
+      if (attempt === 1) await gate.promise;
+      return HttpResponse.json({ entries: [rally] });
+    });
+    const { store } = renderEntriesEdit();
+    await screen.findByRole("button", { name: "back" });
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: rally as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+    });
+    await waitFor(() => expect(puts).toHaveLength(1));
+
+    gate.release();
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.pending).toHaveLength(0),
+    );
+
+    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.home.num).toBe(
+      scoringMoves[4]!.num,
+    );
+    expect(screen.getByRole("button", { name: "back" })).toBeInTheDocument();
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    expect(puts).toHaveLength(2);
   });
 });

@@ -271,6 +271,40 @@ describe("useEntryRecording.edit", () => {
     expect(pending()).toHaveLength(0);
   });
 
+  it("sends one write when the background flush is already due as the edit is staged", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async () => {
+      await gate.promise;
+      return HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] });
+    });
+    const { result } = await renderRecording(gameWith([recordedRally]), {
+      editing: true,
+    });
+
+    let outcome!: Awaited<ReturnType<typeof result.current.recording.edit>>;
+    let finished!: Promise<void>;
+    act(() => {
+      finished = result.current.recording
+        .edit(rallyContent, rallyApply(result.current.game!))
+        .then((value) => {
+          outcome = value;
+        });
+    });
+    await waitFor(() => expect(puts).toHaveLength(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(puts).toHaveLength(1);
+
+    gate.release();
+    await act(async () => {
+      await finished;
+    });
+
+    expect(outcome.status).toBe("edited");
+    expect(puts).toHaveLength(1);
+  });
+
   it("reports the failure, keeps the edit on screen and queued, and resends it unchanged with the time of the edit", async () => {
     const puts = answerEntries(() => HttpResponse.error());
     const { result } = await renderRecording(

@@ -6,7 +6,6 @@ import {
   isPendingWrite,
 } from "@/lib/features/game/pending-writes";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useEffect, useRef } from "react";
 
 export function useEditingGuard() {
   const dispatch = useAppDispatch();
@@ -14,24 +13,6 @@ export function useEditingGuard() {
   const mode = useAppSelector((state) => state.game.mode);
   const entryId = useAppSelector((state) => state.game.editing.entryDraft.id);
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
-
-  const queued = pendingWrites.pending.some((p) => p.entry.id === entryId);
-  const wasQueued = useRef(false);
-
-  useEffect(() => {
-    if (mode !== "editing") {
-      wasQueued.current = false;
-      return;
-    }
-    if (queued) {
-      wasQueued.current = true;
-      return;
-    }
-    if (wasQueued.current) {
-      wasQueued.current = false;
-      dispatch(gameActions.setGameMode("general"));
-    }
-  }, [mode, queued, dispatch]);
 
   const writing = mode === "editing" && isPendingWrite(pendingWrites, entryId);
   const failed = mode === "editing" && hasFailedWrite(pendingWrites, entryId);

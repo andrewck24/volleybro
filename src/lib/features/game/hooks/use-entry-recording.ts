@@ -4,6 +4,7 @@ import {
   usePendingWritesContext,
   type FlushResult,
 } from "@/hooks/use-pending-writes";
+import { gameActions } from "@/lib/features/game/game-slice";
 import type { GameView, PendingEntryContent } from "@/lib/features/game/types";
 import { useAppStore } from "@/lib/redux/hooks";
 
@@ -84,6 +85,19 @@ export const useEntryRecording = (gameId: string) => {
       apply,
     );
 
+  const leaveWhenWritten = ({ id, at }: { id: string; at: string }) => {
+    const unsubscribe = store.subscribe(() => {
+      const { game, pendingWrites } = store.getState();
+      if (game.mode !== "editing" || game.editing.entryDraft.id !== id)
+        return unsubscribe();
+      const queued = pendingWrites.pending.filter((p) => p.entry.id === id);
+      if (queued.some((p) => p.entry.at === at)) return;
+      unsubscribe();
+      if (queued.length === 0)
+        store.dispatch(gameActions.setGameMode("general"));
+    });
+  };
+
   const edit = async <C extends EntryContent>(
     content: C,
     apply: ApplyEntry<C>,
@@ -92,7 +106,10 @@ export const useEntryRecording = (gameId: string) => {
     const result = stage(content, { id, seq }, apply);
     if (result.status !== "recorded") return result;
     const flushed: FlushResult = await flush();
-    if (!flushed.ok) return { status: "failed", error: flushed.error };
+    if (!flushed.ok) {
+      leaveWhenWritten(result.entry);
+      return { status: "failed", error: flushed.error };
+    }
     return { status: "edited", entry: result.entry };
   };
 
