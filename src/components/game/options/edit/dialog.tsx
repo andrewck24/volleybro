@@ -5,12 +5,14 @@ import { useEditingGuard } from "@/hooks/use-editing-guard";
 import { useAppSelector } from "@/lib/redux/hooks";
 
 export const EntriesEditDialog = ({ gameId }: { gameId: string }) => {
-  const mode = useAppSelector((state) => state.game.mode);
-  const { guardDismiss, leaveEditing } = useEditingGuard();
+  const isEditing = useAppSelector((state) =>
+    Boolean(state.game.editing.entryDraft.id),
+  );
+  const { writing, guardDismiss, leaveEditing } = useEditingGuard();
 
   return (
     <Dialog
-      open={mode === "editing"}
+      open={isEditing}
       onOpenChange={(open) => {
         if (!open) leaveEditing();
       }}
@@ -20,7 +22,7 @@ export const EntriesEditDialog = ({ gameId }: { gameId: string }) => {
         onEscapeKeyDown={guardDismiss}
         onInteractOutside={guardDismiss}
       >
-        <EntriesEdit gameId={gameId} />
+        <EntriesEdit gameId={gameId} writing={writing} onBack={leaveEditing} />
       </DialogContent>
     </Dialog>
   );

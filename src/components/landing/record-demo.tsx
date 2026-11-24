@@ -90,18 +90,26 @@ const playTo = (
   zone: number,
 ) => {
   if (tapCount >= 1)
-    dispatch(gameActions.setEntryDraftPlayer({ id: SENT_RALLY.player, zone }));
+    dispatch(
+      gameActions.setEntryDraftPlayer({
+        mode: "general",
+        id: SENT_RALLY.player,
+        zone,
+      }),
+    );
   if (tapCount >= 2)
     dispatch(
-      gameActions.setEntryDraftHomeMove(
-        scoringMoves[SENT_RALLY.homeMoveIndex]!,
-      ),
+      gameActions.setEntryDraftHomeMove({
+        mode: "general",
+        move: scoringMoves[SENT_RALLY.homeMoveIndex]!,
+      }),
     );
   if (tapCount >= 3)
     dispatch(
-      gameActions.setEntryDraftAwayMove(
-        scoringMoves[SENT_RALLY.awayMoveIndex]!,
-      ),
+      gameActions.setEntryDraftAwayMove({
+        mode: "general",
+        move: scoringMoves[SENT_RALLY.awayMoveIndex]!,
+      }),
     );
 };
 

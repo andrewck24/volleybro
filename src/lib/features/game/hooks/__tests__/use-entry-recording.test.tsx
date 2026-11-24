@@ -296,14 +296,14 @@ describe("useEntryRecording.edit", () => {
     await act(async () => {
       expect((await submit()).status).toBe("failed");
     });
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
 
     let retry!: ReturnType<typeof submit>;
     act(() => {
       retry = submit();
     });
     await waitFor(() => expect(puts).toHaveLength(2));
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
 
     gate.release();
     await act(async () => {
@@ -375,7 +375,7 @@ describe("useEntryRecording.edit", () => {
     });
 
     const [queued] = pending();
-    expect(store.getState().game.editWriteKey).toBe(
+    expect(store.getState().game.editing.editWriteKey).toBe(
       `e1@${(queued!.entry as { at: string }).at}`,
     );
   });

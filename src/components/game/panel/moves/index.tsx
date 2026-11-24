@@ -3,20 +3,24 @@ import { OppoMoves } from "@/components/game/panel/moves/oppo";
 import { OursMoves } from "@/components/game/panel/moves/ours";
 import type { useStepSwipe } from "@/components/game/panel/use-step-swipe";
 import { Button } from "@/components/ui/button";
+import type { GameDraftMode } from "@/lib/features/game/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 import type { ScoringMove } from "@/lib/scoring-moves";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 export const GameMoves = ({
+  mode,
   className,
   swipe,
 }: {
+  mode: GameDraftMode;
   className?: string;
   swipe?: ReturnType<typeof useStepSwipe>;
 }) => {
-  const gameState = useAppSelector((state) => state.game);
-  const { status, entryDraft: draft } = gameState[gameState.mode];
+  const { status, entryDraft: draft } = useAppSelector(
+    (state) => state.game[mode],
+  );
 
   const step = status.panel === "away" ? 2 : draft.home.player?.id ? 1 : 0;
   const [prevStep, setPrevStep] = useState(step);
@@ -44,7 +48,11 @@ export const GameMoves = ({
             : "slide-in-from-left-full",
         )}
       >
-        {status.panel === "home" ? <OursMoves /> : <OppoMoves />}
+        {status.panel === "home" ? (
+          <OursMoves mode={mode} />
+        ) : (
+          <OppoMoves mode={mode} />
+        )}
       </div>
     </div>
   );

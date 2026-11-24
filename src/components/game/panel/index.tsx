@@ -6,7 +6,7 @@ import { EntryProgressBar } from "@/components/game/panel/progress-bar";
 import { Substitutes } from "@/components/game/panel/substitutes";
 import { useStepSwipe } from "@/components/game/panel/use-step-swipe";
 import { gameActions } from "@/lib/features/game/game-slice";
-import type { ReduxGameState } from "@/lib/features/game/types";
+import type { GameDraftMode } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
 export const GamePanel = ({
@@ -15,7 +15,7 @@ export const GamePanel = ({
   className,
 }: {
   gameId: string;
-  mode: ReduxGameState["mode"];
+  mode: GameDraftMode;
   className?: string;
 }) => {
   const dispatch = useAppDispatch();
@@ -39,7 +39,12 @@ export const GamePanel = ({
 
   const onStepChange = (index: number) => {
     if (!reachableSteps.includes(index)) return;
-    dispatch(gameActions.setPanel(index === lastStep ? "away" : "home"));
+    dispatch(
+      gameActions.setPanel({
+        mode,
+        panel: index === lastStep ? "away" : "home",
+      }),
+    );
   };
 
   const swipe = useStepSwipe({ activeStep, reachableSteps, onStepChange });
@@ -57,7 +62,7 @@ export const GamePanel = ({
       {status.panel === "substitutes" ? (
         <Substitutes gameId={gameId} mode={mode} className={className} />
       ) : (
-        <GameMoves className={className} swipe={swipe} />
+        <GameMoves mode={mode} className={className} swipe={swipe} />
       )}
     </Panel>
   );

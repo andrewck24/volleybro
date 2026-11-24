@@ -193,7 +193,7 @@ export const SummaryDrawer = ({
 
   const dispatch = useAppDispatch();
   const { game } = useGame(gameId);
-  const { setIndex } = useAppSelector((s) => s.game);
+  const setIndex = useAppSelector((s) => s.game.setIndex);
   const preview = useEntryDraftPreview(gameId, "general");
   const { players: teamPlayers } = useTeamPlayers(game?.teamId ?? "");
   const recorderNames = useMemo(

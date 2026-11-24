@@ -33,9 +33,14 @@ describe("the draft a recorded rally is submitted as", () => {
     "passes validation after picking %s and its first outcome",
     (_name, move) => {
       const store = makeStore();
-      store.dispatch(gameActions.setEntryDraftHomeMove(move));
       store.dispatch(
-        gameActions.setEntryDraftAwayMove(scoringMoves[move.outcome[0]!]!),
+        gameActions.setEntryDraftHomeMove({ mode: "general", move: move }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftAwayMove({
+          mode: "general",
+          move: scoringMoves[move.outcome[0]!]!,
+        }),
       );
 
       expect(passesSchema(store)).toBe(true);
@@ -46,7 +51,9 @@ describe("the draft a recorded rally is submitted as", () => {
     "passes validation after picking the opponent error %s",
     (_name, move) => {
       const store = makeStore();
-      store.dispatch(gameActions.setEntryDraftHomeMove(move));
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({ mode: "general", move: move }),
+      );
 
       expect(passesSchema(store)).toBe(true);
     },
@@ -63,7 +70,9 @@ describe("the substitution a recorded entry is submitted as", () => {
   it("is not drafted at all until a player is on the way out", () => {
     const store = makeStore();
 
-    store.dispatch(gameActions.setEntryDraftSubstitution(OID));
+    store.dispatch(
+      gameActions.setEntryDraftSubstitution({ mode: "general", playerId: OID }),
+    );
 
     expect(
       store.getState().game.general.entryDraft.substitution,

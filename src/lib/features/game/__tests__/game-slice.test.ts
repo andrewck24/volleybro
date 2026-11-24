@@ -107,7 +107,10 @@ describe("game-slice initialize keeps the step the recorder is on", () => {
       undefined,
       gameActions.initialize({ game, setIndex: 0 }),
     );
-    state = gameReducer(state, gameActions.setPanel("away"));
+    state = gameReducer(
+      state,
+      gameActions.setPanel({ mode: "general", panel: "away" }),
+    );
 
     state = gameReducer(state, gameActions.initialize({ game, setIndex: 0 }));
 
@@ -119,7 +122,10 @@ describe("game-slice initialize keeps the step the recorder is on", () => {
       undefined,
       gameActions.initialize({ game: gameNamed("game-1"), setIndex: 0 }),
     );
-    state = gameReducer(state, gameActions.setPanel("away"));
+    state = gameReducer(
+      state,
+      gameActions.setPanel({ mode: "general", panel: "away" }),
+    );
 
     const other = gameReducer(
       state,

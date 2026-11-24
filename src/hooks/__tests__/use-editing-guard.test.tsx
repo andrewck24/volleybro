@@ -84,7 +84,7 @@ describe("useEditingGuard", () => {
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
 
     act(() => result.current.leaveEditing());
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
     expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
   });
 
@@ -119,7 +119,9 @@ describe("useEditingGuard", () => {
     expect(event.preventDefault).not.toHaveBeenCalled();
 
     act(() => result.current.leaveEditing());
-    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.editing.entryDraft.id).toBe("");
+    expect(store.getState().game.editing.editWriteKey).toBeNull();
+    expect(store.getState().pendingWrites.pending).toHaveLength(1);
     expect(screen.getByText("編輯未儲存")).toBeInTheDocument();
   });
 
@@ -149,7 +151,7 @@ describe("useEditingGuard", () => {
     const { result } = renderHook(() => useEditingGuard(), { wrapper });
     act(() => result.current.leaveEditing());
 
-    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.editing.entryDraft.id).toBe("");
     expect(screen.getByText("編輯未儲存")).toBeInTheDocument();
   });
 
@@ -172,7 +174,7 @@ describe("useEditingGuard", () => {
     expect(event.preventDefault).not.toHaveBeenCalled();
     act(() => result.current.leaveEditing());
 
-    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.editing.entryDraft.id).toBe("");
     expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
   });
 
@@ -242,7 +244,7 @@ describe("useEditingGuard", () => {
     const { result } = renderHook(() => useEditingGuard(), { wrapper });
     act(() => result.current.leaveEditing());
 
-    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.editing.entryDraft.id).toBe("");
     expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
   });
 
@@ -252,7 +254,7 @@ describe("useEditingGuard", () => {
     const { result } = renderHook(() => useEditingGuard(), { wrapper });
     act(() => result.current.leaveEditing());
 
-    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.editing.entryDraft.id).toBe("");
     expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
   });
 });

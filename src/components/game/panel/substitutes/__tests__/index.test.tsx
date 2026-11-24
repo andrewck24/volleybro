@@ -68,8 +68,15 @@ const renderPanel = async (
   const store = makeStore();
   store.dispatch(gameActions.initialize({ game: game as never, setIndex: 0 }));
   if (editingEntryIndex === undefined) {
-    store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
-    store.dispatch(gameActions.setEntryDraftSubstitution("p2"));
+    store.dispatch(
+      gameActions.setEntryDraftPlayer({ mode: "general", id: "p1", zone: 1 }),
+    );
+    store.dispatch(
+      gameActions.setEntryDraftSubstitution({
+        mode: "general",
+        playerId: "p2",
+      }),
+    );
   } else {
     store.dispatch(
       gameActions.setEditingEntryStatus({
@@ -209,10 +216,12 @@ describe("Substitutes while editing a substitution", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /選手三/ }));
     await userEvent.click(screen.getByRole("button", { name: /確認/ }));
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
     gate.release();
 
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
     expect(puts).toHaveLength(2);
     expect(puts[1]!.body).toMatchObject([
       { id: "sub-1", players: { in: "p3", out: "p1" } },

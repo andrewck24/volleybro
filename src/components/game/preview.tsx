@@ -12,7 +12,7 @@ import {
 import type {
   EntryView,
   GamePlayerView,
-  ReduxGameState,
+  GameDraftMode,
 } from "@/lib/features/game/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
@@ -122,12 +122,9 @@ export const PreviewCard = ({
   );
 };
 
-export const useEntryDraftPreview = (
-  gameId: string,
-  mode: ReduxGameState["mode"],
-) => {
+export const useEntryDraftPreview = (gameId: string, mode: GameDraftMode) => {
   const { game } = useGame(gameId);
-  const { setIndex } = useAppSelector((state) => state.game);
+  const setIndex = useAppSelector((state) => state.game.setIndex);
   const {
     entryDraft: draft,
     status: { isSetInProgress, entryIndex },
@@ -194,22 +191,22 @@ export const GamePreview = ({
   className,
 }: {
   gameId: string;
-  mode: ReduxGameState["mode"];
+  mode: GameDraftMode;
   onSubmit?: () => void;
   onExpandDrawer?: () => void;
   className?: string;
 }) => {
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
-  const editWriteKey = useAppSelector((state) => state.game.editWriteKey);
+  const editWriteKey = useAppSelector((state) =>
+    mode === "editing" ? state.game.editing.editWriteKey : null,
+  );
   const preview = useEntryDraftPreview(gameId, mode);
   if (!preview.hasPreview) return null;
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
     preview;
 
-  const writing =
-    mode === "editing" && isPendingWrite(pendingWrites, editWriteKey);
-  const failed =
-    mode === "editing" && isUnscheduledWrite(pendingWrites, editWriteKey);
+  const writing = isPendingWrite(pendingWrites, editWriteKey);
+  const failed = isUnscheduledWrite(pendingWrites, editWriteKey);
 
   return (
     <PreviewCard

@@ -8,6 +8,7 @@ import {
 } from "@/entities/game";
 import { getPreviousScores } from "@/lib/features/game/helpers";
 import type {
+  GameDraftMode,
   GameView,
   ReduxEntryDraft,
   ReduxGameState,
@@ -37,31 +38,23 @@ const rallyDetailState: ReduxEntryDraft["home"] = {
   player: { id: "", zone: 0 },
 };
 
+const entryDraftState: ReduxEntryDraft = {
+  id: "",
+  seq: 0,
+  win: null,
+  home: rallyDetailState,
+  away: rallyDetailState,
+};
+
 const initialState: ReduxGameState = {
   id: "",
   setIndex: 0,
-  mode: "general",
-  general: {
-    status: statusState,
-    entryDraft: {
-      id: "",
-      seq: 0,
-      win: null,
-      home: rallyDetailState,
-      away: rallyDetailState,
-    },
-  },
+  general: { status: statusState, entryDraft: entryDraftState },
   editing: {
     status: statusState,
-    entryDraft: {
-      id: "",
-      seq: 0,
-      win: null,
-      home: rallyDetailState,
-      away: rallyDetailState,
-    },
+    entryDraft: entryDraftState,
+    editWriteKey: null,
   },
-  editWriteKey: null,
 };
 
 const initialize: CaseReducer<
@@ -84,86 +77,75 @@ const initialize: CaseReducer<
   const generalPanel = isSameSet ? state.general.status.panel : "home";
   state.id = game.id;
   state.setIndex = setIndex;
-  state.mode = "general";
-  state.editWriteKey = null;
-  const status = {
+  if (!isSameSet) state.editing = initialState.editing;
+  state.general.status = {
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
     isServing,
     isSetInProgress,
     isSetPoint,
-    panel: "home" as ReduxStatus["panel"],
+    panel: generalPanel,
     stats,
   };
-  state.general.status = {
-    ...state.general.status,
-    ...status,
-    panel: generalPanel,
-  };
-  state.editing.status = { ...state.editing.status, ...status };
 };
 
-const setGameMode: CaseReducer<
-  ReduxGameState,
-  PayloadAction<ReduxGameState["mode"]>
-> = (state, action) => {
-  state.mode = action.payload;
+const closeEntryEdit: CaseReducer<ReduxGameState> = (state) => {
+  state.editing = initialState.editing;
 };
 
 const editWriteStaged: CaseReducer<ReduxGameState, PayloadAction<string>> = (
   state,
   action,
 ) => {
-  state.editWriteKey = action.payload;
+  state.editing.editWriteKey = action.payload;
 };
 
 const setEntryDraftPlayer: CaseReducer<
   ReduxGameState,
-  PayloadAction<{ id: string; zone: number }>
+  PayloadAction<{ mode: GameDraftMode; id: string; zone: number }>
 > = (state, action) => {
-  const { mode } = state;
-  const { id, zone } = action.payload;
-  const isSamePlayer = id === state[mode].entryDraft.home.player?.id;
+  const { mode, id, zone } = action.payload;
+  const draft = state[mode];
+  const isSamePlayer = id === draft.entryDraft.home.player?.id;
 
-  state[mode].status.panel = "home";
-  const { id: entryId, seq } = state[mode].entryDraft;
-  state[mode].entryDraft = {
-    ...initialState[mode].entryDraft,
+  draft.status.panel = "home";
+  const { id: entryId, seq } = draft.entryDraft;
+  draft.entryDraft = {
+    ...entryDraftState,
     id: entryId,
     seq,
     home: {
-      ...initialState[mode].entryDraft.home,
-      player: isSamePlayer
-        ? initialState[mode].entryDraft.home.player
-        : { id, zone },
-      score: state[mode].status.scores.home,
+      ...entryDraftState.home,
+      player: isSamePlayer ? entryDraftState.home.player : { id, zone },
+      score: draft.status.scores.home,
     },
     away: {
-      ...initialState[mode].entryDraft.away,
-      score: state[mode].status.scores.away,
+      ...entryDraftState.away,
+      score: draft.status.scores.away,
     },
   };
 };
 
 const setEntryDraftHomeMove: CaseReducer<
   ReduxGameState,
-  PayloadAction<ScoringMove>
+  PayloadAction<{ mode: GameDraftMode; move: ScoringMove }>
 > = (state, action) => {
-  const { mode } = state;
-  const { win, type, num, outcome } = action.payload;
-  const { home, away } = state[mode].status.scores;
+  const { mode, move } = action.payload;
+  const draft = state[mode];
+  const { win, type, num, outcome } = move;
+  const { home, away } = draft.status.scores;
   const [outcomeNum = 0] = outcome;
 
-  state[mode].status.panel = "away";
-  state[mode].entryDraft.win = win;
-  state[mode].entryDraft.home = {
-    ...state[mode].entryDraft.home,
+  draft.status.panel = "away";
+  draft.entryDraft.win = win;
+  draft.entryDraft.home = {
+    ...draft.entryDraft.home,
     score: win ? home + 1 : home,
     type,
     num,
   };
-  state[mode].entryDraft.away = {
-    ...state[mode].entryDraft.away,
+  draft.entryDraft.away = {
+    ...draft.entryDraft.away,
     score: win ? away : away + 1,
     type: scoringMoves[outcomeNum]?.type ?? null,
     num: outcomeNum,
@@ -172,11 +154,14 @@ const setEntryDraftHomeMove: CaseReducer<
 
 const setEntryDraftAwayMove: CaseReducer<
   ReduxGameState,
-  PayloadAction<ScoringMove>
+  PayloadAction<{ mode: GameDraftMode; move: ScoringMove }>
 > = (state, action) => {
-  const { mode } = state;
-  const { type, num } = action.payload;
-  state[mode].entryDraft.away = { ...state[mode].entryDraft.away, type, num };
+  const {
+    mode,
+    move: { type, num },
+  } = action.payload;
+  const draft = state[mode];
+  draft.entryDraft.away = { ...draft.entryDraft.away, type, num };
 };
 
 const confirmEntryDraftRally: CaseReducer<
@@ -184,95 +169,99 @@ const confirmEntryDraftRally: CaseReducer<
   PayloadAction<{ isSetInProgress: boolean; isSetPoint: boolean }>
 > = (state, action) => {
   const { isSetInProgress, isSetPoint } = action.payload;
-  const { mode } = state;
-  const { entryIndex } = state[mode].status;
+  const draft = state.general;
+  const { entryIndex } = draft.status;
 
-  state[mode].status = {
-    ...state[mode].status,
+  draft.status = {
+    ...draft.status,
     scores: {
-      home: state[mode].entryDraft.home.score,
-      away: state[mode].entryDraft.away.score,
+      home: draft.entryDraft.home.score,
+      away: draft.entryDraft.away.score,
     },
     entryIndex: entryIndex + 1,
-    isServing: state[mode].entryDraft.win ?? false,
+    isServing: draft.entryDraft.win ?? false,
     isSetInProgress,
     isSetPoint,
     panel: "home",
   };
 
-  state[mode].entryDraft = {
-    ...initialState[mode].entryDraft,
+  draft.entryDraft = {
+    ...entryDraftState,
     home: {
-      ...initialState[mode].entryDraft.home,
-      score: state[mode].status.scores.home,
+      ...entryDraftState.home,
+      score: draft.status.scores.home,
     },
     away: {
-      ...initialState[mode].entryDraft.away,
-      score: state[mode].status.scores.away,
+      ...entryDraftState.away,
+      score: draft.status.scores.away,
     },
   };
 };
 
 const setEntryDraftSubstitution: CaseReducer<
   ReduxGameState,
-  PayloadAction<string>
+  PayloadAction<{ mode: GameDraftMode; playerId: string }>
 > = (state, action) => {
-  const { mode } = state;
-  const outPlayer = state[mode].entryDraft.home.player?.id;
+  const { mode, playerId } = action.payload;
+  const draft = state[mode];
+  const outPlayer = draft.entryDraft.home.player?.id;
   if (!outPlayer) return;
-  state[mode].entryDraft = {
-    ...state[mode].entryDraft,
+  draft.entryDraft = {
+    ...draft.entryDraft,
     substitution: {
       team: Side.HOME,
-      players: { in: action.payload, out: outPlayer },
+      players: { in: playerId, out: outPlayer },
     },
   };
 };
 
-const resetEntryDraftSubstitution: CaseReducer<ReduxGameState> = (state) => {
-  const { mode } = state;
-  const { substitution: _substitution, ...rest } = state[mode].entryDraft;
-  state[mode].entryDraft = { ...rest };
-  state[mode].status.panel = "home";
+const resetEntryDraftSubstitution: CaseReducer<
+  ReduxGameState,
+  PayloadAction<GameDraftMode>
+> = (state, action) => {
+  const draft = state[action.payload];
+  const { substitution: _substitution, ...rest } = draft.entryDraft;
+  draft.entryDraft = { ...rest };
+  draft.status.panel = "home";
 };
 
 const confirmEntryDraftSubstitution: CaseReducer<ReduxGameState> = (state) => {
-  const { mode } = state;
-  state[mode].status.panel = "home";
-  state[mode].status.entryIndex += 1;
-  state[mode].entryDraft = {
-    ...initialState[mode].entryDraft,
+  const draft = state.general;
+  draft.status.panel = "home";
+  draft.status.entryIndex += 1;
+  draft.entryDraft = {
+    ...entryDraftState,
     home: {
-      ...initialState[mode].entryDraft.home,
-      score: state[mode].status.scores.home,
+      ...entryDraftState.home,
+      score: draft.status.scores.home,
     },
     away: {
-      ...initialState[mode].entryDraft.away,
-      score: state[mode].status.scores.away,
+      ...entryDraftState.away,
+      score: draft.status.scores.away,
     },
   };
 };
 
 const setPanel: CaseReducer<
   ReduxGameState,
-  PayloadAction<ReduxStatus["panel"]>
+  PayloadAction<{ mode: GameDraftMode; panel: ReduxStatus["panel"] }>
 > = (state, action) => {
-  const { mode } = state;
-  state[mode].status.panel = action.payload;
+  const { mode, panel } = action.payload;
+  state[mode].status.panel = panel;
 };
 
 const resetEntryDraft: CaseReducer<ReduxGameState> = (state) => {
-  const { mode } = state;
-  state[mode].status.panel = "home";
-  state[mode].entryDraft = {
-    ...initialState[mode].entryDraft,
+  const draft = state.general;
+  draft.status.panel = "home";
+  draft.entryDraft = {
+    ...entryDraftState,
     home: {
-      ...initialState[mode].entryDraft.home,
-      score: state[mode].status.scores.home,
+      ...entryDraftState.home,
+      score: draft.status.scores.home,
     },
     away: {
-      ...initialState[mode].entryDraft.away,
-      score: state[mode].status.scores.away,
+      ...entryDraftState.away,
+      score: draft.status.scores.away,
     },
   };
 };
@@ -292,8 +281,7 @@ const setEditingEntryStatus: CaseReducer<
     setTargetPoints(game.info.scoring, setIndex),
   );
 
-  state.mode = "editing";
-  state.editWriteKey = null;
+  state.editing.editWriteKey = null;
   state.editing.entryDraft = {
     id: entry.id,
     seq: entry.seq,
@@ -317,7 +305,7 @@ const setEditingEntryStatus: CaseReducer<
           : {}),
   };
   state.editing.status = {
-    ...state.editing.status,
+    stats: deriveSetStats(set.entries, { options: set.options }),
     isServing: deriveServingStatus(set, entryIndex),
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
@@ -332,7 +320,7 @@ const gameSlice = createSlice({
   initialState,
   reducers: {
     initialize,
-    setGameMode,
+    closeEntryEdit,
     editWriteStaged,
     setEntryDraftPlayer,
     setEntryDraftHomeMove,

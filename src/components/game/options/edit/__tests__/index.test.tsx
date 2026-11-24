@@ -1,5 +1,4 @@
-import { EntriesEdit } from "@/components/game/options/edit";
-import { Dialog } from "@/components/ui/dialog";
+import { EntriesEditDialog } from "@/components/game/options/edit/dialog";
 import { PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { deferred } from "@test/support/gates";
@@ -16,11 +15,7 @@ import userEvent from "@testing-library/user-event";
 import { HttpResponse } from "msw";
 
 const renderEntriesEdit = () =>
-  renderEditingGame(
-    <Dialog open>
-      <EntriesEdit gameId="game-1" />
-    </Dialog>,
-  );
+  renderEditingGame(<EntriesEditDialog gameId="game-1" />);
 
 describe("EntriesEdit back control", () => {
   it("leaves editing mode on tap while idle", async () => {
@@ -32,7 +27,7 @@ describe("EntriesEdit back control", () => {
 
     await user.click(back);
 
-    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.editing.entryDraft.id).toBe("");
   });
 
   it("is disabled while a write is in flight, so it cannot be tapped away", async () => {
@@ -52,12 +47,19 @@ describe("EntriesEdit rally submission", () => {
     const { store } = renderEntriesEdit();
     await screen.findByRole("button", { name: "back" });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
     });
 
     await user.click(await screen.findByTestId("preview-trigger"));
 
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
     await waitFor(() =>
       expect(store.getState().pendingWrites.pending).toHaveLength(0),
     );
@@ -73,8 +75,15 @@ describe("EntriesEdit rally submission", () => {
     const { store } = renderEntriesEdit();
     await screen.findByRole("button", { name: "back" });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "editing", id: "p1", zone: 1 }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
     });
 
     await user.click(await screen.findByTestId("preview-trigger"));
@@ -101,14 +110,19 @@ describe("EntriesEdit after a write that first fails with a server error", () =>
     const { store } = renderEntriesEdit();
     await screen.findByRole("button", { name: "back" });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
     });
 
     await user.click(await screen.findByTestId("preview-trigger"));
     await act(async () => {
       await jest.advanceTimersByTimeAsync(2000);
     });
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
 
     await act(async () => {
       await jest.advanceTimersByTimeAsync(
@@ -116,7 +130,9 @@ describe("EntriesEdit after a write that first fails with a server error", () =>
       );
     });
 
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
     expect(puts).toHaveLength(4);
   });
 });
@@ -139,7 +155,12 @@ describe("EntriesEdit while the entry's own creation write is still queued", () 
           setIndex: 0,
         }),
       );
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
     });
     await waitFor(() => expect(puts).toHaveLength(1));
 
@@ -148,7 +169,7 @@ describe("EntriesEdit while the entry's own creation write is still queued", () 
       expect(store.getState().pendingWrites.pending).toHaveLength(0),
     );
 
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
     expect(store.getState().game.editing.entryDraft.home.num).toBe(
       scoringMoves[4]!.num,
     );
@@ -156,7 +177,9 @@ describe("EntriesEdit while the entry's own creation write is still queued", () 
 
     await user.click(await screen.findByTestId("preview-trigger"));
 
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
     expect(puts).toHaveLength(2);
   });
 });

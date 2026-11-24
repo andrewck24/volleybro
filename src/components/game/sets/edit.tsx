@@ -18,8 +18,10 @@ export const SetEdit = ({
   gameId: string;
   setIndex: number;
 }) => {
-  const { mode } = useAppSelector((state) => state.game);
-  const { guardDismiss, leaveEditing } = useEditingGuard();
+  const isEditing = useAppSelector((state) =>
+    Boolean(state.game.editing.entryDraft.id),
+  );
+  const { writing, guardDismiss, leaveEditing } = useEditingGuard();
 
   return (
     <DialogContent
@@ -28,7 +30,7 @@ export const SetEdit = ({
       onInteractOutside={guardDismiss}
       onCloseAutoFocus={leaveEditing}
     >
-      {mode === "general" ? (
+      {!isEditing ? (
         <>
           <DialogHeader>
             <DialogTitle>第 {setIndex + 1} 局逐球記錄</DialogTitle>
@@ -39,7 +41,7 @@ export const SetEdit = ({
           </DialogBody>
         </>
       ) : (
-        <EntriesEdit gameId={gameId} />
+        <EntriesEdit gameId={gameId} writing={writing} onBack={leaveEditing} />
       )}
     </DialogContent>
   );
