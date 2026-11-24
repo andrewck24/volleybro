@@ -66,7 +66,14 @@ export const useUserPlayers = (userId: string | undefined) => {
     ApiClientError
   >(key, fetcher, SWR_CONFIG.LIST);
 
-  return { players: data ?? [], error, isLoading, isValidating, mutate };
+  return {
+    players: data ?? [],
+    hasLoaded: data !== undefined,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+  };
 };
 
 const isTeamRefusal = (error: ApiClientError | undefined) =>
@@ -87,10 +94,10 @@ const useTeamRequest = (
 
 const usePreferredTeam = (teamId: string | undefined) => {
   const swrConfig = useSWRConfig();
-  const { data, error } = useTeamRequest(teamId ?? "", (err, key) => {
+  const { data, error, mutate } = useTeamRequest(teamId ?? "", (err, key) => {
     if (!isTeamRefusal(err)) swrConfig.onError?.(err, key, swrConfig);
   });
-  return { team: data, error };
+  return { team: data, error, mutate };
 };
 
 const usePersistActiveTeam = (preferenceAction: PreferenceAction) => {
@@ -124,11 +131,19 @@ export const useActiveTeamId = () => {
     error: userError,
     mutate: mutateUser,
   } = useUser();
-  const { players, isLoading: playersLoading } = useUserPlayers(user?.id);
+  const {
+    players,
+    hasLoaded: hasLoadedMemberships,
+    isLoading: playersLoading,
+    error: playersError,
+    mutate: mutatePlayers,
+  } = useUserPlayers(user?.id);
   const { preference } = useActiveTeamPreference();
-  const { team: preferredTeam, error: preferredTeamError } = usePreferredTeam(
-    preference?.teamId,
-  );
+  const {
+    team: preferredTeam,
+    error: preferredTeamError,
+    mutate: mutatePreferredTeam,
+  } = usePreferredTeam(preference?.teamId);
 
   const isUserUnavailable = !!userError && !user;
   const preferredTeamStatus = isTeamRefusal(preferredTeamError)
@@ -164,7 +179,24 @@ export const useActiveTeamId = () => {
     verification === "pending" ||
     (verification === "unused" && (userLoading || playersLoading));
 
-  return { teamId, isLoading, error: userError, mutate: mutateUser };
+  const hasPreferredTeamFailure =
+    preferredTeamStatus === "failed" && preference?.userId === user?.id;
+
+  return {
+    teamId,
+    isLoading,
+    hasLoadedMemberships,
+    error:
+      userError ??
+      playersError ??
+      (hasPreferredTeamFailure ? preferredTeamError : undefined),
+    mutate: mutateUser,
+    retry: userError
+      ? mutateUser
+      : playersError
+        ? mutatePlayers
+        : mutatePreferredTeam,
+  };
 };
 
 export const useTeam = (teamId: string) => {
