@@ -15,6 +15,7 @@ import {
   prepareFinalRelease,
   outputsOf,
 } from "../../test/support/release-controls-fixture.js";
+import { validatePrBody } from "../validate-pr-body.js";
 
 test("rollback requires the live candidate, an intact run-bound receipt and a healthy baseline", async (t) => {
   const f = await fixture(t);
@@ -253,6 +254,7 @@ test("merge-back preserves pending changesets and the hotfix parent without reba
     (args) => args[0] === "pr" && args[1] === "create",
   );
   const body = created[created.indexOf("--body") + 1];
+  assert.equal(validatePrBody({ body, headRef: branch }), undefined);
   assert.ok(body.includes(f.deployed), "Handoff identifies deployed baseline");
   assert.ok(body.includes(f.hotfix), "Handoff identifies published repair");
   assert.match(body, /docs\/release-contract\.md/);
