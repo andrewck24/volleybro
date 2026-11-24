@@ -445,7 +445,7 @@ describe("Game rally edit started from the summary drawer", () => {
     expect(store.getState().game.general.status.panel).toBe("away");
   });
 
-  it("leaves editing mode when the page mounts with a store left in editing", async () => {
+  it("discards a stale edit draft when the recording page mounts", async () => {
     const store = makeStore();
     const game = makeMockGame() as never;
     store.dispatch(gameActions.initialize({ game, setIndex: 0 }));

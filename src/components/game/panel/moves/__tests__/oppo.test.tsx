@@ -121,7 +121,7 @@ describe("useSubmitEntryDraft update path", () => {
     await waitFor(() => expect(result.current.game).toBeDefined());
   });
 
-  it("stays in editing mode when the write fails", async () => {
+  it("retains the edit draft when the write fails", async () => {
     answerEntries(() => HttpResponse.error());
     const { result } = await renderSubmitter(gameWith([rally]), {
       editingEntryIndex: 0,
@@ -162,7 +162,7 @@ describe("useSubmitEntryDraft update path", () => {
     expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
   });
 
-  it("returns to general mode once the write succeeds", async () => {
+  it("clears the edit draft once the write succeeds", async () => {
     answerEntries(() => HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }));
     const { result } = await renderSubmitter(gameWith([rally]), {
       editingEntryIndex: 0,

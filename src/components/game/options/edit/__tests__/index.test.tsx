@@ -18,7 +18,7 @@ const renderEntriesEdit = () =>
   renderEditingGame(<EntriesEditDialog gameId="game-1" />);
 
 describe("EntriesEdit back control", () => {
-  it("leaves editing mode on tap while idle", async () => {
+  it("closes the editor when the back button is tapped while idle", async () => {
     const user = userEvent.setup();
     const { store } = renderEntriesEdit();
 
@@ -39,7 +39,7 @@ describe("EntriesEdit back control", () => {
 });
 
 describe("EntriesEdit rally submission", () => {
-  it("writes the edited rally under its id and seq, then returns to general mode", async () => {
+  it("writes the edited rally under its id and seq, then closes the editor", async () => {
     const user = userEvent.setup();
     const puts = answerEntries(() =>
       HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
@@ -99,7 +99,7 @@ describe("EntriesEdit rally submission", () => {
 describe("EntriesEdit after a write that first fails with a server error", () => {
   afterEach(() => jest.useRealTimers());
 
-  it("leaves editing mode when the background retry finally succeeds", async () => {
+  it("closes the editor when the background retry finally succeeds", async () => {
     jest.useFakeTimers({ doNotFake: ["nextTick"] });
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     const puts = answerEntries((_, attempt) =>

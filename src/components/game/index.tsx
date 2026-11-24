@@ -103,11 +103,11 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
               setTabValue={setTabValue}
             />
           </Dialog>
+          <EntriesEditDialog gameId={gameId} />
         </div>
       ) : (
         <Interval gameId={gameId} setIndex={setIndex} />
       )}
-      <EntriesEditDialog gameId={gameId} />
     </PendingWritesContext.Provider>
   );
 };

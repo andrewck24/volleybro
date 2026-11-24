@@ -78,7 +78,7 @@ export const Substitutes = ({
             variant="glass"
             size="icon"
             onClick={() =>
-              dispatch(gameActions.resetEntryDraftSubstitution(mode))
+              dispatch(gameActions.resetEntryDraftSubstitution({ mode }))
             }
           >
             <RiArrowLeftSLine />
@@ -97,7 +97,7 @@ export const Substitutes = ({
               pressed={toggled}
               onClick={() =>
                 toggled
-                  ? dispatch(gameActions.resetEntryDraftSubstitution(mode))
+                  ? dispatch(gameActions.resetEntryDraftSubstitution({ mode }))
                   : dispatch(
                       gameActions.setEntryDraftSubstitution({
                         mode,

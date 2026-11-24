@@ -217,9 +217,10 @@ const setEntryDraftSubstitution: CaseReducer<
 
 const resetEntryDraftSubstitution: CaseReducer<
   ReduxGameState,
-  PayloadAction<GameDraftMode>
+  PayloadAction<{ mode: GameDraftMode }>
 > = (state, action) => {
-  const draft = state[action.payload];
+  const { mode } = action.payload;
+  const draft = state[mode];
   const { substitution: _substitution, ...rest } = draft.entryDraft;
   draft.entryDraft = { ...rest };
   draft.status.panel = "home";
