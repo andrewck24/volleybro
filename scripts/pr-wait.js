@@ -13,12 +13,17 @@ const FAILED_STATES = new Set([
   "TIMED_OUT",
   "ACTION_REQUIRED",
   "STARTUP_FAILURE",
+  "STALE",
 ]);
 
 const RUN_ID = /\/actions\/runs\/(\d+)\//;
 
 function runId(check) {
   return Number(check.link?.match(RUN_ID)?.[1] ?? 0);
+}
+
+function describeCheck({ name, state, link }) {
+  return `${name} is ${state}${link ? `: ${link}` : ""}`;
 }
 
 function currentEntry(checks, name) {
@@ -50,10 +55,9 @@ export function assessReadiness({ checks, pr, head }) {
     name,
     currentEntry(checks, name),
   ]);
-  for (const [name, check] of required) {
+  for (const [, check] of required) {
     if (check && FAILED_STATES.has(check.state)) {
-      const link = check.link ? `: ${check.link}` : "";
-      return { status: "fail", reason: `${name} is ${check.state}${link}` };
+      return { status: "fail", reason: describeCheck(check) };
     }
   }
   if (pr.mergeStateStatus === "BEHIND") {
@@ -71,7 +75,7 @@ export function assessReadiness({ checks, pr, head }) {
   if (pending.length > 0) {
     return { status: "wait", reason: `waiting for ${pending.join(", ")}` };
   }
-  if (pr.mergeStateStatus !== "CLEAN") {
+  if (!["CLEAN", "UNSTABLE"].includes(pr.mergeStateStatus)) {
     return { status: "wait", reason: `merge state is ${pr.mergeStateStatus}` };
   }
   return { status: "ready" };
@@ -138,14 +142,28 @@ async function main() {
   let last = "";
   for (;;) {
     let result;
+    let checks = [];
     try {
-      const [pr, checks] = await Promise.all([
+      const [pr, prChecks] = await Promise.all([
         readPr(number),
         readChecks(number),
       ]);
-      result = assessReadiness({ checks, pr, head });
+      result = assessReadiness({ checks: prChecks, pr, head });
+      checks = prChecks;
     } catch (error) {
       result = { status: "wait", reason: `gh failed: ${error.message}` };
+    }
+    const isTimedOut = Date.now() > deadline;
+    if (result.status !== "wait" || isTimedOut) {
+      for (const check of checks) {
+        if (REQUIRED_CHECKS.includes(check.name)) continue;
+        const description = describeCheck(check);
+        if (FAILED_STATES.has(check.state)) {
+          console.warn(`warning: ${description}`);
+        } else {
+          console.log(description);
+        }
+      }
     }
     if (result.status === "ready" || result.status === "merged") {
       console.log(`${result.status}: ${head}`);
@@ -157,7 +175,7 @@ async function main() {
     }
     if (result.reason !== last) console.log(result.reason);
     last = result.reason;
-    if (Date.now() > deadline) {
+    if (isTimedOut) {
       console.error(`timed out: ${result.reason}`);
       process.exit(1);
     }
