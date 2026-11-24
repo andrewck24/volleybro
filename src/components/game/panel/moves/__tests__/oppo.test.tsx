@@ -7,6 +7,7 @@ import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
+import { deferred } from "@test/support/gates";
 import { answerEntries } from "@test/support/msw/entries";
 import { useToast } from "@/components/ui/use-toast";
 import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
@@ -21,7 +22,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { delay, http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
 const rally = {
@@ -89,12 +90,22 @@ beforeEach(() => answerSignedInUser());
 
 describe("useSubmitEntryDraft update path", () => {
   it("keeps the draft and queues nothing if the game has not loaded", async () => {
-    server.use(http.get("/api/games/game-1", () => delay("infinite")));
+    const gate = deferred();
+    const game = gameWith([rally]);
+    server.use(
+      http.get("/api/games/game-1", async () => {
+        await gate.promise;
+        return HttpResponse.json(game);
+      }),
+    );
     const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
-    const game = gameWith([rally]) as never;
     store = makeStore();
-    store.dispatch(gameActions.initialize({ game, setIndex: 0 }));
-    store.dispatch(gameActions.setEditingEntryStatus({ game, entryIndex: 0 }));
+    store.dispatch(
+      gameActions.initialize({ game: game as never, setIndex: 0 }),
+    );
+    store.dispatch(
+      gameActions.setEditingEntryStatus({ game: game as never, entryIndex: 0 }),
+    );
     const { result } = renderHook(() => useHarness("editing"), { wrapper });
     const draft = store.getState().game.editing.entryDraft;
 
@@ -105,6 +116,9 @@ describe("useSubmitEntryDraft update path", () => {
     expect(store.getState().game.editing.entryDraft).toEqual(draft);
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
     expect(puts).toHaveLength(0);
+
+    gate.release();
+    await waitFor(() => expect(result.current.game).toBeDefined());
   });
 
   it("stays in editing mode when the write fails", async () => {

@@ -150,7 +150,12 @@ const setUpGame = ({ store = makeStore() }: { store?: AppStore } = {}) => {
   return { store, puts };
 };
 
-beforeEach(() => answerSignedInUser());
+beforeEach(() => {
+  answerSignedInUser();
+  server.use(
+    http.get("/api/teams/team-1/players", () => HttpResponse.json([])),
+  );
+});
 
 describe("Game gesture split, wired through the real composition", () => {
   it("submitting the next set from the interval screen POSTs with an index equal to the existing set count", async () => {
