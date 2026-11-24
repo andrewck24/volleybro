@@ -11,18 +11,22 @@ import {
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
-function runCommitlint(message, branch, envOverrides = {}) {
+function runCommitlint(message, branch, envOverrides = {}, args = []) {
   try {
-    execFileSync(process.execPath, ["node_modules/@commitlint/cli/cli.js"], {
-      cwd: repoRoot,
-      input: message,
-      env: {
-        ...process.env,
-        CI: "",
-        COMMITLINT_BRANCH: branch,
-        ...envOverrides,
+    execFileSync(
+      process.execPath,
+      ["node_modules/@commitlint/cli/cli.js", ...args],
+      {
+        cwd: repoRoot,
+        input: message,
+        env: {
+          ...process.env,
+          CI: "",
+          COMMITLINT_BRANCH: branch,
+          ...envOverrides,
+        },
       },
-    });
+    );
     return { ok: true };
   } catch (error) {
     return { ok: false, output: error.stdout?.toString() ?? "" };
@@ -314,4 +318,25 @@ test("commitlint names the look-alike line instead of reporting an empty body", 
 test("a message of only a subject and trailers is left to body-empty", () => {
   const message = "docs(x): subject\n\nBlueprint-Change: some-change";
   assert.deepEqual(evaluateFooterLookalike(message), { ok: true });
+});
+
+const TITLE_CONFIG = ["--config", "commitlint.title.config.js"];
+
+test("a pull request title longer than a commit subject's limit passes", () => {
+  const title =
+    "chore(deps): bump chromaui/action from 18.15.0 to 18.15.1 in the minor-patch group across 1 directory";
+  assert.ok(title.length > 100);
+  const result = runCommitlint(title, "fast/x", {}, TITLE_CONFIG);
+  assert.equal(result.ok, true, result.output);
+});
+
+test("a pull request title with an unknown type still fails", () => {
+  const result = runCommitlint(
+    "bump(deps): update chromaui/action",
+    "fast/x",
+    {},
+    TITLE_CONFIG,
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.output, /type-enum/);
 });
