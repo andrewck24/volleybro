@@ -6,14 +6,12 @@ import { getTeamsStats } from "@/lib/features/game/helpers/queries/team-stats.he
 
 import {
   applyEntry,
-  assertRallyAt,
   deriveEntryPhase,
 } from "@/lib/features/game/helpers/optimistic/rally.helper";
 import { applySubstitution } from "@/lib/features/game/helpers/optimistic/substitution.helper";
 
 export {
   applyEntry,
-  assertRallyAt,
   applySubstitution,
   deriveEntryPhase,
   getPreviousScores,

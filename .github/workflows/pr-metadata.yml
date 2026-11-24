@@ -80,13 +80,4 @@ jobs:
           RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
       - name: Validate PR body
         if: ${{ !cancelled() }}
-        run: |
-          node --input-type=module <<'JS'
-          import { readFileSync } from "node:fs";
-
-          const { pull_request: pr } = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
-          if (!pr.body?.trim()) {
-            console.error("Enter a PR description or release notes.");
-            process.exitCode = 1;
-          }
-          JS
+        run: node scripts/validate-pr-body.js

@@ -2,8 +2,8 @@
 import { useToast } from "@/components/ui/use-toast";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
-  hasFailedWrite,
   isPendingWrite,
+  isUnscheduledWrite,
 } from "@/lib/features/game/pending-writes";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
@@ -11,11 +11,13 @@ export function useEditingGuard() {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const mode = useAppSelector((state) => state.game.mode);
-  const entryId = useAppSelector((state) => state.game.editing.entryDraft.id);
+  const editWriteKey = useAppSelector((state) => state.game.editWriteKey);
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
 
-  const writing = mode === "editing" && isPendingWrite(pendingWrites, entryId);
-  const failed = mode === "editing" && hasFailedWrite(pendingWrites, entryId);
+  const writing =
+    mode === "editing" && isPendingWrite(pendingWrites, editWriteKey);
+  const failed =
+    mode === "editing" && isUnscheduledWrite(pendingWrites, editWriteKey);
 
   const guardDismiss = (event: { preventDefault: () => void }) => {
     if (writing) event.preventDefault();

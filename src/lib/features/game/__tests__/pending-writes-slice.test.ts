@@ -2,6 +2,7 @@ import { EntryType } from "@/entities/game";
 import {
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
   deriveSyncStatus,
+  writeKey,
 } from "@/lib/features/game/pending-writes";
 import pendingWritesReducer, {
   pendingWritesActions,
@@ -83,10 +84,46 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
+      pendingWritesActions.flushSucceeded({ keys: ["e1"] }),
     );
 
     expect(state.pending.map((p) => p.entry.id)).toEqual(["e2"]);
+  });
+
+  describe("when a newer write of the same entry was staged during a flush", () => {
+    const sent = { ...entry("e1"), at: "2026-01-01T10:00:00.000Z" };
+    const newer = { ...entry("e1"), at: "2026-01-01T10:00:05.000Z" };
+    const seeded = (): PendingWritesState => ({
+      storageUnavailable: false,
+      pending: [sent, newer].map((queued) => ({
+        entry: queued,
+        gameId: "game-1",
+        setIndex: 0,
+        attempts: 0,
+        nextAttemptAt: Date.now(),
+      })),
+    });
+
+    it("flushSucceeded keeps the newer write queued", () => {
+      const state = pendingWritesReducer(
+        seeded(),
+        pendingWritesActions.flushSucceeded({ keys: [writeKey(sent)] }),
+      );
+
+      expect(state.pending.map((p) => p.entry.at)).toEqual([newer.at]);
+    });
+
+    it("flushFailed counts the attempt only against the write that was sent", () => {
+      const state = pendingWritesReducer(
+        seeded(),
+        pendingWritesActions.flushFailed({
+          keys: [writeKey(sent)],
+          retryable: true,
+        }),
+      );
+
+      expect(state.pending.map((p) => p.attempts)).toEqual([1, 0]);
+    });
   });
 
   it("flushFailed schedules the next background delay by attempt count", () => {
@@ -106,7 +143,7 @@ describe("pendingWrites reducer", () => {
     let state = pendingWritesReducer(
       seeded,
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: ["e1"],
         retryable: true,
       }),
     );
@@ -120,7 +157,7 @@ describe("pendingWrites reducer", () => {
       state = pendingWritesReducer(
         state,
         pendingWritesActions.flushFailed({
-          ids: ["e1"],
+          keys: ["e1"],
           retryable: true,
         }),
       );
@@ -132,7 +169,7 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: ["e1"],
         retryable: true,
       }),
     );
@@ -154,7 +191,7 @@ describe("pendingWrites reducer", () => {
     const failed = pendingWritesReducer(
       enqueued,
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: ["e1"],
         retryable: false,
         lastError: {
           code: "AUTHENTICATION",
@@ -172,7 +209,7 @@ describe("pendingWrites reducer", () => {
     const failedAgain = pendingWritesReducer(
       failed,
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: ["e1"],
         retryable: true,
       }),
     );
@@ -191,7 +228,7 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: ["e1"],
         retryable: false,
       }),
     );
@@ -202,7 +239,7 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: ["e1"],
         retryable: false,
       }),
     );
@@ -230,7 +267,7 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
+      pendingWritesActions.flushSucceeded({ keys: ["e1"] }),
     );
 
     expect(state.pending).toEqual([]);
@@ -253,7 +290,7 @@ describe("pendingWrites reducer", () => {
     const state = pendingWritesReducer(
       seeded,
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: ["e1"],
         retryable: false,
       }),
     );

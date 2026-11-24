@@ -174,7 +174,6 @@ export const SummaryDrawer = ({
   state: controlledState,
   onToggle: controlledOnToggle,
   onSubmit,
-  onEditRequest,
   onEntryRetry,
   className,
 }: {
@@ -182,7 +181,6 @@ export const SummaryDrawer = ({
   state?: SummaryDrawerState;
   onToggle?: () => void;
   onSubmit?: () => void;
-  onEditRequest?: () => void;
   onEntryRetry?: () => void;
   className?: string;
 }) => {
@@ -223,7 +221,6 @@ export const SummaryDrawer = ({
 
   const handleEntryClick = (entryIndex: number) => {
     dispatch(gameActions.setEditingEntryStatus({ game, entryIndex }));
-    onEditRequest?.();
   };
 
   return (

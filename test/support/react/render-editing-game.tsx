@@ -1,3 +1,5 @@
+import { gameActions } from "@/lib/features/game/game-slice";
+import { writeKey } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { AppStore } from "@/lib/redux/store";
 import { act } from "@testing-library/react";
@@ -19,6 +21,7 @@ export function holdEditedWrite(store: AppStore) {
     http.put("/api/games/game-1/sets/entries", () => delay("infinite")),
   );
   act(() => {
+    store.dispatch(gameActions.editWriteStaged(writeKey(rally)));
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: rally as never,

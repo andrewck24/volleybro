@@ -358,7 +358,7 @@ describe("SummaryDrawer", () => {
       );
       store.dispatch(
         pendingWritesActions.flushFailed({
-          ids: [allEntries[1]!.id],
+          keys: [allEntries[1]!.id],
           retryable: false,
           lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),
@@ -380,24 +380,15 @@ describe("SummaryDrawer", () => {
     expect(onEntryRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("editing an entry row switches the store to editing that entry and fires onEditRequest", async () => {
-    const onEditRequest = jest.fn();
+  it("editing an entry row switches the store to editing that entry", async () => {
     const store = initializedStore();
-    renderDrawer(
-      store,
-      <SummaryDrawer
-        gameId="game-1"
-        state="expanded"
-        onEditRequest={onEditRequest}
-      />,
-    );
+    renderDrawer(store, <SummaryDrawer gameId="game-1" state="expanded" />);
 
     const editButtons = await screen.findAllByTestId("entry-action-edit");
     fireEvent.click(editButtons[0]!);
 
     expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().game.editing.entryDraft.id).toBe(allEntries[2]!.id);
-    expect(onEditRequest).toHaveBeenCalledTimes(1);
   });
 
   it("names the recorder from the team roster", async () => {

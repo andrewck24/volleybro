@@ -30,7 +30,8 @@ Recording a rally appends one entry. Everything else about the set — the score
 - A failure the server will refuse again — an expired session among them — is not resent on its own. The entry stays queued and the recorder's own retry sends it, which for an expired session means after signing back in.
 - The sync indicator appears only when it has something to report. An empty queue renders a same-sized empty slot, so nothing around it shifts, and a queue recovering from failure holds a check mark briefly rather than vanishing.
 - After an entry write the server derives whether the set has finished, and writes the set's result once when it has, together with the match result when that becomes decided. It writes only when the derived value differs from what it read, so this is once per set rather than once per rally.
-- Editing a rally that puts a finished set back in progress resets the set's result.
+- An edit never changes a set's result: it cannot change a rally's winner, so the running scores and a finished set's result stay as recorded.
+- An edit can change a rally's players and moves but not which side won it. Each rally stores the running score, so a different winner would leave every later rally's score wrong. The move buttons of the other outcome do nothing but show 目前無法變更這一球的得分方, and the server refuses a write that changes the winner of a stored rally with a 400 `ENTRY_WINNER_CHANGED`, or turns an entry into another kind with a 400 `ENTRY_TYPE_CHANGED`, leaving the set and its version as they were.
 - The between-sets screen is covered by a dialog that cannot be dismissed while this set's result is still owed to the server — including by the back gesture, which asks before leaving. The next set cannot start on a result that was never saved.
 - A set is won at its target score with a two-point lead; the deciding set plays to its own target. Both are expressed by `setTargetPoints` and `deriveSetPhase` in the domain layer.
 - A game starts undecided. `win` is `null` until a result exists, because by this codebase's convention a boolean means the match is over.
@@ -49,6 +50,7 @@ Recording a rally appends one entry. Everything else about the set — the score
 
 ## Known gaps
 
+- The winner of a recorded rally cannot be changed, because later rallies store their own running scores instead of deriving them from the entries. It opens up once a set's scores are derived from its entries.
 - Only the last edit is kept; there is no edit history. An edit that arrives after its entry was deleted is stored as a new entry, because deletion is not built yet.
 - Timeout and challenge exist as entry types but have no recording flow — no use case, API route, or panel trigger.
 - Ordering conflicts between devices are out of reach: sequence numbers prevent reordering and duplication, not two recorders disagreeing about what happened.

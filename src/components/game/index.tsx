@@ -4,6 +4,7 @@ import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { GameCourt } from "@/components/game/court";
 import { GameHeader } from "@/components/game/header";
 import { GameOptions } from "@/components/game/options";
+import { EntriesEditDialog } from "@/components/game/options/edit/dialog";
 import { GameOptionsSummary } from "@/components/game/options/summary";
 import { GamePanel } from "@/components/game/panel";
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
@@ -30,7 +31,7 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 
 const SubmittingSummaryDrawer = (
   props: Omit<ComponentProps<typeof SummaryDrawer>, "onSubmit">,
@@ -45,7 +46,8 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
-  const { id, general } = useAppSelector((state) => state.game);
+  const { id, general, mode } = useAppSelector((state) => state.game);
+  const initialized = useRef(false);
   const pendingWrites = usePendingWrites(gameId, setIndex);
   const { retry } = pendingWrites;
 
@@ -59,8 +61,10 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
-    if (game) dispatch(gameActions.initialize({ game, setIndex }));
-  }, [gameId, setIndex, game, dispatch]);
+    if (!game || (initialized.current && mode === "editing")) return;
+    initialized.current = true;
+    dispatch(gameActions.initialize({ game, setIndex }));
+  }, [gameId, setIndex, game, mode, dispatch]);
 
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || id !== gameId) {
@@ -94,7 +98,6 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
           gameId={gameId}
           state={drawerState}
           onToggle={toggleDrawer}
-          onEditRequest={() => setDialogOpen(true)}
           onEntryRetry={() => void retry()}
         />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -104,6 +107,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
             setTabValue={setTabValue}
           />
         </Dialog>
+        <EntriesEditDialog gameId={gameId} />
       </div>
     </PendingWritesContext.Provider>
   );
@@ -170,7 +174,7 @@ const Interval = ({
         <AccordionItem value="summary" className="w-full bg-card">
           <AccordionTrigger className="w-full p-4">逐球紀錄</AccordionTrigger>
           <AccordionContent className="h-full w-full px-4">
-            <GameOptionsSummary gameId={gameId} />
+            <GameOptionsSummary gameId={gameId} interactive={false} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

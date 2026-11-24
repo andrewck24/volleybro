@@ -113,7 +113,7 @@ export const MatchResponseSchema = z.object({
 });
 
 const RallyPlayerResponseSchema = z.object({
-  id: z.string(),
+  id: z.string().nullable(),
   zone: z.number(),
 });
 
@@ -354,6 +354,7 @@ export type ReduxGameState = {
     status: ReduxStatus;
     entryDraft: ReduxEntryDraft;
   };
+  editWriteKey: string | null;
 };
 
 export type WriteError = {
