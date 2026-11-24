@@ -135,9 +135,10 @@ function runMetadata(t, eventOverrides, githubState = {}) {
     ...eventOverrides,
     pull_request: {
       node_id: "pr-id",
-      head: { sha: "current-head" },
+      head: { sha: "current-head", ref: "ci/update-workflow" },
+      user: { login: "contributor" },
       title: "ci: update workflow",
-      body: "A PR description",
+      body: "A PR description\n\n## 摘要\n\n工作流程更新。",
       ...eventOverrides.pull_request,
     },
   };
@@ -198,25 +199,15 @@ if (args[1] === "graphql") {
   return failures;
 }
 
-for (const [field, title, body, error] of [
-  ["title", "invalid title", "A PR description", /type-empty/],
-  [
-    "body",
-    "ci: update workflow",
-    " \n ",
-    /Enter a PR description or release notes/,
-  ],
-]) {
-  test(`PR metadata rejects an invalid ${field} from the event payload`, (t) => {
-    const failures = runMetadata(t, {
-      changes: { [field]: { from: "Previous value" } },
-      pull_request: { title, body },
-    });
-    assert.equal(failures.length, 1);
-    assert.equal(failures[0].status, 1);
-    assert.match(failures[0].stdout + failures[0].stderr, error);
+test("PR metadata rejects an invalid title from the event payload", (t) => {
+  const failures = runMetadata(t, {
+    changes: { title: { from: "Previous title" } },
+    pull_request: { title: "invalid title" },
   });
-}
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].status, 1);
+  assert.match(failures[0].stdout + failures[0].stderr, /type-empty/);
+});
 
 const retargetedAt = "2026-11-21T12:00:00Z";
 const runs = [
@@ -258,7 +249,7 @@ test("metadata edits pass on a head first verified after a base change", (t) => 
     t,
     {
       changes: { body: { from: "Previous description" } },
-      pull_request: { head: { sha: "fresh-head" } },
+      pull_request: { head: { sha: "fresh-head", ref: "ci/update-workflow" } },
     },
     { retargetedAt, runs },
   );

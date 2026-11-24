@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildReleasePrBody } from "../release-pr-body.js";
+import { validatePrBody } from "../validate-pr-body.js";
 
 test("release PR body includes this version's notes, not oversized history", () => {
   const history =
@@ -30,6 +31,10 @@ test("release PR body includes this version's notes, not oversized history", () 
   assert.match(body, /Fix the current authentication issue\./);
   assert.doesNotMatch(body, /Historical release notes/);
   assert.ok(body.length < 60_000);
+  assert.equal(
+    validatePrBody({ body, headRef: "changeset-release/main" }),
+    undefined,
+  );
 });
 
 test("release PR body supports an unlinked Changesets version heading", () => {
