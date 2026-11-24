@@ -1,5 +1,44 @@
 # VolleyBro CHANGELOG
 
+## [0.19.4](https://github.com/andrewck24/volleybro/compare/v0.19.3...v0.19.4) 2026-11-24
+
+### Fixed
+
+#### UI
+
+- Align the back button and title with the close button in the rally edit and match info edit dialogs.
+- Align the page header with the page content on wide screens: the header row now spans the same width as the content below it, and its back button lines up with the content's left edge.
+- Show the generic error message instead of a broken result when an API error reason happens to match a built-in name such as `constructor` or `toString`
+
+#### Team
+
+- An invitation sent to an email address now reaches the player's account even when linking failed at sign-up
+- Inviting someone again no longer gives them two seats on the same team
+- Open the active team from the team entry after it loads, including when the team tab is tapped immediately after launch.
+- Show a failed add-player, edit-player or team form submit once, as an alert with its title and description above the submit button, instead of a toast plus a message that read like the last field's error.
+- Leaving a team or removing a player no longer takes the player off the lineups when the membership change fails
+- A team can no longer end up owned by a player who just left or was removed
+- A team created from the in-app 建立球隊 dialog now becomes the active team right away and appears in the team switcher, so the 球隊 tab opens it and 新增賽事 is enabled without opening the team page first
+
+#### Infrastructure
+
+- Reject an entry write that changes an existing entry's sequence number.
+- Store new team and game lineups without a database id; lineups saved earlier still load unchanged.
+- Retry temporary database connection failures during atomic writes before returning an error.
+
+#### Record
+
+- Starting a new set now submits the selected set instead of overwriting an existing one
+- Submit an edited rally from the Preview in the edit-entries dialog: tapping the completed Preview now saves the change and returns to the rally history, instead of doing nothing. A refused edit keeps the dialog open with the change shown and can be retried from the Preview.
+- An edit can no longer change which side won a rally, because later rallies store their own scores: the move buttons of the other outcome explain why they do nothing, and the server refuses such a write.
+- Fix the app crashing when you tap an entry in a finished set's record on the sets page: the entry editor now opens.
+
+### Changed
+
+#### UI
+
+- Use accurate shared connection failure copy for timeout and network errors
+
 ## [0.19.3](https://github.com/andrewck24/volleybro/compare/v0.19.2...v0.19.3) 2026-11-10
 
 ### Fixed
