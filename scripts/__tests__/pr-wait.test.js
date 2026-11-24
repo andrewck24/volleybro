@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { delimiter, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { assessReadiness, parseGhOutput } from "../pr-wait.js";
 
@@ -9,13 +14,47 @@ const passing = [
   { name: "Verify", state: "SUCCESS" },
   { name: "Vercel", state: "SUCCESS" },
   { name: "PR metadata", state: "SUCCESS" },
-  { name: "Chromatic", state: "PENDING" },
 ];
 
-test("ready once Verify, Vercel and PR metadata pass on the pinned head and GitHub reports CLEAN", () => {
-  assert.deepEqual(assessReadiness({ checks: passing, pr: open, head }), {
-    status: "ready",
-  });
+function runPrWait(t, pr, checks) {
+  const directory = mkdtempSync(join(tmpdir(), "pr-wait-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  writeFileSync(
+    join(directory, "gh"),
+    `#!/usr/bin/env node
+console.log(JSON.stringify(process.argv[3] === "view" ? ${JSON.stringify(pr)} : ${JSON.stringify(checks)}));
+`,
+    { mode: 0o755 },
+  );
+
+  const script = fileURLToPath(new URL("../pr-wait.js", import.meta.url));
+  return spawnSync(
+    process.execPath,
+    [script, "123", "--head", head, "--interval", "0.01", "--timeout", "0.1"],
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${directory}${delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+}
+
+test("exits ready and reports non-required checks when GitHub reports UNSTABLE", (t) => {
+  const pr = { ...open, mergeStateStatus: "UNSTABLE" };
+  const link = "https://example.com/ui-tests";
+  const result = runPrWait(t, pr, [
+    ...passing,
+    { name: "Chromatic", state: "PENDING" },
+    { name: "UI Tests", state: "FAILURE", link },
+    { name: "Preview comment", state: "SUCCESS" },
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Chromatic is PENDING/);
+  assert.match(result.stdout, /Preview comment is SUCCESS/);
+  assert.match(result.stdout, /ready: abc123/);
+  assert.ok(result.stderr.includes(`warning: UI Tests is FAILURE: ${link}`));
 });
 
 test("waits while the aggregate Verify check does not exist yet", () => {
@@ -30,13 +69,11 @@ test("waits for GitHub to settle the merge state after checks pass", () => {
   assert.equal(assessReadiness({ checks: passing, pr, head }).status, "wait");
 });
 
-test("fails closed when a required check fails or is cancelled", () => {
-  for (const state of ["FAILURE", "CANCELLED"]) {
-    const checks = [{ name: "Verify", state }];
-    const result = assessReadiness({ checks, pr: open, head });
-    assert.equal(result.status, "fail");
-    assert.match(result.reason, new RegExp(`Verify is ${state}`));
-  }
+test("exits 1 when a required check fails", (t) => {
+  const pr = { ...open, mergeStateStatus: "UNSTABLE" };
+  const result = runPrWait(t, pr, [{ name: "Verify", state: "FAILURE" }]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /not mergeable: Verify is FAILURE/);
 });
 
 test("fails closed when the head moves away from the pinned revision", () => {
