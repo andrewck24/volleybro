@@ -2,10 +2,6 @@ import { GamePreview } from "@/components/game/preview";
 import { SummaryDrawer } from "@/components/game/summary-drawer";
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { EntryType, MoveType } from "@/entities/game";
-import {
-  PendingWritesContext,
-  usePendingWrites,
-} from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore } from "@/lib/redux/store";
@@ -19,23 +15,7 @@ import { SWRConfig } from "swr";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
 import { deferred } from "@test/support/gates";
-
-const PendingWritesTestHarness = ({
-  gameId,
-  setIndex,
-  children,
-}: {
-  gameId: string;
-  setIndex: number;
-  children: React.ReactNode;
-}) => {
-  const pendingWrites = usePendingWrites(gameId, setIndex);
-  return (
-    <PendingWritesContext.Provider value={pendingWrites}>
-      {children}
-    </PendingWritesContext.Provider>
-  );
-};
+import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
 
 const mockGame = {
   id: "game-1",
@@ -91,9 +71,7 @@ const renderPreview = (
           dedupingInterval: 0,
         }}
       >
-        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
-          {ui}
-        </PendingWritesTestHarness>
+        {ui}
       </SWRConfig>
     </Provider>,
   );
@@ -320,7 +298,13 @@ describe("GamePreview submission", () => {
         }),
       );
     });
-    renderPreview(store, <SubmittingPreview mode="editing" />, fullGame);
+    renderPreview(
+      store,
+      <PendingWritesOwner>
+        <SubmittingPreview mode="editing" />
+      </PendingWritesOwner>,
+      fullGame,
+    );
     await user.click(screen.getByTestId("preview-trigger"));
 
     const retry = await screen.findByRole("button", { name: "重試" });
@@ -734,7 +718,12 @@ describe("GamePreview editing write status", () => {
       );
     });
     const user = userEvent.setup();
-    renderPreview(store, <SubmittingPreview mode="editing" />);
+    renderPreview(
+      store,
+      <PendingWritesOwner>
+        <SubmittingPreview mode="editing" />
+      </PendingWritesOwner>,
+    );
 
     await user.click(screen.getByTestId("preview-trigger"));
     await waitFor(() =>
