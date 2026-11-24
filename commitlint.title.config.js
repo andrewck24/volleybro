@@ -6,6 +6,7 @@ const titleConfig = {
     ...base.rules,
     "body-empty": [0],
     "change-branch-trailer": [0],
+    "header-max-length": [0],
   },
 };
 
