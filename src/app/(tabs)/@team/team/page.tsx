@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/header";
+import { TeamEntry } from "@/components/team/team-entry";
 import type { Metadata } from "next";
-import { TeamEntry } from "./team-entry";
 
 export const metadata: Metadata = { title: "球隊" };
 
