@@ -3,7 +3,7 @@
   "id": "0137",
   "title": "Team lineup writes replace the lineups in one findByIdAndUpdate",
   "capabilities": ["platform/clean-architecture", "game-recording/persistence"],
-  "decision": "`ITeamRepository.updateLineups(teamId, lineups)` maps each slot, uses `findByIdAndUpdate(teamId, { lineups }, { new: true })`, throws `NotFoundError` if the team is absent, and returns `toTeam(doc).lineups`. `removePlayerFromLineups` matches by `playerId` rather than `_id`.",
+  "decision": "`ITeamRepository.updateLineups(teamId, lineups)` maps each slot, uses `findByIdAndUpdate(teamId, { lineups }, { new: true })`, throws `NotFoundError` if the team is absent, and returns `toTeam(doc).lineups`. `removeNonOwnerFromLineups` matches by `playerId` rather than `_id`.",
   "consequences": [
     "Mocked repository tests do not exercise real Mongoose subdocument behavior; explicit mappers avoid depending on Mongoose defaults, and manual verification covers the persistence round-trip."
   ],
