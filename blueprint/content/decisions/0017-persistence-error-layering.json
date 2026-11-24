@@ -23,7 +23,7 @@
     "There is one path in this Change where the user believes work is protected and it is not, and it is recorded as such rather than hidden.",
     "Upgrading to a visible warning is a change to the listener, not to the port — which is the property this decision is buying.",
     "Because the adapter rejects, the failure is testable directly: assert that an unwritable store does not take the app down, rather than asserting that something was logged.",
-    "The `ponytail:` marker on that catch names the ceiling and the upgrade path, so the deferral is discoverable rather than folklore."
+    "The test \"survives an unwritable store instead of taking the app down\" in `pending-writes-persistence.test.ts` holds the swallow in place."
   ],
   "revisitTriggers": [
     "`offline-recording` begins implementing the offline promise, at which point an unwritable store stops being a degraded mode and becomes a reason the feature cannot function.",
