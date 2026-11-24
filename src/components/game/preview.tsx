@@ -5,10 +5,9 @@ import { getEntryProgress } from "@/components/game/panel/entry-progress";
 import { Spinner } from "@/components/ui/spinner";
 import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import { usePendingWritesContext } from "@/hooks/use-pending-writes";
 import {
-  hasFailedWrite,
   isPendingWrite,
+  isUnscheduledWrite,
 } from "@/lib/features/game/pending-writes";
 import type {
   EntryView,
@@ -73,7 +72,8 @@ export const PreviewCard = ({
     if (!isEditing) onExpand?.();
   };
 
-  const shownEntry = frozen ? (previousEntry ?? entry) : entry;
+  const shownEntry =
+    frozen && !writing && !failed ? (previousEntry ?? entry) : entry;
   const showSendAffordance = Boolean(
     isEditing && isComplete && !frozen && !writing && !failed,
   );
@@ -199,16 +199,17 @@ export const GamePreview = ({
   onExpandDrawer?: () => void;
   className?: string;
 }) => {
-  const draftId = useAppSelector((state) => state.game[mode].entryDraft.id);
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
-  const { retry } = usePendingWritesContext();
+  const editWriteKey = useAppSelector((state) => state.game.editWriteKey);
   const preview = useEntryDraftPreview(gameId, mode);
   if (!preview.hasPreview) return null;
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
     preview;
 
-  const writing = mode === "editing" && isPendingWrite(pendingWrites, draftId);
-  const failed = mode === "editing" && hasFailedWrite(pendingWrites, draftId);
+  const writing =
+    mode === "editing" && isPendingWrite(pendingWrites, editWriteKey);
+  const failed =
+    mode === "editing" && isUnscheduledWrite(pendingWrites, editWriteKey);
 
   return (
     <PreviewCard
@@ -221,7 +222,7 @@ export const GamePreview = ({
       isComplete={isComplete}
       writing={writing}
       failed={failed}
-      onRetry={mode === "editing" ? () => void retry() : undefined}
+      onRetry={mode === "editing" && isComplete ? onSubmit : undefined}
       onSubmit={onSubmit}
       onExpand={onExpandDrawer}
       className={className}

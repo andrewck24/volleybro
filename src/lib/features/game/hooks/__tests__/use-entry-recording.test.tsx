@@ -271,10 +271,155 @@ describe("useEntryRecording.edit", () => {
     expect(pending()).toHaveLength(0);
   });
 
+  it("keeps editing while a retry replaces a refused edit, and leaves only once the retry lands", async () => {
+    const gate = deferred();
+    const puts = answerEntries(
+      () =>
+        HttpResponse.json(
+          { code: "VALIDATION", reason: "BAD_REQUEST" },
+          { status: 400 },
+        ),
+      async () => {
+        await gate.promise;
+        return HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] });
+      },
+    );
+    const { result } = await renderRecording(gameWith([recordedRally]), {
+      editing: true,
+    });
+    const submit = () =>
+      result.current.recording.edit(
+        rallyContent,
+        rallyApply(result.current.game!),
+      );
+
+    await act(async () => {
+      expect((await submit()).status).toBe("failed");
+    });
+    expect(store.getState().game.mode).toBe("editing");
+
+    let retry!: ReturnType<typeof submit>;
+    act(() => {
+      retry = submit();
+    });
+    await waitFor(() => expect(puts).toHaveLength(2));
+    expect(store.getState().game.mode).toBe("editing");
+
+    gate.release();
+    await act(async () => {
+      expect((await retry).status).toBe("edited");
+    });
+    expect(pending()).toHaveLength(0);
+  });
+
+  it("sends an edit staged while the entry's creation is still in flight, and reports it only once it is written", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async (put, attempt) => {
+      if (attempt === 1) await gate.promise;
+      return HttpResponse.json({ entries: put.body as object[] });
+    });
+    const { result } = await renderRecording(gameWith([]));
+    let created!: ReturnType<typeof result.current.recording.record>;
+    act(() => {
+      created = result.current.recording.record(
+        rallyContent,
+        rallyApply(result.current.game!),
+      );
+    });
+    await waitFor(() => expect(puts).toHaveLength(1));
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: result.current.game as never,
+          entryIndex: 0,
+        }),
+      );
+    });
+    const edited = { ...rallyContent, away: { ...rallyContent.away, num: 3 } };
+
+    let outcome!: Awaited<ReturnType<typeof result.current.recording.edit>>;
+    let finished!: Promise<void>;
+    act(() => {
+      finished = result.current.recording
+        .edit(edited, rallyApply(result.current.game!))
+        .then((value) => {
+          outcome = value;
+        });
+    });
+    gate.release();
+    await act(async () => {
+      await finished;
+    });
+
+    expect(created.status).toBe("recorded");
+    expect(outcome.status).toBe("edited");
+    expect(puts).toHaveLength(2);
+    expect(puts[1]!.body).toMatchObject([{ away: { num: 3 } }]);
+    expect(pending()).toHaveLength(0);
+    expect(result.current.game!.sets[0]!.entries[0]).toMatchObject({
+      away: { num: 3 },
+    });
+  });
+
+  it("records which write the edit staged, so the edit can tell it from the entry's earlier writes", async () => {
+    answerEntries(() => HttpResponse.error());
+    const { result } = await renderRecording(gameWith([recordedRally]), {
+      editing: true,
+    });
+
+    await act(async () => {
+      await result.current.recording.edit(
+        rallyContent,
+        rallyApply(result.current.game!),
+      );
+    });
+
+    const [queued] = pending();
+    expect(store.getState().game.editWriteKey).toBe(
+      `e1@${(queued!.entry as { at: string }).at}`,
+    );
+  });
+
+  it("sends one write when the background flush is already due as the edit is staged", async () => {
+    const gate = deferred();
+    const puts = answerEntries(async () => {
+      await gate.promise;
+      return HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] });
+    });
+    const { result } = await renderRecording(gameWith([recordedRally]), {
+      editing: true,
+    });
+
+    let outcome!: Awaited<ReturnType<typeof result.current.recording.edit>>;
+    let finished!: Promise<void>;
+    act(() => {
+      finished = result.current.recording
+        .edit(rallyContent, rallyApply(result.current.game!))
+        .then((value) => {
+          outcome = value;
+        });
+    });
+    await waitFor(() => expect(puts).toHaveLength(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(puts).toHaveLength(1);
+
+    gate.release();
+    await act(async () => {
+      await finished;
+    });
+
+    expect(outcome.status).toBe("edited");
+    expect(puts).toHaveLength(1);
+  });
+
   it("reports the failure, keeps the edit on screen and queued, and resends it unchanged with the time of the edit", async () => {
     const puts = answerEntries(() => HttpResponse.error());
     const { result } = await renderRecording(
-      gameWith([{ ...recordedRally, win: false }]),
+      gameWith([
+        { ...recordedRally, away: { ...recordedRally.away, score: 4 } },
+      ]),
       { editing: true },
     );
 
@@ -292,7 +437,7 @@ describe("useEntryRecording.edit", () => {
     expect(pending()).toHaveLength(1);
     expect(result.current.game!.sets[0]!.entries[0]).toMatchObject({
       id: "e1",
-      win: true,
+      away: { score: 0 },
     });
     const at = (puts[0]!.body as { at: string }[])[0]!.at;
     expect(Date.parse(at)).toBeGreaterThanOrEqual(before);

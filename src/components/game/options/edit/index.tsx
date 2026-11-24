@@ -1,6 +1,7 @@
 "use client";
 import { GameCourt } from "@/components/game/court";
 import { GamePanel } from "@/components/game/panel";
+import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { GamePreview } from "@/components/game/preview";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import { RiArrowLeftSLine } from "react-icons/ri";
 
 export const EntriesEdit = ({ gameId }: { gameId: string }) => {
   const { writing, leaveEditing } = useEditingGuard();
+  const submitEntryDraft = useSubmitEntryDraft(gameId);
 
   return (
     <>
@@ -35,6 +37,7 @@ export const EntriesEdit = ({ gameId }: { gameId: string }) => {
       <GamePreview
         gameId={gameId}
         mode="editing"
+        onSubmit={submitEntryDraft}
         className="px-0 py-1 shadow-none"
       />
       <GamePanel gameId={gameId} mode="editing" className="p-0 shadow-none" />

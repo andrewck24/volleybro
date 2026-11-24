@@ -14,6 +14,7 @@ import {
 import {
   applyFlushedEntries,
   isQueuedBy,
+  writeKey,
 } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import {
@@ -51,18 +52,18 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     }
     if (bySetIndex.size === 0) return { ok: true };
 
-    const succeededIds: string[] = [];
+    const succeededKeys: string[] = [];
     const failures: { payload: FlushFailedPayload; error: unknown }[] = [];
 
     for (const [si, items] of bySetIndex) {
-      const ids = items.map((p) => p.entry.id);
+      const keys = items.map((p) => writeKey(p.entry));
       const result = await flushPendingWrites(
         gameId,
         si,
         items.map((p) => p.entry),
       );
       if (result.ok) {
-        succeededIds.push(...ids);
+        succeededKeys.push(...keys);
         mutate(
           (current) => applyFlushedEntries(current, si, result.value.entries),
           { revalidate: false },
@@ -79,7 +80,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
       } else {
         failures.push({
           payload: {
-            ids,
+            keys,
             retryable: result.retryable,
             lastError: toWriteError(result.error),
           },
@@ -88,8 +89,8 @@ export function usePendingWrites(gameId: string, setIndex: number) {
       }
     }
 
-    if (succeededIds.length > 0) {
-      dispatch(pendingWritesActions.flushSucceeded({ ids: succeededIds }));
+    if (succeededKeys.length > 0) {
+      dispatch(pendingWritesActions.flushSucceeded({ keys: succeededKeys }));
     }
     for (const { payload } of failures) {
       dispatch(pendingWritesActions.flushFailed(payload));

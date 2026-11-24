@@ -61,6 +61,7 @@ const initialState: ReduxGameState = {
       away: rallyDetailState,
     },
   },
+  editWriteKey: null,
 };
 
 const initialize: CaseReducer<
@@ -79,9 +80,12 @@ const initialize: CaseReducer<
   const stats = deriveSetStats(set?.entries, {
     options: set?.options ?? { serve: "home" },
   });
+  const isSameSet = state.id === game.id && state.setIndex === setIndex;
+  const generalPanel = isSameSet ? state.general.status.panel : "home";
   state.id = game.id;
   state.setIndex = setIndex;
   state.mode = "general";
+  state.editWriteKey = null;
   const status = {
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
@@ -91,7 +95,11 @@ const initialize: CaseReducer<
     panel: "home" as ReduxStatus["panel"],
     stats,
   };
-  state.general.status = { ...state.general.status, ...status };
+  state.general.status = {
+    ...state.general.status,
+    ...status,
+    panel: generalPanel,
+  };
   state.editing.status = { ...state.editing.status, ...status };
 };
 
@@ -100,6 +108,13 @@ const setGameMode: CaseReducer<
   PayloadAction<ReduxGameState["mode"]>
 > = (state, action) => {
   state.mode = action.payload;
+};
+
+const editWriteStaged: CaseReducer<ReduxGameState, PayloadAction<string>> = (
+  state,
+  action,
+) => {
+  state.editWriteKey = action.payload;
 };
 
 const setEntryDraftPlayer: CaseReducer<
@@ -111,8 +126,11 @@ const setEntryDraftPlayer: CaseReducer<
   const isSamePlayer = id === state[mode].entryDraft.home.player?.id;
 
   state[mode].status.panel = "home";
+  const { id: entryId, seq } = state[mode].entryDraft;
   state[mode].entryDraft = {
     ...initialState[mode].entryDraft,
+    id: entryId,
+    seq,
     home: {
       ...initialState[mode].entryDraft.home,
       player: isSamePlayer
@@ -275,6 +293,7 @@ const setEditingEntryStatus: CaseReducer<
   );
 
   state.mode = "editing";
+  state.editWriteKey = null;
   state.editing.entryDraft = {
     id: entry.id,
     seq: entry.seq,
@@ -314,6 +333,7 @@ const gameSlice = createSlice({
   reducers: {
     initialize,
     setGameMode,
+    editWriteStaged,
     setEntryDraftPlayer,
     setEntryDraftHomeMove,
     setEntryDraftAwayMove,

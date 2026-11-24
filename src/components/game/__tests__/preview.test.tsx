@@ -8,7 +8,6 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
-import { PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -229,6 +228,95 @@ describe("GamePreview submission", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps showing the edited draft, not the previous rally, while its write is scheduled", async () => {
+    const user = userEvent.setup();
+    const firstEntry = mockGame.sets[0]!.entries[0]!;
+    const secondEntry = {
+      ...firstEntry,
+      id: "e2",
+      seq: 1,
+      home: { ...firstEntry.home, score: 2, player: { id: "p2", zone: 1 } },
+    };
+    const fullGame = {
+      ...mockGame,
+      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
+    };
+    const store = initializedStore(fullGame);
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: fullGame as never,
+          entryIndex: 1,
+        }),
+      );
+    });
+    renderPreview(
+      store,
+      <GamePreview gameId="game-1" mode="editing" onSubmit={jest.fn()} />,
+      fullGame,
+    );
+    await user.click(screen.getByTestId("preview-trigger"));
+    act(() => {
+      store.dispatch(gameActions.editWriteStaged("e2"));
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { id: "e2", seq: 1, win: true, home: {}, away: {} } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(screen.getByRole("status", { name: "送出中" })).toBeInTheDocument();
+    expect(
+      screen.getByText("2", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the edited draft again once its write is refused, and a retry that lands leaves editing", async () => {
+    const user = userEvent.setup();
+    let attempts = 0;
+    server.use(
+      http.put("/api/games/game-1/sets/entries", () => {
+        attempts += 1;
+        return attempts === 1
+          ? HttpResponse.json({ code: "VALIDATION" }, { status: 400 })
+          : HttpResponse.json({ entries: [{ id: "e2", seq: 1 }] });
+      }),
+    );
+    const firstEntry = mockGame.sets[0]!.entries[0]!;
+    const secondEntry = {
+      ...firstEntry,
+      id: "e2",
+      seq: 1,
+      home: { ...firstEntry.home, score: 2, player: { id: "p2", zone: 1 } },
+    };
+    const fullGame = {
+      ...mockGame,
+      sets: [{ ...mockGame.sets[0]!, entries: [firstEntry, secondEntry] }],
+    };
+    const store = initializedStore(fullGame);
+    act(() => {
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: fullGame as never,
+          entryIndex: 1,
+        }),
+      );
+    });
+    renderPreview(store, <SubmittingPreview mode="editing" />, fullGame);
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    const retry = await screen.findByRole("button", { name: "重試" });
+    expect(
+      screen.getByText("2", { selector: "[data-score-badge]" }),
+    ).toBeInTheDocument();
+    await user.click(retry);
+
+    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    expect(attempts).toBe(2);
+  });
+
   it("shares one in-progress draft between Preview and the Summary drawer", () => {
     const store = initializedStore();
     act(() => {
@@ -356,11 +444,132 @@ describe("GamePreview editing write status", () => {
     return { store, onSubmit };
   };
 
-  it("shows a progress indicator instead of the send affordance while the write is scheduled, and ignores taps", async () => {
+  it("behaves like a normal edit when only the entry's creation write has run out of retries", async () => {
     const user = userEvent.setup();
     const { store, onSubmit } = setUpEditing();
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T09:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1@2026-01-01T09:00:00.000Z"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("looks like a normal edit while only the entry's creation write is scheduled", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T09:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(
+      screen.queryByRole("status", { name: "送出中" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells the edit's own scheduled write from an exhausted creation write of the same entry", async () => {
+    const { store } = setUpEditing();
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T09:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1@2026-01-01T09:00:00.000Z"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+      store.dispatch(
+        gameActions.editWriteStaged("e1@2026-01-01T09:05:00.000Z"),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T09:05:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(
+      await screen.findByRole("status", { name: "送出中" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers a retry once background retries are exhausted, so the frozen card does not strand the edit", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
 
     act(() => {
+      store.dispatch(gameActions.editWriteStaged("e1"));
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: queuedEntry as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: ["e1"],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+    });
+
+    expect(
+      await screen.findByRole("button", { name: "重試" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "重試" }));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+  });
+
+  it("disables the retry while the draft is incomplete", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    act(() => {
+      store.dispatch(gameActions.editWriteStaged("e1"));
       store.dispatch(
         pendingWritesActions.enqueued({
           entry: queuedEntry as never,
@@ -370,7 +579,83 @@ describe("GamePreview editing write status", () => {
       );
       store.dispatch(
         pendingWritesActions.flushFailed({
-          ids: ["e1"],
+          keys: ["e1"],
+          retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
+        }),
+      );
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+    });
+
+    const retry = await screen.findByRole("button", { name: "重試" });
+    expect(retry).toBeDisabled();
+    await user.click(retry);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows the write in progress, not the retry control, while a retry of an exhausted write is scheduled", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+    await user.click(screen.getByTestId("preview-trigger"));
+    act(() => {
+      store.dispatch(
+        gameActions.editWriteStaged("e1@2026-01-01T10:00:00.000Z"),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T10:00:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            keys: [`e1@2026-01-01T10:00:00.000Z`],
+            retryable: true,
+            lastError: { code: "TRANSIENT", reason: "NETWORK", status: 503 },
+          }),
+        );
+      }
+    });
+    await user.click(await screen.findByRole("button", { name: "重試" }));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      store.dispatch(
+        gameActions.editWriteStaged("e1@2026-01-01T10:05:00.000Z"),
+      );
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { ...queuedEntry, at: "2026-01-01T10:05:00.000Z" } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+    });
+
+    expect(screen.getByRole("status", { name: "送出中" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a progress indicator instead of the send affordance while the write is scheduled, and ignores taps", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+
+    act(() => {
+      store.dispatch(gameActions.editWriteStaged("e1"));
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: queuedEntry as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      store.dispatch(
+        pendingWritesActions.flushFailed({
+          keys: ["e1"],
           retryable: true,
         }),
       );
@@ -406,10 +691,10 @@ describe("GamePreview editing write status", () => {
           entryIndex: 0,
         }),
       );
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
       store.dispatch(
         gameActions.setEntryDraftAwayMove(
-          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+          scoringMoves[scoringMoves[4]!.outcome[0]!]!,
         ),
       );
     });
@@ -427,124 +712,6 @@ describe("GamePreview editing write status", () => {
 
     gate.release();
     await waitFor(() => expect(store.getState().game.mode).toBe("general"));
-  });
-
-  it("prevents a click retry from racing a scheduled background flush", async () => {
-    jest.useFakeTimers({ doNotFake: ["nextTick"] });
-    const gate = deferred();
-    const sent: unknown[] = [];
-    server.use(
-      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
-        sent.push(await request.json());
-        await gate.promise;
-        return HttpResponse.json({
-          entries: [queuedEntry, { ...queuedEntry, id: "e2" }],
-        });
-      }),
-    );
-    const store = makeStore();
-    act(() => {
-      store.dispatch(
-        gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
-      );
-      store.dispatch(
-        gameActions.setEditingEntryStatus({
-          game: mockGame as never,
-          entryIndex: 0,
-        }),
-      );
-      for (const entry of [queuedEntry, { ...queuedEntry, id: "e2" }]) {
-        store.dispatch(
-          pendingWritesActions.enqueued({
-            entry: entry as never,
-            gameId: "game-1",
-            setIndex: 0,
-          }),
-        );
-      }
-      store.dispatch(
-        pendingWritesActions.flushFailed({
-          ids: ["e1"],
-          retryable: false,
-          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
-        }),
-      );
-      store.dispatch(
-        pendingWritesActions.flushFailed({
-          ids: ["e2"],
-          retryable: true,
-          lastError: {
-            code: "TRANSIENT",
-            reason: "NETWORK_ERROR",
-            status: 503,
-          },
-        }),
-      );
-    });
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    try {
-      renderPreview(store, <GamePreview gameId="game-1" mode="editing" />);
-      await user.click(screen.getByRole("button", { name: "重試" }));
-      await waitFor(() => expect(sent).toHaveLength(1));
-
-      await act(async () => {
-        await jest.advanceTimersByTimeAsync(
-          PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
-        );
-      });
-      expect(sent).toHaveLength(1);
-
-      gate.release();
-      await waitFor(() =>
-        expect(store.getState().pendingWrites.pending).toHaveLength(0),
-      );
-      await act(async () => {
-        await jest.advanceTimersByTimeAsync(
-          PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[1]!,
-        );
-      });
-      expect(sent).toHaveLength(1);
-    } finally {
-      gate.release();
-      jest.useRealTimers();
-    }
-  });
-
-  it("shows a retry control once the write is refused, and retry resends the entry", async () => {
-    const user = userEvent.setup();
-    let sent: unknown;
-    server.use(
-      http.put("/api/games/game-1/sets/entries", async ({ request }) => {
-        sent = await request.json();
-        return HttpResponse.json({ entries: [queuedEntry] });
-      }),
-    );
-    const { store } = setUpEditing();
-
-    act(() => {
-      store.dispatch(
-        pendingWritesActions.enqueued({
-          entry: queuedEntry as never,
-          gameId: "game-1",
-          setIndex: 0,
-        }),
-      );
-      store.dispatch(
-        pendingWritesActions.flushFailed({
-          ids: ["e1"],
-          retryable: false,
-          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
-        }),
-      );
-    });
-
-    expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).toBeNull();
-    await user.click(screen.getByRole("button", { name: "重試" }));
-
-    await waitFor(() =>
-      expect(store.getState().pendingWrites.pending).toHaveLength(0),
-    );
-    expect(sent).toEqual([queuedEntry]);
   });
 });
 

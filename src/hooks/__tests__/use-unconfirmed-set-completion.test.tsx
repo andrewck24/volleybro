@@ -90,7 +90,7 @@ describe("useUnconfirmedSetCompletion", () => {
   it("is attempting during the background backoff window, with no flush in flight", () => {
     enqueue("e1", "game-1", 0);
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: true }),
+      pendingWritesActions.flushFailed({ keys: ["e1"], retryable: true }),
     );
     const { result } = renderUnconfirmed(true);
 
@@ -101,7 +101,7 @@ describe("useUnconfirmedSetCompletion", () => {
   it("stays unconfirmed, no longer attempting, once the queued entry has exhausted its backoff", () => {
     enqueue("e1", "game-1", 0);
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      pendingWritesActions.flushFailed({ keys: ["e1"], retryable: false }),
     );
     const { result } = renderUnconfirmed(true);
 
@@ -111,7 +111,7 @@ describe("useUnconfirmedSetCompletion", () => {
 
   it("closes once the flush succeeds and the entry leaves the queue", () => {
     enqueue("e1", "game-1", 0);
-    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
+    store.dispatch(pendingWritesActions.flushSucceeded({ keys: ["e1"] }));
     const { result } = renderUnconfirmed(true);
 
     expect(result.current.unconfirmed).toBe(false);
@@ -228,7 +228,7 @@ describe("useUnconfirmedSetCompletion", () => {
     answerEntries(() => HttpResponse.json({ entries: [lastRally] }));
     enqueue("e1", "game-1", 0);
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      pendingWritesActions.flushFailed({ keys: ["e1"], retryable: false }),
     );
     const { result } = renderUnconfirmed(true);
     expect(result.current.unconfirmed).toBe(true);
@@ -239,6 +239,29 @@ describe("useUnconfirmedSetCompletion", () => {
 
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
     expect(result.current.unconfirmed).toBe(false);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+
+  it("clears the queued write of that entry after a successful retry, whatever time it was staged at", async () => {
+    answerEntries(() => HttpResponse.json({ entries: [lastRally] }));
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: {
+          type: EntryType.RALLY,
+          id: "e1",
+          seq: 0,
+          at: "2026-01-01T10:00:00.000Z",
+        } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    const { result } = renderUnconfirmed(true);
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 

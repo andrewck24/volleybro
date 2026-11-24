@@ -128,9 +128,8 @@ describe("PUT /api/games/:id/sets/entries", () => {
       const edited = {
         ...rally,
         at: editedAt,
-        win: false,
-        home: { ...rally.home, score: 0 },
-        away: { ...rally.away, score: 1 },
+        home: { ...rally.home, score: 2 },
+        away: { ...rally.away, num: 3 },
       };
       expect((await sendRally(edited)).status).toBe(200);
 
@@ -139,9 +138,9 @@ describe("PUT /api/games/:id/sets/entries", () => {
         (await repo().findById(seeded.gameId))!.sets[0]!.entries,
       ).toHaveLength(1);
       expect(stored).toMatchObject({
-        win: false,
-        home: { score: 0 },
-        away: { score: 1 },
+        win: true,
+        home: { score: 2 },
+        away: { num: 3 },
         recordedBy: recorder,
         editedBy: editor,
       });
@@ -152,7 +151,11 @@ describe("PUT /api/games/:id/sets/entries", () => {
     it("leaves the result unchanged when an edit is resent", async () => {
       await sendRally(rally);
       useFakeAuth({ playerId: editor });
-      const edited = { ...rally, at: editedAt, win: false };
+      const edited = {
+        ...rally,
+        at: editedAt,
+        away: { ...rally.away, num: 3 },
+      };
       await sendRally(edited);
       const before = await storedRally();
 
@@ -161,10 +164,40 @@ describe("PUT /api/games/:id/sets/entries", () => {
       expect(await storedRally()).toEqual(before);
     });
 
+    it("stores a rally whose side has no player when the request carries a null id", async () => {
+      const response = await sendRally({
+        ...rally,
+        away: { ...rally.away, player: { id: null, zone: 0 } },
+      });
+
+      expect(response.status).toBe(200);
+      expect(await storedRally()).toMatchObject({
+        away: { player: { id: null } },
+      });
+    });
+
+    it("refuses an edit that changes which side won with a 400 and leaves the rally as recorded", async () => {
+      await sendRally(rally);
+      useFakeAuth({ playerId: editor });
+      const before = await storedRally();
+
+      const response = await sendRally({ ...rally, at: editedAt, win: false });
+
+      expect(response.status).toBe(400);
+      expect((response.json as { reason?: string }).reason).toBe(
+        GameReason.ENTRY_WINNER_CHANGED,
+      );
+      expect(await storedRally()).toEqual(before);
+    });
+
     it("does not let a delayed creation resend overwrite another member's edit", async () => {
       await sendRally(rally);
       useFakeAuth({ playerId: editor });
-      await sendRally({ ...rally, at: editedAt, win: false });
+      await sendRally({
+        ...rally,
+        at: editedAt,
+        away: { ...rally.away, num: 3 },
+      });
       const before = await storedRally();
       useFakeAuth({ playerId: recorder });
 
