@@ -60,7 +60,7 @@ it("marks a queued rally the server rejected, on a row only the merge provides",
   );
   store.dispatch(
     pendingWritesActions.flushFailed({
-      ids: ["queued-1"],
+      keys: ["queued-1"],
       retryable: false,
       lastError: permanentFailure as never,
     }),

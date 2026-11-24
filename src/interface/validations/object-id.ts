@@ -13,5 +13,6 @@ export const nullableObjectId = z
 
 export const rallyPlayerId = z
   .string()
-  .refine((v) => v === "" || isObjectId(v), { message })
+  .nullable()
+  .refine((v) => !v || isObjectId(v), { message })
   .transform((v) => v || null);

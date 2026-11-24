@@ -163,7 +163,7 @@ export const Unsent: Story = {
       for (let i = 0; i < PENDING_WRITE_UNSENT_ATTEMPTS; i++) {
         store.dispatch(
           pendingWritesActions.flushFailed({
-            ids: ["pending-1"],
+            keys: ["pending-1"],
             retryable: true,
             lastError: transient,
           }),
@@ -180,7 +180,7 @@ export const Failed: Story = {
       queueRally();
       store.dispatch(
         pendingWritesActions.flushFailed({
-          ids: ["pending-1"],
+          keys: ["pending-1"],
           retryable: false,
           lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),

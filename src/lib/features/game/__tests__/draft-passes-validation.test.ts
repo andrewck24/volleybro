@@ -1,6 +1,7 @@
 import { EntryType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { RecordEntriesSchema } from "@/interface/validations/game";
+import { game, rally } from "@test/support/fixtures/editing-game";
 import { makeStore } from "@/lib/redux/store";
 import {
   backMoves,
@@ -67,5 +68,42 @@ describe("the substitution a recorded entry is submitted as", () => {
     expect(
       store.getState().game.general.entryDraft.substitution,
     ).toBeUndefined();
+  });
+});
+
+describe("the draft an edited rally is submitted as", () => {
+  const OID = "507f1f77bcf86cd799439011";
+
+  it("passes validation when a side of the recorded rally has no player", () => {
+    const store = makeStore();
+    const [firstSet] = game.sets;
+    const unplayered = {
+      ...game,
+      sets: [
+        {
+          ...firstSet!,
+          entries: [
+            {
+              ...rally,
+              home: { ...rally.home, player: { id: OID, zone: 1 } },
+              away: { ...rally.away, player: { id: null, zone: 0 } },
+            },
+          ],
+        },
+      ],
+    };
+    const view = unplayered as never;
+    store.dispatch(gameActions.initialize({ game: view, setIndex: 0 }));
+    store.dispatch(
+      gameActions.setEditingEntryStatus({ game: view, entryIndex: 0 }),
+    );
+
+    const { entryDraft } = store.getState().game.editing;
+
+    expect(
+      RecordEntriesSchema.safeParse([
+        { ...entryDraft, type: EntryType.RALLY, at: new Date().toISOString() },
+      ]).success,
+    ).toBe(true);
   });
 });

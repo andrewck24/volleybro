@@ -1,6 +1,7 @@
 import Game from "@/components/game";
 import { GamePanel } from "@/components/game/panel";
 import { EntryType, MoveType } from "@/entities/game";
+import { hasFailedWrite } from "@/lib/features/game/pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
@@ -112,27 +113,33 @@ const makeMockGame = () => ({
   },
 });
 
-const setUpGame = () => {
+const setUpGame = ({
+  failWrites = false,
+  store = makeStore(),
+}: { failWrites?: boolean; store?: ReturnType<typeof makeStore> } = {}) => {
   const game = makeMockGame();
   const puts: { home: { player: { id: string } } }[] = [];
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(game)),
     http.put("/api/games/game-1/sets/entries", async ({ request }) => {
+      if (failWrites)
+        return HttpResponse.json({ code: "VALIDATION" }, { status: 400 });
       const sent = (await request.json()) as typeof puts;
       puts.push(...sent);
-      game.sets[0]!.entries.push(
-        ...sent.map(
-          (entry) =>
-            ({
-              type: EntryType.RALLY,
-              ...entry,
-            }) as (typeof game.sets)[0]["entries"][0],
-        ),
-      );
+      for (const entry of sent) {
+        const recorded = {
+          type: EntryType.RALLY,
+          ...entry,
+        } as (typeof game.sets)[0]["entries"][0];
+        const at = game.sets[0]!.entries.findIndex(
+          (e) => (e as { id?: string }).id === (entry as { id?: string }).id,
+        );
+        if (at >= 0) game.sets[0]!.entries[at] = recorded;
+        else game.sets[0]!.entries.push(recorded);
+      }
       return HttpResponse.json({ entries: game.sets[0]!.entries });
     }),
   );
-  const store = makeStore();
   render(
     <Provider store={store}>
       <SwrIsolation>
@@ -278,6 +285,140 @@ describe("Game gesture split, wired through the real composition", () => {
       "data-state",
       "idle",
     );
+  });
+});
+
+describe("Game rally edit started from the summary drawer", () => {
+  const startEditing = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByTestId("summary-drawer-handle"));
+    await user.click(await screen.findByTestId("entry-row"));
+    await user.click(await screen.findByTestId("entry-action-edit"));
+    await screen.findByRole("button", { name: "back" });
+  };
+
+  it("closes the edit dialog and shows the expanded drawer once the edit is submitted", async () => {
+    const user = userEvent.setup();
+    const { store, puts } = setUpGame();
+    await startEditing(user);
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "back" }),
+      ).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.pending).toHaveLength(0),
+    );
+    expect(puts).toHaveLength(1);
+    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.general.status.entryIndex).toBe(1);
+    expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
+      "data-state",
+      "expanded",
+    );
+  });
+
+  it("keeps the edit dialog open in editing mode when the write fails", async () => {
+    const user = userEvent.setup();
+    const { store } = setUpGame({ failWrites: true });
+    await startEditing(user);
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+    });
+
+    await user.click(await screen.findByTestId("preview-trigger"));
+
+    await waitFor(() =>
+      expect(
+        hasFailedWrite(
+          store.getState().pendingWrites,
+          store.getState().game.editing.entryDraft.id,
+        ),
+      ).toBe(true),
+    );
+    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.home.num).toBe(
+      scoringMoves[4]!.num,
+    );
+    expect(screen.getByRole("button", { name: "back" })).toBeInTheDocument();
+  });
+
+  it("leaves editing mode when the page mounts with a store left in editing", async () => {
+    const store = makeStore();
+    const game = makeMockGame() as never;
+    store.dispatch(gameActions.initialize({ game, setIndex: 0 }));
+    store.dispatch(gameActions.setEditingEntryStatus({ game, entryIndex: 0 }));
+    expect(store.getState().game.mode).toBe("editing");
+
+    setUpGame({ store });
+
+    await screen.findByTestId("summary-drawer");
+    expect(store.getState().game.mode).toBe("general");
+  });
+
+  it("closes the edit dialog and shows the expanded drawer when the back control is used", async () => {
+    const user = userEvent.setup();
+    const { store } = setUpGame();
+    await startEditing(user);
+
+    await user.click(screen.getByRole("button", { name: "back" }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "back" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(store.getState().game.mode).toBe("general");
+    expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
+      "data-state",
+      "expanded",
+    );
+  });
+});
+
+describe("Game between sets", () => {
+  it("does not switch to editing when a rally in the list is tapped", async () => {
+    const user = userEvent.setup();
+    const set = createGame().sets[0]!;
+    const finished = {
+      ...set,
+      entries: set.entries.map((entry) =>
+        entry.type === EntryType.RALLY
+          ? {
+              ...entry,
+              home: { ...entry.home, score: 25 },
+              away: { ...entry.away, score: 20 },
+            }
+          : entry,
+      ),
+    };
+    server.use(
+      http.get("/api/games/game-1", () =>
+        HttpResponse.json(createGame({ win: null, sets: [finished] })),
+      ),
+    );
+    const store = makeStore();
+    render(
+      <Provider store={store}>
+        <SwrIsolation>
+          <Game gameId="game-1" setIndex={0} />
+        </SwrIsolation>
+      </Provider>,
+    );
+    await user.click(await screen.findByRole("button", { name: "逐球紀錄" }));
+
+    fireEvent.click(
+      (
+        await screen.findAllByText("25", { selector: "[data-score-badge]" })
+      )[0]!,
+    );
+
+    expect(store.getState().game.mode).toBe("general");
   });
 });
 

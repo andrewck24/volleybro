@@ -419,6 +419,21 @@ function assertSeqFixed(existing: EntryIdentity, incoming: EntryIdentity) {
     );
 }
 
+type EntryKind = { type: EntryType; win?: boolean | null };
+
+function assertKindFixed(existing: EntryKind, incoming: EntryKind) {
+  if (existing.type !== incoming.type)
+    throw new ValidationError(
+      GameReason.ENTRY_TYPE_CHANGED,
+      "An entry's type is fixed once it is created",
+    );
+  if (existing.type === EntryType.RALLY && existing.win !== incoming.win)
+    throw new ValidationError(
+      GameReason.ENTRY_WINNER_CHANGED,
+      "The side that won a rally is fixed once it is recorded",
+    );
+}
+
 function mergeEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
@@ -585,6 +600,7 @@ export function planEntryUpserts<
     }
 
     assertSeqFixed(existing, entry);
+    assertKindFixed(existing, entry);
 
     if (
       existing.recordedBy === operator &&

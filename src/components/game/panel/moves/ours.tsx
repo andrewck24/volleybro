@@ -5,8 +5,13 @@ import {
   MoveButton,
 } from "@/components/game/panel/moves";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { EntryType } from "@/entities/game";
+import { useGame } from "@/hooks/use-data";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { cn } from "@/lib/utils";
 import {
   backMoves,
   errorMoves,
@@ -20,13 +25,27 @@ const ERROR_CELL_CLASS = "justify-between gap-1 px-3 py-0.5 leading-tight";
 
 export const OursMoves = () => {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const gameState = useAppSelector((state) => state.game);
+  const { game } = useGame(gameState.id);
   const { entryDraft: draft } = gameState[gameState.mode];
+  const editedEntry =
+    gameState.mode === "editing"
+      ? game?.sets[gameState.setIndex]?.entries[
+          gameState.editing.status.entryIndex
+        ]
+      : undefined;
+  const lockedWin =
+    editedEntry?.type === EntryType.RALLY ? editedEntry.win : undefined;
   const zone = draft.home.player?.zone ?? 0;
   const oursMoves =
     zone === 0 ? errorMoves : zone === 1 || zone >= 5 ? backMoves : frontMoves;
 
   const onOursClick = (move: ScoringMove) => {
+    if (lockedWin !== undefined && move.win !== lockedWin) {
+      toast({ ...ERROR_MESSAGES.ENTRY_WINNER_CHANGED, variant: "error" });
+      return;
+    }
     dispatch(gameActions.setEntryDraftHomeMove(move));
   };
 
@@ -43,10 +62,11 @@ export const OursMoves = () => {
             move={move}
             toggled={draft.home.num === move.num}
             onClick={() => onOursClick(move)}
-            {...(zone === 0 && {
-              "aria-label": `對方${move.text}失誤`,
-              className: ERROR_CELL_CLASS,
-            })}
+            className={cn(
+              zone === 0 && ERROR_CELL_CLASS,
+              lockedWin !== undefined && move.win !== lockedWin && "opacity-50",
+            )}
+            {...(zone === 0 && { "aria-label": `對方${move.text}失誤` })}
           >
             {zone === 0 ? (
               <>

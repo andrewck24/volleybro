@@ -11,17 +11,6 @@ import type { GameView, RallyView } from "@/lib/features/game/types";
 const asEntry = (entryDraft: RallyView & EntryIdentity) =>
   ({ type: EntryType.RALLY, ...entryDraft }) as const;
 
-export const assertRallyAt = (
-  game: GameView,
-  setIndex: number,
-  entryIndex: number,
-) => {
-  const entry = game.sets[setIndex]?.entries[entryIndex];
-  if (!entry || entry.type !== EntryType.RALLY) {
-    throw new Error("Entry is not a rally");
-  }
-};
-
 export const deriveEntryPhase = (
   game: GameView,
   setIndex: number,

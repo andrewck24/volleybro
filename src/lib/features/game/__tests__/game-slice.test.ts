@@ -88,3 +88,44 @@ describe("game-slice setEditingEntryStatus", () => {
     expect(state.editing.entryDraft.seq).toBe(0);
   });
 });
+
+describe("game-slice initialize keeps the step the recorder is on", () => {
+  const gameNamed = (id: string) =>
+    ({
+      id,
+      info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
+      sets: [{ options: { serve: "home" }, entries: [] }],
+      teams: {
+        home: { players: [], stats: [] },
+        away: { players: [], stats: [] },
+      },
+    }) as unknown as GameView;
+
+  it("on the same set, so a return from editing does not send the panel back to the first step", () => {
+    const game = gameNamed("game-1");
+    let state = gameReducer(
+      undefined,
+      gameActions.initialize({ game, setIndex: 0 }),
+    );
+    state = gameReducer(state, gameActions.setPanel("away"));
+
+    state = gameReducer(state, gameActions.initialize({ game, setIndex: 0 }));
+
+    expect(state.general.status.panel).toBe("away");
+  });
+
+  it("but starts at the first step for another game or set", () => {
+    let state = gameReducer(
+      undefined,
+      gameActions.initialize({ game: gameNamed("game-1"), setIndex: 0 }),
+    );
+    state = gameReducer(state, gameActions.setPanel("away"));
+
+    const other = gameReducer(
+      state,
+      gameActions.initialize({ game: gameNamed("game-2"), setIndex: 0 }),
+    );
+
+    expect(other.general.status.panel).toBe("home");
+  });
+});

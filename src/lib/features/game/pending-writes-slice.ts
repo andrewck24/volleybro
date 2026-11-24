@@ -2,6 +2,7 @@ import {
   isQueuedBy,
   mayBeAttemptedAgain,
   nextAttemptDelayMs,
+  writeKey,
 } from "@/lib/features/game/pending-writes";
 import type {
   PendingEntry,
@@ -40,24 +41,24 @@ const enqueued: CaseReducer<
 
 const flushSucceeded: CaseReducer<
   PendingWritesState,
-  PayloadAction<{ ids: string[] }>
+  PayloadAction<{ keys: string[] }>
 > = (state, action) => {
-  const ids = new Set(action.payload.ids);
-  state.pending = state.pending.filter((p) => !ids.has(p.entry.id));
+  const keys = new Set(action.payload.keys);
+  state.pending = state.pending.filter((p) => !keys.has(writeKey(p.entry)));
 };
 
 const flushFailed: CaseReducer<
   PendingWritesState,
   PayloadAction<{
-    ids: string[];
+    keys: string[];
     retryable: boolean;
     lastError?: WriteError;
   }>
 > = (state, action) => {
-  const { ids, retryable, lastError } = action.payload;
-  const idSet = new Set(ids);
+  const { keys: sent, retryable, lastError } = action.payload;
+  const keys = new Set(sent);
   for (const item of state.pending) {
-    if (!idSet.has(item.entry.id)) continue;
+    if (!keys.has(writeKey(item.entry))) continue;
     item.attempts += 1;
     const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;
     item.nextAttemptAt = delay === null ? null : Date.now() + delay;

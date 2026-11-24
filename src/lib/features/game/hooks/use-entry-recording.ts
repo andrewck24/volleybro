@@ -4,6 +4,8 @@ import {
   usePendingWritesContext,
   type FlushResult,
 } from "@/hooks/use-pending-writes";
+import { gameActions } from "@/lib/features/game/game-slice";
+import { writeKey } from "@/lib/features/game/pending-writes";
 import type { GameView, PendingEntryContent } from "@/lib/features/game/types";
 import { useAppStore } from "@/lib/redux/hooks";
 
@@ -84,6 +86,19 @@ export const useEntryRecording = (gameId: string) => {
       apply,
     );
 
+  const leaveWhenWritten = ({ id, at }: { id: string; at: string }) => {
+    const unsubscribe = store.subscribe(() => {
+      const { game, pendingWrites } = store.getState();
+      if (game.mode !== "editing" || game.editing.entryDraft.id !== id)
+        return unsubscribe();
+      const queued = pendingWrites.pending.filter((p) => p.entry.id === id);
+      if (queued.some((p) => p.entry.at === at)) return;
+      unsubscribe();
+      if (queued.length === 0)
+        store.dispatch(gameActions.setGameMode("general"));
+    });
+  };
+
   const edit = async <C extends EntryContent>(
     content: C,
     apply: ApplyEntry<C>,
@@ -91,8 +106,25 @@ export const useEntryRecording = (gameId: string) => {
     const { id, seq } = store.getState().game.editing.entryDraft;
     const result = stage(content, { id, seq }, apply);
     if (result.status !== "recorded") return result;
-    const flushed: FlushResult = await flush();
-    if (!flushed.ok) return { status: "failed", error: flushed.error };
+    store.dispatch(gameActions.editWriteStaged(writeKey(result.entry)));
+    const isQueued = () =>
+      store
+        .getState()
+        .pendingWrites.pending.some(
+          (p) => writeKey(p.entry) === writeKey(result.entry),
+        );
+    let flushed: FlushResult = await flush();
+    for (let again = 0; again < 2 && flushed.ok && isQueued(); again++)
+      flushed = await flush();
+    if (!flushed.ok || isQueued()) {
+      leaveWhenWritten(result.entry);
+      return {
+        status: "failed",
+        error: flushed.ok
+          ? new Error("The edit was not written")
+          : flushed.error,
+      };
+    }
     return { status: "edited", entry: result.entry };
   };
 
