@@ -1,7 +1,10 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { GameReason } from "@/entities/errors";
 import { MoveType, type Entry } from "@/entities/game";
-import { createRecordedRally } from "@test/support/fixtures/entries";
+import {
+  createRecordedRally,
+  createRecordedSubstitution,
+} from "@test/support/fixtures/entries";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
@@ -162,6 +165,59 @@ describe("identity-keyed entry writes", () => {
       write(ref, [rally("entry-1", 3, 1)], editedAt),
     ).rejects.toMatchObject({
       reason: GameReason.ENTRY_SEQ_CHANGED,
+      httpStatus: 400,
+    });
+
+    const after = (await readRawGame(seeded.gameId))!.sets[0];
+    expect(after.ver).toBe(before.ver);
+    expect(after.entries).toEqual(before.entries);
+  });
+
+  it("refuses an edit that changes which side won, leaving the set and its version unchanged", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-1", 0, 1)]);
+    const before = (await readRawGame(seeded.gameId))!.sets[0];
+
+    await expect(
+      repo().upsertEntries(
+        ref,
+        [
+          {
+            entry: { ...rally("entry-1", 0, 9), win: false } as Entry,
+            at: editedAt,
+          },
+        ],
+        operator,
+      ),
+    ).rejects.toMatchObject({
+      reason: GameReason.ENTRY_WINNER_CHANGED,
+      httpStatus: 400,
+    });
+
+    const after = (await readRawGame(seeded.gameId))!.sets[0];
+    expect(after.ver).toBe(before.ver);
+    expect(after.entries).toEqual(before.entries);
+  });
+
+  it("refuses an edit that turns a rally into another kind of entry, leaving the set and its version unchanged", async () => {
+    const ref = { gameId: seeded.gameId, setIndex: 0 };
+    await write(ref, [rally("entry-1", 0, 1)]);
+    const before = (await readRawGame(seeded.gameId))!.sets[0];
+
+    await expect(
+      write(
+        ref,
+        [
+          createRecordedSubstitution({
+            id: "entry-1",
+            seq: 0,
+            players: { in: seeded.playerIds[1]!, out: seeded.playerIds[0]! },
+          }),
+        ],
+        editedAt,
+      ),
+    ).rejects.toMatchObject({
+      reason: GameReason.ENTRY_TYPE_CHANGED,
       httpStatus: 400,
     });
 

@@ -36,11 +36,11 @@ const PendingWritesTestHarness = ({
   );
 };
 
-const failToThreshold = (store: AppStore, ids: string[]) => {
+const failToThreshold = (store: AppStore, keys: string[]) => {
   for (let i = 0; i < PENDING_WRITE_UNSENT_ATTEMPTS; i++) {
     store.dispatch(
       pendingWritesActions.flushFailed({
-        ids,
+        keys,
         retryable: true,
         lastError: { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 },
       }),
@@ -48,10 +48,10 @@ const failToThreshold = (store: AppStore, ids: string[]) => {
   }
 };
 
-const failUnrecoverably = (store: AppStore, ids: string[]) =>
+const failUnrecoverably = (store: AppStore, keys: string[]) =>
   store.dispatch(
     pendingWritesActions.flushFailed({
-      ids,
+      keys,
       retryable: false,
       lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
     }),
@@ -249,7 +249,7 @@ describe("SyncIndicator", () => {
       ).toBeInTheDocument();
 
       act(() => {
-        store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
+        store.dispatch(pendingWritesActions.flushSucceeded({ keys: ["e1"] }));
       });
 
       expect(
@@ -273,7 +273,7 @@ describe("SyncIndicator", () => {
       renderIndicator();
 
       act(() => {
-        store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
+        store.dispatch(pendingWritesActions.flushSucceeded({ keys: ["e1"] }));
       });
 
       expect(screen.queryByRole("button")).not.toBeInTheDocument();

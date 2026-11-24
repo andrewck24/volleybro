@@ -44,11 +44,26 @@ export const isQueuedBy = (
   userId: string | undefined,
 ): boolean => item.userId === undefined || item.userId === userId;
 
+export const writeKey = ({ id, at }: { id: string; at?: string }): string =>
+  at === undefined ? id : `${id}@${at}`;
+
 export const isPendingWrite = (
   state: PendingWritesState,
-  entryId: string,
+  key: string | null,
 ): boolean =>
-  state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt !== null);
+  key !== null &&
+  state.pending.some(
+    (p) => writeKey(p.entry) === key && p.nextAttemptAt !== null,
+  );
+
+export const isUnscheduledWrite = (
+  state: PendingWritesState,
+  key: string | null,
+): boolean =>
+  key !== null &&
+  state.pending.some(
+    (p) => writeKey(p.entry) === key && p.nextAttemptAt === null,
+  );
 
 export const PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS = [300, 800];
 export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];

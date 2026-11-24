@@ -5,7 +5,13 @@ import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
-export const GameOptionsSummary = ({ gameId }: { gameId: string }) => {
+export const GameOptionsSummary = ({
+  gameId,
+  interactive = true,
+}: {
+  gameId: string;
+  interactive?: boolean;
+}) => {
   const dispatch = useAppDispatch();
   const { game } = useGame(gameId);
   const { setIndex } = useAppSelector((state) => state.game);
@@ -24,7 +30,7 @@ export const GameOptionsSummary = ({ gameId }: { gameId: string }) => {
           key={entryIndex}
           entry={entry}
           players={players}
-          onClick={() => handleEntryClick(entryIndex)}
+          onClick={interactive ? () => handleEntryClick(entryIndex) : undefined}
         />
       ))}
     </div>

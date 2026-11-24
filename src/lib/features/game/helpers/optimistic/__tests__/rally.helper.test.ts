@@ -1,10 +1,6 @@
 import { EntryType, MoveType as M, type EntryIdentity } from "@/entities/game";
 import { Position } from "@/entities/team";
-import {
-  applyEntry,
-  assertRallyAt,
-  deriveEntryPhase,
-} from "@/lib/features/game/helpers";
+import { applyEntry, deriveEntryPhase } from "@/lib/features/game/helpers";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 const record = (
@@ -194,15 +190,6 @@ describe("rally.helper.ts", () => {
         type: EntryType.RALLY,
         ...newRally,
       });
-    });
-
-    it("should throw error when entry is not a rally", () => {
-      const mockGame = createMockGame();
-      mockGame.sets[0]!.entries[0]!.type = EntryType.TIMEOUT;
-
-      expect(() => {
-        assertRallyAt(mockGame, mockParams.setIndex, mockParams.entryIndex);
-      }).toThrow("Entry is not a rally");
     });
 
     it("should not mutate the game passed in", () => {
@@ -427,9 +414,7 @@ describe("rally.helper.ts", () => {
 
         const updatedRally = {
           ...winningRally,
-          win: false,
-          home: { ...winningRally.home, score: 23 },
-          away: { ...winningRally.away, score: 25 },
+          home: { ...winningRally.home, score: 24 },
         };
 
         const result = record(
@@ -438,9 +423,8 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.isSetInProgress).toBe(false);
-        expect(result.phase.isSetPoint).toBe(false);
-        expect(result.game.sets[0]!.win).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(true);
+        expect(result.game.sets[0]!.win).toBeNull();
       });
     });
   });

@@ -1,5 +1,8 @@
 import { EntryType, MoveType, Side } from "@/entities/game";
-import { PENDING_WRITE_EXPIRY_MS } from "@/lib/features/game/pending-writes";
+import {
+  PENDING_WRITE_EXPIRY_MS,
+  writeKey,
+} from "@/lib/features/game/pending-writes";
 import {
   probePendingWritesStorage,
   restorePendingWrites,
@@ -73,7 +76,9 @@ describe("pending-writes persistence", () => {
       items: [{ entry: entry("e1"), gameId: "game-1", setIndex: 0 }],
     });
 
-    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
+    store.dispatch(
+      pendingWritesActions.flushSucceeded({ keys: [writeKey(entry("e1"))] }),
+    );
     await waitFor(() => expect(saved).toHaveLength(2));
     expect(saved[1]).toEqual({ version: PENDING_WRITES_VERSION, items: [] });
   });
@@ -91,7 +96,7 @@ describe("pending-writes persistence", () => {
     );
     store.dispatch(
       pendingWritesActions.flushFailed({
-        ids: ["e1"],
+        keys: [writeKey(entry("e1"))],
         retryable: true,
         lastError: {
           code: "TRANSIENT",
