@@ -34,6 +34,10 @@ Issue IDs and ticket numbers belong in commit trailers and pull-request bodies, 
 - Files: `kebab-case` for components, `.usecase.ts` for use cases, `.mongo.ts` for repository implementations.
 - Variables and functions: `camelCase`; booleans take an `is`/`has`/`can` prefix; event handlers a `handle` prefix; constants are `UPPER_SNAKE_CASE`.
 
+## File placement
+
+`src/app` holds only files Next.js gives a meaning by name, such as `page`, `layout`, `default`, `error`, `route` and metadata files like `robots.ts`, with their `__tests__`. A route file composes; the UI it renders is defined elsewhere. Components go under `src/components/`, in the layer [Components](./blueprint/content/features/platform/design-system/components/index.mdx) assigns; hooks go in `src/hooks/`, and other logic in `src/lib/` or the layer it belongs to. `globals.css`, `sw.ts`, `serwist-provider.tsx` and `apple-splash/devices.ts` predate this rule and are not precedent.
+
 ## Tests
 
 A test sits at the layer [`docs/testing-strategy.md`](./docs/testing-strategy.md) assigns it, mocking only what that layer's school says to mock.
