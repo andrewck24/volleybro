@@ -2,10 +2,6 @@ import { GamePreview } from "@/components/game/preview";
 import { SummaryDrawer } from "@/components/game/summary-drawer";
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { EntryType, MoveType } from "@/entities/game";
-import {
-  PendingWritesContext,
-  usePendingWrites,
-} from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore } from "@/lib/redux/store";
@@ -19,23 +15,7 @@ import { SWRConfig } from "swr";
 import { server } from "@test/support/msw/server";
 import { answerSignedInUser } from "@test/support/msw/user";
 import { deferred } from "@test/support/gates";
-
-const PendingWritesTestHarness = ({
-  gameId,
-  setIndex,
-  children,
-}: {
-  gameId: string;
-  setIndex: number;
-  children: React.ReactNode;
-}) => {
-  const pendingWrites = usePendingWrites(gameId, setIndex);
-  return (
-    <PendingWritesContext.Provider value={pendingWrites}>
-      {children}
-    </PendingWritesContext.Provider>
-  );
-};
+import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
 
 const mockGame = {
   id: "game-1",
@@ -91,9 +71,7 @@ const renderPreview = (
           dedupingInterval: 0,
         }}
       >
-        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
-          {ui}
-        </PendingWritesTestHarness>
+        {ui}
       </SWRConfig>
     </Provider>,
   );
@@ -126,7 +104,7 @@ const setUpPreview = (
 };
 
 const SubmittingPreview = ({ mode }: { mode: "general" | "editing" }) => {
-  const submit = useSubmitEntryDraft("game-1");
+  const submit = useSubmitEntryDraft("game-1", mode);
   return <GamePreview gameId="game-1" mode={mode} onSubmit={submit} />;
 };
 
@@ -137,7 +115,9 @@ describe("GamePreview send affordance", () => {
     const { store } = setUpPreview();
 
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
     });
 
     expect(screen.getByText("7")).toBeInTheDocument();
@@ -150,8 +130,15 @@ describe("GamePreview send affordance", () => {
     const { store } = setUpPreview();
 
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "general",
+          move: scoringMoves[3]!,
+        }),
+      );
     });
 
     expect(screen.getByRole("img", { name: SEND_LABEL })).toBeInTheDocument();
@@ -164,8 +151,15 @@ describe("GamePreview submission", () => {
     const { store, onSubmit } = setUpPreview();
 
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "general",
+          move: scoringMoves[3]!,
+        }),
+      );
     });
 
     expect(screen.getByText("7")).toBeInTheDocument();
@@ -304,7 +298,13 @@ describe("GamePreview submission", () => {
         }),
       );
     });
-    renderPreview(store, <SubmittingPreview mode="editing" />, fullGame);
+    renderPreview(
+      store,
+      <PendingWritesOwner>
+        <SubmittingPreview mode="editing" />
+      </PendingWritesOwner>,
+      fullGame,
+    );
     await user.click(screen.getByTestId("preview-trigger"));
 
     const retry = await screen.findByRole("button", { name: "重試" });
@@ -313,14 +313,18 @@ describe("GamePreview submission", () => {
     ).toBeInTheDocument();
     await user.click(retry);
 
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
     expect(attempts).toBe(2);
   });
 
   it("shares one in-progress draft between Preview and the Summary drawer", () => {
     const store = initializedStore();
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
     });
     renderPreview(
       store,
@@ -399,8 +403,15 @@ describe("GamePreview empty-entries guard", () => {
     const user = userEvent.setup();
     const store = initializedStore(emptyGame);
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "general",
+          move: scoringMoves[3]!,
+        }),
+      );
     });
 
     const onSubmit = jest.fn();
@@ -584,7 +595,9 @@ describe("GamePreview editing write status", () => {
           lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),
       );
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "editing", id: "p2", zone: 1 }),
+      );
     });
 
     const retry = await screen.findByRole("button", { name: "重試" });
@@ -691,15 +704,26 @@ describe("GamePreview editing write status", () => {
           entryIndex: 0,
         }),
       );
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
       store.dispatch(
-        gameActions.setEntryDraftAwayMove(
-          scoringMoves[scoringMoves[4]!.outcome[0]!]!,
-        ),
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftAwayMove({
+          mode: "editing",
+          move: scoringMoves[scoringMoves[4]!.outcome[0]!]!,
+        }),
       );
     });
     const user = userEvent.setup();
-    renderPreview(store, <SubmittingPreview mode="editing" />);
+    renderPreview(
+      store,
+      <PendingWritesOwner>
+        <SubmittingPreview mode="editing" />
+      </PendingWritesOwner>,
+    );
 
     await user.click(screen.getByTestId("preview-trigger"));
     await waitFor(() =>
@@ -707,11 +731,13 @@ describe("GamePreview editing write status", () => {
     );
     expect(screen.getByTestId("preview-card")).toHaveTextContent("4");
     expect(screen.getByRole("status", { name: "送出中" })).toBeInTheDocument();
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
     expect(store.getState().game.editing.status.entryIndex).toBe(0);
 
     gate.release();
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
   });
 });
 
@@ -731,8 +757,15 @@ describe("GamePreview gesture split", () => {
     const { store, onExpandDrawer, onSubmit } = setUpPreview();
 
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "general",
+          move: scoringMoves[3]!,
+        }),
+      );
     });
 
     await user.click(screen.getByTestId("preview-trigger"));
@@ -746,7 +779,9 @@ describe("GamePreview gesture split", () => {
     const { store, onExpandDrawer, onSubmit } = setUpPreview();
 
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
     });
 
     await user.click(screen.getByTestId("preview-trigger"));

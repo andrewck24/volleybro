@@ -22,7 +22,7 @@ describe("OursMoves while editing a rally the home side won", () => {
     const { store, gameLoaded } = renderEditingPanel();
     await gameLoaded();
     act(() => {
-      store.dispatch(gameActions.setPanel("home"));
+      store.dispatch(gameActions.setPanel({ mode: "editing", panel: "home" }));
     });
     await screen.findAllByRole("button", { name: /攻擊|發球|接發|攔網/ });
     const before = store.getState().game.editing.entryDraft;
@@ -37,7 +37,7 @@ describe("OursMoves while editing a rally the home side won", () => {
     const { store, gameLoaded } = renderEditingPanel();
     await gameLoaded();
     act(() => {
-      store.dispatch(gameActions.setPanel("home"));
+      store.dispatch(gameActions.setPanel({ mode: "editing", panel: "home" }));
     });
     await screen.findAllByRole("button", { name: /攻擊|發球|接發|攔網/ });
     const winMoves = screen

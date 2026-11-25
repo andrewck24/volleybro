@@ -29,7 +29,11 @@ function gameProviders(game: Game, options: Options) {
     );
   if (selectedPlayerId)
     store.dispatch(
-      gameActions.setEntryDraftPlayer({ id: selectedPlayerId, zone: 1 }),
+      gameActions.setEntryDraftPlayer({
+        mode: editingEntryIndex === undefined ? "general" : "editing",
+        id: selectedPlayerId,
+        zone: 1,
+      }),
     );
   const wrapper = ({ children }: { children: ReactNode }) => (
     <SwrIsolation>

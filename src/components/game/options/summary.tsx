@@ -14,7 +14,7 @@ export const GameOptionsSummary = ({
 }) => {
   const dispatch = useAppDispatch();
   const { game } = useGame(gameId);
-  const { setIndex } = useAppSelector((state) => state.game);
+  const setIndex = useAppSelector((state) => state.game.setIndex);
   const set = game!.sets[setIndex];
   const { players } = game!.teams.home;
 

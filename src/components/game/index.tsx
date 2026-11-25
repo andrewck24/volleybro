@@ -31,12 +31,12 @@ import {
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 
 const SubmittingSummaryDrawer = (
   props: Omit<ComponentProps<typeof SummaryDrawer>, "onSubmit">,
 ) => {
-  const submitEntryDraft = useSubmitEntryDraft(props.gameId);
+  const submitEntryDraft = useSubmitEntryDraft(props.gameId, "general");
   return <SummaryDrawer {...props} onSubmit={submitEntryDraft} />;
 };
 
@@ -46,13 +46,14 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
-  const { id, general, mode } = useAppSelector((state) => state.game);
-  const initialized = useRef(false);
+  const id = useAppSelector((state) => state.game.id);
+  const isSetInProgress = useAppSelector(
+    (state) => state.game.general.status.isSetInProgress,
+  );
   const pendingWrites = usePendingWrites(gameId, setIndex);
   const { retry } = pendingWrites;
 
   const handleOptionOpen = (tabValue: string) => {
-    dispatch(gameActions.initialize({ game: game!, setIndex }));
     setTabValue(tabValue);
     setDialogOpen(true);
   };
@@ -61,54 +62,52 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
-    if (!game || (initialized.current && mode === "editing")) return;
-    initialized.current = true;
-    dispatch(gameActions.initialize({ game, setIndex }));
-  }, [gameId, setIndex, game, mode, dispatch]);
+    dispatch(gameActions.closeEntryEdit());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (game) dispatch(gameActions.initialize({ game, setIndex }));
+  }, [setIndex, game, dispatch]);
 
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || id !== gameId) {
     return <GameSkeleton />;
   }
 
-  if (!general.status.isSetInProgress) {
-    return (
-      <PendingWritesContext.Provider value={pendingWrites}>
-        <Interval gameId={gameId} setIndex={setIndex} />
-      </PendingWritesContext.Provider>
-    );
-  }
-
   return (
     <PendingWritesContext.Provider value={pendingWrites}>
-      <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
-        <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
+      {isSetInProgress ? (
+        <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
+          <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
 
-        <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
-          <div className="w-full shrink-0 overflow-hidden rounded-lg">
-            <GameCourt gameId={gameId} mode="general" />
+          <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
+            <div className="w-full shrink-0 overflow-hidden rounded-lg">
+              <GameCourt gameId={gameId} mode="general" />
+            </div>
+            <GamePanel
+              gameId={gameId}
+              mode="general"
+              className="min-h-0 flex-1"
+            />
           </div>
-          <GamePanel
+          <SubmittingSummaryDrawer
             gameId={gameId}
-            mode="general"
-            className="min-h-0 flex-1"
+            state={drawerState}
+            onToggle={toggleDrawer}
+            onEntryRetry={() => void retry()}
           />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <GameOptions
+              gameId={gameId}
+              tabValue={tabValue}
+              setTabValue={setTabValue}
+            />
+          </Dialog>
+          <EntriesEditDialog gameId={gameId} />
         </div>
-        <SubmittingSummaryDrawer
-          gameId={gameId}
-          state={drawerState}
-          onToggle={toggleDrawer}
-          onEntryRetry={() => void retry()}
-        />
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <GameOptions
-            gameId={gameId}
-            tabValue={tabValue}
-            setTabValue={setTabValue}
-          />
-        </Dialog>
-        <EntriesEditDialog gameId={gameId} />
-      </div>
+      ) : (
+        <Interval gameId={gameId} setIndex={setIndex} />
+      )}
     </PendingWritesContext.Provider>
   );
 };

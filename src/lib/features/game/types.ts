@@ -342,19 +342,18 @@ export type ReduxEntryDraft = Omit<RallyView, "win" | "home" | "away"> & {
   challenge?: ChallengeView;
 };
 
+export type GameDraftMode = "general" | "editing";
+
+type ReduxGameDraft = {
+  status: ReduxStatus;
+  entryDraft: ReduxEntryDraft;
+};
+
 export type ReduxGameState = {
   id: string;
   setIndex: number;
-  mode: "general" | "editing";
-  general: {
-    status: ReduxStatus;
-    entryDraft: ReduxEntryDraft;
-  };
-  editing: {
-    status: ReduxStatus;
-    entryDraft: ReduxEntryDraft;
-  };
-  editWriteKey: string | null;
+  general: ReduxGameDraft;
+  editing: ReduxGameDraft & { editWriteKey: string | null };
 };
 
 export type WriteError = {

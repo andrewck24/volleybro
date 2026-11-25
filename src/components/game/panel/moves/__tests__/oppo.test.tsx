@@ -7,6 +7,7 @@ import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
+import { deferred } from "@test/support/gates";
 import { answerEntries } from "@test/support/msw/entries";
 import { useToast } from "@/components/ui/use-toast";
 import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
@@ -44,8 +45,8 @@ const gameWith = (entries: unknown[]) => ({
   sets: [{ options: { serve: "home" }, entries }],
 });
 
-const useHarness = () => ({
-  submit: useSubmitEntryDraft("game-1"),
+const useHarness = (mode: "general" | "editing") => ({
+  submit: useSubmitEntryDraft("game-1", mode),
   game: useGame("game-1").game,
   toasts: useToast().toasts,
 });
@@ -74,7 +75,13 @@ const renderSubmitter = async (
       }),
     );
   }
-  const view = renderHook(useHarness, { wrapper });
+  const view = renderHook(
+    () =>
+      useHarness(
+        options.editingEntryIndex === undefined ? "general" : "editing",
+      ),
+    { wrapper },
+  );
   await waitFor(() => expect(view.result.current.game).toBeDefined());
   return view;
 };
@@ -82,20 +89,57 @@ const renderSubmitter = async (
 beforeEach(() => answerSignedInUser());
 
 describe("useSubmitEntryDraft update path", () => {
-  it("stays in editing mode when the write fails", async () => {
+  it("keeps the draft and queues nothing if the game has not loaded", async () => {
+    const gate = deferred();
+    const game = gameWith([rally]);
+    server.use(
+      http.get("/api/games/game-1", async () => {
+        await gate.promise;
+        return HttpResponse.json(game);
+      }),
+    );
+    const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
+    store = makeStore();
+    store.dispatch(
+      gameActions.initialize({ game: game as never, setIndex: 0 }),
+    );
+    store.dispatch(
+      gameActions.setEditingEntryStatus({ game: game as never, entryIndex: 0 }),
+    );
+    const { result } = renderHook(() => useHarness("editing"), { wrapper });
+    const draft = store.getState().game.editing.entryDraft;
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(store.getState().game.editing.entryDraft).toEqual(draft);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+    expect(puts).toHaveLength(0);
+
+    gate.release();
+    await waitFor(() => expect(result.current.game).toBeDefined());
+  });
+
+  it("retains the edit draft when the write fails", async () => {
     answerEntries(() => HttpResponse.error());
     const { result } = await renderSubmitter(gameWith([rally]), {
       editingEntryIndex: 0,
     });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
     });
 
     await act(async () => {
       await result.current.submit();
     });
 
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
   });
 
   it("stages nothing while the draft is incomplete, so a retry cannot queue a half-filled rally", async () => {
@@ -104,7 +148,9 @@ describe("useSubmitEntryDraft update path", () => {
       editingEntryIndex: 0,
     });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "editing", id: "p1", zone: 1 }),
+      );
     });
 
     await act(async () => {
@@ -113,10 +159,10 @@ describe("useSubmitEntryDraft update path", () => {
 
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
     expect(puts).toHaveLength(0);
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
   });
 
-  it("returns to general mode once the write succeeds", async () => {
+  it("clears the edit draft once the write succeeds", async () => {
     answerEntries(() => HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }));
     const { result } = await renderSubmitter(gameWith([rally]), {
       editingEntryIndex: 0,
@@ -126,7 +172,7 @@ describe("useSubmitEntryDraft update path", () => {
       await result.current.submit();
     });
 
-    expect(store.getState().game.mode).toBe("general");
+    expect(store.getState().game.editing.entryDraft.id).toBe("");
   });
 
   it("tells the recorder and queues nothing when the entry being edited is not a rally", async () => {
@@ -141,8 +187,15 @@ describe("useSubmitEntryDraft update path", () => {
       editingEntryIndex: 0,
     });
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[4]!));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "editing", id: "p1", zone: 1 }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
     });
 
     await act(async () => {
@@ -152,7 +205,7 @@ describe("useSubmitEntryDraft update path", () => {
     expect(result.current.toasts[0]).toMatchObject({
       title: "這筆紀錄的類型無法變更",
     });
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
     expect(puts).toHaveLength(0);
   });
@@ -163,12 +216,20 @@ describe("useSubmitEntryDraft create path", () => {
     answerEntries(() => HttpResponse.json({ entries: [{ id: "new-entry" }] }));
     const { result } = await renderSubmitter(gameWith([]));
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
       store.dispatch(
-        gameActions.setEntryDraftAwayMove(
-          scoringMoves[scoringMoves[3]!.outcome[0]!]!,
-        ),
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p1", zone: 1 }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "general",
+          move: scoringMoves[3]!,
+        }),
+      );
+      store.dispatch(
+        gameActions.setEntryDraftAwayMove({
+          mode: "general",
+          move: scoringMoves[scoringMoves[3]!.outcome[0]!]!,
+        }),
       );
     });
 
@@ -193,11 +254,15 @@ describe("OppoMoves", () => {
     store.dispatch(
       gameActions.initialize({ game: gameWith([]) as never, setIndex: 0 }),
     );
-    store.dispatch(gameActions.setEntryDraftPlayer({ id: "p1", zone: 1 }));
-    store.dispatch(gameActions.setEntryDraftHomeMove(homeMove));
+    store.dispatch(
+      gameActions.setEntryDraftPlayer({ mode: "general", id: "p1", zone: 1 }),
+    );
+    store.dispatch(
+      gameActions.setEntryDraftHomeMove({ mode: "general", move: homeMove }),
+    );
     render(
       <Provider store={store}>
-        <OppoMoves />
+        <OppoMoves mode="general" />
       </Provider>,
     );
 

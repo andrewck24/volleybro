@@ -42,6 +42,7 @@ export const SetsList = ({ gameId }: { gameId: string }) => {
   };
 
   const handleEditOpen = (setIndex: number) => {
+    dispatch(gameActions.closeEntryEdit());
     dispatch(gameActions.initialize({ game: game!, setIndex }));
     setSetIndex(setIndex);
     setEditOpen(true);

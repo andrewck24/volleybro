@@ -65,9 +65,18 @@ describe("GamePanel step highlight follows the shown moves panel", () => {
 
     act(() => {
       reduxStore.dispatch(
-        gameActions.setEntryDraftPlayer({ id: "player-1", zone: 1 }),
+        gameActions.setEntryDraftPlayer({
+          mode: "general",
+          id: "player-1",
+          zone: 1,
+        }),
       );
-      reduxStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      reduxStore.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "general",
+          move: scoringMoves[3]!,
+        }),
+      );
     });
 
     expect(

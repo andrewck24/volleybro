@@ -9,12 +9,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useEditingGuard } from "@/hooks/use-editing-guard";
 import { RiArrowLeftSLine } from "react-icons/ri";
 
-export const EntriesEdit = ({ gameId }: { gameId: string }) => {
-  const { writing, leaveEditing } = useEditingGuard();
-  const submitEntryDraft = useSubmitEntryDraft(gameId);
+export const EntriesEdit = ({
+  gameId,
+  writing,
+  onBack,
+}: {
+  gameId: string;
+  writing: boolean;
+  onBack: () => void;
+}) => {
+  const submitEntryDraft = useSubmitEntryDraft(gameId, "editing");
 
   return (
     <>
@@ -24,7 +30,7 @@ export const EntriesEdit = ({ gameId }: { gameId: string }) => {
             variant="glass"
             size="icon"
             disabled={writing}
-            onClick={leaveEditing}
+            onClick={onBack}
           >
             <RiArrowLeftSLine />
             <span className="sr-only">back</span>

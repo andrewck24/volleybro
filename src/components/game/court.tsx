@@ -10,7 +10,7 @@ import {
 } from "@/components/custom/court";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useLineup } from "@/lib/features/game/hooks/use-lineup";
-import type { ReduxGameState } from "@/lib/features/game/types";
+import type { GameDraftMode } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
 export const GameCourt = ({
@@ -19,11 +19,11 @@ export const GameCourt = ({
   isHeightConstrained = true,
 }: {
   gameId: string;
-  mode: ReduxGameState["mode"];
+  mode: GameDraftMode;
   isHeightConstrained?: boolean;
 }) => {
   const dispatch = useAppDispatch();
-  const { setIndex } = useAppSelector((state) => state.game);
+  const setIndex = useAppSelector((state) => state.game.setIndex);
   const { status, entryDraft: draft } = useAppSelector(
     (state) => state.game[mode],
   );
@@ -76,6 +76,7 @@ export const GameCourt = ({
             onClick={() =>
               dispatch(
                 gameActions.setEntryDraftPlayer({
+                  mode,
                   id: player.id!,
                   zone: index + 1,
                 }),

@@ -10,6 +10,7 @@ import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { gameActions } from "@/lib/features/game/game-slice";
+import type { GameDraftMode } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import {
@@ -23,17 +24,18 @@ import { RiRepeat2Line } from "react-icons/ri";
 
 const ERROR_CELL_CLASS = "justify-between gap-1 px-3 py-0.5 leading-tight";
 
-export const OursMoves = () => {
+export const OursMoves = ({ mode }: { mode: GameDraftMode }) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  const gameState = useAppSelector((state) => state.game);
-  const { game } = useGame(gameState.id);
-  const { entryDraft: draft } = gameState[gameState.mode];
+  const id = useAppSelector((state) => state.game.id);
+  const setIndex = useAppSelector((state) => state.game.setIndex);
+  const { game } = useGame(id);
+  const { entryDraft: draft, status } = useAppSelector(
+    (state) => state.game[mode],
+  );
   const editedEntry =
-    gameState.mode === "editing"
-      ? game?.sets[gameState.setIndex]?.entries[
-          gameState.editing.status.entryIndex
-        ]
+    mode === "editing"
+      ? game?.sets[setIndex]?.entries[status.entryIndex]
       : undefined;
   const lockedWin =
     editedEntry?.type === EntryType.RALLY ? editedEntry.win : undefined;
@@ -46,7 +48,7 @@ export const OursMoves = () => {
       toast({ ...ERROR_MESSAGES.ENTRY_WINNER_CHANGED, variant: "error" });
       return;
     }
-    dispatch(gameActions.setEntryDraftHomeMove(move));
+    dispatch(gameActions.setEntryDraftHomeMove({ mode, move }));
   };
 
   return (
@@ -90,7 +92,9 @@ export const OursMoves = () => {
           variant="secondary"
           size="lg"
           className={MOVE_CELL_CLASS}
-          onClick={() => dispatch(gameActions.setPanel("substitutes"))}
+          onClick={() =>
+            dispatch(gameActions.setPanel({ mode, panel: "substitutes" }))
+          }
         >
           替補
           <RiRepeat2Line />

@@ -1,7 +1,8 @@
 import { SetsList } from "@/components/game/sets/list";
+import { gameActions } from "@/lib/features/game/game-slice";
 import { game, rally } from "@test/support/fixtures/editing-game";
 import { renderGame } from "@test/support/react/render-game";
-import { screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 jest.mock("next/navigation", () => ({
@@ -21,6 +22,25 @@ const finishedGame = {
 };
 
 describe("SetsList entry editing", () => {
+  it("shows the entry list when opening a set with a stale edit draft", async () => {
+    const user = userEvent.setup();
+    const { gameLoaded, store } = renderGame(
+      <SetsList gameId={finishedGame.id} />,
+      finishedGame,
+      { editingEntryIndex: 0 },
+    );
+    act(() => store.dispatch(gameActions.editWriteStaged(rally.id)));
+    await gameLoaded();
+
+    await user.click(await screen.findByText("第 1 局"));
+    await user.click(await screen.findByRole("button", { name: "查看紀錄" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "第 1 局逐球記錄" }),
+    ).toBeVisible();
+    expect(store.getState().game.editing.editWriteKey).toBeNull();
+  });
+
   it("opens the editor for a recorded entry of a finished set", async () => {
     const user = userEvent.setup();
     const { gameLoaded } = renderGame(

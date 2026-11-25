@@ -47,10 +47,10 @@ describe("SetEdit editing dismissal", () => {
 
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
   });
 
-  it("leaves editing mode when the dialog closes", async () => {
+  it("clears the edit draft when the dialog closes", async () => {
     const onOpenChange = jest.fn();
     const user = userEvent.setup();
     const { store } = renderEditingGame(
@@ -61,7 +61,9 @@ describe("SetEdit editing dismissal", () => {
     await user.keyboard("{Escape}");
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
   });
 });
 
@@ -76,17 +78,19 @@ describe("EntriesEditDialog", () => {
     await user.click(document.body);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
   });
 
-  it("closes and leaves editing mode on escape", async () => {
+  it("closes the dialog and clears the edit draft on escape", async () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     const { store } = renderEditingGame(<EntriesEditDialog gameId="game-1" />);
     await screen.findByRole("dialog");
 
     await user.keyboard("{Escape}");
 
-    await waitFor(() => expect(store.getState().game.mode).toBe("general"));
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );

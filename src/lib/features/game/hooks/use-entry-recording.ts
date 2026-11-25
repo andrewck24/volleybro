@@ -86,16 +86,14 @@ export const useEntryRecording = (gameId: string) => {
       apply,
     );
 
-  const leaveWhenWritten = ({ id, at }: { id: string; at: string }) => {
+  const leaveWhenWritten = (id: string, key: string) => {
     const unsubscribe = store.subscribe(() => {
       const { game, pendingWrites } = store.getState();
-      if (game.mode !== "editing" || game.editing.entryDraft.id !== id)
-        return unsubscribe();
+      if (game.editing.editWriteKey !== key) return unsubscribe();
       const queued = pendingWrites.pending.filter((p) => p.entry.id === id);
-      if (queued.some((p) => p.entry.at === at)) return;
+      if (queued.some((p) => writeKey(p.entry) === key)) return;
       unsubscribe();
-      if (queued.length === 0)
-        store.dispatch(gameActions.setGameMode("general"));
+      if (queued.length === 0) store.dispatch(gameActions.closeEntryEdit());
     });
   };
 
@@ -106,18 +104,17 @@ export const useEntryRecording = (gameId: string) => {
     const { id, seq } = store.getState().game.editing.entryDraft;
     const result = stage(content, { id, seq }, apply);
     if (result.status !== "recorded") return result;
-    store.dispatch(gameActions.editWriteStaged(writeKey(result.entry)));
+    const key = writeKey(result.entry);
+    store.dispatch(gameActions.editWriteStaged(key));
     const isQueued = () =>
       store
         .getState()
-        .pendingWrites.pending.some(
-          (p) => writeKey(p.entry) === writeKey(result.entry),
-        );
+        .pendingWrites.pending.some((p) => writeKey(p.entry) === key);
     let flushed: FlushResult = await flush();
     for (let again = 0; again < 2 && flushed.ok && isQueued(); again++)
       flushed = await flush();
     if (!flushed.ok || isQueued()) {
-      leaveWhenWritten(result.entry);
+      leaveWhenWritten(id, key);
       return {
         status: "failed",
         error: flushed.ok
@@ -125,6 +122,8 @@ export const useEntryRecording = (gameId: string) => {
           : flushed.error,
       };
     }
+    if (store.getState().game.editing.editWriteKey === key)
+      store.dispatch(gameActions.closeEntryEdit());
     return { status: "edited", entry: result.entry };
   };
 

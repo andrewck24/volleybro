@@ -12,7 +12,7 @@ import { useSubstitutes } from "@/lib/features/game/hooks/use-substitutes";
 import type {
   GameView,
   PendingSubstitution,
-  ReduxGameState,
+  GameDraftMode,
 } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
@@ -24,13 +24,13 @@ export const Substitutes = ({
   className,
 }: {
   gameId: string;
-  mode: ReduxGameState["mode"];
+  mode: GameDraftMode;
   className?: string;
 }) => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
   const { record, edit } = useEntryRecording(gameId);
-  const { setIndex } = useAppSelector((state) => state.game);
+  const setIndex = useAppSelector((state) => state.game.setIndex);
   const { status, entryDraft: draft } = useAppSelector(
     (state) => state.game[mode],
   );
@@ -66,9 +66,8 @@ export const Substitutes = ({
       );
       return;
     }
-    if (result.status === "failed") return;
-    dispatch(gameActions.confirmEntryDraftSubstitution());
-    if (isEditing) dispatch(gameActions.setGameMode("general"));
+    if (result.status === "recorded")
+      dispatch(gameActions.confirmEntryDraftSubstitution());
   };
 
   return (
@@ -78,7 +77,9 @@ export const Substitutes = ({
           <Button
             variant="glass"
             size="icon"
-            onClick={() => dispatch(gameActions.resetEntryDraftSubstitution())}
+            onClick={() =>
+              dispatch(gameActions.resetEntryDraftSubstitution({ mode }))
+            }
           >
             <RiArrowLeftSLine />
           </Button>
@@ -96,9 +97,12 @@ export const Substitutes = ({
               pressed={toggled}
               onClick={() =>
                 toggled
-                  ? dispatch(gameActions.resetEntryDraftSubstitution())
+                  ? dispatch(gameActions.resetEntryDraftSubstitution({ mode }))
                   : dispatch(
-                      gameActions.setEntryDraftSubstitution(substitute.id),
+                      gameActions.setEntryDraftSubstitution({
+                        mode,
+                        playerId: substitute.id,
+                      }),
                     )
               }
             />

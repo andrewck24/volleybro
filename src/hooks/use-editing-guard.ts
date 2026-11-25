@@ -10,14 +10,13 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 export function useEditingGuard() {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  const mode = useAppSelector((state) => state.game.mode);
-  const editWriteKey = useAppSelector((state) => state.game.editWriteKey);
+  const editWriteKey = useAppSelector(
+    (state) => state.game.editing.editWriteKey,
+  );
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
 
-  const writing =
-    mode === "editing" && isPendingWrite(pendingWrites, editWriteKey);
-  const failed =
-    mode === "editing" && isUnscheduledWrite(pendingWrites, editWriteKey);
+  const writing = isPendingWrite(pendingWrites, editWriteKey);
+  const failed = isUnscheduledWrite(pendingWrites, editWriteKey);
 
   const guardDismiss = (event: { preventDefault: () => void }) => {
     if (writing) event.preventDefault();
@@ -32,7 +31,7 @@ export function useEditingGuard() {
         variant: "error",
       });
     }
-    dispatch(gameActions.setGameMode("general"));
+    dispatch(gameActions.closeEntryEdit());
   };
 
   return { writing, failed, guardDismiss, leaveEditing };

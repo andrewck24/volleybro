@@ -387,7 +387,6 @@ describe("SummaryDrawer", () => {
     const editButtons = await screen.findAllByTestId("entry-action-edit");
     fireEvent.click(editButtons[0]!);
 
-    expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().game.editing.entryDraft.id).toBe(allEntries[2]!.id);
   });
 
@@ -426,7 +425,9 @@ describe("SummaryDrawer", () => {
     const onSubmit = jest.fn();
     const store = initializedStore();
     act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+      store.dispatch(
+        gameActions.setEntryDraftPlayer({ mode: "general", id: "p2", zone: 1 }),
+      );
     });
     renderDrawer(
       store,
@@ -440,7 +441,12 @@ describe("SummaryDrawer", () => {
     expect(onSubmit).not.toHaveBeenCalled();
 
     act(() => {
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "general",
+          move: scoringMoves[3]!,
+        }),
+      );
     });
     await user.click(screen.getByTestId("preview-trigger"));
     expect(onSubmit).toHaveBeenCalledTimes(1);
