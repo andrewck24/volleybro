@@ -28,7 +28,7 @@ export const Scores = ({
 
   return (
     <div
-      className="flex h-21 flex-1 flex-row items-center justify-center gap-1"
+      className="flex h-21 flex-1 flex-row items-center justify-center gap-1 max-[359px]:gap-0.5"
       onClick={onClick}
     >
       <Container className="border-primary">
@@ -41,8 +41,8 @@ export const Scores = ({
         <Team>{game?.teams?.home?.name || "我方"}</Team>
       </Container>
       <SetTally won={setsWonHome} needed={setsNeeded} side="home" />
-      <div className="flex h-21 w-16 shrink-0 flex-col items-center justify-center gap-1">
-        <MdOutlineSportsVolleyball className="size-12" />
+      <div className="flex h-21 w-16 shrink-0 flex-col items-center justify-center gap-1 max-[359px]:w-10">
+        <MdOutlineSportsVolleyball className="size-12 max-[359px]:size-10" />
         <SyncIndicator gameId={gameId} />
       </div>
       <SetTally won={setsWonAway} needed={setsNeeded} side="away" />

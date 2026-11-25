@@ -116,7 +116,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Width375: Story = {
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  parameters: {
+    viewport: {
+      viewports: {
+        iphoneSe: {
+          name: "375px",
+          styles: { width: "375px", height: "667px" },
+        },
+      },
+      defaultViewport: "iphoneSe",
+    },
+  },
 };
 
 export const Width320: Story = {

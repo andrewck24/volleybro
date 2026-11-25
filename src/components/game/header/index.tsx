@@ -15,7 +15,7 @@ export const GameHeader = ({
 
   return (
     <header className="fixed top-0 z-10 flex h-[calc(env(safe-area-inset-top)+5.5rem)] w-full max-w-160 items-center justify-between rounded-b-lg bg-card">
-      <div className="flex w-full items-center justify-between gap-2 px-(--page-gutter) pt-[env(safe-area-inset-top)]">
+      <div className="flex w-full items-center justify-between gap-2 px-(--page-gutter) pt-[env(safe-area-inset-top)] max-[359px]:gap-1">
         <Button variant="glass" size="icon" onClick={() => router.back()}>
           <RiArrowLeftSLine />
           <span className="sr-only">Back</span>
