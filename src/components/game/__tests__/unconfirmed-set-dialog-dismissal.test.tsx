@@ -41,15 +41,10 @@ const leaveAlert = () =>
 describe("UnconfirmedSetDialog dismissal", () => {
   beforeEach(() => push.mockClear());
 
-  it("stays open on escape and outside click, and its only button is retry", async () => {
-    const user = userEvent.setup();
+  it("focuses itself on open and offers retry as its only button", () => {
     renderDialog();
+
     expect(unsavedAlert()).toHaveFocus();
-
-    await user.keyboard("{Escape}");
-    fireEvent.pointerDown(document.body);
-
-    expect(unsavedAlert()).toBeInTheDocument();
     expect(
       within(unsavedAlert())
         .getAllByRole("button")

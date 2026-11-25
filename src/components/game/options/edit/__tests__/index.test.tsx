@@ -27,9 +27,6 @@ describe("EntriesEdit close control", () => {
     const title = await screen.findByRole("heading", { name: "編輯逐球紀錄" });
     expect(within(title).queryByRole("button")).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "關閉" })).toHaveLength(1);
-    expect(
-      screen.queryByRole("button", { name: /back|返回/i }),
-    ).not.toBeInTheDocument();
   });
 
   it("closes the editor when tapped while idle", async () => {

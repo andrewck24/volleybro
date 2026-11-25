@@ -123,7 +123,7 @@ const DialogHeader = ({
   </div>
 );
 
-const dialogTitleClassName =
+const DIALOG_TITLE_CLASS_NAME =
   "text-xl leading-tight font-medium tracking-tight text-balance";
 
 const DialogTitle = ({
@@ -136,7 +136,7 @@ const DialogTitle = ({
   <DialogPrimitive.Title
     data-slot="DialogTitle"
     className={cn(
-      dialogTitleClassName,
+      DIALOG_TITLE_CLASS_NAME,
       "text-center",
       srOnly && "sr-only",
       className,
@@ -186,10 +186,9 @@ export {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogHeaderSpacer,
   DialogOverlay,
   DialogPortal,
   DialogTitle,
   DialogTrigger,
-  dialogTitleClassName,
+  DIALOG_TITLE_CLASS_NAME,
 };

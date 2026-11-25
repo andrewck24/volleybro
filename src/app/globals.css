@@ -12,6 +12,8 @@
   }
 }
 
+@custom-variant narrow (@media (width < 22.5rem));
+
 :root,
 .light {
   --background: hsl(230, 20%, 95.6%);

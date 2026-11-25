@@ -4,7 +4,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import * as React from "react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { dialogTitleClassName } from "@/components/ui/dialog";
+import { DIALOG_TITLE_CLASS_NAME } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const AlertDialog = AlertDialogPrimitive.Root;
@@ -96,7 +96,7 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, srOnly = false, ...props }, ref) => (
   <AlertDialogPrimitive.Title
     ref={ref}
-    className={cn(dialogTitleClassName, srOnly && "sr-only", className)}
+    className={cn(DIALOG_TITLE_CLASS_NAME, srOnly && "sr-only", className)}
     {...props}
   />
 ));

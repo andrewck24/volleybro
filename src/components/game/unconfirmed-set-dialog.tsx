@@ -58,6 +58,7 @@ export const UnconfirmedSetDialog = ({
   return (
     <AlertDialog open={unconfirmed}>
       <AlertDialogContent
+        className="outline-none"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           (e.currentTarget as HTMLElement).focus();

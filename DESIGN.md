@@ -261,6 +261,8 @@ breakpoints:
   - { name: 2xl, value: 96rem }
 ```
 
+One app-specific variant sits below them: `narrow` (under 22.5rem, 360px, in `globals.css`), used only where a fixed-width row cannot fit a 320px phone, such as the recording page header.
+
 ## Elevation & Depth
 
 Three distinct tonal layers express depth; no two share a value within a theme. Light surfaces become lighter as they rise; dark surfaces also rise toward lighter values.
@@ -334,7 +336,7 @@ Glass belongs only to floating header, back and close controls; other icon actio
 
 ### Dialog kinds
 
-- **Confirmation** (`AlertDialog`): no header controls; a left-aligned title and description; it closes only through its footer actions, Cancel on the leading side of a row (bottom of a stack) and the default action trailing (top of a stack).
+- **Confirmation** (`AlertDialog`): no header controls; a left-aligned title and description; it closes only through its footer actions or when its task completes, with Cancel on the leading side of a row (bottom of a stack) and the default action trailing (top of a stack).
 - **Form** (`Dialog`): the page header's three areas, close leading and the title centred, with the primary action in `DialogFooter`.
 
 The [Overlays Feature](blueprint/content/features/platform/design-system/overlays/index.mdx) documents how each kind opens and closes.
