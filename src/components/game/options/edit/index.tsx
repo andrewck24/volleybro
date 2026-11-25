@@ -29,7 +29,7 @@ export const EntriesEdit = ({
       <div className="flex min-h-0 flex-1 flex-col gap-1">
         <GameCourt gameId={gameId} mode="editing" />
         <GamePanel gameId={gameId} mode="editing" className="pb-0" />
-        <DialogFooter className="shrink-0 px-2 pt-0">
+        <DialogFooter className="shrink-0 pt-0">
           <GamePreview
             gameId={gameId}
             mode="editing"

@@ -121,7 +121,7 @@ export function GameSkeleton() {
           <LoadingCourt />
         </div>
 
-        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden rounded-lg bg-card px-2 py-2">
+        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden rounded-lg bg-card px-(--page-gutter) py-2">
           <Skeleton className="h-1.5 w-full rounded-full" />
           <Skeleton className="h-4 w-40" />
           <div className="grid w-full flex-1 grid-cols-2 gap-2 pt-1">
@@ -136,7 +136,7 @@ export function GameSkeleton() {
         <div className="pt-2 pb-1.5">
           <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
         </div>
-        <div className="grid w-full px-2">
+        <div className="grid w-full px-(--page-gutter)">
           <Skeleton className="h-10 w-full" />
         </div>
       </div>
