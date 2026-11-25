@@ -25,10 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
-import {
-  PendingWritesContext,
-  usePendingWrites,
-} from "@/hooks/use-pending-writes";
+import { usePendingWritesContext } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect, useState, type ComponentProps } from "react";
@@ -50,8 +47,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const isSetInProgress = useAppSelector(
     (state) => state.game.general.status.isSetInProgress,
   );
-  const pendingWrites = usePendingWrites(gameId, setIndex);
-  const { retry } = pendingWrites;
+  const { retry } = usePendingWritesContext();
 
   const handleOptionOpen = (tabValue: string) => {
     setTabValue(tabValue);
@@ -74,41 +70,33 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     return <GameSkeleton />;
   }
 
-  return (
-    <PendingWritesContext.Provider value={pendingWrites}>
-      {isSetInProgress ? (
-        <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
-          <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
+  return isSetInProgress ? (
+    <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
+      <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
 
-          <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
-            <div className="w-full shrink-0 overflow-hidden rounded-lg">
-              <GameCourt gameId={gameId} mode="general" />
-            </div>
-            <GamePanel
-              gameId={gameId}
-              mode="general"
-              className="min-h-0 flex-1"
-            />
-          </div>
-          <SubmittingSummaryDrawer
-            gameId={gameId}
-            state={drawerState}
-            onToggle={toggleDrawer}
-            onEntryRetry={() => void retry()}
-          />
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <GameOptions
-              gameId={gameId}
-              tabValue={tabValue}
-              setTabValue={setTabValue}
-            />
-          </Dialog>
-          <EntriesEditDialog gameId={gameId} />
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
+        <div className="w-full shrink-0 overflow-hidden rounded-lg">
+          <GameCourt gameId={gameId} mode="general" />
         </div>
-      ) : (
-        <Interval gameId={gameId} setIndex={setIndex} />
-      )}
-    </PendingWritesContext.Provider>
+        <GamePanel gameId={gameId} mode="general" className="min-h-0 flex-1" />
+      </div>
+      <SubmittingSummaryDrawer
+        gameId={gameId}
+        state={drawerState}
+        onToggle={toggleDrawer}
+        onEntryRetry={() => void retry()}
+      />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <GameOptions
+          gameId={gameId}
+          tabValue={tabValue}
+          setTabValue={setTabValue}
+        />
+      </Dialog>
+      <EntriesEditDialog gameId={gameId} />
+    </div>
+  ) : (
+    <Interval gameId={gameId} setIndex={setIndex} />
   );
 };
 
