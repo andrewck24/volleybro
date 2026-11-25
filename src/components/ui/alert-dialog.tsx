@@ -5,7 +5,7 @@ import * as React from "react";
 import { RiCloseLine } from "react-icons/ri";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { DialogHeaderSpacer } from "@/components/ui/dialog";
+import { DialogHeader, dialogTitleClassName } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const AlertDialog = AlertDialogPrimitive.Root;
@@ -63,30 +63,20 @@ const AlertDialogBody = ({
 );
 AlertDialogBody.displayName = "AlertDialogBody";
 
-const AlertDialogHeader = ({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    data-slot="AlertDialogHeader"
-    className={cn(
-      "flex min-h-(--header-height) flex-none flex-row items-center gap-3 px-(--page-gutter) py-2",
-      className,
-    )}
+const AlertDialogHeader = (
+  props: Omit<React.ComponentProps<typeof DialogHeader>, "leading">,
+) => (
+  <DialogHeader
+    leading={
+      <AlertDialogPrimitive.Cancel asChild>
+        <Button type="button" variant="glass" size="icon">
+          <RiCloseLine />
+          <span className="sr-only">關閉</span>
+        </Button>
+      </AlertDialogPrimitive.Cancel>
+    }
     {...props}
-  >
-    <AlertDialogPrimitive.Cancel asChild>
-      <Button type="button" variant="glass" size="icon" className="shrink-0">
-        <RiCloseLine />
-        <span className="sr-only">關閉</span>
-      </Button>
-    </AlertDialogPrimitive.Cancel>
-    <div className="flex min-w-0 flex-1 flex-col items-center justify-center text-center">
-      {children}
-    </div>
-    <DialogHeaderSpacer />
-  </div>
+  />
 );
 AlertDialogHeader.displayName = "AlertDialogHeader";
 
@@ -112,11 +102,7 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, srOnly = false, ...props }, ref) => (
   <AlertDialogPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-center text-xl leading-tight font-medium tracking-tight text-balance",
-      srOnly && "sr-only",
-      className,
-    )}
+    className={cn(dialogTitleClassName, srOnly && "sr-only", className)}
     {...props}
   />
 ));

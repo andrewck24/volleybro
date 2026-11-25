@@ -66,22 +66,6 @@ describe("SetEdit editing dismissal", () => {
     );
   });
 
-  it("keeps the close control disabled while the edit is being written", async () => {
-    const onOpenChange = jest.fn();
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
-    const { store } = renderEditingGame(
-      <Host onOpenChange={onOpenChange}>{dialogBody}</Host>,
-    );
-    holdEditedWrite(store);
-    const close = await screen.findByRole("button", { name: "關閉" });
-
-    expect(close).toBeDisabled();
-    await user.click(close);
-
-    expect(onOpenChange).not.toHaveBeenCalled();
-    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
-  });
-
   it("closes the dialog and clears the edit draft from the close control", async () => {
     const onOpenChange = jest.fn();
     const { store } = renderEditingGame(

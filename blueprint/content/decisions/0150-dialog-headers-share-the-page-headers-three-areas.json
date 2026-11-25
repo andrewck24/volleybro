@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "id": "0150",
+  "title": "Dialog headers share the page header's three areas, with close leading",
+  "capabilities": ["platform/design-system/overlays"],
+  "decision": "DialogHeader and AlertDialogHeader use the page Header's structure: a minimum height of --header-height, the page gutter, equal top and bottom padding, and three vertically centred areas. The leading area holds the close button, an icon with no visible label, unless the dialog passes leading; a later step of a multi-step dialog passes a back button there. The title is centred. The trailing area is an equal-width spacer so the title stays centred, unless the dialog passes trailing; only the route-held dialogs' expand button uses it. A dialog's primary action stays in DialogFooter. AlertDialogHeader renders DialogHeader with a leading button that cancels the alert. UnconfirmedSetDialog keeps no header and no close button. closeButton, onExpand and expandLabel are removed from DialogHeader.",
+  "context": "ADR-0040 put the expand and close buttons to the right of the title in DialogHeader. The page Header puts its back control first, and the two headers differed in padding, alignment and control position. The rally edit dialog also put a back button inside DialogTitle, so it had two ways out, and AlertDialogHeader had its own layout.",
+  "alternatives": [
+    {
+      "option": "Keep close on the trailing side and only fix the padding",
+      "reason": "Close would stay opposite to the page header's leading control, and the dialogs would keep two different header layouts."
+    },
+    {
+      "option": "Move the primary action into the trailing area",
+      "reason": "Footer primary actions were chosen for the rally edit dialog and stay where users already find them. The trailing area is a spacer by default."
+    },
+    {
+      "option": "Give AlertDialogHeader its own markup",
+      "reason": "It would repeat the shell and drift from DialogHeader again."
+    }
+  ],
+  "consequences": [
+    "Every dialog gets the same header from the shared component, with no per-dialog overrides.",
+    "The rally edit dialog keeps only close, which stays disabled while its edit is being written.",
+    "A header with a long title grows instead of clipping, because its height is a minimum.",
+    "A dialog that needs a different trailing control passes trailing."
+  ],
+  "revisitTriggers": [
+    "A dialog needs a primary action in the header.",
+    "The page Header changes its areas or height."
+  ],
+  "originChange": "dialog-header"
+}

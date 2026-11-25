@@ -95,13 +95,9 @@ const DialogHeaderSpacer = () => (
   <div aria-hidden className="size-(--control-size) shrink-0" />
 );
 
-export interface DialogHeaderProps extends Omit<
-  React.HTMLAttributes<HTMLDivElement>,
-  "children"
-> {
+export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
-  children?: React.ReactNode;
 }
 
 const DialogHeader = ({
@@ -127,6 +123,9 @@ const DialogHeader = ({
   </div>
 );
 
+const dialogTitleClassName =
+  "text-center text-xl leading-tight font-medium tracking-tight text-balance";
+
 const DialogTitle = ({
   srOnly = false,
   className,
@@ -136,11 +135,7 @@ const DialogTitle = ({
 }) => (
   <DialogPrimitive.Title
     data-slot="DialogTitle"
-    className={cn(
-      "text-center text-xl leading-tight font-medium tracking-tight text-balance",
-      srOnly && "sr-only",
-      className,
-    )}
+    className={cn(dialogTitleClassName, srOnly && "sr-only", className)}
     {...props}
   />
 );
@@ -191,4 +186,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  dialogTitleClassName,
 };

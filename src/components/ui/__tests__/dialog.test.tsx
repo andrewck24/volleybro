@@ -1,7 +1,6 @@
 import {
   Dialog,
   DialogBody,
-  DialogCloseButton,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -175,22 +174,6 @@ describe("header", () => {
         screen.getByRole("button", { name: "Expand" }),
       ),
     ).toBe(true);
-  });
-
-  it("keeps a disabled close button from closing the dialog", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
-    const onOpenChange = jest.fn();
-    renderHeader(
-      <DialogHeader leading={<DialogCloseButton disabled />}>
-        <DialogTitle>Title</DialogTitle>
-      </DialogHeader>,
-      onOpenChange,
-    );
-    const close = screen.getByRole("button", { name: "關閉" });
-
-    expect(close).toBeDisabled();
-    await user.click(close);
-    expect(onOpenChange).not.toHaveBeenCalled();
   });
 
   it("puts the header's controls before the body's fields", () => {

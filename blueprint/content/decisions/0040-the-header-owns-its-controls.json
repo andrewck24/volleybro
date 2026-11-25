@@ -30,5 +30,6 @@
     "A dialog needs controls but has no DialogHeader.",
     "An overlay style needs its controls somewhere other than the header."
   ],
-  "originChange": "dialog-close-ownership"
+  "originChange": "dialog-close-ownership",
+  "supersededBy": "0150"
 }
