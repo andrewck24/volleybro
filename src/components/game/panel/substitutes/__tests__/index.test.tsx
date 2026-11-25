@@ -63,10 +63,11 @@ const renderPanel = async (
   game: ReturnType<typeof gameWith>,
   editingEntryIndex?: number,
   benchPlayer = /選手二/,
+  setIndex = 0,
 ) => {
   server.use(http.get("/api/games/game-1", () => HttpResponse.json(game)));
   const store = makeStore();
-  store.dispatch(gameActions.initialize({ game: game as never, setIndex: 0 }));
+  store.dispatch(gameActions.initialize({ game: game as never, setIndex }));
   if (editingEntryIndex === undefined) {
     store.dispatch(
       gameActions.setEntryDraftPlayer({ mode: "general", id: "p1", zone: 1 }),
@@ -119,6 +120,22 @@ describe("Substitutes.onSubmit", () => {
         players: { in: "p2", out: "p1" },
       }),
     ]);
+  });
+
+  it("sends the substitution to the set being recorded", async () => {
+    const puts = answerEntries(() => HttpResponse.json({ entries: [] }));
+    const firstSet = gameWith([]);
+    await renderPanel(
+      { ...firstSet, sets: [...firstSet.sets, ...firstSet.sets] },
+      undefined,
+      undefined,
+      1,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /確認/ }));
+
+    await waitFor(() => expect(puts).toHaveLength(1));
+    expect(puts[0]!.si).toBe("1");
   });
 
   it("refuses a substitution taking off a player the entries already took off and sends nothing", async () => {

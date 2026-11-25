@@ -76,6 +76,7 @@ export default async function jestConfig() {
       "<rootDir>/src/lib/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/hooks/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/[(]tabs[)]/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/game/**/*.test.{js,jsx,ts,tsx}",
     ],
   };
 

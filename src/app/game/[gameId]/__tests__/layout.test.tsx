@@ -3,7 +3,10 @@ import GameOverviewPage from "@/app/game/[gameId]/page";
 import GameEntryPage from "@/app/game/[gameId]/sets/[setIndex]/entry/page";
 import GameSetsPage from "@/app/game/[gameId]/sets/page";
 import { gameActions } from "@/lib/features/game/game-slice";
-import { writeKey } from "@/lib/features/game/pending-writes";
+import {
+  PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
+  writeKey,
+} from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { game, rally } from "@test/support/fixtures/editing-game";
@@ -22,8 +25,9 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { useState, type ReactNode } from "react";
 
+const mockGameId = game.id;
 jest.mock("next/navigation", () => ({
-  useParams: () => ({ gameId: "game-1" }),
+  useParams: () => ({ gameId: mockGameId }),
   useRouter: () => ({ push: jest.fn() }),
 }));
 
@@ -65,6 +69,21 @@ beforeEach(() => {
   );
 });
 
+afterEach(() => jest.useRealTimers());
+
+const draftRally = (dispatch: (action: unknown) => unknown) =>
+  act(() => {
+    dispatch(
+      gameActions.setEntryDraftPlayer({ mode: "general", id: "p1", zone: 1 }),
+    );
+    dispatch(
+      gameActions.setEntryDraftHomeMove({
+        mode: "general",
+        move: scoringMoves[3]!,
+      }),
+    );
+  });
+
 it("writes to the recording and edited sets once each across page switches", async () => {
   const user = userEvent.setup();
   const recording = await entryPage("2");
@@ -77,17 +96,7 @@ it("writes to the recording and edited sets once each across page switches", asy
   });
   const { store, navigate } = renderGameRoutes(recording);
   await screen.findByTestId("summary-drawer");
-  act(() => {
-    store.dispatch(
-      gameActions.setEntryDraftPlayer({ mode: "general", id: "p1", zone: 1 }),
-    );
-    store.dispatch(
-      gameActions.setEntryDraftHomeMove({
-        mode: "general",
-        move: scoringMoves[3]!,
-      }),
-    );
-  });
+  draftRally(store.dispatch);
   await user.click(await screen.findByTestId("preview-trigger"));
   await waitFor(() => expect(puts.map(({ si }) => si)).toEqual(["2"]));
 
@@ -114,9 +123,15 @@ it("writes to the recording and edited sets once each across page switches", asy
   );
   expect(puts.map(({ si }) => si)).toEqual(["2", "1"]);
   expect(puts[1]!.body).toEqual([expect.objectContaining({ id: rally.id })]);
+
+  draftRally(store.dispatch);
+  await user.click(await screen.findByTestId("preview-trigger"));
+  await waitFor(() => expect(puts).toHaveLength(3));
+  expect(puts[2]!.si).toBe("2");
 });
 
 it("sends a scheduled write on the overview after leaving the recording and sets pages", async () => {
+  jest.useFakeTimers({ doNotFake: ["nextTick"] });
   const recording = await entryPage("2");
   const sets = await GameSetsPage({ params });
   const overview = await GameOverviewPage({ params });
@@ -149,11 +164,11 @@ it("sends a scheduled write on the overview after leaving the recording and sets
   expect(await screen.findByText("賽事總覽")).toBeVisible();
   expect(puts).toHaveLength(0);
 
-  await waitFor(
-    () => expect(store.getState().pendingWrites.pending).toEqual([]),
-    {
-      timeout: 4_000,
-    },
+  await act(() =>
+    jest.advanceTimersByTimeAsync(PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!),
+  );
+  await waitFor(() =>
+    expect(store.getState().pendingWrites.pending).toEqual([]),
   );
   expect(puts.map(({ si }) => si)).toEqual(["2"]);
 });
