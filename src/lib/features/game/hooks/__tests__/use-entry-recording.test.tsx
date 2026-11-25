@@ -143,7 +143,10 @@ const renderRecording = async (
     () => {
       const { cache } = useSWRConfig();
       cached = () => cache.get("/api/games/game-1")?.data;
-      return { recording: useEntryRecording("game-1"), ...useGame("game-1") };
+      return {
+        recording: useEntryRecording("game-1", 0),
+        ...useGame("game-1"),
+      };
     },
     { wrapper },
   );

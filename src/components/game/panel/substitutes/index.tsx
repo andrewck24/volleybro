@@ -29,8 +29,8 @@ export const Substitutes = ({
 }) => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
-  const { record, edit } = useEntryRecording(gameId);
   const setIndex = useAppSelector((state) => state.game.setIndex);
+  const { record, edit } = useEntryRecording(gameId, setIndex);
   const { status, entryDraft: draft } = useAppSelector(
     (state) => state.game[mode],
   );

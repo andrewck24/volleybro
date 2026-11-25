@@ -1,6 +1,7 @@
 import { SetsList } from "@/components/game/sets/list";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { game, rally } from "@test/support/fixtures/editing-game";
+import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
 import { renderGame } from "@test/support/react/render-game";
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -25,7 +26,9 @@ describe("SetsList entry editing", () => {
   it("shows the entry list when opening a set with a stale edit draft", async () => {
     const user = userEvent.setup();
     const { gameLoaded, store } = renderGame(
-      <SetsList gameId={finishedGame.id} />,
+      <PendingWritesOwner>
+        <SetsList gameId={finishedGame.id} />
+      </PendingWritesOwner>,
       finishedGame,
       { editingEntryIndex: 0 },
     );
@@ -44,7 +47,9 @@ describe("SetsList entry editing", () => {
   it("opens the editor for a recorded entry of a finished set", async () => {
     const user = userEvent.setup();
     const { gameLoaded } = renderGame(
-      <SetsList gameId={finishedGame.id} />,
+      <PendingWritesOwner>
+        <SetsList gameId={finishedGame.id} />
+      </PendingWritesOwner>,
       finishedGame,
     );
     await gameLoaded();

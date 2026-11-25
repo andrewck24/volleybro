@@ -26,7 +26,7 @@ export const useSubmitEntryDraft = (gameId: string, mode: GameDraftMode) => {
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
   const { game } = useGame(gameId);
-  const { record, edit } = useEntryRecording(gameId);
+  const { record, edit } = useEntryRecording(gameId, setIndex);
 
   return async () => {
     if (!game?.sets[setIndex] || !getEntryProgress(draft).submittable) return;

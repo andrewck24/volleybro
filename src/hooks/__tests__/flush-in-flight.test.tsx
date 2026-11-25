@@ -69,7 +69,7 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
 
   const { result } = renderHook(
     () => ({
-      queue: usePendingWrites("game-1", 0),
+      queue: usePendingWrites("game-1"),
       game: useGame("game-1"),
     }),
     { wrapper },
@@ -87,7 +87,7 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
       { revalidate: false },
     );
   });
-  act(() => result.current.queue.enqueue(first));
+  act(() => result.current.queue.enqueue(0, first));
   let flushed!: Promise<unknown>;
   act(() => {
     flushed = result.current.queue.flush();
@@ -105,7 +105,7 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
       { revalidate: false },
     );
   });
-  act(() => result.current.queue.enqueue(second));
+  act(() => result.current.queue.enqueue(0, second));
 
   await act(async () => {
     settle();

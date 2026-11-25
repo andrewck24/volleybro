@@ -31,7 +31,7 @@ type FlushFailedPayload = Parameters<
 
 export type FlushResult = { ok: true } | { ok: false; error: unknown };
 
-export function usePendingWrites(gameId: string, setIndex: number) {
+export function usePendingWrites(gameId: string) {
   const sessionUserId = useUser().user?.id;
   useEffect(() => {
     if (sessionUserId) rememberRecorder(sessionUserId);
@@ -112,12 +112,12 @@ export function usePendingWrites(gameId: string, setIndex: number) {
   }, [runFlush]);
 
   const enqueue = useCallback(
-    (entry: PendingEntry["entry"]) => {
+    (setIndex: number, entry: PendingEntry["entry"]) => {
       dispatch(
         pendingWritesActions.enqueued({ entry, gameId, setIndex, userId }),
       );
     },
-    [dispatch, gameId, setIndex, userId],
+    [dispatch, gameId, userId],
   );
 
   const retry = useCallback((): Promise<FlushResult> => {
