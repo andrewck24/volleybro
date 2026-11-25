@@ -353,6 +353,31 @@ describe("Game rally edit started from the summary drawer", () => {
     expect(store.getState().game.editing).toEqual(editing);
   });
 
+  it("applies home and opponent moves from the dialog only to the edit draft", async () => {
+    const user = userEvent.setup();
+    const { store } = setUpGame();
+    const recordingDraft = await stageRecordingDraft(store);
+    await startEditing(user);
+    const dialog = within(screen.getByRole("dialog", { name: /編輯逐球紀錄/ }));
+
+    await user.click(dialog.getByRole("button", { name: "我方得失分紀錄" }));
+    const winningAttack = dialog
+      .getAllByRole("button", { name: "攻擊" })
+      .find((button) => button.getAttribute("data-move-outcome") === "win");
+    await user.click(winningAttack!);
+
+    expect(store.getState().game.editing.entryDraft.home.type).toBe(
+      MoveType.ATTACK,
+    );
+
+    await user.click(dialog.getByRole("button", { name: "對方防守" }));
+
+    expect(store.getState().game.editing.entryDraft.away.type).toBe(
+      MoveType.DEFENSE,
+    );
+    expect(store.getState().game.general.entryDraft).toEqual(recordingDraft);
+  });
+
   it("closes the edit dialog and shows the expanded drawer once the edit is submitted", async () => {
     const user = userEvent.setup();
     const { store, puts } = setUpGame();

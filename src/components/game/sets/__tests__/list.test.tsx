@@ -22,7 +22,7 @@ const finishedGame = {
 };
 
 describe("SetsList entry editing", () => {
-  it("shows the entry list when reopening a set with a stale edit draft", async () => {
+  it("shows the entry list when opening a set with a stale edit draft", async () => {
     const user = userEvent.setup();
     const { gameLoaded, store } = renderGame(
       <SetsList gameId={finishedGame.id} />,

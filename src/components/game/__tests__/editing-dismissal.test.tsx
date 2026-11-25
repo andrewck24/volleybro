@@ -50,7 +50,7 @@ describe("SetEdit editing dismissal", () => {
     expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
   });
 
-  it("leaves editing mode when the dialog closes", async () => {
+  it("clears the edit draft when the dialog closes", async () => {
     const onOpenChange = jest.fn();
     const user = userEvent.setup();
     const { store } = renderEditingGame(
@@ -81,7 +81,7 @@ describe("EntriesEditDialog", () => {
     expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
   });
 
-  it("closes and leaves editing mode on escape", async () => {
+  it("closes the dialog and clears the edit draft on escape", async () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     const { store } = renderEditingGame(<EntriesEditDialog gameId="game-1" />);
     await screen.findByRole("dialog");

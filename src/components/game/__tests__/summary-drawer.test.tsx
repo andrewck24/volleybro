@@ -387,7 +387,6 @@ describe("SummaryDrawer", () => {
     const editButtons = await screen.findAllByTestId("entry-action-edit");
     fireEvent.click(editButtons[0]!);
 
-    expect(store.getState().game.editing.entryDraft.id).toBeTruthy();
     expect(store.getState().game.editing.entryDraft.id).toBe(allEntries[2]!.id);
   });
 
