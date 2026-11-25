@@ -16,6 +16,7 @@ const variants = [
   "destructive",
   "court",
   "outline",
+  "outline-destructive",
   "secondary",
   "ghost",
   "link",

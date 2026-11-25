@@ -80,7 +80,7 @@ const Container = ({
 
 const Team = ({ children }: { children: React.ReactNode }) => {
   return (
-    <p className="flex w-full max-w-16 items-center justify-center overflow-hidden text-[1rem] font-medium text-ellipsis whitespace-nowrap narrow:text-sm">
+    <p className="w-full max-w-16 truncate text-center text-[1rem] font-medium narrow:text-sm">
       {children}
     </p>
   );
