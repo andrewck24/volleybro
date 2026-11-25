@@ -2,10 +2,9 @@
 
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import * as React from "react";
-import { RiCloseLine } from "react-icons/ri";
 
-import { Button, buttonVariants } from "@/components/ui/button";
-import { DialogHeader, dialogTitleClassName } from "@/components/ui/dialog";
+import { buttonVariants } from "@/components/ui/button";
+import { dialogTitleClassName } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const AlertDialog = AlertDialogPrimitive.Root;
@@ -63,18 +62,13 @@ const AlertDialogBody = ({
 );
 AlertDialogBody.displayName = "AlertDialogBody";
 
-const AlertDialogHeader = (
-  props: Omit<React.ComponentProps<typeof DialogHeader>, "leading">,
-) => (
-  <DialogHeader
-    leading={
-      <AlertDialogPrimitive.Cancel asChild>
-        <Button type="button" variant="glass" size="icon">
-          <RiCloseLine />
-          <span className="sr-only">關閉</span>
-        </Button>
-      </AlertDialogPrimitive.Cancel>
-    }
+const AlertDialogHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    data-slot="AlertDialogHeader"
+    className={cn("flex flex-col gap-2 px-4 pt-4 pb-2 text-left", className)}
     {...props}
   />
 );

@@ -11,21 +11,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { useBackConfirmation } from "@/hooks/use-back-confirmation";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
@@ -71,42 +56,30 @@ export const UnconfirmedSetDialog = ({
     : EXHAUSTED_DESCRIPTION;
 
   return (
-    <Dialog open={unconfirmed} onOpenChange={() => {}}>
-      <DialogContent
-        size="lg"
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
+    <AlertDialog open={unconfirmed}>
+      <AlertDialogContent
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).focus();
+        }}
       >
-        <DialogTitle srOnly>{title}</DialogTitle>
-        <DialogDescription srOnly>{description}</DialogDescription>
-        <DialogBody className="items-center justify-center">
-          <Empty>
-            <EmptyMedia
-              variant="icon"
-              className={
-                !attempting ? "bg-error/10 text-error-text" : undefined
-              }
-            >
-              {attempting ? (
-                <Spinner role="status" aria-label="處理中" />
-              ) : (
-                <RiAlertLine />
-              )}
-            </EmptyMedia>
-            <EmptyHeader>
-              <EmptyTitle>{title}</EmptyTitle>
-              {!attempting && (
-                <EmptyDescription>{description}</EmptyDescription>
-              )}
-            </EmptyHeader>
-            {!attempting && (
-              <EmptyContent>
-                <Button onClick={() => void retry()}>重試</Button>
-              </EmptyContent>
-            )}
-          </Empty>
-        </DialogBody>
-      </DialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+        </AlertDialogHeader>
+        <AlertDialogBody className="flex-row items-center gap-2">
+          {attempting ? (
+            <Spinner role="status" aria-label="處理中" />
+          ) : (
+            <RiAlertLine className="size-5 shrink-0 text-error-text" />
+          )}
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogBody>
+        {!attempting && (
+          <AlertDialogFooter>
+            <Button onClick={() => void retry()}>重試</Button>
+          </AlertDialogFooter>
+        )}
+      </AlertDialogContent>
       <AlertDialog
         open={confirming}
         onOpenChange={(open) => !open && cancelLeave()}
@@ -128,6 +101,6 @@ export const UnconfirmedSetDialog = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </AlertDialog>
   );
 };

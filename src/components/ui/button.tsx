@@ -32,7 +32,7 @@ const buttonVariants = cva(
       size: {
         default: "h-(--control-size) px-3.5 py-2 [&>svg]:size-5",
         lg: "h-(--control-size-lg) px-8 py-2 text-lg [&>svg]:size-6",
-        icon: "size-(--control-size) [&>svg]:size-7",
+        icon: "size-(--control-size) shrink-0 [&>svg]:size-7",
       },
     },
     defaultVariants: {

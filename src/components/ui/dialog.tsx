@@ -124,7 +124,7 @@ const DialogHeader = ({
 );
 
 const dialogTitleClassName =
-  "text-center text-xl leading-tight font-medium tracking-tight text-balance";
+  "text-xl leading-tight font-medium tracking-tight text-balance";
 
 const DialogTitle = ({
   srOnly = false,
@@ -135,7 +135,12 @@ const DialogTitle = ({
 }) => (
   <DialogPrimitive.Title
     data-slot="DialogTitle"
-    className={cn(dialogTitleClassName, srOnly && "sr-only", className)}
+    className={cn(
+      dialogTitleClassName,
+      "text-center",
+      srOnly && "sr-only",
+      className,
+    )}
     {...props}
   />
 );

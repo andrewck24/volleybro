@@ -1,5 +1,6 @@
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
@@ -45,14 +46,6 @@ describe("AlertDialog primitive convergence", () => {
     expect(content).not.toHaveClass("ring-1", "ring-foreground/10");
   });
 
-  it("does not add a close button to the alert-dialog content", () => {
-    renderOpen();
-    const content = screen.getByRole("alertdialog");
-    expect(
-      within(content).queryByRole("button", { name: /close/i }),
-    ).not.toBeInTheDocument();
-  });
-
   it("does not close on Escape (footer is the only exit)", () => {
     const onOpenChange = jest.fn();
     renderOpen(onOpenChange);
@@ -82,7 +75,7 @@ describe("AlertDialog primitive convergence", () => {
   });
 });
 
-describe("AlertDialogHeader", () => {
+describe("AlertDialog header and footer", () => {
   const renderWithHeader = (onOpenChange = jest.fn()) =>
     render(
       <AlertDialog open onOpenChange={onOpenChange}>
@@ -95,26 +88,34 @@ describe("AlertDialogHeader", () => {
           </AlertDialogBody>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep</AlertDialogCancel>
+            <AlertDialogAction>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>,
     );
 
-  it("puts the close button before the title and closes the dialog", () => {
-    const onOpenChange = jest.fn();
-    renderWithHeader(onOpenChange);
-    const close = screen.getByRole("button", { name: "關閉" });
+  it("has no header control; its only buttons are the footer actions", () => {
+    renderWithHeader();
 
     expect(
-      close.compareDocumentPosition(screen.getByText("Delete item")) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      within(screen.getByRole("alertdialog"))
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["Keep", "Delete"]);
+  });
 
-    fireEvent.click(close);
+  it("ignores an outside click and closes through the footer cancel", () => {
+    const onOpenChange = jest.fn();
+    renderWithHeader(onOpenChange);
+
+    fireEvent.pointerDown(document.body);
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Keep" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("still focuses the footer cancel when it opens", () => {
+  it("focuses the footer cancel when it opens", () => {
     renderWithHeader();
 
     expect(screen.getByRole("button", { name: "Keep" })).toHaveFocus();
