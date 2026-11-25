@@ -3,6 +3,7 @@
 import { RoleSelect } from "@/components/team/role-select";
 import {
   AlertDialog,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -160,10 +161,12 @@ export function MembershipSection({
                   <AlertDialogTitle>
                     確定要將 {player.name} 從名單中刪除嗎？
                   </AlertDialogTitle>
+                </AlertDialogHeader>
+                <AlertDialogBody>
                   <AlertDialogDescription>
                     刪除後這名球員將從名單上移除，無法繼續使用隊伍相關功能。
                   </AlertDialogDescription>
-                </AlertDialogHeader>
+                </AlertDialogBody>
                 {removeError && <ErrorNotice message={removeError} />}
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
@@ -210,10 +213,12 @@ export function MembershipSection({
                     <AlertDialogTitle>
                       確定要將隊伍所有權移轉給 {player.name} 嗎？
                     </AlertDialogTitle>
+                  </AlertDialogHeader>
+                  <AlertDialogBody>
                     <AlertDialogDescription>
                       移轉後 {player.name} 將成為新擁有者，你仍保有管理員身分。
                     </AlertDialogDescription>
-                  </AlertDialogHeader>
+                  </AlertDialogBody>
                   {transferError && <ErrorNotice message={transferError} />}
                   <AlertDialogFooter>
                     <AlertDialogCancel>取消</AlertDialogCancel>

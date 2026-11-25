@@ -113,10 +113,14 @@ export const NewGameForm = ({
 
   if (isTeamLoading || isPlayersLoading) {
     return (
-      <DialogHeader>
-        <DialogTitle className="h-5 w-25 animate-pulse rounded-md bg-muted" />
-        <DialogDescription className="h-5 w-60 animate-pulse rounded-md bg-muted" />
-      </DialogHeader>
+      <>
+        <DialogHeader>
+          <DialogTitle className="h-5 w-25 animate-pulse rounded-md bg-muted" />
+        </DialogHeader>
+        <DialogBody>
+          <DialogDescription className="h-5 w-60 animate-pulse rounded-md bg-muted" />
+        </DialogBody>
+      </>
     );
   }
 
@@ -132,11 +136,11 @@ export const NewGameForm = ({
         >
           <DialogHeader>
             <DialogTitle>新增賽事紀錄</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
             <DialogDescription>
               編輯賽事基本資訊、確認陣容後點選「創建賽事紀錄」。
             </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
             <Card className="shadow-none">
               <CardHeader>
                 <CardTitle className="text-lg leading-0">
@@ -184,8 +188,8 @@ export const NewGameForm = ({
         </form>
       ) : (
         <>
-          <DialogHeader>
-            <DialogTitle>
+          <DialogHeader
+            leading={
               <Button
                 type="button"
                 variant="glass"
@@ -193,14 +197,16 @@ export const NewGameForm = ({
                 onClick={() => handleViewChange("")}
               >
                 <RiArrowLeftSLine />
+                <span className="sr-only">返回</span>
               </Button>
-              編輯賽事資訊
-            </DialogTitle>
+            }
+          >
+            <DialogTitle>編輯賽事資訊</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
             <DialogDescription>
               輸入賽事、隊伍等資訊，稍後仍可以在「賽事紀錄頁面」中修改。
             </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
             <MatchInfoForm
               info={info}
               setInfo={setInfo}

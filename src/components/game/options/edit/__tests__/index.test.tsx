@@ -1,5 +1,8 @@
 import { EntriesEditDialog } from "@/components/game/options/edit/dialog";
-import { PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
+import {
+  hasFailedWrite,
+  PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
+} from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { deferred } from "@test/support/gates";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -10,22 +13,33 @@ import {
   holdEditedWrite,
   renderEditingGame,
 } from "@test/support/react/render-editing-game";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse } from "msw";
 
 const renderEntriesEdit = () =>
   renderEditingGame(<EntriesEditDialog gameId="game-1" />);
 
-describe("EntriesEdit back control", () => {
-  it("closes the editor when the back button is tapped while idle", async () => {
+describe("EntriesEdit close control", () => {
+  it("is the only header control and sits outside the title", async () => {
+    renderEntriesEdit();
+
+    const title = await screen.findByRole("heading", { name: "編輯逐球紀錄" });
+    expect(within(title).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "關閉" })).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: /back|返回/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("closes the editor when tapped while idle", async () => {
     const user = userEvent.setup();
     const { store } = renderEntriesEdit();
 
-    const back = await screen.findByRole("button", { name: "back" });
-    expect(back).toBeEnabled();
+    const close = await screen.findByRole("button", { name: "關閉" });
+    expect(close).toBeEnabled();
 
-    await user.click(back);
+    await user.click(close);
 
     expect(store.getState().game.editing.entryDraft.id).toBe("");
   });
@@ -34,7 +48,36 @@ describe("EntriesEdit back control", () => {
     const { store } = renderEntriesEdit();
     holdEditedWrite(store);
 
-    expect(await screen.findByRole("button", { name: "back" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "關閉" })).toBeDisabled();
+  });
+
+  it("leaves the editor after a failed write and keeps that write queued for retry", async () => {
+    const user = userEvent.setup();
+    answerEntries(() =>
+      HttpResponse.json({ code: "VALIDATION" }, { status: 400 }),
+    );
+    const { store } = renderEntriesEdit();
+    await screen.findByRole("button", { name: "關閉" });
+    act(() => {
+      store.dispatch(
+        gameActions.setEntryDraftHomeMove({
+          mode: "editing",
+          move: scoringMoves[4]!,
+        }),
+      );
+    });
+    await user.click(await screen.findByTestId("preview-trigger"));
+    const key = store.getState().game.editing.entryDraft.id;
+    await waitFor(() =>
+      expect(hasFailedWrite(store.getState().pendingWrites, key)).toBe(true),
+    );
+
+    await user.click(screen.getByRole("button", { name: "關閉" }));
+
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
+    expect(hasFailedWrite(store.getState().pendingWrites, key)).toBe(true);
   });
 });
 
@@ -45,7 +88,7 @@ describe("EntriesEdit rally submission", () => {
       HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
     );
     const { store } = renderEntriesEdit();
-    await screen.findByRole("button", { name: "back" });
+    await screen.findByRole("button", { name: "關閉" });
     act(() => {
       store.dispatch(
         gameActions.setEntryDraftHomeMove({
@@ -73,7 +116,7 @@ describe("EntriesEdit rally submission", () => {
       HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
     );
     const { store } = renderEntriesEdit();
-    await screen.findByRole("button", { name: "back" });
+    await screen.findByRole("button", { name: "關閉" });
     act(() => {
       store.dispatch(
         gameActions.setEntryDraftPlayer({ mode: "editing", id: "p1", zone: 1 }),
@@ -108,7 +151,7 @@ describe("EntriesEdit after a write that first fails with a server error", () =>
         : HttpResponse.json({ entries: [{ id: "e1", seq: 0 }] }),
     );
     const { store } = renderEntriesEdit();
-    await screen.findByRole("button", { name: "back" });
+    await screen.findByRole("button", { name: "關閉" });
     act(() => {
       store.dispatch(
         gameActions.setEntryDraftHomeMove({
@@ -146,7 +189,7 @@ describe("EntriesEdit while the entry's own creation write is still queued", () 
       return HttpResponse.json({ entries: [rally] });
     });
     const { store } = renderEntriesEdit();
-    await screen.findByRole("button", { name: "back" });
+    await screen.findByRole("button", { name: "關閉" });
     act(() => {
       store.dispatch(
         pendingWritesActions.enqueued({
@@ -173,7 +216,7 @@ describe("EntriesEdit while the entry's own creation write is still queued", () 
     expect(store.getState().game.editing.entryDraft.home.num).toBe(
       scoringMoves[4]!.num,
     );
-    expect(screen.getByRole("button", { name: "back" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "關閉" })).toBeInTheDocument();
 
     await user.click(await screen.findByTestId("preview-trigger"));
 

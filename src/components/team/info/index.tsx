@@ -1,6 +1,7 @@
 "use client";
 import {
   AlertDialog,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -139,10 +140,12 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>確定要離開這個隊伍嗎？</AlertDialogTitle>
+                </AlertDialogHeader>
+                <AlertDialogBody>
                   <AlertDialogDescription>
                     離開後將無法查看隊伍相關資訊與個人數據。此操作無法撤銷，若要重新加入需再次接受邀請。
                   </AlertDialogDescription>
-                </AlertDialogHeader>
+                </AlertDialogBody>
                 {leaveError && <ErrorNotice message={leaveError} />}
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>

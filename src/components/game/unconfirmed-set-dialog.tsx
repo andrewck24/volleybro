@@ -2,6 +2,7 @@
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -113,8 +114,10 @@ export const UnconfirmedSetDialog = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{LEAVE_TITLE}</AlertDialogTitle>
-            <AlertDialogDescription>{LEAVE_DESCRIPTION}</AlertDialogDescription>
           </AlertDialogHeader>
+          <AlertDialogBody>
+            <AlertDialogDescription>{LEAVE_DESCRIPTION}</AlertDialogDescription>
+          </AlertDialogBody>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={cancelLeave}>
               留在這裡

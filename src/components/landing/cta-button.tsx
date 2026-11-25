@@ -148,11 +148,11 @@ const IOSInstallInstruction = () => {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>安裝此應用程式到主頁面</DialogTitle>
+      </DialogHeader>
+      <DialogBody>
         <DialogDescription>
           透過以下步驟將此應用程式安裝到您的 iOS 裝置主頁面
         </DialogDescription>
-      </DialogHeader>
-      <DialogBody>
         <ul className="space-y-2 text-sm">
           <li className="flex items-center">
             <span className="w-4">1.</span>

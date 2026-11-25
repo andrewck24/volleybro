@@ -34,9 +34,7 @@ export const SetOptions = ({
   return (
     <DialogContent size="lg">
       <DialogHeader>
-        <DialogTitle className="pb-2 text-center font-medium">
-          第 {setIndex + 1} 局設定
-        </DialogTitle>
+        <DialogTitle>第 {setIndex + 1} 局設定</DialogTitle>
         <DialogDescription srOnly>
           設定第 {setIndex + 1} 局的陣容
         </DialogDescription>

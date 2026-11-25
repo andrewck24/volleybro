@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogBody,
+  DialogCloseButton,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -109,112 +110,99 @@ describe("srOnly prop", () => {
   });
 });
 
-describe("close button", () => {
-  it("renders by default", () => {
+describe("header", () => {
+  const renderHeader = (header: React.ReactNode, onOpenChange = jest.fn()) =>
     render(
-      <Dialog open>
+      <Dialog open onOpenChange={onOpenChange}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle srOnly>Title</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>,
-    );
-    expect(screen.getByRole("button", { name: "關閉" })).toBeInTheDocument();
-  });
-
-  it("is absent when closeButton is false", () => {
-    render(
-      <Dialog open>
-        <DialogContent>
-          <DialogHeader closeButton={false}>
-            <DialogTitle srOnly>Title</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>,
-    );
-    expect(
-      screen.queryByRole("button", { name: "關閉" }),
-    ).not.toBeInTheDocument();
-  });
-});
-
-describe("expand button", () => {
-  it("is absent without onExpand", () => {
-    render(
-      <Dialog open>
-        <DialogContent>
-          <DialogHeader expandLabel="Expand">
-            <DialogTitle srOnly>Title</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>,
-    );
-    expect(
-      screen.queryByRole("button", { name: "Expand" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("renders and fires onExpand when provided", async () => {
-    const user = userEvent.setup();
-    const onExpand = jest.fn();
-    render(
-      <Dialog open>
-        <DialogContent>
-          <DialogHeader onExpand={onExpand} expandLabel="Expand">
-            <DialogTitle srOnly>Title</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>,
-    );
-    const btn = screen.getByRole("button", { name: "Expand" });
-    expect(btn).toBeInTheDocument();
-    await user.click(btn);
-    expect(onExpand).toHaveBeenCalledTimes(1);
-  });
-
-  it("marks both control buttons type=button", () => {
-    render(
-      <Dialog open>
-        <DialogContent>
-          <DialogHeader onExpand={() => {}} expandLabel="Expand">
-            <DialogTitle srOnly>Title</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>,
-    );
-    expect(screen.getByRole("button", { name: "Expand" })).toHaveAttribute(
-      "type",
-      "button",
-    );
-    expect(screen.getByRole("button", { name: "關閉" })).toHaveAttribute(
-      "type",
-      "button",
-    );
-  });
-});
-
-describe("tab order", () => {
-  it("puts the header's controls before the body's fields", () => {
-    render(
-      <Dialog open>
-        <DialogContent>
-          <DialogHeader onExpand={() => {}} expandLabel="Expand">
-            <DialogTitle srOnly>Title</DialogTitle>
-          </DialogHeader>
+          {header}
           <DialogBody>
             <input aria-label="field" />
           </DialogBody>
         </DialogContent>
       </Dialog>,
     );
-    const buttons = screen.getAllByRole("button");
+
+  const precedes = (a: Node, b: Node) =>
+    Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  it("puts the close button before the title and closes the dialog", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = jest.fn();
+    renderHeader(
+      <DialogHeader>
+        <DialogTitle>Title</DialogTitle>
+      </DialogHeader>,
+      onOpenChange,
+    );
+    const close = screen.getByRole("button", { name: "關閉" });
+
+    expect(precedes(close, screen.getByText("Title"))).toBe(true);
+    expect(close).toHaveAttribute("type", "button");
+
+    await user.click(close);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("renders a leading control in place of the close button", () => {
+    renderHeader(
+      <DialogHeader leading={<button type="button">Back</button>}>
+        <DialogTitle>Title</DialogTitle>
+      </DialogHeader>,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "關閉" }),
+    ).not.toBeInTheDocument();
+    expect(
+      precedes(
+        screen.getByRole("button", { name: "Back" }),
+        screen.getByText("Title"),
+      ),
+    ).toBe(true);
+  });
+
+  it("renders a trailing control after the title", () => {
+    renderHeader(
+      <DialogHeader trailing={<button type="button">Expand</button>}>
+        <DialogTitle>Title</DialogTitle>
+      </DialogHeader>,
+    );
+
+    expect(
+      precedes(
+        screen.getByText("Title"),
+        screen.getByRole("button", { name: "Expand" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps a disabled close button from closing the dialog", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const onOpenChange = jest.fn();
+    renderHeader(
+      <DialogHeader leading={<DialogCloseButton disabled />}>
+        <DialogTitle>Title</DialogTitle>
+      </DialogHeader>,
+      onOpenChange,
+    );
+    const close = screen.getByRole("button", { name: "關閉" });
+
+    expect(close).toBeDisabled();
+    await user.click(close);
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("puts the header's controls before the body's fields", () => {
+    renderHeader(
+      <DialogHeader trailing={<button type="button">Expand</button>}>
+        <DialogTitle>Title</DialogTitle>
+      </DialogHeader>,
+    );
     const field = screen.getByLabelText("field");
-    expect(buttons.length).toBeGreaterThan(0);
-    buttons.forEach((btn) => {
-      expect(
-        btn.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
+
+    screen.getAllByRole("button").forEach((btn) => {
+      expect(precedes(btn, field)).toBe(true);
     });
   });
 });

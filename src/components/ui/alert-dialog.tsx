@@ -2,8 +2,10 @@
 
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import * as React from "react";
+import { RiCloseLine } from "react-icons/ri";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { DialogHeaderSpacer } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const AlertDialog = AlertDialogPrimitive.Root;
@@ -63,15 +65,28 @@ AlertDialogBody.displayName = "AlertDialogBody";
 
 const AlertDialogHeader = ({
   className,
+  children,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
+    data-slot="AlertDialogHeader"
     className={cn(
-      "flex flex-col space-y-2 px-4 pt-4 pb-2 text-center sm:text-left",
+      "flex min-h-(--header-height) flex-none flex-row items-center gap-3 px-(--page-gutter) py-2",
       className,
     )}
     {...props}
-  />
+  >
+    <AlertDialogPrimitive.Cancel asChild>
+      <Button type="button" variant="glass" size="icon" className="shrink-0">
+        <RiCloseLine />
+        <span className="sr-only">關閉</span>
+      </Button>
+    </AlertDialogPrimitive.Cancel>
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-center text-center">
+      {children}
+    </div>
+    <DialogHeaderSpacer />
+  </div>
 );
 AlertDialogHeader.displayName = "AlertDialogHeader";
 
@@ -97,7 +112,11 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, srOnly = false, ...props }, ref) => (
   <AlertDialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold", srOnly && "sr-only", className)}
+    className={cn(
+      "text-center text-xl leading-tight font-medium tracking-tight text-balance",
+      srOnly && "sr-only",
+      className,
+    )}
     {...props}
   />
 ));

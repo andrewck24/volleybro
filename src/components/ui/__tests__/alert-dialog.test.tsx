@@ -1,8 +1,11 @@
 import {
   AlertDialog,
   AlertDialogBody,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
   AlertDialogOverlay,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -76,5 +79,44 @@ describe("AlertDialog primitive convergence", () => {
     expect(title).toHaveClass("sr-only");
     expect(desc).toBeInTheDocument();
     expect(desc).toHaveClass("sr-only");
+  });
+});
+
+describe("AlertDialogHeader", () => {
+  const renderWithHeader = (onOpenChange = jest.fn()) =>
+    render(
+      <AlertDialog open onOpenChange={onOpenChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete item</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogBody>
+            <AlertDialogDescription>Are you sure?</AlertDialogDescription>
+          </AlertDialogBody>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+
+  it("puts the close button before the title and closes the dialog", () => {
+    const onOpenChange = jest.fn();
+    renderWithHeader(onOpenChange);
+    const close = screen.getByRole("button", { name: "關閉" });
+
+    expect(
+      close.compareDocumentPosition(screen.getByText("Delete item")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(close);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("still focuses the footer cancel when it opens", () => {
+    renderWithHeader();
+
+    expect(screen.getByRole("button", { name: "Keep" })).toHaveFocus();
   });
 });

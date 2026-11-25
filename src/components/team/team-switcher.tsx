@@ -46,7 +46,7 @@ export const TeamSwitcher = ({ teamId }: { teamId: string }) => {
         </Button>
       </DialogTrigger>
       <DialogContent size="lg">
-        <DialogHeader closeButton={false}>
+        <DialogHeader>
           <DialogTitle>切換球隊</DialogTitle>
           <DialogDescription srOnly>選擇要切換的球隊</DialogDescription>
         </DialogHeader>
