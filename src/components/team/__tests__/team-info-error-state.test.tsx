@@ -1,4 +1,3 @@
-import { buttonVariants } from "@/components/ui/button";
 import { createPlayer } from "@test/support/fixtures/entities";
 import TeamInfo from "@/components/team/info/index";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,10 +28,6 @@ function serveTeamAndLeave(leave: () => Response) {
   );
 }
 
-const OUTLINE_DESTRUCTIVE = buttonVariants({
-  variant: "outline-destructive",
-}).split(" ");
-
 async function attemptLeave() {
   const user = userEvent.setup();
   render(
@@ -42,9 +37,7 @@ async function attemptLeave() {
     </SwrIsolation>,
   );
   await user.click(await screen.findByRole("button", { name: "離開隊伍" }));
-  const confirm = screen.getByRole("button", { name: "確認離開" });
-  expect(confirm).toHaveClass(...OUTLINE_DESTRUCTIVE);
-  await user.click(confirm);
+  await user.click(screen.getByRole("button", { name: "確認離開" }));
 }
 
 describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {

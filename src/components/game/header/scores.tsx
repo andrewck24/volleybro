@@ -36,7 +36,7 @@ export const Scores = ({
           value={scores.home}
           size="lg"
           variant={isHomeSetPoint ? "primary" : "default"}
-          className="h-14 w-16 font-bold narrow:w-11 narrow:text-[2rem]"
+          className="h-14 w-full font-bold narrow:text-3xl"
         />
         <Team>{game?.teams?.home?.name || "我方"}</Team>
       </Container>
@@ -51,7 +51,7 @@ export const Scores = ({
           value={scores.away}
           size="lg"
           variant={isAwaySetPoint ? "away" : "default"}
-          className="h-14 w-16 font-bold narrow:w-11 narrow:text-[2rem]"
+          className="h-14 w-full font-bold narrow:text-3xl"
         />
         <Team>{game?.teams?.away?.name || "對手"}</Team>
       </Container>
