@@ -20,7 +20,7 @@
     }
   ],
   "consequences": [
-    "Every dialog gets the same header from the shared component, with no per-dialog overrides.",
+    "Every dialog gets the same header from the shared component, with no per-dialog header markup.",
     "The rally edit dialog keeps only close, which stays disabled while its edit is being written.",
     "A header with a long title grows instead of clipping, because its height is a minimum.",
     "A dialog that needs a different trailing control passes trailing."
