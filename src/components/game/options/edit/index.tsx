@@ -6,6 +6,7 @@ import { GamePreview } from "@/components/game/preview";
 import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -39,14 +40,17 @@ export const EntriesEdit = ({
         </DialogTitle>
         <DialogDescription srOnly>逐球紀錄編輯頁面</DialogDescription>
       </DialogHeader>
-      <GameCourt gameId={gameId} mode="editing" />
-      <GamePreview
-        gameId={gameId}
-        mode="editing"
-        onSubmit={submitEntryDraft}
-        className="px-0 py-1 shadow-none"
-      />
-      <GamePanel gameId={gameId} mode="editing" className="p-0 shadow-none" />
+      <div className="flex min-h-0 flex-1 flex-col gap-1">
+        <GameCourt gameId={gameId} mode="editing" />
+        <GamePanel gameId={gameId} mode="editing" className="pb-0" />
+        <DialogFooter className="shrink-0 px-2 pt-0">
+          <GamePreview
+            gameId={gameId}
+            mode="editing"
+            onSubmit={submitEntryDraft}
+          />
+        </DialogFooter>
+      </div>
     </>
   );
 };
