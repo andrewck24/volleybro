@@ -96,7 +96,10 @@ export const UnconfirmedSetDialog = ({
             <AlertDialogCancel onClick={cancelLeave}>
               留在這裡
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLeave}>
+            <AlertDialogAction
+              variant="outline-destructive"
+              onClick={confirmLeave}
+            >
               仍要離開
             </AlertDialogAction>
           </AlertDialogFooter>

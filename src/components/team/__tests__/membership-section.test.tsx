@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam } from "@/hooks/use-data";
@@ -52,6 +53,10 @@ function holdResponse(method: "delete" | "post", path: string): () => void {
   return release;
 }
 
+const OUTLINE_DESTRUCTIVE = buttonVariants({
+  variant: "outline-destructive",
+}).split(" ");
+
 describe("MembershipSection — remove loading state", () => {
   it("shows loading and disables confirm button while removing", async () => {
     const release = holdResponse("delete", "/api/players/player-1");
@@ -62,6 +67,7 @@ describe("MembershipSection — remove loading state", () => {
     await user.click(screen.getByRole("button", { name: /刪除球員/ }));
     const confirmBtn = screen.getByRole("button", { name: /確認刪除/ });
     expect(confirmBtn).toBeEnabled();
+    expect(confirmBtn).toHaveClass(...OUTLINE_DESTRUCTIVE);
 
     await user.click(confirmBtn);
 
@@ -93,6 +99,7 @@ describe("MembershipSection — transfer loading state", () => {
     );
     const confirmBtn = screen.getByRole("button", { name: /確認移轉/ });
     expect(confirmBtn).toBeEnabled();
+    expect(confirmBtn).toHaveClass(...OUTLINE_DESTRUCTIVE);
 
     await user.click(confirmBtn);
 

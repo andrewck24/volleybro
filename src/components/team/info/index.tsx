@@ -150,7 +150,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button
-                    variant="destructive"
+                    variant="outline-destructive"
                     onClick={handleLeaveTeam}
                     loading={isLeaving}
                     loadingText="離開中..."

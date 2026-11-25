@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
@@ -13,6 +14,10 @@ beforeEach(() => {
 });
 
 const clearDraft = jest.fn();
+
+const OUTLINE_DESTRUCTIVE = buttonVariants({
+  variant: "outline-destructive",
+}).split(" ");
 
 describe("EditDialogContainer", () => {
   it("renders title and children", () => {
@@ -74,7 +79,9 @@ describe("EditDialogContainer", () => {
       </EditDialogContainer>,
     );
     fireEvent.click(screen.getByRole("button", { name: "關閉" }));
-    fireEvent.click(screen.getByRole("button", { name: "放棄變更" }));
+    const discard = screen.getByRole("button", { name: "放棄變更" });
+    expect(discard).toHaveClass(...OUTLINE_DESTRUCTIVE);
+    fireEvent.click(discard);
     expect(clearDraft).toHaveBeenCalledTimes(1);
     expect(mockBack).toHaveBeenCalledTimes(1);
   });

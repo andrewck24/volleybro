@@ -99,7 +99,10 @@ export function EditDialogContainer({
           </AlertDialogBody>
           <AlertDialogFooter>
             <AlertDialogCancel>繼續編輯</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDiscard}>
+            <AlertDialogAction
+              variant="outline-destructive"
+              onClick={handleDiscard}
+            >
               放棄變更
             </AlertDialogAction>
           </AlertDialogFooter>

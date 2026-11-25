@@ -21,6 +21,7 @@
   ],
   "consequences": [
     "Every form dialog gets the same header from the shared component, with no per-dialog header markup.",
+    "A destructive confirmation action uses the outline-destructive button, never the filled primary.",
     "A notice that blocks until something is acknowledged or saved, such as the lineup error and the unconfirmed set, is a confirmation and closes only through its footer or when its task completes.",
     "The rally edit dialog keeps only close, which stays disabled while its edit is being written.",
     "A form header with a long title grows instead of clipping, because its height is a minimum."

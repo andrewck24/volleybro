@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import { UnconfirmedSetDialog } from "@/components/game/unconfirmed-set-dialog";
 import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import type { GameView } from "@/lib/features/game/types";
@@ -38,6 +39,10 @@ const unsavedAlert = () =>
 const leaveAlert = () =>
   screen.getByRole("alertdialog", { name: "本局結果還沒存好" });
 
+const OUTLINE_DESTRUCTIVE = buttonVariants({
+  variant: "outline-destructive",
+}).split(" ");
+
 describe("UnconfirmedSetDialog dismissal", () => {
   beforeEach(() => push.mockClear());
 
@@ -61,9 +66,9 @@ describe("UnconfirmedSetDialog dismissal", () => {
     });
 
     expect(push).not.toHaveBeenCalled();
-    expect(
-      await screen.findByRole("button", { name: "仍要離開" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "仍要離開" })).toHaveClass(
+      ...OUTLINE_DESTRUCTIVE,
+    );
     expect(screen.getAllByRole("alertdialog", { hidden: true })).toHaveLength(
       2,
     );
