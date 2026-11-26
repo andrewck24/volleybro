@@ -12,6 +12,11 @@
 - Keep the recording page header's back and settings buttons round on narrow phones by showing smaller scores there.
 - Show the destructive button in a confirmation, such as discarding changes or leaving a team, as a red outline instead of a filled button.
 - Give the floating glass buttons a lighter shadow.
+- Make the recording page header shorter on narrow phones.
+- Open the team switcher as a bottom sheet.
+- Show team and player forms directly on the dialog, without a card, when opened over a page.
+- Show the iOS install steps as a confirmation that closes only through its button.
+- Align the set options start button with the rest of the dialog.
 
 #### Record
 

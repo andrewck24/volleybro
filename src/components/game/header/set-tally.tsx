@@ -25,7 +25,7 @@ export const SetTally = ({
     <div
       role="img"
       aria-label={`${sideLabel[side]}已勝 ${won} 局，${needed} 局獲勝`}
-      className="flex h-21 w-1.5 shrink-0 flex-col items-center justify-center gap-1"
+      className="flex h-full w-1.5 shrink-0 flex-col items-center justify-center gap-1"
     >
       {Array.from({ length: needed }, (_, i) => {
         const filled = i >= needed - won;

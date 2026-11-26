@@ -125,7 +125,7 @@ export const Options = ({
               <LiberoReplaceTrigger />
               <SubstitutesList members={members} />
             </div>
-            <DialogFooter>
+            <DialogFooter className="px-0">
               <ActionButton
                 isNewSet={isNewSet}
                 disabled={!hasPairedReplacePosition}

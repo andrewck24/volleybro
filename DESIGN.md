@@ -246,7 +246,7 @@ Common app specimens include court/panel gaps (`gap-1` / `gap-2`), the drawer pe
 
 ### Page width
 
-Page chrome and page content share one width: `--page-max-width` in `globals.css`, exposed as `max-w-page` (49rem, 784px). The shared `Header`, the `(workspace)` layout, `TabContainer` and the `lg` Dialog size all use it, so their outer edges line up at every width; never write a literal width for a page-level box. Inner edges share tokens too: `--page-gutter` (1rem) is the horizontal inset of the header row, of `DialogHeader`, of `DialogBody`, of the recording page header and of its entry panel, progress bar and summary drawer, so header buttons line up with the content's first edge and with each other across a page and the dialog above it, and `--page-inset-start` (0 by default, `--nav-rail-width` once `TabContainer` shows the side rail at `md`) is the left offset of both the header and the tab content. The mobile bottom navigation bar and the recording page header keep their own widths; below 360px the recording page header keeps its gutter and shrinks its score figures and team names instead, so its icon buttons stay round.
+Page chrome and page content share one width: `--page-max-width` in `globals.css`, exposed as `max-w-page` (49rem, 784px). The shared `Header`, the `(workspace)` layout, `TabContainer` and the `lg` Dialog size all use it, so their outer edges line up at every width; never write a literal width for a page-level box. Inner edges share tokens too: `--page-gutter` (1rem) is the horizontal inset of the header row, of `DialogHeader`, of `DialogBody`, of the recording page header and of its entry panel, progress bar and summary drawer, so header buttons line up with the content's first edge and with each other across a page and the dialog above it, and `--page-inset-start` (0 by default, `--nav-rail-width` once `TabContainer` shows the side rail at `md`) is the left offset of both the header and the tab content. The mobile bottom navigation bar and the recording page header keep their own widths; below 360px the recording page header keeps its gutter and shrinks its score figures, team names and height instead, so its icon buttons stay round.
 
 ### Breakpoints
 
@@ -273,7 +273,7 @@ Three distinct tonal layers express depth; no two share a value within a theme. 
 | 0.5   | popover    | Non-overlay floats: Popover, Select, Dropdown and Tooltip                |
 | 1     | card       | Card, Item and every modal-class surface: Dialog, AlertDialog and Drawer |
 
-All modal surfaces use `card`; the `bg-black/80` dimming scrim separates them from the page, keeping a Drawer's in-flow peek continuous with card surfaces. A Card inside a modal is separated by shadow, not another background layer.
+All modal surfaces use `card`; the `bg-black/80` dimming scrim separates them from the page, keeping a Drawer's in-flow peek continuous with card surfaces. A Card inside a modal is separated by shadow, not another background layer; a route-held page's form Card drops its surface and padding inside `EditDialogContainer`, so the form sits on the dialog at the page gutter.
 
 ### No-Ring scope
 

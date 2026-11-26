@@ -23,6 +23,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiExpandDiagonalLine } from "react-icons/ri";
 
+const FLAT_PAGE_CARD =
+  "[&_[data-slot=DialogBody]>[data-slot=Card]]:rounded-none [&_[data-slot=DialogBody]>[data-slot=Card]]:bg-transparent [&_[data-slot=DialogBody]>[data-slot=Card]]:p-0 [&_[data-slot=DialogBody]>[data-slot=Card]]:shadow-none";
+
 interface EditDialogContainerProps {
   title: string;
   fullPageHref: string;
@@ -63,7 +66,7 @@ export function EditDialogContainer({
           if (!open) handleClose();
         }}
       >
-        <DialogContent size="lg">
+        <DialogContent size="lg" className={FLAT_PAGE_CARD}>
           <DialogHeader
             trailing={
               <Button

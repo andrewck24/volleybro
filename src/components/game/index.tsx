@@ -80,7 +80,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
         <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
           <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
 
-          <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
+          <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21 narrow:pt-[calc(env(safe-area-inset-top)+4.75rem)]">
             <div className="w-full shrink-0 overflow-hidden rounded-lg">
               <GameCourt gameId={gameId} mode="general" />
             </div>
@@ -116,7 +116,7 @@ export function GameSkeleton() {
   return (
     <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader />
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21 narrow:pt-[calc(env(safe-area-inset-top)+4.75rem)]">
         <div className="w-full shrink-0 overflow-hidden rounded-lg">
           <LoadingCourt />
         </div>
