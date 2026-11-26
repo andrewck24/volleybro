@@ -28,7 +28,7 @@ const PendingWritesTestHarness = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const pendingWrites = usePendingWrites("game-1", 0);
+  const pendingWrites = usePendingWrites("game-1");
   return (
     <PendingWritesContext.Provider value={pendingWrites}>
       {children}

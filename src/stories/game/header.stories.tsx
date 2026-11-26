@@ -19,7 +19,7 @@ const PendingWritesDecorator = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const pendingWrites = usePendingWrites(gameId, 2);
+  const pendingWrites = usePendingWrites(gameId);
   return (
     <PendingWritesContext.Provider value={pendingWrites}>
       {children}

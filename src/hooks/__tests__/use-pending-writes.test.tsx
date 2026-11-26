@@ -110,18 +110,18 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </Provider>
 );
 
-const renderQueue = (setIndex = 0) =>
+const renderQueue = () =>
   renderHook(
     () => ({
-      queue: usePendingWrites("game-1", setIndex),
+      queue: usePendingWrites("game-1"),
       game: useGame("game-1"),
       user: useUser(),
     }),
     { wrapper },
   );
 
-const renderSignedIn = async (setIndex = 0) => {
-  const view = renderQueue(setIndex);
+const renderSignedIn = async () => {
+  const view = renderQueue();
   await waitFor(() =>
     expect(view.result.current.user.user?.id).toBe(currentUserId),
   );
@@ -153,7 +153,7 @@ describe("usePendingWrites", () => {
     const puts = serve(() => HttpResponse.json(confirmed("e1")));
     const { result: asA, unmount: leaveA } = await renderSignedIn();
     act(() =>
-      asA.current.queue.enqueue({
+      asA.current.queue.enqueue(0, {
         ...entry("e1"),
         at: "2026-10-27T01:02:03.000Z",
         home: { score: 1, type: MoveType.ATTACK, num: 7 },
@@ -192,7 +192,7 @@ describe("usePendingWrites", () => {
     const { result } = renderQueue();
     await waitFor(() => expect(result.current.user.error).toBeDefined());
 
-    act(() => result.current.queue.enqueue(entry("e1")));
+    act(() => result.current.queue.enqueue(0, entry("e1")));
 
     expect(store.getState().pendingWrites.pending).toMatchObject([
       { entry: { id: "e1" }, userId: "user-a" },
@@ -220,7 +220,7 @@ describe("usePendingWrites", () => {
     const { result } = renderQueue();
     await waitFor(() => expect(result.current.game.game).toBeDefined());
 
-    act(() => result.current.queue.enqueue(entry("e1")));
+    act(() => result.current.queue.enqueue(0, entry("e1")));
     await act(async () => {
       await result.current.queue.flush();
     });
@@ -249,7 +249,7 @@ describe("usePendingWrites", () => {
     );
     const { result } = renderQueue();
 
-    act(() => result.current.queue.enqueue(entry("e1")));
+    act(() => result.current.queue.enqueue(0, entry("e1")));
     await act(async () => {
       await result.current.queue.flush();
     });
@@ -265,7 +265,7 @@ describe("usePendingWrites", () => {
     });
     const { result } = renderQueue();
 
-    act(() => result.current.queue.enqueue(entry("e1")));
+    act(() => result.current.queue.enqueue(0, entry("e1")));
     let first!: Promise<unknown>;
     let second!: Promise<unknown>;
     act(() => {
@@ -298,7 +298,7 @@ describe("usePendingWrites", () => {
       );
       const { result } = renderQueue();
 
-      act(() => result.current.queue.enqueue(entry("e1")));
+      act(() => result.current.queue.enqueue(0, entry("e1")));
       let flushed!: Promise<unknown>;
       act(() => {
         flushed = result.current.queue.flush();
@@ -328,7 +328,7 @@ describe("usePendingWrites", () => {
       );
       const { result } = renderQueue();
 
-      act(() => result.current.queue.enqueue(entry("e1")));
+      act(() => result.current.queue.enqueue(0, entry("e1")));
       let flushed!: Promise<unknown>;
       act(() => {
         flushed = result.current.queue.flush();
@@ -357,9 +357,9 @@ describe("usePendingWrites", () => {
             )
           : unavailable(),
       );
-      const { result } = await renderSignedIn(1);
+      const { result } = await renderSignedIn();
       enqueueDirectly("e0", 0);
-      act(() => result.current.queue.enqueue(entry("e1")));
+      act(() => result.current.queue.enqueue(1, entry("e1")));
 
       let flushed!: Promise<unknown>;
       act(() => {
@@ -384,13 +384,13 @@ describe("usePendingWrites", () => {
       });
     });
 
-    it("still schedules a background retry for a set other than the currently recorded one", async () => {
+    it("schedules a background retry for a set with a queued write", async () => {
       const puts = serve(({ n }) =>
         n <= 3 ? unavailable() : HttpResponse.json(confirmed("e0")),
       );
       enqueueDirectly("e0", 0);
 
-      renderQueue(1);
+      renderQueue();
       await advanceUntil(
         () =>
           puts.length === 3 &&
@@ -414,9 +414,9 @@ describe("usePendingWrites", () => {
     const puts = serve(({ si }) =>
       HttpResponse.json(confirmed(si === 0 ? "e0" : "e1")),
     );
-    const { result } = await renderSignedIn(1);
+    const { result } = await renderSignedIn();
     enqueueDirectly("e0", 0);
-    act(() => result.current.queue.enqueue(entry("e1")));
+    act(() => result.current.queue.enqueue(1, entry("e1")));
 
     await act(async () => {
       await result.current.queue.flush();
@@ -445,7 +445,7 @@ describe("PendingWritesContext: single owner", () => {
     enqueueDirectly("e1", 0);
 
     const Owner = () => {
-      const pendingWrites = usePendingWrites("game-1", 0);
+      const pendingWrites = usePendingWrites("game-1");
       return (
         <PendingWritesContext.Provider value={pendingWrites}>
           <ContextConsumer />
@@ -482,7 +482,7 @@ describe("flush ordering", () => {
     const { result } = renderHook(
       () => {
         const value = {
-          queue: usePendingWrites("game-1", 0),
+          queue: usePendingWrites("game-1"),
           game: useGame("game-1"),
         };
         seen.push(value.game.game?.sets[0]?.entries.map((e) => e.id) ?? []);
@@ -492,7 +492,7 @@ describe("flush ordering", () => {
     );
     await waitFor(() => expect(result.current.game.game).toBeDefined());
 
-    act(() => result.current.queue.enqueue(entry("e1")));
+    act(() => result.current.queue.enqueue(0, entry("e1")));
     const firstRender = seen.length;
     await act(async () => {
       await result.current.queue.flush();

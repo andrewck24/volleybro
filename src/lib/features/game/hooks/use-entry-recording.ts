@@ -45,7 +45,7 @@ export type EditResult<C extends EntryContent> =
       entry: RecordedEntry<C>;
     };
 
-export const useEntryRecording = (gameId: string) => {
+export const useEntryRecording = (gameId: string, setIndex: number) => {
   const { game, error, mutate } = useGame(gameId);
   const { enqueue, flush } = usePendingWritesContext();
   const store = useAppStore();
@@ -69,7 +69,7 @@ export const useEntryRecording = (gameId: string) => {
       },
       { revalidate: false },
     );
-    enqueue(entry);
+    enqueue(setIndex, entry);
     return { status: "recorded", entry };
   };
 

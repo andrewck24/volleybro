@@ -6,6 +6,7 @@ import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { createGame } from "@test/support/fixtures/entities";
+import { PendingWritesOwner } from "@test/support/react/pending-writes-owner";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
 import {
   act,
@@ -143,7 +144,9 @@ const setUpGame = ({ store = makeStore() }: { store?: AppStore } = {}) => {
   render(
     <Provider store={store}>
       <SwrIsolation>
-        <Game gameId="game-1" setIndex={0} />
+        <PendingWritesOwner>
+          <Game gameId="game-1" setIndex={0} />
+        </PendingWritesOwner>
       </SwrIsolation>
     </Provider>,
   );
@@ -188,7 +191,9 @@ describe("Game gesture split, wired through the real composition", () => {
     render(
       <Provider store={makeStore()}>
         <SwrIsolation>
-          <Game gameId="game-1" setIndex={0} />
+          <PendingWritesOwner>
+            <Game gameId="game-1" setIndex={0} />
+          </PendingWritesOwner>
         </SwrIsolation>
       </Provider>,
     );
@@ -564,7 +569,9 @@ describe("Game between sets", () => {
     render(
       <Provider store={store}>
         <SwrIsolation>
-          <Game gameId="game-1" setIndex={0} />
+          <PendingWritesOwner>
+            <Game gameId="game-1" setIndex={0} />
+          </PendingWritesOwner>
         </SwrIsolation>
       </Provider>,
     );
