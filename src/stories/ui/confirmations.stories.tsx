@@ -42,7 +42,7 @@ const ChosenDestructiveConfirmation = ({
       </AlertDialogBody>
       <AlertDialogFooter>
         <AlertDialogCancel>取消</AlertDialogCancel>
-        <Button variant="secondary">{action}</Button>
+        <Button variant="outline-destructive">{action}</Button>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
