@@ -80,7 +80,7 @@ const Container = ({
 
 const Team = ({ children }: { children: React.ReactNode }) => {
   return (
-    <p className="w-full max-w-16 truncate text-center text-[1rem] font-medium narrow:text-sm">
+    <p className="w-full max-w-16 truncate text-center text-[1rem] leading-tight font-medium narrow:text-sm">
       {children}
     </p>
   );

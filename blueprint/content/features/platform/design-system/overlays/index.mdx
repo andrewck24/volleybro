@@ -19,6 +19,7 @@ Dialogs are built on Radix Dialog through `src/components/ui/dialog.tsx`. A dial
 - A dialog's header does not shrink and only `DialogBody` scrolls, so the title and its controls stay in view.
 - A confirmation is an `AlertDialog`, which has no header controls and closes only through its footer actions; `Esc` and an outside click do not dismiss it. Opening one focuses its footer cancel. The lineup error notice has a single acknowledge button as its cancel; the iOS install instructions have a single 「完成」 default action, which takes focus. Which style a destructive action takes is set in root `DESIGN.md` under Dialog kinds.
 - The team switcher is a bottom `Drawer` with a grab handle, like the recording page summary drawer; choosing a team closes it.
+- The theme picker is a bottom `Drawer` too, built as an action sheet: the three themes with the current one marked, then 「取消」 at the bottom (HIG Action sheets) and no header close; choosing a theme applies it and closes the sheet.
 - The unconfirmed-set notice is an `AlertDialog` with no cancel: it blocks the recording page until the set's result is saved, offers retry once saving has failed, and focuses itself on open. Leaving through history navigation asks first in a nested confirmation.
 - Dialog and AlertDialog titles and descriptions take `srOnly`, which keeps them for screen readers without showing them.
 - `DialogHeader`, `DialogBody` and `DialogFooter` are styled `div`s that consume no Radix context, so a `form` can wrap all three.

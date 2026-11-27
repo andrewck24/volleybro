@@ -80,7 +80,7 @@ const AlertDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:space-x-2",
+      "flex flex-wrap-reverse gap-2 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] has-[>:nth-child(3)]:flex-col-reverse max-sm:*:min-w-[calc(50%-var(--spacing))] max-sm:*:grow sm:flex-nowrap sm:justify-end",
       className,
     )}
     {...props}
@@ -140,11 +140,7 @@ const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
-    className={cn(
-      buttonVariants({ variant: "outline" }),
-      "mt-2 sm:mt-0",
-      className,
-    )}
+    className={cn(buttonVariants({ variant: "outline" }), className)}
     {...props}
   />
 ));

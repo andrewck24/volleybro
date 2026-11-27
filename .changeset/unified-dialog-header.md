@@ -13,7 +13,10 @@
 - Show a destructive button in a confirmation that you did not ask for, such as discarding changes, as a red outline; show one you chose, such as deleting, transferring or leaving a team, as a plain grey button. Neither is a filled button any more.
 - Give the floating glass buttons a lighter shadow.
 - Make the recording page header shorter on narrow phones.
+- Show team names in the recording page header without clipping letters that reach below the line.
 - Open the team switcher as a bottom sheet.
+- Open the theme picker as a bottom sheet with a Cancel button at the bottom.
+- Put two short confirmation buttons side by side on phones, stacking them only when a label does not fit or there are three or more.
 - Show team and player forms directly on the dialog, without a card, when opened over a page.
 - Show the iOS install steps as a confirmation that closes only through its 「完成」 button.
 - Align the set options start button with the rest of the dialog.

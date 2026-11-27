@@ -200,6 +200,35 @@ export const Failed: Story = {
   ],
 };
 
+export const TeamNamesWithDescenders: Story = {
+  parameters: { ...Width320.parameters, chromatic: { viewports: [320] } },
+  decorators: [
+    (Story) => (
+      <SWRConfig
+        value={{
+          provider: () =>
+            new Map([
+              [
+                `/api/games/${gameId}`,
+                {
+                  data: {
+                    ...game,
+                    teams: {
+                      home: { ...game.teams.home, name: "Gryphons" },
+                      away: { ...game.teams.away, name: "jpg 隊" },
+                    },
+                  },
+                },
+              ],
+            ]),
+        }}
+      >
+        <Story />
+      </SWRConfig>
+    ),
+  ],
+};
+
 export const StorageUnavailable: Story = {
   decorators: [
     (Story) => {
