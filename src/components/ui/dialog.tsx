@@ -191,4 +191,5 @@ export {
   DialogTitle,
   DialogTrigger,
   DIALOG_TITLE_CLASS_NAME,
+  dialogContentVariants,
 };

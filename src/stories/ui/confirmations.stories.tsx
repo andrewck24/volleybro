@@ -17,7 +17,10 @@ import { RiAlertLine } from "react-icons/ri";
 
 const meta = {
   title: "Design System/Molecules/Confirmations",
-  parameters: { layout: "fullscreen", chromatic: { viewports: [320, 390] } },
+  parameters: {
+    layout: "fullscreen",
+    chromatic: { viewports: [320, 390, 1280] },
+  },
 } satisfies Meta;
 
 export default meta;
