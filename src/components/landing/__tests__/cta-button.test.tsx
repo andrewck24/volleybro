@@ -99,8 +99,11 @@ describe("CTAButton", () => {
       expect(dialog).toHaveTextContent("點擊下方的分享");
       expect(dialog).toHaveTextContent("加入主畫面");
       expect(within(dialog).getAllByRole("button")).toHaveLength(1);
+      expect(
+        within(dialog).getByRole("button", { name: "完成" }),
+      ).toHaveFocus();
 
-      await user.click(screen.getByRole("button", { name: "我知道了" }));
+      await user.click(screen.getByRole("button", { name: "完成" }));
 
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });

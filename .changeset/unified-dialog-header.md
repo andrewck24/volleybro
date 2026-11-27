@@ -10,13 +10,14 @@
 - Show confirmations without a close button, with the title and text left-aligned; they close only through their buttons.
 - Show the lineup error and the unsaved set result as confirmations.
 - Keep the recording page header's back and settings buttons round on narrow phones by showing smaller scores there.
-- Show the destructive button in a confirmation, such as discarding changes or leaving a team, as a red outline instead of a filled button.
+- Show a destructive button in a confirmation that you did not ask for, such as discarding changes, as a red outline; show one you chose, such as deleting, transferring or leaving a team, as a plain grey button. Neither is a filled button any more.
 - Give the floating glass buttons a lighter shadow.
 - Make the recording page header shorter on narrow phones.
 - Open the team switcher as a bottom sheet.
 - Show team and player forms directly on the dialog, without a card, when opened over a page.
-- Show the iOS install steps as a confirmation that closes only through its button.
+- Show the iOS install steps as a confirmation that closes only through its 「完成」 button.
 - Align the set options start button with the rest of the dialog.
+- Stretch the court to the screen edges on phones in the set options and lineup dialogs, as on the recording page.
 
 #### Record
 

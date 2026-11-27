@@ -171,7 +171,7 @@ export function MembershipSection({
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button
-                    variant="outline-destructive"
+                    variant="secondary"
                     onClick={handleRemove}
                     loading={isRemoving}
                   >
@@ -223,7 +223,7 @@ export function MembershipSection({
                   <AlertDialogFooter>
                     <AlertDialogCancel>取消</AlertDialogCancel>
                     <Button
-                      variant="outline-destructive"
+                      variant="secondary"
                       onClick={handleTransferOwnership}
                       loading={isTransferring}
                     >

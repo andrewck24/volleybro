@@ -75,7 +75,7 @@ const DialogBody = ({
   <div
     data-slot="DialogBody"
     className={cn(
-      "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-(--page-gutter) pb-4",
+      "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-(--page-gutter) pb-4 max-sm:[&>[data-slot=Court]]:-mx-(--page-gutter) max-sm:[&>[data-slot=Court]]:w-[calc(100%+2*var(--page-gutter))]",
       className,
     )}
     {...props}

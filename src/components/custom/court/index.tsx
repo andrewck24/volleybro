@@ -21,6 +21,7 @@ export const Court = ({
 }) => {
   return (
     <div
+      data-slot="Court"
       className={cn(
         "flex aspect-11/9 w-full flex-row justify-center bg-primary p-2",
         isHeightConstrained && "max-h-[35vh]",

@@ -59,9 +59,7 @@ export const LongTitle: Story = {
         </AlertDialogBody>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction variant="outline-destructive">
-            確認移轉
-          </AlertDialogAction>
+          <AlertDialogAction variant="secondary">確認移轉</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

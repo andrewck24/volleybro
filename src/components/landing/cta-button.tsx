@@ -2,8 +2,8 @@
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogBody,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -168,10 +168,10 @@ const IOSInstallInstruction = () => {
         </ul>
       </AlertDialogBody>
       <AlertDialogFooter>
-        <AlertDialogCancel>
+        <AlertDialogAction autoFocus>
           <RiCheckLine />
-          我知道了
-        </AlertDialogCancel>
+          完成
+        </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   );
