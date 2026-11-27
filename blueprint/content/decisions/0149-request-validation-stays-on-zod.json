@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0149",
+  "title": "Request validation stays on Zod; Effect Schema is not adopted",
+  "capabilities": ["platform/clean-architecture"],
+  "context": "Agents writing new code needed one validation library to follow, and Effect Schema was the candidate to replace Zod as part of a unified Effect style. A throwaway prototype compared Zod and Effect Schema on team creation and team update with identical route-level behaviour tests under ADR-0027 (validation at the route boundary) and ADR-0030 (strict schemas, no coercion). Both libraries met those constraints; Effect Schema needs `onExcessProperty: \"error\"` on every decode to be strict. Three maintenance drills (a duplicate-nickname conflict, an outcome-unknown transaction retry, tracing) were each run three times per variant by the same agent. With async/await flow, Effect Schema changed 3.0 to 4.0 places outside tests per drill against Zod's 3.0 to 3.3, and 28.7 to 40.3 changed lines against 23.0 to 33.3. Effect Schema decoding failed the p95 non-regression check (at most 1.1 times) in a micro-benchmark with empty execute callbacks (team update p95 5.1 µs against 0.75 µs); the benchmark measures validation and dispatch only, which is negligible beside a database round trip. Effect Schema brings no gain unless the flow is also written in Effect, which ADR-0150 rejects.",
+  "decision": "Request and form validation keep using Zod. Effect Schema is not used for new code, and existing Zod schemas are not migrated.",
+  "alternatives": [
+    {
+      "option": "Adopt Effect Schema for new code and migrate opportunistically",
+      "reason": "It met the strictness constraints but produced a larger diff in every drill, an extra decode option to stay strict, and two schema libraries would coexist for a long time. Its decoded errors only pay off inside Effect programs, which are not adopted."
+    },
+    {
+      "option": "Use Effect Schema only on the server and keep Zod in forms",
+      "reason": "Request schemas are shared between forms and routes; splitting them would duplicate every shape that crosses the boundary."
+    }
+  ],
+  "consequences": [
+    "Agents have one validation library to reach for; ADR-0027 and ADR-0030 apply unchanged.",
+    "The evaluation's prototype stays on its tagged branch and is not merged.",
+    "Evidence: small sample (three runs per drill and variant) on one use case; the measured differences are directional, not precise."
+  ],
+  "revisitTriggers": [
+    "The flow-control decision (ADR-0150) is superseded in favour of Effect.",
+    "Zod stops meeting ADR-0030's strict, non-coercing contract in a supported major version."
+  ],
+  "originChange": "unified-style-evaluation"
+}

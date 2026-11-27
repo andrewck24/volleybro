@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "id": "0150",
+  "title": "Application flow stays async/await with throw-based AppError; Effect is not adopted",
+  "capabilities": ["platform/clean-architecture", "platform/error-handling"],
+  "context": "Effect was the preferred candidate for a unified style that agents follow, on condition that it showed a concrete maintenance gain. The evaluation set three thresholds that all had to hold: (1) when a new failure is left unhandled, the Effect version fails type checking and the async version does not; (2) a maintenance change touches no more than 1.2 times the places and diff of the async version; (3) the client bundle grows by no more than 20 KB gzip, else Effect is limited to the server. A throwaway prototype on effect@4.1.2 rebuilt team creation with tagged errors in the error channel, mapped to the existing AppError at the route so withErrorHandler kept the same HTTP contract, and kept inversify and ITransactionRunner behind small adapters. Threshold 1 did not hold in practice: `Effect.runPromise` accepts any error type, and a handler map passed inline to `Effect.catchTags` where a `never` error type is expected type-checks even when a tag is missing; only assigning the program to a separately declared variable typed with `never` caught it. Threshold 2 did not hold: Effect variants changed 9.7 and 7.3 places against 3.3 (duplicate nickname) and 10.0 and 8.0 against 3.0 (outcome-unknown retry), with 1.3 to 2.4 times the non-test lines; tracing also exceeded it (4.0 to 4.3 places against 3.0, 1.3 to 1.4 times). All 36 drill runs passed type checking and the shared behaviour tests. The p95 non-regression check (at most 1.1 times) also failed in a micro-benchmark with empty execute callbacks (team update p95 5.4 µs for the Zod + Effect variant against 0.75 µs); the benchmark measures validation and dispatch only, which is negligible beside a database round trip. Every async variant already maps failures through throw-based AppError, the strategy the error-flow convergence work makes the application default.",
+  "decision": "Application use cases, controllers and routes keep async/await with typed AppError subclasses thrown and translated once by withErrorHandler. Effect is not used for new application code, and no existing code is migrated. The application error strategy stays throw-based; a Result return remains an exception that must state its reason.",
+  "alternatives": [
+    {
+      "option": "Adopt Effect for new application code and migrate on touch",
+      "reason": "Neither the type-safety threshold nor the change-size threshold held; the drills needed 2.2 to 3.3 times the places changed for an error or retry change, and the compiler did not flag a forgotten failure under the inline `catchTags` idiom."
+    },
+    {
+      "option": "Adopt Effect with a mandatory exhaustive boundary helper",
+      "reason": "A helper that forces a `never` error type at the route could make forgotten failures a type error, but it is a house rule agents must remember on every route, and it does nothing about the larger changes the drills measured."
+    },
+    {
+      "option": "Return Result values from use cases instead of throwing",
+      "reason": "It has the same unhandled-branch risk without the Effect toolkit, and it conflicts with the throw-based default the error-flow work converges on."
+    }
+  ],
+  "consequences": [
+    "The error-flow convergence work can proceed on the throw-based default without waiting on an Effect migration.",
+    "Agents follow one flow style; ADR-0151 records that the client side follows it too.",
+    "A forgotten failure is still caught only by tests and review, not by the type checker; behaviour tests at the route remain the guard.",
+    "Evidence: small sample (three runs per drill and variant) on one use case with an agent as implementer; the results are directional."
+  ],
+  "revisitTriggers": [
+    "A route-level helper makes unhandled Effect failures a type error by default, without per-route discipline.",
+    "A maintenance change class the drills did not cover (resource lifetimes, concurrency, cancellation) becomes frequent in application code.",
+    "A future Effect major version changes the measured change cost materially."
+  ],
+  "originChange": "unified-style-evaluation"
+}

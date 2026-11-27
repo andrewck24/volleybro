@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0151",
+  "title": "The client pending-write flow stays async/await; neither Effect nor an RTK listener drives it",
+  "capabilities": ["game-recording/persistence"],
+  "context": "If Effect had been adopted for application flow, the open question was whether it should also drive client asynchronous work, starting with the pending-write queue that sends recorded entries with single flight, backoff retry and outcome-unknown retention. A throwaway prototype built that core three ways against one shared behaviour suite: plain async/await with injected timers, Effect with Schedule-driven backoff, and an RTK listener middleware driving the same core. All three passed. Bundled and minified, Effect added 12.2 KB gzip and the RTK listener 2.7 KB gzip over the async core's 0.4 KB; both stayed under the 20 KB limit set beforehand. ADR-0150 rejects Effect for application flow, so extending it to the client has no shared style to serve; the plan to settle SWR versus RTK Query before this decision assumed Effect might reach client state and no longer applies, and the listener adds a second place where queue behaviour lives without removing any effect from the React layer that the async core does not already remove.",
+  "decision": "The pending-write queue and other client asynchronous flows use plain async/await with injected transport and clock ports, outside React. Effect and an RTK listener middleware are not used to drive them.",
+  "alternatives": [
+    {
+      "option": "Drive the pending-write core with Effect",
+      "reason": "It fits the bundle limit, but it only made sense as part of a unified Effect style, which ADR-0150 rejects; it would add 12 KB gzip for one module."
+    },
+    {
+      "option": "Drive the pending-write core with an RTK listener middleware",
+      "reason": "Cheap in bundle size, but it moves scheduling into the store's middleware, a second home for queue behaviour beside the module, with no behaviour the async core lacks."
+    }
+  ],
+  "consequences": [
+    "The pending-write module work proceeds with an async/await core and ports, without waiting for further evaluation.",
+    "Whether client server-state stays on SWR or moves to RTK Query is unaffected and is decided separately.",
+    "Evidence: one module, bundle sizes from a minified esbuild bundle of each variant entry, not a full production build."
+  ],
+  "revisitTriggers": [
+    "ADR-0150 is superseded in favour of Effect.",
+    "Client asynchronous work grows to need cancellation or structured concurrency the async core cannot express simply."
+  ],
+  "originChange": "unified-style-evaluation"
+}
