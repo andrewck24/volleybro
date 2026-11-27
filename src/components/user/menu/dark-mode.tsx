@@ -5,6 +5,7 @@ import {
   DrawerClose,
   DrawerContent,
   DrawerDescription,
+  DrawerHandle,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -47,10 +48,7 @@ export const DarkMode = () => {
         </Item>
       </DrawerTrigger>
       <DrawerContent className="mx-auto max-w-page">
-        <span
-          aria-hidden
-          className="mx-auto mt-2 mb-1.5 block h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/40"
-        />
+        <DrawerHandle />
         <DrawerHeader className="px-(--page-gutter) text-left">
           <DrawerTitle>深色模式</DrawerTitle>
           <DrawerDescription className="sr-only">

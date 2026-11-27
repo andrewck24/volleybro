@@ -80,7 +80,7 @@ const AlertDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-wrap-reverse gap-2 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] has-[>:nth-child(3)]:flex-col-reverse max-sm:*:min-w-[calc(50%-var(--spacing))] max-sm:*:grow sm:flex-nowrap sm:justify-end",
+      "flex flex-wrap-reverse gap-2 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:*:min-w-[calc(50%-var(--spacing))] max-sm:*:grow max-sm:has-[>:nth-child(3)]:flex-col-reverse sm:flex-nowrap sm:justify-end",
       className,
     )}
     {...props}

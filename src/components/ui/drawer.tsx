@@ -54,6 +54,13 @@ const DrawerContent = React.forwardRef<
 ));
 DrawerContent.displayName = "DrawerContent";
 
+const DrawerHandle = () => (
+  <span
+    aria-hidden
+    className="mx-auto mt-2 mb-1.5 block h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/40"
+  />
+);
+
 const DrawerHeader = ({
   className,
   ...props
@@ -110,6 +117,7 @@ export {
   DrawerTrigger,
   DrawerClose,
   DrawerContent,
+  DrawerHandle,
   DrawerHeader,
   DrawerFooter,
   DrawerTitle,

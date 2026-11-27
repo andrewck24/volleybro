@@ -4,6 +4,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerDescription,
+  DrawerHandle,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -45,10 +46,7 @@ export const TeamSwitcher = ({ teamId }: { teamId: string }) => {
         </Button>
       </DrawerTrigger>
       <DrawerContent className="mx-auto max-h-[85dvh] max-w-page">
-        <span
-          aria-hidden
-          className="mx-auto mt-2 mb-1.5 block h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/40"
-        />
+        <DrawerHandle />
         <DrawerHeader className="px-(--page-gutter) text-left">
           <DrawerTitle>切換球隊</DrawerTitle>
           <DrawerDescription className="sr-only">

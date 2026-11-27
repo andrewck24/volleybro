@@ -23,7 +23,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const Chosen = ({
+const ChosenDestructiveConfirmation = ({
   title,
   description,
   action,
@@ -50,7 +50,7 @@ const Chosen = ({
 
 export const RemovePlayer: Story = {
   render: () => (
-    <Chosen
+    <ChosenDestructiveConfirmation
       title="確定要將 陳大文 從名單中刪除嗎？"
       description="刪除後這名球員將從名單上移除，無法繼續使用隊伍相關功能。"
       action="確認刪除"
@@ -60,7 +60,7 @@ export const RemovePlayer: Story = {
 
 export const TransferOwnership: Story = {
   render: () => (
-    <Chosen
+    <ChosenDestructiveConfirmation
       title="確定要將隊伍所有權移轉給 陳大文 嗎？"
       description="移轉後 陳大文 將成為新擁有者，你仍保有管理員身分。"
       action="確認移轉"
@@ -70,7 +70,7 @@ export const TransferOwnership: Story = {
 
 export const LeaveTeam: Story = {
   render: () => (
-    <Chosen
+    <ChosenDestructiveConfirmation
       title="確定要離開這個隊伍嗎？"
       description="離開後將無法查看隊伍相關資訊與個人數據。此操作無法撤銷，若要重新加入需再次接受邀請。"
       action="確認離開"
@@ -111,11 +111,11 @@ export const UnconfirmedSetSaving: Story = {
   render: () => <UnconfirmedSet attempting />,
 };
 
-export const UnconfirmedSetFailed: Story = {
+export const UnconfirmedSetExhausted: Story = {
   render: () => <UnconfirmedSet attempting={false} />,
 };
 
-export const SetResultNotSaved: Story = {
+export const UnconfirmedSetLeave: Story = {
   render: () => (
     <AlertDialog open>
       <AlertDialogContent>
@@ -140,7 +140,7 @@ export const SetResultNotSaved: Story = {
 
 export const LongActionLabel: Story = {
   render: () => (
-    <Chosen
+    <ChosenDestructiveConfirmation
       title="確定要離開這個隊伍嗎？"
       description="標籤在可用寬度放不下一行時，按鈕改為上下排列，預設動作在上。"
       action="確認離開並移除我的個人數據"
