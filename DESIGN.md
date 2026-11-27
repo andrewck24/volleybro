@@ -336,7 +336,7 @@ Glass belongs only to floating header, back and close controls; other icon actio
 
 ### Dialog kinds
 
-- **Confirmation** (`AlertDialog`): no header controls; a left-aligned title and description; it closes only through its footer actions or when its task completes, with Cancel on the leading side of a row (bottom of a stack) and the default action trailing (top of a stack). A destructive action never takes the filled primary: one the person did not deliberately choose (discarding changes, leaving mid-task) uses the `outline-destructive` button (destructive ring and text on the outline fill); one they deliberately chose (delete, transfer, leave a team) uses the neutral `secondary` button. A single-button alert's button is its default action, labelled 「完成」, not a Cancel.
+- **Confirmation** (`AlertDialog`): no header controls; a left-aligned title and description; it closes only through its footer actions or when its task completes, with Cancel on the leading side of a row (bottom of a stack) and the default action trailing (top of a stack). A destructive action never takes the filled primary: one the person did not deliberately choose (discarding changes, leaving mid-task) uses the `outline-destructive` button (destructive ring and text on the outline fill); one they deliberately chose (delete, transfer, leave a team) uses the neutral `secondary` button.
 - **Form** (`Dialog`): the page header's three areas, close leading and the title centred, with the primary action in `DialogFooter`.
 
 The [Overlays Feature](blueprint/content/features/platform/design-system/overlays/index.mdx) documents how each kind opens and closes.
