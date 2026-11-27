@@ -53,10 +53,14 @@ function luminance([r, g, b]: Rgb) {
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 
-function contrast(theme: Theme, a: string, b: string) {
-  const first = luminance(toRgb(app[theme], a));
-  const second = luminance(toRgb(app[theme], b));
+function ratio(a: Rgb, b: Rgb) {
+  const first = luminance(a);
+  const second = luminance(b);
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+function contrast(theme: Theme, a: string, b: string) {
+  return ratio(toRgb(app[theme], a), toRgb(app[theme], b));
 }
 
 const TEXT = 4.5;
@@ -102,10 +106,8 @@ describe("globals.css colour tokens", () => {
       const hover = background.map(
         (channel, i) => channel * 0.6 + muted[i]! * 0.4,
       ) as Rgb;
-      const text = luminance(toRgb(app[theme], "destructive-text"));
-      const fill = luminance(hover);
       expect(
-        (Math.max(text, fill) + 0.05) / (Math.min(text, fill) + 0.05),
+        ratio(toRgb(app[theme], "destructive-text"), hover),
       ).toBeGreaterThanOrEqual(TEXT);
     },
   );
