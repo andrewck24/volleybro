@@ -116,7 +116,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Width375: Story = {
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  parameters: {
+    viewport: {
+      viewports: {
+        iphoneSe: {
+          name: "375px",
+          styles: { width: "375px", height: "667px" },
+        },
+      },
+      defaultViewport: "iphoneSe",
+    },
+  },
 };
 
 export const Width320: Story = {
@@ -187,6 +197,35 @@ export const Failed: Story = {
       );
       return <Story />;
     },
+  ],
+};
+
+export const TeamNamesWithDescenders: Story = {
+  parameters: { ...Width320.parameters, chromatic: { viewports: [320] } },
+  decorators: [
+    (Story) => (
+      <SWRConfig
+        value={{
+          provider: () =>
+            new Map([
+              [
+                `/api/games/${gameId}`,
+                {
+                  data: {
+                    ...game,
+                    teams: {
+                      home: { ...game.teams.home, name: "Gryphons" },
+                      away: { ...game.teams.away, name: "jpg 隊" },
+                    },
+                  },
+                },
+              ],
+            ]),
+        }}
+      >
+        <Story />
+      </SWRConfig>
+    ),
   ],
 };
 

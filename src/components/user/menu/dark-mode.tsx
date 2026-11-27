@@ -1,17 +1,19 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import {
-  Dialog,
-  DialogBody,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHandle,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { useTheme } from "next-themes";
+import { useState } from "react";
 import {
   RiDeviceFill,
   RiDeviceLine,
@@ -21,12 +23,19 @@ import {
   RiSunLine,
 } from "react-icons/ri";
 
+const THEMES = [
+  { value: "system", label: "系統", icon: RiDeviceLine, current: RiDeviceFill },
+  { value: "light", label: "亮色", icon: RiSunLine, current: RiSunFill },
+  { value: "dark", label: "深色", icon: RiMoonLine, current: RiMoonFill },
+] as const;
+
 export const DarkMode = () => {
   const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
         <Item asChild variant="muted">
           <button type="button">
             <ItemMedia>
@@ -37,45 +46,37 @@ export const DarkMode = () => {
             </ItemContent>
           </button>
         </Item>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-106.25">
-        <DialogHeader>
-          <DialogTitle>深色模式</DialogTitle>
-          <DialogDescription srOnly>選擇深色模式</DialogDescription>
-        </DialogHeader>
-        <DialogBody>
-          <DialogClose asChild>
+      </DrawerTrigger>
+      <DrawerContent className="mx-auto max-w-page">
+        <DrawerHandle />
+        <DrawerHeader className="px-(--page-gutter) text-left">
+          <DrawerTitle>深色模式</DrawerTitle>
+          <DrawerDescription className="sr-only">
+            選擇深色模式
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="flex flex-col gap-2 px-(--page-gutter)">
+          {THEMES.map(({ value, label, icon: Icon, current: Current }) => (
             <Button
+              key={value}
               variant="segmented"
-              aria-pressed={theme === "system"}
-              onClick={() => setTheme("system")}
+              aria-pressed={theme === value}
+              onClick={() => {
+                setTheme(value);
+                setOpen(false);
+              }}
             >
-              {theme === "system" ? <RiDeviceFill /> : <RiDeviceLine />}
-              系統
+              {theme === value ? <Current /> : <Icon />}
+              {label}
             </Button>
-          </DialogClose>
-          <DialogClose asChild>
-            <Button
-              variant="segmented"
-              aria-pressed={theme === "light"}
-              onClick={() => setTheme("light")}
-            >
-              {theme === "light" ? <RiSunFill /> : <RiSunLine />}
-              亮色
-            </Button>
-          </DialogClose>
-          <DialogClose asChild>
-            <Button
-              variant="segmented"
-              aria-pressed={theme === "dark"}
-              onClick={() => setTheme("dark")}
-            >
-              {theme === "dark" ? <RiMoonFill /> : <RiMoonLine />}
-              深色
-            </Button>
-          </DialogClose>
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+          ))}
+        </div>
+        <DrawerFooter className="px-(--page-gutter) pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <DrawerClose asChild>
+            <Button variant="outline">取消</Button>
+          </DrawerClose>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 };

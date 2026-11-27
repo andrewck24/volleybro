@@ -1,7 +1,8 @@
 import { UnconfirmedSetDialog } from "@/components/game/unconfirmed-set-dialog";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import type { GameView } from "@/lib/features/game/types";
 import { makeStore } from "@/lib/redux/store";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
@@ -30,21 +31,25 @@ const renderDialog = () =>
     </Provider>,
   );
 
+const unsavedAlert = () =>
+  screen.getByRole("alertdialog", {
+    name: ERROR_MESSAGES.SERVER_ERROR.title,
+  });
+const leaveAlert = () =>
+  screen.getByRole("alertdialog", { name: "本局結果還沒存好" });
+
 describe("UnconfirmedSetDialog dismissal", () => {
   beforeEach(() => push.mockClear());
 
-  it("stays open on escape and outside click, and has no close button", async () => {
-    const user = userEvent.setup();
+  it("focuses itself on open and offers retry as its only button", () => {
     renderDialog();
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
 
-    await user.keyboard("{Escape}");
-    fireEvent.pointerDown(document.body);
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(unsavedAlert()).toHaveFocus();
     expect(
-      screen.queryByRole("button", { name: "關閉" }),
-    ).not.toBeInTheDocument();
+      within(unsavedAlert())
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["重試"]);
   });
 
   it("confirms popstate navigation separately from dialog dismissal", async () => {
@@ -59,8 +64,11 @@ describe("UnconfirmedSetDialog dismissal", () => {
     expect(
       await screen.findByRole("button", { name: "仍要離開" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { hidden: true })).toBeInTheDocument();
+    expect(screen.getAllByRole("alertdialog", { hidden: true })).toHaveLength(
+      2,
+    );
     await user.click(await screen.findByRole("button", { name: "留在這裡" }));
+    expect(unsavedAlert()).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -74,8 +82,10 @@ describe("UnconfirmedSetDialog dismissal", () => {
     await user.keyboard("{Escape}");
     fireEvent.pointerDown(document.body);
 
-    expect(screen.getByRole("dialog", { hidden: true })).toBeInTheDocument();
-    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getAllByRole("alertdialog", { hidden: true })).toHaveLength(
+      2,
+    );
+    expect(leaveAlert()).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "仍要離開" }));
     expect(push).toHaveBeenCalledWith("/game/game-1");
   });

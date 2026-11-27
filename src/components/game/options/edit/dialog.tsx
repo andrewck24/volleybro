@@ -22,7 +22,7 @@ export const EntriesEditDialog = ({ gameId }: { gameId: string }) => {
         onEscapeKeyDown={guardDismiss}
         onInteractOutside={guardDismiss}
       >
-        <EntriesEdit gameId={gameId} writing={writing} onBack={leaveEditing} />
+        <EntriesEdit gameId={gameId} writing={writing} />
       </DialogContent>
     </Dialog>
   );

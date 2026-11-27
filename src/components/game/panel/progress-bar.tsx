@@ -22,7 +22,7 @@ export const EntryProgressBar = ({
   return (
     <div
       data-slot="EntryProgressBar"
-      className="flex w-full flex-col gap-1 px-2 pt-2"
+      className="flex w-full flex-col gap-1 px-(--page-gutter) pt-2"
     >
       <div
         data-slot="EntryProgressBarTrack"

@@ -1,14 +1,14 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHandle,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   Item,
   ItemContent,
@@ -34,8 +34,8 @@ export const TeamSwitcher = ({ teamId }: { teamId: string }) => {
   const [open, setOpen] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
         <Button variant="ghost" className="gap-2 text-xl font-medium">
           {isLoading ? (
             <Skeleton className="h-6 w-24" />
@@ -44,17 +44,20 @@ export const TeamSwitcher = ({ teamId }: { teamId: string }) => {
           )}
           <RiArrowDownWideLine className="size-5 shrink-0" />
         </Button>
-      </DialogTrigger>
-      <DialogContent size="lg">
-        <DialogHeader closeButton={false}>
-          <DialogTitle>切換球隊</DialogTitle>
-          <DialogDescription srOnly>選擇要切換的球隊</DialogDescription>
-        </DialogHeader>
-        <DialogBody>
+      </DrawerTrigger>
+      <DrawerContent className="mx-auto max-h-[85dvh] max-w-page">
+        <DrawerHandle />
+        <DrawerHeader className="px-(--page-gutter) text-left">
+          <DrawerTitle>切換球隊</DrawerTitle>
+          <DrawerDescription className="sr-only">
+            選擇要切換的球隊
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="min-h-0 overflow-y-auto px-(--page-gutter) pb-[max(1rem,env(safe-area-inset-bottom))]">
           <TeamList activeTeamId={teamId} onSelect={() => setOpen(false)} />
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 };
 

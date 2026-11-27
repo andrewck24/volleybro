@@ -3,9 +3,9 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
-import { RiCloseLine, RiExpandDiagonalLine } from "react-icons/ri";
+import { RiCloseLine } from "react-icons/ri";
 
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -75,23 +75,34 @@ const DialogBody = ({
   <div
     data-slot="DialogBody"
     className={cn(
-      "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-(--page-gutter) pb-4",
+      "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-(--page-gutter) pb-4 max-sm:[&>[data-slot=Court]]:-mx-(--page-gutter) max-sm:[&>[data-slot=Court]]:w-[calc(100%+2*var(--page-gutter))]",
       className,
     )}
     {...props}
   />
 );
 
+const DialogCloseButton = (props: Omit<ButtonProps, "children">) => (
+  <DialogPrimitive.Close asChild>
+    <Button type="button" variant="glass" size="icon" {...props}>
+      <RiCloseLine />
+      <span className="sr-only">關閉</span>
+    </Button>
+  </DialogPrimitive.Close>
+);
+
+const DialogHeaderSpacer = () => (
+  <div aria-hidden className="size-(--control-size) shrink-0" />
+);
+
 export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
-  closeButton?: boolean;
-  onExpand?: () => void;
-  expandLabel?: string;
+  leading?: React.ReactNode;
+  trailing?: React.ReactNode;
 }
 
 const DialogHeader = ({
-  closeButton = true,
-  onExpand,
-  expandLabel,
+  leading = <DialogCloseButton />,
+  trailing = <DialogHeaderSpacer />,
   className,
   children,
   ...props
@@ -99,45 +110,21 @@ const DialogHeader = ({
   <div
     data-slot="DialogHeader"
     className={cn(
-      "flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2",
+      "flex min-h-(--header-height) flex-none flex-row items-center gap-3 px-(--page-gutter) py-2",
       className,
     )}
     {...props}
   >
-    <div
-      className={cn(
-        "flex min-w-0 flex-1 flex-col items-start gap-1",
-        (onExpand || closeButton) &&
-          "[&>[data-slot=DialogTitle]]:min-h-(--control-size)",
-      )}
-    >
+    <div className="flex shrink-0">{leading}</div>
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-center text-center">
       {children}
     </div>
-    {(onExpand || closeButton) && (
-      <div className="flex flex-none flex-row items-center gap-1">
-        {onExpand && (
-          <Button
-            type="button"
-            variant="glass"
-            size="icon"
-            onClick={onExpand}
-            aria-label={expandLabel}
-          >
-            <RiExpandDiagonalLine />
-          </Button>
-        )}
-        {closeButton && (
-          <DialogPrimitive.Close asChild>
-            <Button type="button" variant="glass" size="icon">
-              <RiCloseLine />
-              <span className="sr-only">關閉</span>
-            </Button>
-          </DialogPrimitive.Close>
-        )}
-      </div>
-    )}
+    <div className="flex shrink-0">{trailing}</div>
   </div>
 );
+
+const DIALOG_TITLE_CLASS_NAME =
+  "text-xl leading-tight font-medium tracking-tight text-balance";
 
 const DialogTitle = ({
   srOnly = false,
@@ -149,7 +136,8 @@ const DialogTitle = ({
   <DialogPrimitive.Title
     data-slot="DialogTitle"
     className={cn(
-      "flex w-full flex-row items-center justify-start gap-1 text-xl leading-none font-medium tracking-tight",
+      DIALOG_TITLE_CLASS_NAME,
+      "text-center",
       srOnly && "sr-only",
       className,
     )}
@@ -193,6 +181,7 @@ export {
   Dialog,
   DialogBody,
   DialogClose,
+  DialogCloseButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -201,4 +190,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  DIALOG_TITLE_CLASS_NAME,
 };

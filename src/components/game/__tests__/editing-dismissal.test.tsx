@@ -5,7 +5,7 @@ import {
   holdEditedWrite,
   renderEditingGame,
 } from "@test/support/react/render-editing-game";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState, type ReactNode } from "react";
 
@@ -63,6 +63,23 @@ describe("SetEdit editing dismissal", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
     await waitFor(() =>
       expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
+  });
+
+  it("closes the dialog and clears the edit draft from the close control", async () => {
+    const onOpenChange = jest.fn();
+    const { store } = renderEditingGame(
+      <Host onOpenChange={onOpenChange}>{dialogBody}</Host>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "關閉" }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() =>
+      expect(store.getState().game.editing.entryDraft.id).toBe(""),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
   });
 });

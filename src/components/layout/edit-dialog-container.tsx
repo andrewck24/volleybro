@@ -2,6 +2,7 @@
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -9,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +21,10 @@ import {
 import { suppressLeaveWarning } from "@/hooks/use-leave-page-warning";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RiExpandDiagonalLine } from "react-icons/ri";
+
+const FLAT_PAGE_CARD =
+  "[&_[data-slot=DialogBody]>[data-slot=Card]]:rounded-none [&_[data-slot=DialogBody]>[data-slot=Card]]:bg-transparent [&_[data-slot=DialogBody]>[data-slot=Card]]:p-0 [&_[data-slot=DialogBody]>[data-slot=Card]]:shadow-none";
 
 interface EditDialogContainerProps {
   title: string;
@@ -60,13 +66,22 @@ export function EditDialogContainer({
           if (!open) handleClose();
         }}
       >
-        <DialogContent size="lg">
+        <DialogContent size="lg" className={FLAT_PAGE_CARD}>
           <DialogHeader
-            expandLabel="全頁模式"
-            onExpand={() => {
-              suppressLeaveWarning();
-              window.location.replace(fullPageHref);
-            }}
+            trailing={
+              <Button
+                type="button"
+                variant="glass"
+                size="icon"
+                aria-label="全頁模式"
+                onClick={() => {
+                  suppressLeaveWarning();
+                  window.location.replace(fullPageHref);
+                }}
+              >
+                <RiExpandDiagonalLine />
+              </Button>
+            }
           >
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription srOnly>{title}表單</DialogDescription>
@@ -79,13 +94,18 @@ export function EditDialogContainer({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>放棄變更？</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogBody>
             <AlertDialogDescription>
               您有未儲存的變更，關閉後將會遺失。
             </AlertDialogDescription>
-          </AlertDialogHeader>
+          </AlertDialogBody>
           <AlertDialogFooter>
             <AlertDialogCancel>繼續編輯</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDiscard}>
+            <AlertDialogAction
+              variant="outline-destructive"
+              onClick={handleDiscard}
+            >
               放棄變更
             </AlertDialogAction>
           </AlertDialogFooter>

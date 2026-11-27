@@ -21,18 +21,20 @@ const buttonVariants = cva(
         court:
           "bg-court text-court-foreground shadow-sm ring-1 ring-transparent hover:bg-court/90",
         outline:
-          "bg-background text-foreground shadow-sm ring-1 ring-gray-950/10 hover:bg-muted/50 dark:ring-white/10",
+          "bg-background text-foreground shadow-sm ring-1 ring-gray-950/10 hover:bg-muted/40 dark:ring-white/10",
+        "outline-destructive":
+          "bg-background text-destructive-text shadow-sm ring-1 ring-gray-950/10 hover:bg-muted/40 dark:ring-white/10",
         secondary: SECONDARY,
         ghost: "hover:bg-muted/50",
         segmented: `${SECONDARY} has-checked:bg-primary has-checked:text-primary-foreground has-checked:hover:bg-primary/90 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90`,
         link: "text-primary-text underline-offset-4 hover:underline",
         glass:
-          "rounded-full bg-white/60 text-foreground shadow-lg inset-ring inset-ring-black/5 backdrop-blur-md backdrop-saturate-150 hover:bg-white/75 dark:bg-white/10 dark:inset-ring-white/20 dark:hover:bg-white/20 opaque:bg-background opaque:inset-ring-foreground/40 opaque:backdrop-blur-none opaque:hover:bg-muted dark:opaque:bg-background dark:opaque:inset-ring-foreground/40 dark:opaque:hover:bg-muted",
+          "rounded-full bg-white/60 text-foreground shadow-sm inset-ring inset-ring-black/5 backdrop-blur-md backdrop-saturate-150 hover:bg-white/75 dark:bg-white/10 dark:inset-ring-white/20 dark:hover:bg-white/20 opaque:bg-background opaque:inset-ring-foreground/40 opaque:backdrop-blur-none opaque:hover:bg-muted dark:opaque:bg-background dark:opaque:inset-ring-foreground/40 dark:opaque:hover:bg-muted",
       },
       size: {
         default: "h-(--control-size) px-3.5 py-2 [&>svg]:size-5",
         lg: "h-(--control-size-lg) px-8 py-2 text-lg [&>svg]:size-6",
-        icon: "size-(--control-size) [&>svg]:size-7",
+        icon: "size-(--control-size) shrink-0 [&>svg]:size-7",
       },
     },
     defaultVariants: {

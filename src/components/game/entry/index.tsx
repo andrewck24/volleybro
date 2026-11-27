@@ -65,7 +65,7 @@ export const EntryText = ({
 }) => (
   <p
     className={cn(
-      "flex h-6 flex-1 flex-row items-center gap-1 px-1 text-[1.375rem]",
+      "flex h-6 min-w-0 flex-1 flex-row items-center gap-1 truncate px-1 text-[1.375rem] narrow:text-lg",
       "max-w-[calc(100%-9rem)] border-l-2",
       "stroke-[3px] [&>svg]:size-6",
       className,

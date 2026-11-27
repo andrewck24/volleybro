@@ -1,16 +1,16 @@
 "use client";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogBody,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { isStandalone } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
@@ -112,8 +112,8 @@ export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
 
   if (platform === "iOS") {
     return (
-      <Dialog>
-        <DialogTrigger asChild>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
           <Button
             {...props}
             variant="outline"
@@ -125,9 +125,9 @@ export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
             {label}
             <RiArrowRightLine />
           </Button>
-        </DialogTrigger>
+        </AlertDialogTrigger>
         <IOSInstallInstruction />
-      </Dialog>
+      </AlertDialog>
     );
   }
 
@@ -145,14 +145,14 @@ export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
 
 const IOSInstallInstruction = () => {
   return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>安裝此應用程式到主頁面</DialogTitle>
-        <DialogDescription>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>安裝此應用程式到主頁面</AlertDialogTitle>
+      </AlertDialogHeader>
+      <AlertDialogBody>
+        <AlertDialogDescription>
           透過以下步驟將此應用程式安裝到您的 iOS 裝置主頁面
-        </DialogDescription>
-      </DialogHeader>
-      <DialogBody>
+        </AlertDialogDescription>
         <ul className="space-y-2 text-sm">
           <li className="flex items-center">
             <span className="w-4">1.</span>
@@ -166,16 +166,14 @@ const IOSInstallInstruction = () => {
             <RiAddBoxLine className="inline-block size-5" />」
           </li>
         </ul>
-      </DialogBody>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button variant="outline">
-            <RiCheckLine />
-            我知道了
-          </Button>
-        </DialogClose>
-      </DialogFooter>
-    </DialogContent>
+      </AlertDialogBody>
+      <AlertDialogFooter>
+        <AlertDialogAction autoFocus>
+          <RiCheckLine />
+          完成
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
   );
 };
 

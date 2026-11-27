@@ -28,7 +28,7 @@ export const Scores = ({
 
   return (
     <div
-      className="flex h-21 flex-1 flex-row items-center justify-center gap-1"
+      className="flex h-21 flex-1 flex-row items-center justify-center gap-1 narrow:h-17"
       onClick={onClick}
     >
       <Container className="border-primary">
@@ -36,13 +36,13 @@ export const Scores = ({
           value={scores.home}
           size="lg"
           variant={isHomeSetPoint ? "primary" : "default"}
-          className="h-14 w-16 font-bold"
+          className="h-14 w-full font-bold narrow:h-10 narrow:text-3xl"
         />
         <Team>{game?.teams?.home?.name || "我方"}</Team>
       </Container>
       <SetTally won={setsWonHome} needed={setsNeeded} side="home" />
-      <div className="flex h-21 w-16 shrink-0 flex-col items-center justify-center gap-1">
-        <MdOutlineSportsVolleyball className="size-12" />
+      <div className="flex h-full w-16 shrink-0 flex-col items-center justify-center gap-1">
+        <MdOutlineSportsVolleyball className="size-12 narrow:size-10" />
         <SyncIndicator gameId={gameId} />
       </div>
       <SetTally won={setsWonAway} needed={setsNeeded} side="away" />
@@ -51,7 +51,7 @@ export const Scores = ({
           value={scores.away}
           size="lg"
           variant={isAwaySetPoint ? "away" : "default"}
-          className="h-14 w-16 font-bold"
+          className="h-14 w-full font-bold narrow:h-10 narrow:text-3xl"
         />
         <Team>{game?.teams?.away?.name || "對手"}</Team>
       </Container>
@@ -69,7 +69,7 @@ const Container = ({
   return (
     <div
       className={cn(
-        "flex h-21 w-16 shrink-0 flex-col items-center justify-center gap-1 border-b-4 text-[3rem] leading-none font-bold",
+        "flex h-full w-16 shrink-0 flex-col items-center justify-center gap-1 border-b-4 text-[3rem] leading-none font-bold narrow:w-11",
         className,
       )}
     >
@@ -80,7 +80,7 @@ const Container = ({
 
 const Team = ({ children }: { children: React.ReactNode }) => {
   return (
-    <p className="flex w-full max-w-16 items-center justify-center overflow-hidden text-[1rem] font-medium text-ellipsis whitespace-nowrap">
+    <p className="w-full max-w-16 truncate text-center text-[1rem] leading-tight font-medium narrow:text-sm">
       {children}
     </p>
   );

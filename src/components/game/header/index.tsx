@@ -14,8 +14,8 @@ export const GameHeader = ({
   const router = useRouter();
 
   return (
-    <header className="fixed top-0 z-10 flex h-[calc(env(safe-area-inset-top)+5.5rem)] w-full max-w-160 items-center justify-between rounded-b-lg bg-card">
-      <div className="flex w-full items-center justify-between gap-2 px-2 pt-[env(safe-area-inset-top)]">
+    <header className="fixed top-0 z-10 flex h-[calc(env(safe-area-inset-top)+5.5rem)] w-full max-w-160 items-center justify-between rounded-b-lg bg-card narrow:h-[calc(env(safe-area-inset-top)+4.5rem)]">
+      <div className="flex w-full items-center justify-between gap-2 px-(--page-gutter) pt-[env(safe-area-inset-top)]">
         <Button variant="glass" size="icon" onClick={() => router.back()}>
           <RiArrowLeftSLine />
           <span className="sr-only">Back</span>
@@ -26,7 +26,7 @@ export const GameHeader = ({
             onClick={() => handleOptionOpen("overview")}
           />
         ) : (
-          <div className="flex h-21 flex-1" />
+          <div className="flex h-21 flex-1 narrow:h-17" />
         )}
         {handleOptionOpen ? (
           <Button

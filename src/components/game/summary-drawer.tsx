@@ -120,7 +120,7 @@ export const SummaryDrawerCard = ({
             >
               <span className="mx-auto block h-1.5 w-10 rounded-full bg-muted-foreground/40" />
             </button>
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-6">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-(--page-gutter) pb-6">
               {preview && (
                 <PreviewCard
                   key={preview.entryIndex}

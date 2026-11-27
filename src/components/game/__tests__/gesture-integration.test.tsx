@@ -316,7 +316,7 @@ describe("Game rally edit started from the summary drawer", () => {
     const oldestRow = rows.at(-1)!;
     await user.click(oldestRow);
     await user.click(within(oldestRow).getByTestId("entry-action-edit"));
-    await screen.findByRole("button", { name: "back" });
+    await screen.findByRole("button", { name: "關閉" });
   };
 
   const stageRecordingDraft = async (store: AppStore) => {
@@ -403,7 +403,7 @@ describe("Game rally edit started from the summary drawer", () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: "back" }),
+        screen.queryByRole("button", { name: "關閉" }),
       ).not.toBeInTheDocument(),
     );
     await waitFor(() =>
@@ -454,7 +454,7 @@ describe("Game rally edit started from the summary drawer", () => {
     expect(store.getState().game.editing.entryDraft.home.num).toBe(
       scoringMoves[4]!.num,
     );
-    expect(screen.getByRole("button", { name: "back" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "關閉" })).toBeInTheDocument();
     expect(store.getState().game.general.entryDraft).toEqual(recordingDraft);
     expect(store.getState().game.general.status.panel).toBe("away");
 
@@ -488,17 +488,17 @@ describe("Game rally edit started from the summary drawer", () => {
     expect(store.getState().game.editing.entryDraft.id).toBe("");
   });
 
-  it("closes the edit dialog and shows the expanded drawer when the back control is used", async () => {
+  it("closes the edit dialog and shows the expanded drawer when the close control is used", async () => {
     const user = userEvent.setup();
     const { store } = setUpGame();
     const recordingDraft = await stageRecordingDraft(store);
     await startEditing(user);
 
-    await user.click(screen.getByRole("button", { name: "back" }));
+    await user.click(screen.getByRole("button", { name: "關閉" }));
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: "back" }),
+        screen.queryByRole("button", { name: "關閉" }),
       ).not.toBeInTheDocument(),
     );
     expect(store.getState().game.editing.entryDraft.id).toBe("");

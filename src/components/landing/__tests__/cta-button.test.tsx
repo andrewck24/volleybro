@@ -1,5 +1,5 @@
 import { CTAButton } from "@/components/landing/cta-button";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import {
@@ -89,19 +89,23 @@ describe("CTAButton", () => {
       const user = userEvent.setup();
       render(<CTAButton />);
 
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "開始使用" }));
 
-      const dialog = screen.getByRole("dialog", {
+      const dialog = screen.getByRole("alertdialog", {
         name: "安裝此應用程式到主頁面",
       });
       expect(dialog).toHaveTextContent("點擊下方的分享");
       expect(dialog).toHaveTextContent("加入主畫面");
+      expect(within(dialog).getAllByRole("button")).toHaveLength(1);
+      expect(
+        within(dialog).getByRole("button", { name: "完成" }),
+      ).toHaveFocus();
 
-      await user.click(screen.getByRole("button", { name: "我知道了" }));
+      await user.click(screen.getByRole("button", { name: "完成" }));
 
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
   });
 

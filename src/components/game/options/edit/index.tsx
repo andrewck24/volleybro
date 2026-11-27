@@ -3,47 +3,33 @@ import { GameCourt } from "@/components/game/court";
 import { GamePanel } from "@/components/game/panel";
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { GamePreview } from "@/components/game/preview";
-import { Button } from "@/components/ui/button";
 import {
+  DialogCloseButton,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RiArrowLeftSLine } from "react-icons/ri";
 
 export const EntriesEdit = ({
   gameId,
   writing,
-  onBack,
 }: {
   gameId: string;
   writing: boolean;
-  onBack: () => void;
 }) => {
   const submitEntryDraft = useSubmitEntryDraft(gameId, "editing");
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>
-          <Button
-            variant="glass"
-            size="icon"
-            disabled={writing}
-            onClick={onBack}
-          >
-            <RiArrowLeftSLine />
-            <span className="sr-only">back</span>
-          </Button>
-          編輯逐球紀錄
-        </DialogTitle>
+      <DialogHeader leading={<DialogCloseButton disabled={writing} />}>
+        <DialogTitle>編輯逐球紀錄</DialogTitle>
         <DialogDescription srOnly>逐球紀錄編輯頁面</DialogDescription>
       </DialogHeader>
       <div className="flex min-h-0 flex-1 flex-col gap-1">
         <GameCourt gameId={gameId} mode="editing" />
         <GamePanel gameId={gameId} mode="editing" className="pb-0" />
-        <DialogFooter className="shrink-0 px-2 pt-0">
+        <DialogFooter className="shrink-0 pt-0">
           <GamePreview
             gameId={gameId}
             mode="editing"

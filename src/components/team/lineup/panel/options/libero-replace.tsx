@@ -153,11 +153,11 @@ export const LiberoReplaceDialog = ({
       >
         <DialogHeader>
           <DialogTitle>自由球員替換模式</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
           <DialogDescription>
             選擇自由球員替換模式與替換對象。
           </DialogDescription>
-        </DialogHeader>
-        <DialogBody>
           <FormField
             control={form.control}
             name="mode"

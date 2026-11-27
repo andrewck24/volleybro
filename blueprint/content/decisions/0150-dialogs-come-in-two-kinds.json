@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "id": "0150",
+  "title": "Dialogs come in two kinds: confirmations without header controls, forms with the page header",
+  "capabilities": ["platform/design-system/overlays"],
+  "decision": "A confirmation is an AlertDialog. It has no header controls, no close and no back; its title and description are left-aligned, and it closes only through its footer actions, which follow Apple's alert order: Cancel on the leading side of a row or at the bottom of a stack, the default action trailing or on top. Esc and an outside click do not dismiss it. A form is a Dialog, and its DialogHeader uses the page Header's structure: a minimum height of --header-height, the page gutter, equal top and bottom padding and three vertically centred areas. The leading area holds the close button, an icon with no visible label, unless the dialog passes leading; a later step of a multi-step dialog passes a back button there. The title is centred. The trailing area is an equal-width spacer so the title stays centred, unless the dialog passes trailing; only the route-held dialogs' expand button uses it. A form's primary action stays in DialogFooter. closeButton, onExpand and expandLabel are removed from DialogHeader.",
+  "context": "ADR-0040 put the expand and close buttons to the right of the title in DialogHeader. The page Header puts its back control first, and the two headers differed in padding, alignment and control position. The rally edit dialog also put a back button inside DialogTitle, so it had two ways out. A close button in a confirmation's header would add a third way out beside Cancel and the default action, and a centred title above left-aligned text reads as a form.",
+  "alternatives": [
+    {
+      "option": "Give confirmations the form header with a leading close",
+      "reason": "The close would only repeat Cancel, and a confirmation should end in an explicit choice."
+    },
+    {
+      "option": "Keep close on the trailing side of form dialogs and only fix the padding",
+      "reason": "Close would stay opposite to the page header's leading control, and the dialogs would keep two different header layouts."
+    },
+    {
+      "option": "Move a form's primary action into the trailing area",
+      "reason": "Footer primary actions were chosen for the rally edit dialog and stay where users already find them. The trailing area is a spacer by default."
+    }
+  ],
+  "consequences": [
+    "Every form dialog gets the same header from the shared component, with no per-dialog header markup.",
+    "A destructive confirmation action, such as discarding changes, deleting, transferring or leaving, uses the outline-destructive button and never the filled primary.",
+    "A notice that blocks until something is acknowledged or saved, such as the lineup error and the unconfirmed set, is a confirmation and closes only through its footer or when its task completes.",
+    "The rally edit dialog keeps only close, which stays disabled while its edit is being written.",
+    "A form header with a long title grows instead of clipping, because its height is a minimum."
+  ],
+  "revisitTriggers": [
+    "A form dialog needs a primary action in the header.",
+    "A confirmation needs a way out other than its footer.",
+    "The page Header changes its areas or height."
+  ],
+  "originChange": "dialog-header"
+}

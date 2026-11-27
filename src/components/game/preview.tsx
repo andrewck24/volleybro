@@ -93,7 +93,7 @@ export const PreviewCard = ({
           players={players}
           className={cn(
             "transition-colors duration-500",
-            showSendAffordance && "bg-primary text-primary-foreground",
+            showSendAffordance && "bg-primary pr-8 text-primary-foreground",
             flashing && "bg-primary/30",
             failed && "ring-1 ring-error pointer-coarse:min-h-(--control-size)",
           )}

@@ -49,7 +49,7 @@ describe("UnconfirmedSetDialog", () => {
 
     renderDialog(gameWithSet(true));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("exposes the pending status as the dialog description", () => {
@@ -64,7 +64,7 @@ describe("UnconfirmedSetDialog", () => {
     renderDialog(gameWithSet(true));
 
     expect(
-      screen.getByRole("dialog", {
+      screen.getByRole("alertdialog", {
         name: "正在記錄本局結果…",
         description: "正在儲存本局結果，請稍候。",
       }),
@@ -86,24 +86,23 @@ describe("UnconfirmedSetDialog", () => {
     renderDialog(gameWithSet(true));
 
     expect(
-      screen.getAllByText(ERROR_MESSAGES.SERVER_ERROR.title).length,
-    ).toBeGreaterThan(0);
+      screen.getByRole("alertdialog", {
+        name: ERROR_MESSAGES.SERVER_ERROR.title,
+        description: "本局結果還沒存好，這一局的球都在，只差這一步。",
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重試" })).toBeInTheDocument();
   });
 
   it("shows the same dialog on a cold start, detected from the fetched win alone", () => {
     renderDialog(gameWithSet(null));
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "重試" })).toBeInTheDocument();
-  });
-
-  it("has no close button", () => {
-    renderDialog(gameWithSet(null));
-
     expect(
-      screen.queryByRole("button", { name: "關閉" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("alertdialog", {
+        name: ERROR_MESSAGES.SERVER_ERROR.title,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "重試" })).toBeInTheDocument();
   });
 
   it("retrying resends the last rally entry and closes the dialog on success", async () => {
@@ -132,7 +131,7 @@ describe("UnconfirmedSetDialog", () => {
     await user.click(screen.getByRole("button", { name: "重試" }));
 
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
     );
     expect(url.searchParams.get("si")).toBe("0");
     expect(sent).toEqual([{ ...lastRally, at: expect.any(String) }]);

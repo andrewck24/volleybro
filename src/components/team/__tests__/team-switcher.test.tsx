@@ -1,5 +1,5 @@
 import { TeamSwitcher } from "@/components/team/team-switcher";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http } from "msw";
 
@@ -47,7 +47,7 @@ describe("TeamSwitcher", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: /甲隊/ }));
-    await user.click(await screen.findByRole("button", { name: /乙隊/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /乙隊/ }));
 
     await waitFor(() =>
       expect(mockReplace).toHaveBeenCalledWith("/team/team-2"),

@@ -1,11 +1,13 @@
 import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const LineupError = ({
   open,
@@ -15,16 +17,20 @@ export const LineupError = ({
   setOpen: (open: boolean) => void;
 }) => {
   return (
-    <Dialog open={open} onOpenChange={() => setOpen(false)}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>無法儲存當前陣容配置</DialogTitle>
-          <DialogDescription srOnly>Error message</DialogDescription>
-        </DialogHeader>
-        <DialogBody>
-          由於目前陣容中沒有自由球員自動替換所對應的位置，故無法完成陣容設定。
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>無法儲存當前陣容配置</AlertDialogTitle>
+        </AlertDialogHeader>
+        <AlertDialogBody>
+          <AlertDialogDescription>
+            由於目前陣容中沒有自由球員自動替換所對應的位置，故無法完成陣容設定。
+          </AlertDialogDescription>
+        </AlertDialogBody>
+        <AlertDialogFooter>
+          <AlertDialogCancel>知道了</AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

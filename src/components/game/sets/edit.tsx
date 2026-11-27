@@ -41,7 +41,7 @@ export const SetEdit = ({
           </DialogBody>
         </>
       ) : (
-        <EntriesEdit gameId={gameId} writing={writing} onBack={leaveEditing} />
+        <EntriesEdit gameId={gameId} writing={writing} />
       )}
     </DialogContent>
   );

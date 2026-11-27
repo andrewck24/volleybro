@@ -33,7 +33,7 @@ export const GameMoves = ({
   return (
     <div
       className={cn(
-        "flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden bg-card p-2",
+        "flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden bg-card px-(--page-gutter) py-2",
         className,
       )}
       {...swipe}

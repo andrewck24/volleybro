@@ -53,10 +53,14 @@ function luminance([r, g, b]: Rgb) {
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 
-function contrast(theme: Theme, a: string, b: string) {
-  const first = luminance(toRgb(app[theme], a));
-  const second = luminance(toRgb(app[theme], b));
+function ratio(a: Rgb, b: Rgb) {
+  const first = luminance(a);
+  const second = luminance(b);
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+function contrast(theme: Theme, a: string, b: string) {
+  return ratio(toRgb(app[theme], a), toRgb(app[theme], b));
 }
 
 const TEXT = 4.5;
@@ -68,6 +72,7 @@ const pairs: { fg: string; bg: string; min: number; themes?: Theme[] }[] = [
   { fg: "away-foreground", bg: "away", min: TEXT },
   { fg: "error-foreground", bg: "error", min: TEXT },
   { fg: "destructive-text", bg: "card", min: TEXT },
+  { fg: "destructive-text", bg: "background", min: TEXT },
   { fg: "destructive-text", bg: "accent", min: TEXT },
   { fg: "away-text", bg: "card", min: TEXT },
   { fg: "away-text", bg: "accent", min: TEXT },
@@ -92,6 +97,20 @@ describe("globals.css colour tokens", () => {
   )("$theme: $fg on $bg reaches $min:1", ({ theme, fg, bg, min }) => {
     expect(contrast(theme, fg, bg)).toBeGreaterThanOrEqual(min);
   });
+
+  it.each(BOTH)(
+    "%s: destructive-text on the outline hover (muted/40 over background) reaches 4.5:1",
+    (theme) => {
+      const background = toRgb(app[theme], "background");
+      const muted = toRgb(app[theme], "muted");
+      const hover = background.map(
+        (channel, i) => channel * 0.6 + muted[i]! * 0.4,
+      ) as Rgb;
+      expect(
+        ratio(toRgb(app[theme], "destructive-text"), hover),
+      ).toBeGreaterThanOrEqual(TEXT);
+    },
+  );
 
   it.each(BOTH)("%s: --court equals the mark coral", (theme) => {
     const mark = [1, 3, 5].map((i) => parseInt(V_CORAL.slice(i, i + 2), 16));
