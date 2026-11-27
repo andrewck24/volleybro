@@ -336,7 +336,7 @@ Glass belongs only to floating header, back and close controls; other icon actio
 
 ### Dialog kinds
 
-- **Confirmation** (`AlertDialog`): no header controls; a left-aligned title and description; it closes only through its footer actions or when its task completes, with Cancel on the leading side of a row (bottom of a stack) and the default action trailing (top of a stack). On phones two buttons share one row at equal width; the footer stacks them only when one label does not fit half the row on one line, or when there are three or more. A destructive action uses the `outline-destructive` button (destructive ring and text on the outline fill) and never the filled primary.
+- **Confirmation** (`AlertDialog`): no header controls; a left-aligned title and description; it closes only through its footer actions or when its task completes, with Cancel on the leading side of a row (bottom of a stack) and the default action trailing (top of a stack). On phones two buttons share one row at equal width; the footer stacks them only when one label does not fit half the row on one line, or when there are three or more. A destructive action uses the `outline-destructive` button (the outline look with destructive text, so it matches Cancel except for its text) and never the filled primary.
 - **Form** (`Dialog`): the page header's three areas, close leading and the title centred, with the primary action in `DialogFooter`.
 
 The [Overlays Feature](blueprint/content/features/platform/design-system/overlays/index.mdx) documents how each kind opens and closes.
@@ -349,15 +349,15 @@ Prefer Item composition for scannable data rows and for tappable list rows such 
 
 `background` is the page plane; `accent` is hover/highlight only. Hover must darken relative to rest rather than dissolve into the page background.
 
-| Context                     | Rest                | Hover / selected            | Avoid                                               |
-| --------------------------- | ------------------- | --------------------------- | --------------------------------------------------- |
-| On body                     | card or transparent | hover:bg-muted/50           | hover:bg-accent or accent opacity variants          |
-| Inside card/modal           | card                | hover:bg-accent/30          | full hover:bg-accent                                |
-| Ghost/outline on body       | transparent         | hover:bg-muted/50           | hover:bg-accent                                     |
-| Selected navigation on body | transparent         | bg-muted/60                 | bg-accent/80                                        |
-| Outline-destructive         | background          | hover:bg-destructive-text/3 | a tint above 3%, which drops light text below 4.5:1 |
+| Context                      | Rest                | Hover / selected   | Avoid                                                           |
+| ---------------------------- | ------------------- | ------------------ | --------------------------------------------------------------- |
+| On body                      | card or transparent | hover:bg-muted/50  | hover:bg-accent or accent opacity variants                      |
+| Inside card/modal            | card                | hover:bg-accent/30 | full hover:bg-accent                                            |
+| Ghost on body                | transparent         | hover:bg-muted/50  | hover:bg-accent                                                 |
+| Outline, outline-destructive | background          | hover:bg-muted/40  | a tint above muted/40, which drops destructive text below 4.5:1 |
+| Selected navigation on body  | transparent         | bg-muted/60        | bg-accent/80                                                    |
 
-Item uses muted/50 or muted/40; outline/ghost Button and AccordionTrigger use muted/50; active NavLink uses muted/60. Inputs keep a clear focus-visible ring and error feedback; never remove keyboard focus to satisfy No-Ring. Navigation keeps active and inactive states distinguishable. SwiftUI correspondence: input focus, validation feedback and selection state.
+Item uses muted/50 or muted/40; ghost Button and AccordionTrigger use muted/50, outline Button muted/40; active NavLink uses muted/60. Inputs keep a clear focus-visible ring and error feedback; never remove keyboard focus to satisfy No-Ring. Navigation keeps active and inactive states distinguishable. SwiftUI correspondence: input focus, validation feedback and selection state.
 
 ## Do's and Don'ts
 

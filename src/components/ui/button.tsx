@@ -21,9 +21,9 @@ const buttonVariants = cva(
         court:
           "bg-court text-court-foreground shadow-sm ring-1 ring-transparent hover:bg-court/90",
         outline:
-          "bg-background text-foreground shadow-sm ring-1 ring-gray-950/10 hover:bg-muted/50 dark:ring-white/10",
+          "bg-background text-foreground shadow-sm ring-1 ring-gray-950/10 hover:bg-muted/40 dark:ring-white/10",
         "outline-destructive":
-          "bg-background text-destructive-text shadow-sm ring-1 ring-destructive-text hover:bg-destructive-text/3",
+          "bg-background text-destructive-text shadow-sm ring-1 ring-gray-950/10 hover:bg-muted/40 dark:ring-white/10",
         secondary: SECONDARY,
         ghost: "hover:bg-muted/50",
         segmented: `${SECONDARY} has-checked:bg-primary has-checked:text-primary-foreground has-checked:hover:bg-primary/90 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90`,

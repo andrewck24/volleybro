@@ -94,6 +94,22 @@ describe("globals.css colour tokens", () => {
     expect(contrast(theme, fg, bg)).toBeGreaterThanOrEqual(min);
   });
 
+  it.each(BOTH)(
+    "%s: destructive-text on the outline hover (muted/40 over background) reaches 4.5:1",
+    (theme) => {
+      const background = toRgb(app[theme], "background");
+      const muted = toRgb(app[theme], "muted");
+      const hover = background.map(
+        (channel, i) => channel * 0.6 + muted[i]! * 0.4,
+      ) as Rgb;
+      const text = luminance(toRgb(app[theme], "destructive-text"));
+      const fill = luminance(hover);
+      expect(
+        (Math.max(text, fill) + 0.05) / (Math.min(text, fill) + 0.05),
+      ).toBeGreaterThanOrEqual(TEXT);
+    },
+  );
+
   it.each(BOTH)("%s: --court equals the mark coral", (theme) => {
     const mark = [1, 3, 5].map((i) => parseInt(V_CORAL.slice(i, i + 2), 16));
     toRgb(app[theme], "court").forEach((channel, i) => {

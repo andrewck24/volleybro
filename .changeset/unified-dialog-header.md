@@ -10,7 +10,7 @@
 - Show confirmations without a close button, with the title and text left-aligned; they close only through their buttons.
 - Show the lineup error and the unsaved set result as confirmations.
 - Keep the recording page header's back and settings buttons round on narrow phones by showing smaller scores there.
-- Show destructive buttons in confirmations, such as discarding changes, deleting, transferring or leaving a team, as a red outline instead of a filled button.
+- Show destructive buttons in confirmations, such as discarding changes, deleting, transferring or leaving a team, like the Cancel button but with red text, instead of a filled button.
 - Give the floating glass buttons a lighter shadow.
 - Make the recording page header shorter on narrow phones.
 - Show team names in the recording page header without clipping letters that reach below the line.
