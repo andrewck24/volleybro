@@ -1,3 +1,4 @@
+import { LineupError as LineupErrorDialog } from "@/components/team/lineup/panel/options/lineup-error";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,6 +80,10 @@ export const LeaveTeam: Story = {
       action="確認離開"
     />
   ),
+};
+
+export const LineupError: Story = {
+  render: () => <LineupErrorDialog open setOpen={() => {}} />,
 };
 
 const UnconfirmedSet = ({ attempting }: { attempting: boolean }) => (
